@@ -93,6 +93,35 @@ public:
    */
   inline Connection&            on_read(size_t recv_bufsz, ReadCallback callback);
 
+
+  using DataCallback           = delegate<void()>;
+  /**
+   * @brief      Event when incoming data is received by the connection.
+   *             The callback is called when either 1) PSH is seen, or 2) the buffer is full
+   *
+   *             The user is expected to fetch data by calling read_next, otherwise the
+   *             event will be triggered again. Unread data will be buffered as long as
+   *             there is capacity in the read queue.
+   *             If an on_read callback is also registered, this event has no effect.
+   *
+   * @param[in]  callback    The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            on_data(DataCallback callback);
+
+  /**
+   * @brief      Read the next fully acked chunk of received data if any.
+   *
+   * @return     Pointer to buffer if any, otherwise nullptr.
+   */
+  inline buffer_t read_next();
+
+  /**
+   * @return     The size of the next fully acked chunk of received data.
+   */
+  inline size_t   next_size();
+
   /** Called with the connection itself and the reason wrapped in a Disconnect struct. */
   using DisconnectCallback      = delegate<void(Connection_ptr self, Disconnect)>;
   /**
@@ -293,7 +322,7 @@ public:
    * @return     True if able to send, False otherwise.
    */
   bool can_send() const noexcept
-  { return usable_window() and writeq.has_remaining_requests(); }
+  { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
   /**
    * @brief      Return the "tuple" (id) of the connection.
@@ -713,6 +742,14 @@ private:
    * @param[in]  cb          The read callback
    */
   void _on_read(size_t recv_bufsz, ReadCallback cb);
+
+  /**
+   * @brief      Set the on_data handler
+   *
+   * @param[in]  cb          The callback
+   */
+  void _on_data(DataCallback cb);
+
 
   // Retrieve the associated shared_ptr for a connection, if it exists
   // Throws out_of_range if it doesn't

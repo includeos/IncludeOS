@@ -22,6 +22,7 @@ include_directories(${OPENSSL_DIR}/include)
 if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
                       "net/openssl/server.cpp"
+                      "net/openssl/tls_stream.cpp"
                       "net/https/openssl_server.cpp" "net/http/client.cpp")
   set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
 endif()
