@@ -18,7 +18,7 @@
 #ifndef DRIVERS_IDE_HPP
 #define DRIVERS_IDE_HPP
 
-#include <hw/block_device.hpp>
+#include <hw/writable_blkdev.hpp>
 #include <array>
 #include <delegate>
 #include <deque>
@@ -31,7 +31,7 @@ namespace hw {
 }
 
 /** IDE device driver  */
-class IDE : public hw::Block_device {
+class IDE : public hw::Writable_Block_device {
 public:
   static const int SECTOR_SIZE  = 512;
   static const int SECTOR_ARRAY = 256;
