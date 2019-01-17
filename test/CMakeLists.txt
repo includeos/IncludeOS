@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(unittests C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_BUILD_TYPE "Debug")
 
 # IncludeOS install location
 #if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
@@ -85,7 +86,7 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 ##needed by conaningans
-set(CMAKE_BUILD_TYPE "Debug")
+
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 #include conan cmake
 if (UPDATE)
@@ -97,6 +98,7 @@ conan_cmake_run(
     http-parser/2.8.1@includeos/test
     rapidjson/1.1.0@includeos/test
     GSL/2.0.0@includeos/test
+    lest/1.33.5@includeos/test
     BASIC_SETUP
     ${CONAN_UPDATE}
 )
@@ -107,7 +109,6 @@ include_directories(
   #TODO move to the right place
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/LiveUpdate
   ${INCLUDEOS_ROOT}/lib/LiveUpdate
-  ${TEST}/lest/include
 )
 
 set(LEST_UTIL
