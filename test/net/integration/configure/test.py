@@ -10,6 +10,6 @@ sys.path.insert(0,includeos_src)
 from vmrunner import vmrunner
 #TODO move timeout to ctest..
 if len(sys.argv) > 1:
-    vmrunner.vms[0].boot(30,image_name=str(sys.argv[1]))
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
 else:
-    vmrunner.vms[0].cmake().boot(30).clean()
+    vmrunner.vms[0].cmake().boot(30,,image_name='net_configure').clean()

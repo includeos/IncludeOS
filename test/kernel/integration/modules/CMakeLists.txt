@@ -26,7 +26,7 @@ set(SOURCES
     hotswap.cpp
   )
 
-os_add_executable(modules "Kernel modules test" ${SOURCES})
+os_add_executable(kernel_modules "Kernel modules test" ${SOURCES})
 
 # Build the mod2 service and install to here, to use as a loadable module
 include(ExternalProject)
@@ -36,4 +36,4 @@ ExternalProject_Add(mod2
   BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/mod2/build
   INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/mod2/build/seed ${CMAKE_CURRENT_BINARY_DIR}/
   )
-os_add_dependencies(modules mod2)
+os_add_dependencies(kernel_modules mod2)

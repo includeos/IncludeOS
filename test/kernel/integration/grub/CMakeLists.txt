@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(grub "GRUB boot test" ${SOURCES})
-os_add_stdout(grub default_stdout)
+os_add_executable(kernel_grub "GRUB boot test" ${SOURCES})
+os_add_stdout(kernel_grub default_stdout)

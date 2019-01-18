@@ -103,7 +103,7 @@ def start_icmp_test(trigger_line):
 vm.on_output("Service IP address is 10.0.0.45", start_icmp_test);
 
 if len(sys.argv) > 1:
-    vm.boot(thread_timeout,image_name=str(sys.argv[1]))
+    vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(thread_timeout).clean()
+    vm.cmake().boot(thread_timeout,,image_name='net_icmp').clean()

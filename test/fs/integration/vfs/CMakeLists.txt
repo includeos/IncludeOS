@@ -21,9 +21,9 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "VFS filesystem test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(vfs "VFS filesystem test" ${SOURCES})
+os_add_stdout(vfs default_stdout)
 
-os_add_drivers(service virtioblk)
+os_add_drivers(vfs virtioblk)
 
-os_diskbuilder(service memdisk)
+os_diskbuilder(vfs memdisk)

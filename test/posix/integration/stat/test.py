@@ -12,12 +12,9 @@ from subprocess import call
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
-vm.cmake()
+
 
 num_outputs = 0
-
-def cleanup():
-  vm.clean()
 
 def increment(line):
   global num_outputs
@@ -51,7 +48,9 @@ vm.on_output("fstatat\(\) of file that exists is ok", increment)
 
 vm.on_output("All done!", check_num_outputs)
 
-vm.on_exit(cleanup)
-
 # Boot the VM, taking a timeout as parameter
-vm.boot(20)
+if len(sys.argv) > 1:
+    vm.boot(20,image_name=str(sys.argv[1]))
+else:
+    vm.cmake()
+    vm.boot(20,image_name='posix_stat').clean()

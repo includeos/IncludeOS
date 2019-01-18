@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(rng "R.N.Geesus test" ${SOURCES})
-os_add_stdout(rng default_stdout)
+os_add_executable(kernel_rng "R.N.Geesus test" ${SOURCES})
+os_add_stdout(kernel_rng default_stdout)
 #os_add_drivers(service boot_logger)
-os_add_plugins(rng vfs)
+os_add_plugins(kernel_rng vfs)

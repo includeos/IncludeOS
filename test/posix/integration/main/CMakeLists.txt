@@ -24,7 +24,7 @@ else()
   set(SOURCES main_no_params.cpp)
 endif()
 
-os_add_executable(service "POSIX main test" ${SOURCES})
+os_add_executable(posix_main "POSIX main test" ${SOURCES})
 
-os_add_plugins(service vfs)
-os_add_stdout(service default_stdout)
+os_add_plugins(posix_main vfs)
+os_add_stdout(posix_main default_stdout)

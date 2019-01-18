@@ -24,6 +24,6 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(tls "TLS test" ${SOURCES})
-os_add_stdout(tls default_stdout)
-os_add_drivers(tls boot_logger)
+os_add_executable(kernel_tls "TLS test" ${SOURCES})
+os_add_stdout(kernel_tls default_stdout)
+os_add_drivers(kernel_tls boot_logger)

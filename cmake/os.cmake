@@ -220,7 +220,7 @@ else()
 endif()
 
 # arch and platform defines
-message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
+#message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
@@ -354,10 +354,10 @@ function (os_add_library_from_path TARGET LIBRARY PATH)
     return()
   endif()
 
-  add_library(${LIBRARY} STATIC IMPORTED)
-  set_target_properties(${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION "${FILENAME}")
-  os_link_libraries(${TARGET} --whole-archive ${LIBRARY} --no-whole-archive)
+  add_library(${TARGET}_${LIBRARY} STATIC IMPORTED)
+  set_target_properties(${TARGET}_${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(${TARGET}_${LIBRARY} PROPERTIES IMPORTED_LOCATION "${FILENAME}")
+  os_link_libraries(${TARGET} --whole-archive ${TARGET}_${LIBRARY} --no-whole-archive)
 endfunction()
 
 function (os_add_drivers TARGET)
@@ -390,16 +390,16 @@ function(os_add_memdisk TARGET DISK)
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
-  add_library(memdisk STATIC memdisk.o)
-  set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
-  os_link_libraries(${TARGET} --whole-archive memdisk --no-whole-archive)
+  add_library(${TARGET}_memdisk STATIC memdisk.o)
+  set_target_properties(${TARGET}_memdisk PROPERTIES LINKER_LANGUAGE CXX)
+  os_link_libraries(${TARGET} --whole-archive ${TARGET}_memdisk --no-whole-archive)
 endfunction()
 
 # automatically build memdisk from folder
 function(os_build_memdisk TARGET FOLD)
-  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   #detect changes in disc folder and if and only if changed update the file that triggers rebuild
-  add_custom_target(disccontent ALL
+  add_custom_target(${TARGET}_disccontent ALL
     COMMAND find ${REL_PATH}/ -type f -exec md5sum "{}" + > /tmp/manifest.txt.new
     COMMAND cmp --silent ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt /tmp/manifest.txt.new || cp /tmp/manifest.txt.new ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
     COMMENT "Checking disc content changes"
@@ -411,10 +411,10 @@ function(os_build_memdisk TARGET FOLD)
       OUTPUT  memdisk.fat
       COMMAND ${INCLUDEOS_PREFIX}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
       COMMENT "Creating memdisk"
-      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt disccontent
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt ${TARGET}_disccontent
       )
-  add_custom_target(diskbuilder DEPENDS memdisk.fat)
-  os_add_dependencies(${TARGET} diskbuilder)
+  add_custom_target(${TARGET}_diskbuilder DEPENDS memdisk.fat)
+  os_add_dependencies(${TARGET} ${TARGET}_diskbuilder)
   os_add_memdisk(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/memdisk.fat")
 endfunction()
 
@@ -424,7 +424,7 @@ function(os_diskbuilder TARGET FOLD)
 endfunction()
 
 function(os_install_certificates FOLDER)
-  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   message(STATUS "Install certificate bundle at ${FOLDER}")
   file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
 endfunction()

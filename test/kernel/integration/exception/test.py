@@ -22,6 +22,6 @@ vm.on_output("Divide-by-zero Error", is_good)
 vm.on_output("__cpu_exception", is_good)
 vm.on_output("Service::start()", is_good)
 if len(sys.argv) > 1:
-    vm.boot(20,image_name=str(sys.argv[1]))
+    vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(20).clean()
+    vm.cmake().boot(20,image_name='kernel_exception').clean()

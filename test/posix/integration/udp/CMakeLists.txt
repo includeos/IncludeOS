@@ -23,7 +23,7 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "POSIX UDP test" ${SOURCES})
+os_add_executable(posix_udp "POSIX UDP test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(posix_udp virtionet)
+os_add_stdout(posix_udp default_stdout)

@@ -21,7 +21,7 @@ set(SOURCES
     fat16.cpp
 )
 
-os_add_executable(service "FAT16 filesystem test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(fs_fat16 "FAT16 filesystem test" ${SOURCES})
+os_add_stdout(fs_fat16 default_stdout)
 
-os_diskbuilder(service disk)
+os_diskbuilder(fs_fat16 disk)

@@ -18,4 +18,8 @@ from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
 vm.on_exit(cleanup)
-vm.cmake().boot(thread_timeout).clean()
+
+if len(sys.argv) > 1:
+    vm.boot(thread_timeout,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout,image_name='fs_virtio_block').clean()

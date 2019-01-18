@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(nat "NAT test" ${SOURCES})
+os_add_executable(net_nat "NAT test" ${SOURCES})
 
-os_add_drivers(nat virtionet)
-os_add_stdout(nat default_stdout)
+os_add_drivers(net_nat virtionet)
+os_add_stdout(net_nat default_stdout)

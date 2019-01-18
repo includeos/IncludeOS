@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "VFS filesystem test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(fs_ide_write "VFS filesystem test" ${SOURCES})
+os_add_stdout(fs_ide_write default_stdout)
 
-os_add_drivers(service ide_writeonly)
+os_add_drivers(fs_ide_write ide_writeonly)

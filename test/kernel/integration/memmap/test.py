@@ -23,6 +23,6 @@ vm.on_exit_success(test2)
 print "Booting VM 1 - default amount of memory"
 
 if len(sys.argv) > 1:
-    vm.boot(20,image_name=str(sys.argv[1]))
+    vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(20).clean()
+    vm.cmake().boot(20,image_name='kernel_memmap').clean()

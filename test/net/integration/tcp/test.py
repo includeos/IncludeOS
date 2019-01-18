@@ -111,7 +111,7 @@ vm.on_output("TEST4", test4)
 vm.on_output("TEST5", test5)
 
 if len(sys.argv) > 1:
-    vm.boot(120,image_name=str(sys.argv[1]))
+    vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(120).clean()
+    vm.cmake().boot(120,image_name='net_tcp').clean()

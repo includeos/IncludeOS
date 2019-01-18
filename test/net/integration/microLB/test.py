@@ -59,7 +59,7 @@ vm.on_output("MicroLB ready for test", startBenchmark)
 vm.on_output("TCP MSL ended", mslEnded)
 
 if len(sys.argv) > 1:
-    vm.boot(20,image_name=str(sys.argv[1]))
+    vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(20).clean()
+    vm.cmake().boot(20,image_name='net_microLB').clean()

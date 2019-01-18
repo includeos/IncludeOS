@@ -23,6 +23,7 @@ if len(sys.argv) == 1:
 grubify = "grubiso.sh"
 
 
+#TODO MOVE to cmake ?
 # Boot the image
 if len(sys.argv) > 1:
     # Create the GRUB image

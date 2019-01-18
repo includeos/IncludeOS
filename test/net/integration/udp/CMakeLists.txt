@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(udp "UDP test" ${SOURCES})
+os_add_executable(net_udp "UDP test" ${SOURCES})
 
-os_add_drivers(udp virtionet ip4_reassembly)
-os_add_stdout(udp default_stdout)
+os_add_drivers(net_udp virtionet ip4_reassembly)
+os_add_stdout(net_udp default_stdout)
