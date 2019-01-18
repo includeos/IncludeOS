@@ -259,8 +259,12 @@ namespace microLB
       auto &session=get_session(idx);
 
       // free session destroying potential unique ptr objects
-      session.incoming =nullptr;
-      session.outgoing=nullptr;
+      session.incoming = nullptr;
+      auto out_tcp = dynamic_cast<net::tcp::Stream*>(session.outgoing->bottom_transport())->tcp();
+      session.outgoing = nullptr;
+      // if we don't have anything to write to the backend, abort it.
+      if(not out_tcp->sendq_size())
+        out_tcp->abort();
       free_sessions.push_back(session.self);
       LBOUT("Session %d destroyed  (total = %d)\n", session.self, session_cnt);
     }
@@ -359,7 +363,17 @@ namespace microLB
   }
   void Node::connect()
   {
-    auto outgoing = this->stack.tcp().connect(this->addr);
+    net::tcp::Connection_ptr outgoing;
+    try
+    {
+      outgoing = this->stack.tcp().connect(this->addr);
+    }
+    catch(const net::TCP_error& err)
+    {
+      LBOUT("Got exception: %s\n", err.what());
+      this->restart_active_check();
+      return;
+    }
     // connecting to node atm.
     this->connecting++;
     // retry timer when connect takes too long
