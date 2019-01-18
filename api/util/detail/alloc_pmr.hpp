@@ -33,6 +33,7 @@ namespace os::mem::detail {
 
     void* do_allocate(size_t size, size_t align) override {
       if (UNLIKELY(size + allocated_ > cap_total_)) {
+        //printf("pmr about to throw bad alloc: sz=%zu alloc=%zu cap=%zu\n", size, allocated_, cap_total_);
         throw std::bad_alloc();
       }
 
@@ -46,6 +47,7 @@ namespace os::mem::detail {
       void* buf = memalign(align, size);
 
       if (buf == nullptr) {
+        //printf("pmr memalign return nullptr, throw bad alloc\n");
         throw std::bad_alloc();
       }
 
@@ -152,7 +154,9 @@ namespace os::mem::detail {
 
     std::size_t resource_capacity() {
       if (cap_suballoc_ == 0)
+      {
         return cap_total_ / (used_resources_ + os::mem::Pmr_pool::resource_division_offset);
+      }
       return cap_suballoc_;
     }
 
@@ -244,7 +248,9 @@ namespace os::mem {
   // Pmr_resource implementation
   //
   Pmr_resource::Pmr_resource(Pool_ptr p) : pool_{p} {}
-  std::size_t Pmr_resource::capacity() { return pool_->resource_capacity(); }
+  std::size_t Pmr_resource::capacity() {
+    return std::min(pool_->resource_capacity(), pool_->allocatable());
+  }
   std::size_t Pmr_resource::allocatable() {
     auto cap = capacity();
     if (used > cap)
@@ -267,10 +273,8 @@ namespace os::mem {
     }
 
     void* buf = pool_->allocate(size, align);
-
     used += size;
     allocs++;
-
     return buf;
   }
 
