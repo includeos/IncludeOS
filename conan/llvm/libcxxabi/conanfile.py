@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from conans import ConanFile,tools,CMake
 
 class LibCxxAbiConan(ConanFile):
@@ -15,9 +18,11 @@ class LibCxxAbiConan(ConanFile):
     no_copy_source=True
 
     def llvm_checkout(self,project):
-        branch = "release_{}".format(self.version.replace('.',''))
-        llvm_project=tools.Git(folder=project)
-        llvm_project.clone("https://github.com/llvm-mirror/{}.git".format(project),branch=branch)
+        filename="{}-{}.src.tar.xz".format(project,self.version)
+        tools.download("http://releases.llvm.org/{}/{}".format(self.version,filename),filename)
+        tools.unzip(filename)
+        os.unlink(filename)
+        shutil.move("{}-{}.src".format(project,self.version),project)
 
     def source(self):
         self.llvm_checkout("llvm")
@@ -27,8 +32,10 @@ class LibCxxAbiConan(ConanFile):
     def _triple_arch(self):
         return {
             "x86":"i686",
-            "x86_64":"x86_64"
+            "x86_64":"x86_64",
+            "armv8" : "aarch64"
         }.get(str(self.settings.arch))
+
 
     def _configure_cmake(self):
         cmake=CMake(self)
