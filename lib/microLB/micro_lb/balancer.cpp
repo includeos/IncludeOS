@@ -368,7 +368,7 @@ namespace microLB
     {
       outgoing = this->stack.tcp().connect(this->addr);
     }
-    catch(const net::TCP_error& err)
+    catch([[maybe_unused]]const net::TCP_error& err)
     {
       LBOUT("Got exception: %s\n", err.what());
       this->restart_active_check();

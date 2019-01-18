@@ -272,19 +272,10 @@ namespace os::mem {
       throw std::bad_alloc();
     }
 
-    try
-    {
-      void* buf = pool_->allocate(size, align);
-      used += size;
-      allocs++;
-      return buf;
-    }
-    catch(const std::bad_alloc&)
-    {
-      //printf("Pool returned bad alloc, resource: used=%zu reported_cap=%zu allocatable=%zu\n",
-      //  used, cap, allocatable());
-      throw;
-    }
+    void* buf = pool_->allocate(size, align);
+    used += size;
+    allocs++;
+    return buf;
   }
 
   void Pmr_resource::do_deallocate(void* ptr, std::size_t s, std::size_t a) {
