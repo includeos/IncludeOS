@@ -53,8 +53,9 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
 
 Connection::~Connection()
 {
-  //printf("<Connection> Deleted %p %s  ACTIVE: %u\n", this,
+  //printf("<Connection> Deleted %p %s  ACTIVE: %zu\n", this,
   //        to_string().c_str(), host_.active_connections());
+
   rtx_clear();
 }
 
