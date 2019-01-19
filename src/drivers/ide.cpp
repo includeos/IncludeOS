@@ -186,24 +186,6 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   INFO("IDE", "Initialization complete");
 }
 
-void IDE::read(block_t blk, on_read_func callback)
-{
-  if (blk >= this->num_blocks) {
-    // avoid reading past the disk boundaries
-    callback(nullptr);
-    return;
-  }
-  IDBG("IDE: Read called on %lu\n", blk);
-
-#ifdef IDE_ENABLE_READ
-  work_queue.emplace_back(drive_id, blk, 1, callback);
-  if (work_queue.size() == 1) work_begin_next();
-#else
-  (void) blk;
-  callback(nullptr);
-#endif
-}
-
 void IDE::read(block_t blk, size_t count, on_read_func callback)
 {
   // avoid reading past the disk boundaries, or reading 0 sectors
@@ -223,7 +205,7 @@ void IDE::read(block_t blk, size_t count, on_read_func callback)
 #endif
 }
 
-IDE::buffer_t IDE::read_sync(block_t blk)
+IDE::buffer_t IDE::read_sync(block_t blk, size_t cnt)
 {
   if (blk >= this->num_blocks) {
     // avoid reading past the disk boundaries
@@ -233,27 +215,20 @@ IDE::buffer_t IDE::read_sync(block_t blk)
 #ifdef IDE_ENABLE_READ
   set_irq_mode(false);
   set_drive(0xE0 | drive_id | ((blk >> 24) & 0x0F));
-  set_nbsectors(1);
+  set_nbsectors(cnt);
   set_blocknum(blk);
   set_command(IDE_CMD_READ);
 
-  auto buffer = fs::construct_buffer(IDE::SECTOR_SIZE);
+  auto buffer = fs::construct_buffer(IDE::SECTOR_SIZE * cnt);
   wait_status_flags(IDE_DRDY, false);
 
   auto* data = (uint16_t*) buffer->data();
-  for (size_t i = 0; i < IDE::SECTOR_ARRAY; i++)
+  for (size_t i = 0; i < IDE::SECTOR_ARRAY * cnt; i++)
       data[i] = hw::inw(IDE_DATA);
   return buffer;
 #else
   return nullptr;
 #endif
-}
-IDE::buffer_t IDE::read_sync(block_t blk, size_t cnt)
-{
-  (void) blk;
-  (void) cnt;
-  // not yet implemented
-  return nullptr;
 }
 
 void IDE::write(block_t blk, buffer_t buffer, on_write_func callback)

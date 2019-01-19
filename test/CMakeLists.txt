@@ -127,11 +127,16 @@ set(TEST_SOURCES
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
+  ${TEST}/hw/unit/usernet.cpp
+  ${TEST}/hw/unit/virtio_queue.cpp
   ${TEST}/kernel/unit/arch.cpp
+  ${TEST}/kernel/unit/block.cpp
+  ${TEST}/kernel/unit/cpuid.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
+  ${TEST}/kernel/unit/rng.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/kernel/unit/unit_events.cpp
   ${TEST}/kernel/unit/unit_timers.cpp

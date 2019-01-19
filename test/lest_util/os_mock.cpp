@@ -70,7 +70,6 @@ printf("%s", str);
 void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
-void OS::block() {}
 void OS::halt() {}
 void OS::resume_softreset(intptr_t) {}
 bool OS::is_softreset_magic(uint32_t) {
