@@ -166,10 +166,37 @@ CASE("pmr::resource usage") {
 
   // Drain all the resources
   for (auto& res : resources) {
+    auto exp_alloc = resource_cap;
+    EXPECT(not res->full());
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+    EXPECT(res->allocated() == 0);
+
     auto* p1 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 1_KiB);
+    EXPECT(res->capacity() == resource_cap);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     auto* p2 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 2_KiB);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     auto* p3 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 3_KiB);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     auto* p4 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 4_KiB);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     EXPECT(p1 != nullptr);
     EXPECT(p2 != nullptr);
     EXPECT(p3 != nullptr);
