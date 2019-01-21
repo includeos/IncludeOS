@@ -133,7 +133,7 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
       vsum=(vsum & 0xFFFF)+(vsum>>16);
     }
     //allways right in this case as its allways little endian x86
-    return ~net::ntohs((uint16_t)(vsum));
+    return ~ntohs((uint16_t)(vsum));
 #elif defined(__AVX2__)
   // VEX-align buffer
   while (((uintptr_t) buffer & 15) && length >= 4) {
