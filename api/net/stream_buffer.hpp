@@ -205,7 +205,9 @@ namespace net {
           // Pop each time, in case callback leads to another call here.
           m_send_buffers.pop_front();
           m_on_read(buf);
-          if (m_on_read == nullptr) { break; } //if calling m_on_read reset the callbacks exit
+          if (m_on_read == nullptr) {
+            break;
+          } //if calling m_on_read reset the callbacks exit
         }
       }
     }
