@@ -94,16 +94,16 @@ using namespace std;
 bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
 {
   auto& tcb = tcp.tcb();
-  uint32_t packet_end = static_cast<uint32_t>(in.seq() + in.tcp_data_length()-1);
 
   // RFC 7323
   static constexpr uint8_t HEADER_WITH_TS{sizeof(Header) + 12};
   if(tcb.SND.TS_OK and in.tcp_header_length() == HEADER_WITH_TS)
   {
     const auto* ts = in.parse_ts_option();
+    in.set_ts_option(ts);
 
     // PAWS
-    if(UNLIKELY(ts != nullptr and (ntohl(ts->val) < tcb.TS_recent and !in.isset(RST))))
+    if(UNLIKELY(ts != nullptr and (ts->get_val() < tcb.TS_recent and !in.isset(RST))))
     {
       /*
         If the connection has been idle more than 24 days,
@@ -117,7 +117,8 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
 
   debug2("<Connection::State::check_seq> TCB: %s \n",tcb.to_string().c_str());
   // #1 - The packet we expect
-  if( in.seq() == tcb.RCV.NXT ) {
+  if( in.seq() == tcb.RCV.NXT )
+  {
     goto acceptable;
   }
   /// if SACK isn't permitted there is no point handling out-of-order packets
@@ -125,16 +126,7 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
     goto unacceptable;
 
   // #2 - Packet is ahead of what we expect to receive, but inside our window
-  if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
-    goto acceptable;
-  }
-  // #3 (INVALID) - Packet is outside the right edge of the recv window
-  else if( packet_end > tcb.RCV.NXT+tcb.RCV.WND ) {
-    goto unacceptable;
-  }
-  // #4 - Packet with payload is what we expect or bigger, but inside our window
-  else if( tcb.RCV.NXT <= packet_end
-      and packet_end < tcb.RCV.NXT+tcb.RCV.WND ) {
+  if( (in.seq() - tcb.RCV.NXT) < tcb.RCV.WND ) {
     goto acceptable;
   }
   /*
@@ -149,6 +141,8 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
   */
 
 unacceptable:
+  tcp.update_rcv_wnd();
+
   if(!in.isset(RST))
     tcp.send_ack();
 
@@ -157,10 +151,13 @@ unacceptable:
 
 acceptable:
   const auto* ts = in.ts_option();
+  if(tcb.SND.TS_OK)
+    ts = in.parse_ts_option();
+
   if(ts != nullptr and
-    (ntohl(ts->val) >= tcb.TS_recent and in.seq() <= tcp.last_ack_sent_))
+    (ts->get_val() >= tcb.TS_recent and in.seq() <= tcp.last_ack_sent_))
   {
-    tcb.TS_recent = ntohl(ts->val);
+    tcb.TS_recent = ts->get_val();
   }
   debug2("<Connection::State::check_seq> Acceptable SEQ: %u \n", in.seq());
   // is acceptable.
@@ -200,8 +197,8 @@ acceptable:
 
 void Connection::State::unallowed_syn_reset_connection(Connection& tcp, const Packet_view& in) {
   assert(in.isset(SYN));
-  debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n",
-        tcp.state().to_string().c_str());
+  debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection. %s\n",
+        tcp.state().to_string().c_str(), in.to_string().c_str());
   // Not sure if this is the correct way to send a "reset response"
   auto packet = tcp.outgoing_packet();
   packet->set_seq(in.ack()).set_flag(RST);
@@ -240,17 +237,10 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
     // Correction: [RFC 1122 p. 94]
     // ACK is inside sequence space
     //return tcp.handle_ack(in);
-    if(in.ack() <= tcb.SND.NXT ) {
+
+    if ( (in.ack()-tcb.SND.UNA) <= (tcb.SND.NXT-tcb.SND.UNA)) {
 
       return tcp.handle_ack(in);
-      // this is a "new" ACK
-      //if(tcb.SND.UNA <= in->ack()) {
-
-        // this is a NEW ACK
-        //if(tcb.SND.UNA < in->ack())
-        //{
-        //  tcp.acknowledge(in->ack());
-        //}
          // [RFC 5681]
         /*
           DUPLICATE ACKNOWLEDGMENT:
@@ -268,23 +258,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
           new data unless the incoming duplicate acknowledgment contains
           new SACK information.
         */
-        // this is a RFC 5681 DUP ACK
-        //!in->isset(FIN) and !in->isset(SYN)
-        //else if(tcp.reno_is_dup_ack(in)) {
-        //  debug2("<Connection::State::check_ack> Reno Dup ACK %u\n", in->ack());
-        //  tcp.reno_dup_ack(in->ack());
-        //}
-        // this is an RFC 793 DUP ACK
-        //else {
-          //printf("<Connection::State::check_ack> RFC 793 Dup ACK %u\n", in->ack());
-        //}
-      //}
-      // this is an "old" ACK out of order
-      //else {
-      //  printf("<Connection::State::check_ack> ACK out of order (SND.UNA > ACK)\n");
-      //}
-      // tcp.signal_sent();
-      // return that buffer has been SENT - currently no support to receipt sent buffer.
+
     }
     /* If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return. */
     else {
@@ -945,7 +919,8 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_view& in) 
     */
     if(tcb.SND.UNA <= in.ack() and in.ack() <= tcb.SND.NXT)
     {
-      debug2("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+      debug2("<Connection::SynReceived::handle> %s SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED.\n",
+        tcp.to_string().c_str());
 
       tcp.set_state(Connection::Established::instance());
 
@@ -1084,6 +1059,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
     if(in.ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
+      tcp.release_memory();
       if(tcp.rtx_timer.is_running())
         tcp.rtx_stop();
       tcp.timewait_start();
@@ -1131,6 +1107,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
+    tcp.release_memory();
     if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
     tcp.timewait_start();
@@ -1205,6 +1182,7 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_view& in) {
   if(in.ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(TimeWait::instance());
+    tcp.release_memory();
     tcp.timewait_start();
   }
 

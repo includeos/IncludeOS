@@ -42,7 +42,7 @@ void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
   // only recv to buffer if not full
   if(buffer_.size() < max_buffer_msgs()) {
     // copy data into to-be Message buffer
-    auto buff = net::tcp::buffer_t(new std::vector<uint8_t> (buf, buf + len));
+    auto buff = net::tcp::construct_buffer(buf, buf + len);
     // emplace the message in buffer
     buffer_.emplace_back(htonl(addr.v4().whole), htons(port), std::move(buff));
   }

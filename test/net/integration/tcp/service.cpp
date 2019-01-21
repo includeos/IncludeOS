@@ -23,6 +23,7 @@
 
 using namespace net;
 using namespace std::chrono; // For timers and MSL
+using namespace util;        // For KiB/MiB/GiB literals
 tcp::Connection_ptr client;
 
 static Inet& stack()
@@ -32,7 +33,7 @@ static Inet& stack()
   TEST VARIABLES
 */
 tcp::port_t
-TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
+TEST0{8080},TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
 
 using HostAddress = std::pair<std::string, tcp::port_t>;
 HostAddress
@@ -131,6 +132,8 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
+size_t recv = 0;
+size_t chunks = 0;
 void Service::start()
 {
 #ifdef USERSPACE_LINUX
@@ -165,6 +168,9 @@ void Service::start()
   // reduce test duration
   tcp.set_MSL(MSL_TEST);
 
+  // Modify total buffers assigned to TCP here
+  tcp.set_total_bufsize(64_MiB);
+
   /*
     TEST: Send and receive small string.
   */
@@ -175,6 +181,24 @@ void Service::start()
   */
   CHECK(tcp.listening_ports() == 0, "No (0) open ports (listening connections)");
   CHECK(tcp.active_connections() == 0, "No (0) active connections");
+
+  // Trigger with e.g.:
+  // dd if=/dev/zero bs=9000 count=1000000 | nc 10.0.0.44 8080 | grep Received -a
+  tcp.listen(TEST0).on_connect([](tcp::Connection_ptr conn) {
+      INFO("Test 0", "Circle of Evil");
+      conn->on_read(424242, [conn](tcp::buffer_t buffer) {
+          recv += buffer->size();
+          chunks++;
+          if (chunks % 100 == 0) {
+            std::string res = std::string("Received ") + util::Byte_r(recv).to_string() + "\n";
+            printf("%s", res.c_str());
+            auto new_buf = std::make_shared<std::pmr::vector<uint8_t>>(res.begin(), res.end());
+            conn->write(new_buf);
+          }
+          conn->write(buffer);
+        });
+    });
+
 
   tcp.listen(TEST1).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 1", "SMALL string (%u)", small.size());

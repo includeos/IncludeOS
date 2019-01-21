@@ -2,9 +2,6 @@
 #include <net/tcp/stream.hpp>
 #include <kernel/os.hpp>
 
-#define READQ_PER_CLIENT        4096
-#define MAX_READQ_PER_NODE      8192
-#define READQ_FOR_NODES         8192
 #define MAX_OUTGOING_ATTEMPTS    100
 // checking if nodes are dead or not
 #define ACTIVE_INITIAL_PERIOD     8s
@@ -15,7 +12,7 @@
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
-#define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define LBOUT(fmt, ...) printf("MICROLB: "); printf(fmt, ##__VA_ARGS__)
 #else
 #define LBOUT(fmt, ...) /** **/
 #endif
@@ -62,7 +59,7 @@ namespace microLB
       if (client.conn->is_connected()) {
         // NOTE: explicitly want to copy buffers
         net::Stream_ptr rval =
-            nodes.assign(std::move(client.conn), client.readq);
+            nodes.assign(std::move(client.conn));
         if (rval == nullptr) {
           // done with this queue item
           queue.pop_front();
@@ -81,6 +78,7 @@ namespace microLB
   }
   void Balancer::handle_connections()
   {
+    LBOUT("Handle_connections. %lu waiting \n", queue.size());
     // stop any rethrow timer since this is a de-facto retry
     if (this->throw_retry_timer != Timers::UNUSED_ID) {
         Timers::stop(this->throw_retry_timer);
@@ -126,20 +124,14 @@ namespace microLB
   {
     assert(this->conn != nullptr);
     assert(this->conn->is_connected());
-    // queue incoming data from clients not yet
-    // assigned to a node
-    this->conn->on_read(READQ_PER_CLIENT,
-    [this] (auto buf) {
-      // prevent buffer bloat attack
-      this->total += buf->size();
-      if (this->total > MAX_READQ_PER_NODE) {
-        this->conn->close();
-      }
-      else {
-        LBOUT("*** Queued %lu bytes\n", buf->size());
-        readq.push_back(buf);
-      }
-    });
+
+    // Release connection if it closes before it's assigned to a node.
+    this->conn->on_close([this](){
+        LBOUT("Waiting issuing close\n");
+        if (this->conn != nullptr)
+          this->conn->reset_callbacks();
+        this->conn = nullptr;
+      });
   }
 
   void Nodes::create_connections(int total)
@@ -172,7 +164,7 @@ namespace microLB
       }
     }
   }
-  net::Stream_ptr Nodes::assign(net::Stream_ptr conn, queue_vector_t& readq)
+  net::Stream_ptr Nodes::assign(net::Stream_ptr conn)
   {
     for (size_t i = 0; i < nodes.size(); i++)
     {
@@ -185,13 +177,10 @@ namespace microLB
         assert(outgoing->is_connected());
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
+        //Should we some way hold track of the session object ?
         auto& session = this->create_session(
               std::move(conn), std::move(outgoing));
-        // flush readq to session.outgoing
-        for (auto buffer : readq) {
-          LBOUT("*** Flushing %lu bytes\n", buffer->size());
-          session.outgoing->write(buffer);
-        }
+
         return nullptr;
       }
     }
@@ -248,16 +237,39 @@ namespace microLB
     assert(session.is_alive());
     return session;
   }
+
+  void Nodes::destroy_sessions()
+  {
+    for (auto& idx: closed_sessions)
+    {
+      auto &session=get_session(idx);
+
+      // free session destroying potential unique ptr objects
+      session.incoming = nullptr;
+      auto out_tcp = dynamic_cast<net::tcp::Stream*>(session.outgoing->bottom_transport())->tcp();
+      session.outgoing = nullptr;
+      // if we don't have anything to write to the backend, abort it.
+      if(not out_tcp->sendq_size())
+        out_tcp->abort();
+      free_sessions.push_back(session.self);
+      LBOUT("Session %d destroyed  (total = %d)\n", session.self, session_cnt);
+    }
+    closed_sessions.clear();
+  }
   void Nodes::close_session(int idx)
   {
     auto& session = get_session(idx);
     // remove connections
     session.incoming->reset_callbacks();
-    session.incoming = nullptr;
     session.outgoing->reset_callbacks();
-    session.outgoing = nullptr;
-    // free session
-    free_sessions.push_back(session.self);
+    closed_sessions.push_back(session.self);
+
+    if (!cleanup_timer.is_running())
+    {
+      cleanup_timer.start(std::chrono::milliseconds(10),[this](){
+        this->destroy_sessions();
+      });
+    }
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
     if (on_session_close) on_session_close(session.self, session_cnt, session_total);
@@ -304,11 +316,14 @@ namespace microLB
         this->active_timer = Timers::periodic(
           ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
           {this, &Node::perform_active_check});
-        LBOUT("Node %d restarting active check (and is inactive)\n", this->m_idx);
+
+        LBOUT("Node %s restarting active check (and is inactive)\n",
+              this->addr.to_string().c_str());
       }
       else
       {
-        LBOUT("Node %d still trying to connect...\n", this->m_idx);
+        LBOUT("Node %s still trying to connect...\n",
+              this->addr.to_string().c_str());
       }
     }
   }
@@ -363,8 +378,14 @@ namespace microLB
         auto conn = std::move(pool.back());
         assert(conn != nullptr);
         pool.pop_back();
-        if (conn->is_connected()) return conn;
-        else conn->close();
+        if (conn->is_connected()) {
+          return conn;
+        }
+        else
+        {
+          printf("CLOSING SINCE conn->connected is false\n");
+          conn->close();
+        }
     }
     return nullptr;
   }
@@ -375,49 +396,30 @@ namespace microLB
       : parent(n), self(idx), incoming(std::move(inc)),
                               outgoing(std::move(out))
   {
-    incoming->on_read(READQ_PER_CLIENT,
-    [this] (auto buf) {
-        assert(this->is_alive());
-        this->outgoing->write(buf);
+
+    incoming->on_data([this]() {
+      assert(this->is_alive());
+      while((this->incoming->next_size() > 0) and this->outgoing->is_writable())
+      {
+        this->outgoing->write(this->incoming->read_next());
+      }
     });
     incoming->on_close(
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
-    outgoing->on_read(READQ_FOR_NODES,
-    [this] (auto buf) {
-        assert(this->is_alive());
-        this->incoming->write(buf);
+
+    outgoing->on_data([this]() {
+      assert(this->is_alive());
+      while((this->outgoing->next_size() > 0) and this->incoming->is_writable())
+      {
+        this->incoming->write(this->outgoing->read_next());
+      }
     });
     outgoing->on_close(
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
-
-    // get the actual TCP connections
-    /*
-    auto conn_in  = dynamic_cast<net::tcp::Stream*>(incoming->bottom_transport())->tcp();
-    assert(conn_in != nullptr);
-    auto conn_out = dynamic_cast<net::tcp::Stream*>(outgoing->bottom_transport())->tcp();
-    assert(conn_out != nullptr);
-
-    static const uint32_t sendq_max = 0x400000;
-    // set recv window handlers
-    conn_in->set_recv_wnd_getter(
-      [conn_out] () -> uint32_t {
-        auto sendq_size = conn_out->sendq_size();
-        //if (sendq_size == 0)
-        //    printf("WARNING: Incoming reports sendq size: %u\n", sendq_size);
-        return sendq_max - sendq_size;
-      });
-    conn_out->set_recv_wnd_getter(
-      [conn_in] () -> uint32_t {
-        auto sendq_size = conn_in->sendq_size();
-        //if (sendq_size == 0)
-        //    printf("WARNING: Outgoing reports sendq size: %u\n", sendq_size);
-        return sendq_max - sendq_size;
-      });
-    */
   }
   bool Session::is_alive() const {
     return incoming != nullptr;

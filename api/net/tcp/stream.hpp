@@ -60,6 +60,31 @@ namespace net::tcp
     { m_tcp->on_read(n, cb); }
 
     /**
+     * @brief      Event when data is received.
+     *             Does not push data, just signals its presence.
+     *
+     * @param[in]  cb    The callback
+     */
+    void on_data(DataCallback cb) override {
+      m_tcp->on_data(cb);
+    };
+
+    /**
+     * @return The size of the next available chunk of data if any.
+     */
+    size_t next_size() override {
+      return m_tcp->next_size();
+    };
+
+    /**
+     * @return The next available chunk of data if any.
+     */
+    buffer_t read_next() override {
+      return m_tcp->read_next();
+    };
+
+
+    /**
      * @brief      Event for when the Stream is being closed.
      *
      * @param[in]  cb    The close callback
