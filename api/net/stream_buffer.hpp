@@ -22,9 +22,11 @@ namespace net {
 
     void on_read(size_t, ReadCallback cb) override {
       m_on_read = std::move(cb);
+      signal_data();
     }
     void on_data(DataCallback cb) override {
       m_on_data = std::move(cb);
+      signal_data();
     }
     size_t next_size() override;
 
