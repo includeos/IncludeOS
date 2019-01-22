@@ -94,16 +94,16 @@ using namespace std;
 bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
 {
   auto& tcb = tcp.tcb();
-  uint32_t packet_end = static_cast<uint32_t>(in.seq() + in.tcp_data_length()-1);
 
   // RFC 7323
   static constexpr uint8_t HEADER_WITH_TS{sizeof(Header) + 12};
   if(tcb.SND.TS_OK and in.tcp_header_length() == HEADER_WITH_TS)
   {
     const auto* ts = in.parse_ts_option();
+    in.set_ts_option(ts);
 
     // PAWS
-    if(UNLIKELY(ts != nullptr and (ntohl(ts->val) < tcb.TS_recent and !in.isset(RST))))
+    if(UNLIKELY(ts != nullptr and (ts->get_val() < tcb.TS_recent and !in.isset(RST))))
     {
       /*
         If the connection has been idle more than 24 days,
@@ -126,23 +126,8 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
     goto unacceptable;
 
   // #2 - Packet is ahead of what we expect to receive, but inside our window
-  if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
+  if( (in.seq() - tcb.RCV.NXT) < tcb.RCV.WND ) {
     goto acceptable;
-  }
-  // #3 (INVALID) - Packet is outside the right edge of the recv window
-  else if( packet_end > tcb.RCV.NXT+tcb.RCV.WND ) {
-    //printf("Outside right: %s NXT=%u WND=%u\n", in.to_string().c_str(), tcb.RCV.NXT, tcb.RCV.WND);
-    goto unacceptable;
-  }
-  // #4 - Packet with payload is what we expect or bigger, but inside our window
-  else if( tcb.RCV.NXT <= packet_end
-      and packet_end < tcb.RCV.NXT+tcb.RCV.WND ) {
-    goto acceptable;
-  }
-  else
-  {
-    //printf("Probably outside on left side %s end=%u NXT=%u WND=%u\n",
-    //  in.to_string().c_str(), packet_end, tcb.RCV.NXT, tcb.RCV.WND);
   }
   /*
     If an incoming segment is not acceptable, an acknowledgment
@@ -166,10 +151,13 @@ unacceptable:
 
 acceptable:
   const auto* ts = in.ts_option();
+  if(tcb.SND.TS_OK)
+    ts = in.parse_ts_option();
+
   if(ts != nullptr and
-    (ntohl(ts->val) >= tcb.TS_recent and in.seq() <= tcp.last_ack_sent_))
+    (ts->get_val() >= tcb.TS_recent and in.seq() <= tcp.last_ack_sent_))
   {
-    tcb.TS_recent = ntohl(ts->val);
+    tcb.TS_recent = ts->get_val();
   }
   debug2("<Connection::State::check_seq> Acceptable SEQ: %u \n", in.seq());
   // is acceptable.
@@ -209,8 +197,8 @@ acceptable:
 
 void Connection::State::unallowed_syn_reset_connection(Connection& tcp, const Packet_view& in) {
   assert(in.isset(SYN));
-  debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n",
-        tcp.state().to_string().c_str());
+  debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection. %s\n",
+        tcp.state().to_string().c_str(), in.to_string().c_str());
   // Not sure if this is the correct way to send a "reset response"
   auto packet = tcp.outgoing_packet();
   packet->set_seq(in.ack()).set_flag(RST);
@@ -931,7 +919,8 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_view& in) 
     */
     if(tcb.SND.UNA <= in.ack() and in.ack() <= tcb.SND.NXT)
     {
-      debug2("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+      debug2("<Connection::SynReceived::handle> %s SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED.\n",
+        tcp.to_string().c_str());
 
       tcp.set_state(Connection::Established::instance());
 
@@ -1070,6 +1059,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
     if(in.ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
+      tcp.release_memory();
       if(tcp.rtx_timer.is_running())
         tcp.rtx_stop();
       tcp.timewait_start();
@@ -1117,6 +1107,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
+    tcp.release_memory();
     if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
     tcp.timewait_start();
@@ -1191,6 +1182,7 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_view& in) {
   if(in.ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(TimeWait::instance());
+    tcp.release_memory();
     tcp.timewait_start();
   }
 

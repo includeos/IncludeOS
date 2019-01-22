@@ -30,12 +30,15 @@ class Read_request {
 public:
   using Buffer_ptr = std::unique_ptr<Read_buffer>;
   using Buffer_queue = std::deque<Buffer_ptr>;
+  using Ready_queue  = std::deque<buffer_t>;
   using ReadCallback = delegate<void(buffer_t)>;
+  using DataCallback = delegate<void()>;
   using Alloc        = os::mem::buffer::allocator_type;
   static constexpr size_t buffer_limit = 2;
-  ReadCallback callback;
+  ReadCallback on_read_callback = nullptr;
+  DataCallback on_data_callback = nullptr;
 
-  Read_request(seq_t start, size_t min, size_t max, ReadCallback cb, Alloc&& alloc = Alloc());
+  Read_request(seq_t start, size_t min, size_t max, Alloc&& alloc = Alloc());
 
   size_t insert(seq_t seq, const uint8_t* data, size_t n, bool psh = false);
 
@@ -47,6 +50,9 @@ public:
 
   void reset(const seq_t seq);
 
+  size_t next_size();
+  buffer_t read_next();
+
   const Read_buffer& front() const
   { return *buffers.front(); }
 
@@ -57,7 +63,10 @@ public:
   { return buffers; }
 
 private:
+  void signal_data();
+
   Buffer_queue buffers;
+  Ready_queue complete_buffers;
   Alloc        alloc;
 
   Read_buffer* get_buffer(const seq_t seq);

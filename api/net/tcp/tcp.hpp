@@ -708,8 +708,10 @@ namespace net {
      * @brief      Adds a connection.
      *
      * @param[in]  <unnamed>  A ptr to the Connection
+     *
+     * @return     True if the connection was added, false if rejected
      */
-    void add_connection(tcp::Connection_ptr);
+    bool add_connection(tcp::Connection_ptr);
 
     /**
      * @brief      Creates a connection.
@@ -729,7 +731,7 @@ namespace net {
      *
      * @param[in]  conn  A ptr to a Connection
      */
-    void close_connection(tcp::Connection_ptr conn)
+    void close_connection(const tcp::Connection* conn)
     {
       unbind(conn->local());
       connections_.erase(conn->tuple());

@@ -1,12 +1,12 @@
 #pragma once
 #include <net/inet>
 #include <liveupdate>
+#include <util/timer.hpp>
 
 namespace microLB
 {
   typedef net::Inet netstack_t;
   typedef net::tcp::Connection_ptr tcp_ptr;
-  typedef std::vector<net::tcp::buffer_t> queue_vector_t;
   typedef delegate<void()> pool_signal_t;
 
   struct Waiting {
@@ -15,7 +15,6 @@ namespace microLB
     void serialize(liu::Storage&);
 
     net::Stream_ptr conn;
-    queue_vector_t readq;
     int total = 0;
   };
 
@@ -29,6 +28,9 @@ namespace microLB
     const int  self;
     net::Stream_ptr incoming;
     net::Stream_ptr outgoing;
+
+    void flush_incoming();
+    void flush_outgoing();
   };
 
   struct Node {
@@ -37,7 +39,7 @@ namespace microLB
     auto address() const noexcept { return this->addr; }
     int  connection_attempts() const noexcept { return this->connecting; }
     int  pool_size() const noexcept { return pool.size(); }
-    bool is_active() const noexcept { return active; };
+    bool is_active() const noexcept { return active; }
     bool active_check() const noexcept { return do_active_check; }
 
     void    restart_active_check();
@@ -77,9 +79,10 @@ namespace microLB
     void add_node(Args&&... args);
     void create_connections(int total);
     // returns the connection back if the operation fails
-    net::Stream_ptr assign(net::Stream_ptr, queue_vector_t&);
+    net::Stream_ptr assign(net::Stream_ptr);
     Session& create_session(net::Stream_ptr inc, net::Stream_ptr out);
     void     close_session(int);
+    void destroy_sessions();
     Session& get_session(int);
 
     void serialize(liu::Storage&);
@@ -92,8 +95,10 @@ namespace microLB
     int       conn_iterator = 0;
     int       algo_iterator = 0;
     const bool do_active_check;
+    Timer cleanup_timer;
     std::deque<Session> sessions;
     std::deque<int> free_sessions;
+    std::deque<int> closed_sessions;
   };
 
   struct Balancer {

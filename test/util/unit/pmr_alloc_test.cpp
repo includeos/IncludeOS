@@ -43,7 +43,7 @@ CASE("pmr::Pmr_pool usage") {
   constexpr auto pool_cap = 40_MiB;
 
   // Using default resource capacity, which is pool_cap / allocator count
-  os::mem::Pmr_pool pool{pool_cap};
+  os::mem::Pmr_pool pool{pool_cap, pool_cap};
 
 
   EXPECT(pool.total_capacity() == pool_cap);
@@ -54,7 +54,6 @@ CASE("pmr::Pmr_pool usage") {
 
   std::pmr::polymorphic_allocator<uintptr_t> alloc{res.get()};
   std::pmr::vector<uintptr_t> numbers{alloc};
-
 
   EXPECT(numbers.capacity() < 1000);
   numbers.reserve(1000);
@@ -84,7 +83,6 @@ CASE("pmr::Pmr_pool usage") {
   unique_alloc.reset();
   my_strings.push_back("Still works");
   EXPECT(my_strings.back() == "Still works");
-
 
   // Using small res capacity
   constexpr auto alloc_cap = 4_KiB;
@@ -121,6 +119,7 @@ CASE("pmr::Pmr_pool usage") {
   EXPECT(numbers2.capacity() < 1000);
   EXPECT(res2->allocatable()  < alloc_cap);
   EXPECT(res2->allocatable()  > alloc_cap - 1000);
+
 }
 
 
@@ -167,10 +166,37 @@ CASE("pmr::resource usage") {
 
   // Drain all the resources
   for (auto& res : resources) {
+    auto exp_alloc = resource_cap;
+    EXPECT(not res->full());
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+    EXPECT(res->allocated() == 0);
+
     auto* p1 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 1_KiB);
+    EXPECT(res->capacity() == resource_cap);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     auto* p2 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 2_KiB);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     auto* p3 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 3_KiB);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     auto* p4 = res->allocate(1_KiB);
+    exp_alloc -= 1_KiB;
+    EXPECT(res->allocated() == 4_KiB);
+    EXPECT(pool.allocatable() >= exp_alloc);
+    EXPECT(res->allocatable() == exp_alloc);
+
     EXPECT(p1 != nullptr);
     EXPECT(p2 != nullptr);
     EXPECT(p3 != nullptr);
@@ -252,7 +278,7 @@ CASE("pmr::on_non_full event") {
   constexpr auto pool_cap = 400_KiB;
 
   // Using default resource capacity, which is pool_cap / allocator count
-  os::mem::Pmr_pool pool{pool_cap};
+  os::mem::Pmr_pool pool{pool_cap, pool_cap};
   auto res = pool.get_resource();
   bool event_fired = false;
 
@@ -292,5 +318,82 @@ CASE("pmr::on_non_full event") {
   numbers.clear();
   numbers.shrink_to_fit();
   EXPECT(event_fired);
+
+}
+
+CASE("pmr::on_avail event") {
+  using namespace util;
+  constexpr auto pool_cap = 400_KiB;
+
+  // Using default resource capacity, which is pool_cap / allocator count
+  os::mem::Pmr_pool pool{pool_cap, pool_cap};
+  auto res = pool.get_resource();
+  bool event_fired = false;
+
+  res->on_avail(200_KiB, [&](auto& r){
+      EXPECT(&r == res.get());
+      EXPECT(not r.full());
+      EXPECT(r.allocatable() >= 200_KiB);
+      event_fired = true;
+    });
+
+  std::pmr::polymorphic_allocator<uintptr_t> alloc{res.get()};
+  std::pmr::vector<char> numbers{alloc};
+
+  numbers.push_back(0);
+  numbers.push_back(1);
+  EXPECT(not event_fired);
+
+  auto reserved = 201_KiB;
+  numbers.reserve(reserved);
+  EXPECT(numbers.capacity() == reserved);
+  EXPECT(res->allocated() == reserved);
+  EXPECT(not event_fired);
+
+  // In order to shrink, it needs to allocate new space for 2 chars then copy.
+  numbers.shrink_to_fit();
+  EXPECT(res->allocated() < reserved);
+  EXPECT(event_fired);
+  event_fired = false;
+  EXPECT(not event_fired);
+
+  for (int i = 2; i < 40_KiB; i++) {
+    numbers.push_back(i);
+  }
+
+  EXPECT(not event_fired);
+  EXPECT(not res->full());
+
+  numbers.clear();
+  numbers.shrink_to_fit();
+  EXPECT(not event_fired);
+
+}
+
+
+CASE("pmr::default resource cap") {
+  // Not providing a resource cap will give each resource a proportion of max
+
+  using namespace util;
+  constexpr auto pool_cap = 400_KiB;
+
+  // Using default resource capacity, which is pool_cap / allocator count
+  os::mem::Pmr_pool pool{pool_cap};
+  auto res1 = pool.get_resource();
+  auto expected = pool_cap / (1 + os::mem::Pmr_pool::resource_division_offset);
+  EXPECT(res1->allocatable() == expected);
+
+  auto res2 = pool.get_resource();
+  expected = pool_cap / (2 + os::mem::Pmr_pool::resource_division_offset);
+  EXPECT(res2->allocatable() == expected);
+
+  auto res3 = pool.get_resource();
+  expected = pool_cap / (3 + os::mem::Pmr_pool::resource_division_offset);
+  EXPECT(res3->allocatable() == expected);
+
+  auto res4 = pool.get_resource();
+  expected = pool_cap / (4 + os::mem::Pmr_pool::resource_division_offset);
+  EXPECT(res4->allocatable() == expected);
+
 
 }
