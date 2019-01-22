@@ -74,16 +74,21 @@ namespace microLB
       auto& client = queue.front();
       assert(client.conn != nullptr);
       if (client.conn->is_connected()) {
-        // NOTE: explicitly want to copy buffers
-        net::Stream_ptr rval =
-            nodes.assign(std::move(client.conn), client.readq);
-        if (rval == nullptr) {
-          // done with this queue item
-          queue.pop_front();
-        }
-        else {
-          // put connection back in queue item
-          client.conn = std::move(rval);
+        try {
+          // NOTE: explicitly want to copy buffers
+          net::Stream_ptr rval =
+              nodes.assign(std::move(client.conn), client.readq);
+          if (rval == nullptr) {
+            // done with this queue item
+            queue.pop_front();
+          }
+          else {
+            // put connection back in queue item
+            client.conn = std::move(rval);
+          }
+        } catch (...) {
+          queue.pop_front(); // we have no choice
+          throw;
         }
       }
       else {
