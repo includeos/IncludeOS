@@ -22,9 +22,11 @@ namespace net {
 
     void on_read(size_t, ReadCallback cb) override {
       m_on_read = std::move(cb);
+      signal_data();
     }
     void on_data(DataCallback cb) override {
       m_on_data = std::move(cb);
+      signal_data();
     }
     size_t next_size() override;
 
@@ -205,7 +207,9 @@ namespace net {
           // Pop each time, in case callback leads to another call here.
           m_send_buffers.pop_front();
           m_on_read(buf);
-          if (m_on_read == nullptr) { break; } //if calling m_on_read reset the callbacks exit
+          if (m_on_read == nullptr) {
+            break;
+          } //if calling m_on_read reset the callbacks exit
         }
       }
     }

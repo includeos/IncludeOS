@@ -155,7 +155,8 @@ namespace os::mem::detail {
     std::size_t resource_capacity() {
       if (cap_suballoc_ == 0)
       {
-        return cap_total_ / (used_resources_ + os::mem::Pmr_pool::resource_division_offset);
+        auto div = cap_total_ / (used_resources_ + os::mem::Pmr_pool::resource_division_offset);
+        return std::min(div, allocatable());
       }
       return cap_suballoc_;
     }
@@ -249,7 +250,7 @@ namespace os::mem {
   //
   Pmr_resource::Pmr_resource(Pool_ptr p) : pool_{p} {}
   std::size_t Pmr_resource::capacity() {
-    return std::min(pool_->resource_capacity(), pool_->allocatable());
+    return pool_->resource_capacity();
   }
   std::size_t Pmr_resource::allocatable() {
     auto cap = capacity();
