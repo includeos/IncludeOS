@@ -74,7 +74,7 @@ namespace microLB
         try {
           // NOTE: explicitly want to copy buffers
           net::Stream_ptr rval =
-              nodes.assign(std::move(client.conn), client.readq);
+              nodes.assign(std::move(client.conn));
           if (rval == nullptr) {
             // done with this queue item
             queue.pop_front();
