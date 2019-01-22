@@ -535,15 +535,6 @@ namespace net {
       return this->cpu_id;
     }
 
-    /**
-     * @brief      Return a value that's supposed to describe how much
-     *             a connection should announce as it's RCV WND,
-     *             with regards to the whole system.
-     *
-     * @return     A RCV WND value, maximum 1GB
-     */
-    static uint32_t global_recv_wnd();
-
   private:
     IPStack&      inet_;
     Listeners     listeners_;
@@ -717,8 +708,10 @@ namespace net {
      * @brief      Adds a connection.
      *
      * @param[in]  <unnamed>  A ptr to the Connection
+     *
+     * @return     True if the connection was added, false if rejected
      */
-    void add_connection(tcp::Connection_ptr);
+    bool add_connection(tcp::Connection_ptr);
 
     /**
      * @brief      Creates a connection.
@@ -738,7 +731,7 @@ namespace net {
      *
      * @param[in]  conn  A ptr to a Connection
      */
-    void close_connection(tcp::Connection_ptr conn)
+    void close_connection(const tcp::Connection* conn)
     {
       unbind(conn->local());
       connections_.erase(conn->tuple());

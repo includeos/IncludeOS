@@ -43,7 +43,8 @@ namespace os::mem {
 
   class Pmr_pool {
   public:
-    static constexpr size_t default_max_resources = 64;
+    static constexpr size_t default_max_resources    = 0xffffff;
+    static constexpr size_t resource_division_offset = 2;
     using Resource     = Pmr_resource;
     using Resource_ptr = std::unique_ptr<Pmr_resource, delegate<void(Resource*)>>;
 
@@ -73,6 +74,7 @@ namespace os::mem {
   class Pmr_resource : public std::pmr::memory_resource {
   public:
     using Pool_ptr = detail::Pool_ptr;
+    using Event    = delegate<void(Pmr_resource& res)>;
     inline Pmr_resource(Pool_ptr p);
     inline Pool_ptr pool();
     inline void* do_allocate(std::size_t size, std::size_t align) override;
@@ -85,16 +87,29 @@ namespace os::mem {
     inline std::size_t dealloc_count();
     inline bool full();
     inline bool empty();
+
+    /** Fires when the resource has been full and is not full anymore **/
+    void on_non_full(Event e){ non_full = e; }
+
+    /** Fires on transition from < N bytes to >= N bytes allocatable **/
+    void on_avail(std::size_t N, Event e) { avail_thresh = N; avail = e; }
+
   private:
     Pool_ptr pool_;
     std::size_t used = 0;
     std::size_t allocs = 0;
     std::size_t deallocs = 0;
+    std::size_t avail_thresh = 0;
+    Event non_full{};
+    Event avail{};
   };
 
   struct Default_pmr : public std::pmr::memory_resource {
     void* do_allocate(std::size_t size, std::size_t align) override {
-      return memalign(align, size);
+      auto* res = memalign(align, size);
+      if (res == nullptr)
+        throw std::bad_alloc();
+      return res;
     }
 
     void do_deallocate (void* ptr, size_t, size_t) override {

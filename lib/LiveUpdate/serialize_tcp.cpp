@@ -175,11 +175,14 @@ void Connection::deserialize_from(void* addr)
     slumbering_ip4.insert(&this->host_.stack());
   }
 
+  // Assign new memory resource from TCP
+  this->bufalloc = host_.mempool_.get_resource();
+
   /// restore read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   if (readq->capacity)
   {
-    read_request = std::make_unique<Read_request>(readq->seq, readq->capacity, host_.max_bufsize(), nullptr, bufalloc.get());
+    read_request = std::make_unique<Read_request>(readq->seq, readq->capacity, host_.max_bufsize(), bufalloc.get());
     read_request->front().deserialize_from(readq);
   }
 
