@@ -67,7 +67,7 @@ namespace openssl
     void handle_data();
     int  decrypt(const void *data,int size);
     int  send_decrypted();
-    void tls_read(buffer_t);
+    bool tls_read(buffer_t);
     int  tls_perform_stream_write();
     int  tls_perform_handshake();
     bool handshake_completed() const noexcept;

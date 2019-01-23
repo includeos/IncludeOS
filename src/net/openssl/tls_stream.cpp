@@ -169,20 +169,16 @@ void TLS_stream::handle_data()
     if (UNLIKELY(read_congested())){
       break;
     }
-    tls_read(m_transport->read_next());
-    //bail
-    if (m_transport == nullptr)
-    {
-      printf("m_transport \n");
-       break;
-    }
+    bool closed = tls_read(m_transport->read_next());
+    // tls_read can close this stream
+    if (closed) break;
   }
 }
 
-void TLS_stream::tls_read(buffer_t buffer)
+bool TLS_stream::tls_read(buffer_t buffer)
 {
   if (buffer == nullptr ) {
-    return;
+    return false;
   }
   ERR_clear_error();
   uint8_t* buf_ptr = buffer->data();
@@ -193,11 +189,11 @@ void TLS_stream::tls_read(buffer_t buffer)
     if (this->m_deferred_close) {
       TLS_PRINT("::read() close on m_deferred_close");
       this->close();
-      return;
+      return true;
     }
 
     int decrypted_bytes=decrypt(buf_ptr,len);
-    if (UNLIKELY(decrypted_bytes==0)) return;
+    if (UNLIKELY(decrypted_bytes==0)) return false;
     buf_ptr += decrypted_bytes;
     len -= decrypted_bytes;
 
@@ -207,12 +203,12 @@ void TLS_stream::tls_read(buffer_t buffer)
     // this goes here?
     if (UNLIKELY(this->is_closing() || this->is_closed())) {
       TLS_PRINT("TLS_stream::SSL_read closed during read\n");
-      return;
+      return true;
     }
     if (this->m_deferred_close) {
       TLS_PRINT("::read() close on m_deferred_close");
       this->close();
-      return;
+      return true;
     }
 
     auto status = this->status(ret);
@@ -229,7 +225,7 @@ void TLS_stream::tls_read(buffer_t buffer)
     {
       TLS_PRINT("::read() close on STATUS_FAIL after tls_perform_stream_write\n");
       this->close();
-      return;
+      return true;
     }
 
   } // while it < end
@@ -242,7 +238,8 @@ void TLS_stream::tls_read(buffer_t buffer)
   // check deferred closing
   if (this->m_deferred_close) {
     TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
-    this->close(); return;
+    this->close();
+    return true;
   }
 } // tls_read()
 
