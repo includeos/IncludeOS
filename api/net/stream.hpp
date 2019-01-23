@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <delegate>
 #include <memory>
+#include <pmr>
 #include <vector>
 #include <net/socket.hpp>
 
@@ -34,13 +35,13 @@ namespace net {
    */
   class Stream {
   public:
-    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
+    using buffer_t = os::mem::buf_ptr;
     using ptr      = Stream_ptr;
 
     /** Construct a shared vector used by streams **/
     template <typename... Args>
     static buffer_t construct_buffer(Args&&... args) {
-      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+      return std::make_shared<os::mem::buffer> (std::forward<Args> (args)...);
     }
 
     /** Called when the stream is ready to be used. */
@@ -55,12 +56,31 @@ namespace net {
     /** Called with a shared buffer and the length of the data when received. */
     using ReadCallback = delegate<void(buffer_t)>;
     /**
-     * @brief      Event when data is received.
+     * @brief      Event when data is received. Pushes data to the callback.
      *
      * @param[in]  n     The size of the receive buffer
      * @param[in]  cb    The read callback
      */
     virtual void on_read(size_t n, ReadCallback cb) = 0;
+
+    using DataCallback = delegate<void()>;
+    /**
+     * @brief      Event when data is received.
+     *             Does not push data, just signals its presence.
+     *
+     * @param[in]  cb    The callback
+     */
+    virtual void on_data(DataCallback cb) = 0;
+
+    /**
+     * @return The size of the next available chunk of data if any.
+     */
+    virtual size_t next_size() = 0;
+
+    /**
+     * @return The next available chunk of data if any.
+     */
+    virtual buffer_t read_next() = 0;
 
     /** Called with nothing ¯\_(ツ)_/¯ */
     using CloseCallback = delegate<void()>;
@@ -181,10 +201,23 @@ namespace net {
     **/
     virtual Stream* transport() noexcept = 0;
 
+    /** Recursively navigate to the transport stream at the bottom **/
+    inline Stream* bottom_transport() noexcept;
+
     virtual size_t serialize_to(void*) const = 0;
 
     virtual ~Stream() = default;
   }; // < class Stream
+
+  inline Stream* Stream::bottom_transport() noexcept
+  {
+    Stream* stream = this;
+    while (stream->transport() != nullptr) {
+        stream = stream->transport();
+    }
+    return stream;
+  }
+
 } // < namespace net
 
 #endif // < NET_STREAM_HPP

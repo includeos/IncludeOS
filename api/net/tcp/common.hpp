@@ -22,8 +22,10 @@
 #include <net/addr.hpp>
 #include <net/checksum.hpp>
 #include <chrono>
-#include <vector>
+
 #include <util/units.hpp>
+#include <vector>
+#include <pmr>
 
 namespace net {
   namespace tcp {
@@ -32,7 +34,7 @@ namespace net {
     // default size of TCP window - how much data can be "in flight" (unacknowledged)
     static constexpr uint16_t default_window_size {0xffff};
     // window scaling + window size
-    static constexpr uint8_t  default_window_scaling {5};
+    static constexpr uint8_t  default_window_scaling {7};
     static constexpr uint32_t default_ws_window_size {8192 << default_window_scaling};
     // use of timestamps option
     static constexpr bool     default_timestamps {true};
@@ -50,8 +52,9 @@ namespace net {
     static const std::chrono::milliseconds  default_dack_timeout {40};
 
     using namespace util::literals;
-    static constexpr size_t default_min_bufsize {4_KiB};
-    static constexpr size_t default_max_bufsize {256_KiB};
+    static constexpr size_t default_min_bufsize   {4_KiB};
+    static constexpr size_t default_max_bufsize   {256_KiB};
+    static constexpr size_t default_total_bufsize {64_MiB};
 
     using Address = net::Addr;
 
@@ -62,12 +65,12 @@ namespace net {
     using seq_t = uint32_t;
 
     /** A shared buffer pointer */
-    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
+    using buffer_t = os::mem::buf_ptr;
 
     /** Construct a shared vector used in TCP **/
     template <typename... Args>
     buffer_t construct_buffer(Args&&... args) {
-      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+      return std::make_shared<os::mem::buffer> (std::forward<Args> (args)...);
     }
 
     class Connection;

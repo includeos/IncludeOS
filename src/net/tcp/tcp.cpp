@@ -29,6 +29,9 @@
 #include <rtc> // nanos_now (get_ts_value)
 #include <net/tcp/packet4_view.hpp>
 #include <net/tcp/packet6_view.hpp>
+#include <kernel/os.hpp>
+#include <util/bitops.hpp>
+#include <util/units.hpp>
 
 using namespace std;
 using namespace net;
@@ -38,6 +41,9 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
+  total_bufsize_{default_total_bufsize},
+  mempool_{total_bufsize_},
+  min_bufsize_{default_min_bufsize}, max_bufsize_{default_max_bufsize},
   ports_(inet.tcp_ports()),
   writeq(),
   max_seg_lifetime_{default_msl},       // 30s
@@ -254,6 +260,8 @@ void TCP::receive(Packet_view& packet)
 
   // No open connection found, find listener for destination
   debug("<TCP::receive> No connection found - looking for listener..\n");
+  // TODO: Avoid creating a new connection if we're running out of memory.
+  // something like "mem avail" > (max_buffer_limit * 3) maybe
   auto listener_it = find_listener(dest);
 
   // Listener found => Create Listener
@@ -484,17 +492,43 @@ bool TCP::unbind(const Socket& socket)
   return false;
 }
 
-void TCP::add_connection(tcp::Connection_ptr conn) {
+bool TCP::add_connection(tcp::Connection_ptr conn)
+{
+  const size_t alloc_thres = max_bufsize() * Read_request::buffer_limit;
   // Stat increment number of incoming connections
   (*incoming_connections_)++;
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
+  auto resource = mempool_.get_resource();
+
+  // Reject connection if we can't allocate memory
+  if(UNLIKELY(resource == nullptr or resource->allocatable() < alloc_thres))
+  {
+    conn->_on_cleanup_ = nullptr;
+    conn->abort();
+    return false;
+  }
+
+  conn->bufalloc = std::move(resource);
+
+  //printf("New inc conn %s allocatable=%zu\n", conn->to_string().c_str(), conn->bufalloc->allocatable());
+
+  Expects(conn->bufalloc != nullptr);
   conn->_on_cleanup({this, &TCP::close_connection});
-  connections_.emplace(conn->tuple(), conn);
+  return connections_.emplace(conn->tuple(), conn).second;
 }
 
 Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallback cb)
 {
+  const size_t alloc_thres = max_bufsize() * Read_request::buffer_limit;
+
+  auto resource = mempool_.get_resource();
+  // Don't create connection if we can't allocate memory
+  if(UNLIKELY(resource == nullptr or resource->allocatable() < alloc_thres))
+  {
+    throw TCP_error{"Unable to create new connection: Not enough allocatable memory"};
+  }
+
   // Stat increment number of outgoing connections
   (*outgoing_connections_)++;
 
@@ -504,6 +538,11 @@ Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallba
       )
     ).first->second;
   conn->_on_cleanup({this, &TCP::close_connection});
+  conn->bufalloc = std::move(resource);
+
+  //printf("New out conn %s allocatable=%zu\n", conn->to_string().c_str(), conn->bufalloc->allocatable());
+
+  Expects(conn->bufalloc != nullptr);
   return conn;
 }
 
@@ -603,6 +642,3 @@ TCP::Listeners::const_iterator TCP::cfind_listener(const Socket& socket) const
 
   return it;
 }
-
-
-

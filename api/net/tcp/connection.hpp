@@ -31,6 +31,8 @@
 #include <delegate>
 #include <util/timer.hpp>
 
+#include <util/alloc_pmr.hpp>
+
 namespace net {
   // Forward declaration of the TCP object
   class TCP;
@@ -90,6 +92,35 @@ public:
    * @return     This connection
    */
   inline Connection&            on_read(size_t recv_bufsz, ReadCallback callback);
+
+
+  using DataCallback           = delegate<void()>;
+  /**
+   * @brief      Event when incoming data is received by the connection.
+   *             The callback is called when either 1) PSH is seen, or 2) the buffer is full
+   *
+   *             The user is expected to fetch data by calling read_next, otherwise the
+   *             event will be triggered again. Unread data will be buffered as long as
+   *             there is capacity in the read queue.
+   *             If an on_read callback is also registered, this event has no effect.
+   *
+   * @param[in]  callback    The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            on_data(DataCallback callback);
+
+  /**
+   * @brief      Read the next fully acked chunk of received data if any.
+   *
+   * @return     Pointer to buffer if any, otherwise nullptr.
+   */
+  inline buffer_t read_next();
+
+  /**
+   * @return     The size of the next fully acked chunk of received data.
+   */
+  inline size_t   next_size();
 
   /** Called with the connection itself and the reason wrapped in a Disconnect struct. */
   using DisconnectCallback      = delegate<void(Connection_ptr self, Disconnect)>;
@@ -231,7 +262,8 @@ public:
     SEQ_OUT_OF_ORDER,
     ACK_NOT_SET,
     ACK_OUT_OF_ORDER,
-    RST
+    RST,
+    RCV_WND_ZERO
   }; // < Drop_reason
 
   /**
@@ -599,6 +631,16 @@ public:
    */
   void reset_callbacks();
 
+
+  using Recv_window_getter = delegate<uint32_t()>;
+  void set_recv_wnd_getter(Recv_window_getter func)
+  { recv_wnd_getter = func; }
+
+  void release_memory() {
+    read_request = nullptr;
+    bufalloc.reset();
+  }
+
 private:
   /** "Parent" for Connection. */
   TCP& host_;
@@ -619,12 +661,17 @@ private:
 
   /** The given read request */
   std::unique_ptr<Read_request> read_request;
+  os::mem::Pmr_pool::Resource_ptr bufalloc{nullptr};
 
   /** Queue for write requests to process */
   Write_queue writeq;
 
   /** Round Trip Time Measurer */
   RTTM rttm;
+
+  /** Function from where to retrieve
+   * the current recv window size for this connection */
+  Recv_window_getter recv_wnd_getter;
 
   /** Callbacks */
   ConnectCallback         on_connect_;
@@ -696,6 +743,14 @@ private:
    */
   void _on_read(size_t recv_bufsz, ReadCallback cb);
 
+  /**
+   * @brief      Set the on_data handler
+   *
+   * @param[in]  cb          The callback
+   */
+  void _on_data(DataCallback cb);
+
+
   // Retrieve the associated shared_ptr for a connection, if it exists
   // Throws out_of_range if it doesn't
   Connection_ptr retrieve_shared();
@@ -709,7 +764,7 @@ private:
    *
    * @param  Connection to be cleaned up
    */
-  using CleanupCallback   = delegate<void(Connection_ptr self)>;
+  using CleanupCallback   = delegate<void(const Connection* self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
 
@@ -847,6 +902,20 @@ private:
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
   bool handle_ack(const Packet_view&);
+
+  void update_rcv_wnd() {
+    cb.RCV.WND = (recv_wnd_getter == nullptr) ?
+      calculate_rcv_wnd() : recv_wnd_getter();
+  }
+
+  uint32_t calculate_rcv_wnd() const;
+
+  void send_window_update() {
+    update_rcv_wnd();
+    send_ack();
+  }
+
+  void trigger_window_update(os::mem::Pmr_resource& res);
 
   /**
    * @brief      Receive data from an incoming packet containing data.

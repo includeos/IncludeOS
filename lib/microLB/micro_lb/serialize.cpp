@@ -15,7 +15,7 @@ namespace microLB
   void Nodes::serialize(Storage& store)
   {
     store.add<int64_t>(100, this->session_total);
-    store.add_int(100, this->session_timeouts);
+    //store.add_int(100, this->session_timeouts);
     store.put_marker(100);
 
     const int tot_sessions = sessions.size() - free_sessions.size();
@@ -48,7 +48,7 @@ namespace microLB
   {
     /// nodes member fields ///
     this->session_total = store.as_type<int64_t>(); store.go_next();
-    this->session_timeouts = store.as_int();        store.go_next();
+    //this->session_timeouts = store.as_int();        store.go_next();
     store.pop_marker(100);
 
     /// sessions ///
