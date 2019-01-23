@@ -16,8 +16,7 @@ import requests
 expected_string = "#" * 1024 * 50
 
 def validateRequest(addr):
-    response = requests.get('https://10.0.0.68:443', verify=False)
-    #print (response.content)
+    response = requests.get('https://10.0.0.68:443', verify=False, timeout=5)
     return (response.content) == str(addr) + expected_string
 
 # start nodeJS

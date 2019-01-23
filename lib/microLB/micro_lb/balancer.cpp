@@ -57,16 +57,21 @@ namespace microLB
       auto& client = queue.front();
       assert(client.conn != nullptr);
       if (client.conn->is_connected()) {
-        // NOTE: explicitly want to copy buffers
-        net::Stream_ptr rval =
-            nodes.assign(std::move(client.conn));
-        if (rval == nullptr) {
-          // done with this queue item
-          queue.pop_front();
-        }
-        else {
-          // put connection back in queue item
-          client.conn = std::move(rval);
+        try {
+          // NOTE: explicitly want to copy buffers
+          net::Stream_ptr rval =
+              nodes.assign(std::move(client.conn));
+          if (rval == nullptr) {
+            // done with this queue item
+            queue.pop_front();
+          }
+          else {
+            // put connection back in queue item
+            client.conn = std::move(rval);
+          }
+        } catch (...) {
+          queue.pop_front(); // we have no choice
+          throw;
         }
       }
       else {
@@ -264,12 +269,8 @@ namespace microLB
     session.outgoing->reset_callbacks();
     closed_sessions.push_back(session.self);
 
-    if (!cleanup_timer.is_running())
-    {
-      cleanup_timer.start(std::chrono::milliseconds(10),[this](){
-        this->destroy_sessions();
-      });
-    }
+    destroy_sessions();
+
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
     if (on_session_close) on_session_close(session.self, session_cnt, session_total);
@@ -396,26 +397,13 @@ namespace microLB
       : parent(n), self(idx), incoming(std::move(inc)),
                               outgoing(std::move(out))
   {
-
-    incoming->on_data([this]() {
-      assert(this->is_alive());
-      while((this->incoming->next_size() > 0) and this->outgoing->is_writable())
-      {
-        this->outgoing->write(this->incoming->read_next());
-      }
-    });
+    incoming->on_data({this, &Session::flush_incoming});
     incoming->on_close(
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
 
-    outgoing->on_data([this]() {
-      assert(this->is_alive());
-      while((this->outgoing->next_size() > 0) and this->incoming->is_writable())
-      {
-        this->incoming->write(this->outgoing->read_next());
-      }
-    });
+    outgoing->on_data({this, &Session::flush_outgoing});
     outgoing->on_close(
     [&nodes = n, idx] () {
         nodes.close_session(idx);
@@ -423,5 +411,23 @@ namespace microLB
   }
   bool Session::is_alive() const {
     return incoming != nullptr;
+  }
+
+  void Session::flush_incoming()
+  {
+    assert(this->is_alive());
+    while((this->incoming->next_size() > 0) and this->outgoing->is_writable())
+    {
+      this->outgoing->write(this->incoming->read_next());
+    }
+  }
+
+  void Session::flush_outgoing()
+  {
+    assert(this->is_alive());
+    while((this->outgoing->next_size() > 0) and this->incoming->is_writable())
+    {
+      this->incoming->write(this->outgoing->read_next());
+    }
   }
 }

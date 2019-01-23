@@ -43,6 +43,9 @@ namespace microLB
     const int  self;
     net::Stream_ptr incoming;
     net::Stream_ptr outgoing;
+
+    void flush_incoming();
+    void flush_outgoing();
   };
 
   struct Balancer;

@@ -32,7 +32,7 @@ return [&interface, socket] (timeout_t timeout, node_connect_result_t callback)
       }
       catch([[maybe_unused]]const net::TCP_error& err)
       {
-        LBOUT("Got exception: %s\n", err.what());
+        //printf("Got exception: %s\n", err.what());
         callback(nullptr);
         return;
       }
