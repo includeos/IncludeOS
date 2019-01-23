@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "POSIX pthread test" ${SOURCES})
+os_add_executable(posix_pthread "POSIX pthread test" ${SOURCES})
 
-os_add_plugins(service vfs)
-os_add_stdout(service default_stdout)
+os_add_plugins(posix_pthread vfs)
+os_add_stdout(posix_pthread default_stdout)

@@ -9,6 +9,8 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 
-vm = vmrunner.vms[0];
-vm.cmake().boot(20).clean()
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vmrunner.vms[0].cmake().boot(20,image_name='kernel_smp').clean()
 #vm.cmake(["-Dsingle_threaded=OFF"]).boot(20).clean()

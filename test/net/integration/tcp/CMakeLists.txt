@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "TCP test" ${SOURCES})
+os_add_executable(net_tcp "TCP test" ${SOURCES})
 
-os_add_drivers(service virtionet e1000 vmxnet3)
-os_add_stdout(service default_stdout)
+os_add_drivers(net_tcp virtionet e1000 vmxnet3)
+os_add_stdout(net_tcp default_stdout)

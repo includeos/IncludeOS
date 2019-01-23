@@ -10,9 +10,11 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 import socket
-
-# Get an auto-created VM from the vmrunner
-vm = vmrunner.vms[0]
+if len(sys.argv) > 1:
+    vm = vmrunner.vm(config=str(sys.argv[1]))
+else:
+    # Get an auto-created VM from the vmrunner
+    vm = vmrunner.vms[0]
 
 def UDP_test(trigger_line):
   print "<Test.py> Performing UDP tests"
@@ -59,10 +61,13 @@ def UDP_test(trigger_line):
       print "<Test.py> Did not receive mega string (64k)"
       return False
 
-  vmrunner.vms[0].exit(0, "Test completed without errors")
+  vm.exit(0, "Test completed without errors")
 
 # Add custom event-handler
 vm.on_output("UDP test service", UDP_test)
 
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(30).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(30,image_name="net_udp").clean()

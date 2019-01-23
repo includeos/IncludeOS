@@ -36,5 +36,8 @@ vm.on_output("I can print hex", check_hex)
 vm.on_output("String", set_format_string_size)
 vm.on_output("truncate", check_truncation)
 
-# Build, run and clean
-vm.cmake().boot().clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Build, run and clean
+    vm.cmake().boot(image_name='kernel_kprint').clean()

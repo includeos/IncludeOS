@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "GSL test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(mod_gsl "GSL test" ${SOURCES})
+os_add_stdout(mod_gsl default_stdout)

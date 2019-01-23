@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "Task switching test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(kernel_context "Task switching test" ${SOURCES})
+os_add_stdout(kernel_context default_stdout)

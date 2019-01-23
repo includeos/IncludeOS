@@ -21,7 +21,7 @@ set(SOURCES
     twosector.cpp
 )
 
-os_add_executable(service "Memdisk filesystem test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(fs_memdisk "Memdisk filesystem test" ${SOURCES})
+os_add_stdout(fs_memdisk default_stdout)
 
-os_add_memdisk(service sector2.disk)
+os_add_memdisk(fs_memdisk ${CMAKE_CURRENT_SOURCE_DIR}/sector2.disk)

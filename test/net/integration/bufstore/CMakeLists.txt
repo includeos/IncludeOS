@@ -23,6 +23,6 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "Bufferstore test" ${SOURCES})
+os_add_executable(net_bufstore "Bufferstore test" ${SOURCES})
 
-os_add_stdout(service default_stdout)
+os_add_stdout(net_bufstore default_stdout)

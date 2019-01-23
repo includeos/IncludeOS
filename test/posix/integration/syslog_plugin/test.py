@@ -124,4 +124,7 @@ def end():
 vm.on_output("Service IP address is 10.0.0.47", start)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vm.boot(thread_timeout,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout,image_name='posix_syslog_plugin').clean()

@@ -1,3 +1,5 @@
+import shutil #move
+import os #unlink
 from conans import ConanFile,tools,CMake
 
 class LibUnwindConan(ConanFile):
@@ -5,6 +7,7 @@ class LibUnwindConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "libunwind"
     license = 'NCSA','MIT'
+    #version = [5.0.2,6.0.1,7.0.1] are known to be valid
     description = 'The LLVM Compiler Infrastructure Unwinder'
     url = "https://llvm.org/"
     options = {
@@ -20,9 +23,11 @@ class LibUnwindConan(ConanFile):
         del self.settings.compiler.libcxx
 
     def llvm_checkout(self,project):
-        branch = "release_{}".format(self.version.replace('.',''))
-        llvm_project=tools.Git(folder=project)
-        llvm_project.clone("https://github.com/llvm-mirror/{}.git".format(project),branch=branch)
+        filename="{}-{}.src.tar.xz".format(project,self.version)
+        tools.download("http://releases.llvm.org/{}/{}".format(self.version,filename),filename)
+        tools.unzip(filename)
+        os.unlink(filename)
+        shutil.move("{}-{}.src".format(project,self.version),project)
 
     def source(self):
         self.llvm_checkout("llvm")
@@ -31,7 +36,8 @@ class LibUnwindConan(ConanFile):
     def _triple_arch(self):
         return {
             "x86":"i686",
-            "x86_64":"x86_64"
+            "x86_64":"x86_64",
+            "armv8" : "aarch64"
         }.get(str(self.settings.arch))
 
     def _configure_cmake(self):

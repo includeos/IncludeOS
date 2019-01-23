@@ -21,15 +21,15 @@ set(SOURCES
     service.cpp
   )
 
-os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+os_add_config(net_microLB "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "Configure test" ${SOURCES})
+os_add_executable(net_microLB "Configure test" ${SOURCES})
 
 #os_add_plugins(service autoconf)
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(net_microLB virtionet)
+os_add_stdout(net_microLB default_stdout)
 
-os_add_os_library(service microlb)
-os_add_os_library(service liveupdate)
+os_add_os_library(net_microLB microlb)
+os_add_os_library(net_microLB liveupdate)
 
-os_diskbuilder(service drive)
+os_diskbuilder(net_microLB ${CMAKE_CURRENT_SOURCE_DIR}/drive)

@@ -23,8 +23,8 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "POSIX syslog plugin test" ${SOURCES})
+os_add_executable(posix_syslog_plugin "POSIX syslog plugin test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_plugins(service syslog syslogd)
-os_add_stdout(service default_stdout)
+os_add_drivers(posix_syslog_plugin virtionet)
+os_add_plugins(posix_syslog_plugin syslog syslogd)
+os_add_stdout(posix_syslog_plugin default_stdout)

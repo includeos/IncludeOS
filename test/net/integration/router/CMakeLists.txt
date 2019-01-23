@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "Routing test" ${SOURCES})
+os_add_executable(net_router "Routing test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(net_router virtionet)
+os_add_stdout(net_router default_stdout)

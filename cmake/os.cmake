@@ -220,7 +220,7 @@ else()
 endif()
 
 # arch and platform defines
-message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
+#message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
@@ -299,16 +299,16 @@ function(os_add_executable TARGET NAME)
   if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(STRIP_LV )
   else()
-    set(STRIP_LV strip --strip-all ${CMAKE_BINARY_DIR}/${TARGET})
+    set(STRIP_LV strip --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
   endif()
-  FILE(WRITE ${CMAKE_BINARY_DIR}/binary.txt
+  FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binary.txt
     "${TARGET}"
   )
   add_custom_target(
     ${TARGET} ALL
     COMMENT "elf.syms"
     COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
-    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_BINARY_DIR}/${TARGET}
+    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     COMMAND ${STRIP_LV}
     DEPENDS ${ELF_TARGET}
   )
@@ -316,10 +316,10 @@ function(os_add_executable TARGET NAME)
   if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
     message(STATUS "using set config file ${JSON_CONFIG_FILE_${ELF_TARGET}}")
     internal_os_add_config(${ELF_TARGET} "${JSON_CONFIG_FILE_${ELF_TARGET}}")
-  elseif (EXISTS ${DEFAULT_CONFIG_JSON})
-    message(STATUS "using detected config file ${DEFAULT_CONFIG_JSON}")
-    internal_os_add_config(${ELF_TARGET} "${DEFAULT_CONFIG_JSON}")
-    set(JSON_CONFIG_FILE_${ELF_TARGET} ${DEFAULT_CONFIG_JSON} PARENT_SCOPE)
+  elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config.json)
+    message(STATUS "using detected config file ${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+    internal_os_add_config(${ELF_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+    set(JSON_CONFIG_FILE_${ELF_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/config.json" PARENT_SCOPE)
   endif()
 
 endfunction()
@@ -354,10 +354,10 @@ function (os_add_library_from_path TARGET LIBRARY PATH)
     return()
   endif()
 
-  add_library(${LIBRARY} STATIC IMPORTED)
-  set_target_properties(${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION "${FILENAME}")
-  os_link_libraries(${TARGET} --whole-archive ${LIBRARY} --no-whole-archive)
+  add_library(${TARGET}_${LIBRARY} STATIC IMPORTED)
+  set_target_properties(${TARGET}_${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(${TARGET}_${LIBRARY} PROPERTIES IMPORTED_LOCATION "${FILENAME}")
+  os_link_libraries(${TARGET} --whole-archive ${TARGET}_${LIBRARY} --no-whole-archive)
 endfunction()
 
 function (os_add_drivers TARGET)
@@ -390,20 +390,20 @@ function(os_add_memdisk TARGET DISK)
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
-  add_library(memdisk STATIC memdisk.o)
-  set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
-  os_link_libraries(${TARGET} --whole-archive memdisk --no-whole-archive)
+  add_library(${TARGET}_memdisk STATIC memdisk.o)
+  set_target_properties(${TARGET}_memdisk PROPERTIES LINKER_LANGUAGE CXX)
+  os_link_libraries(${TARGET} --whole-archive ${TARGET}_memdisk --no-whole-archive)
 endfunction()
 
 # automatically build memdisk from folder
 function(os_build_memdisk TARGET FOLD)
-  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   #detect changes in disc folder and if and only if changed update the file that triggers rebuild
-  add_custom_target(disccontent ALL
+  add_custom_target(${TARGET}_disccontent ALL
     COMMAND find ${REL_PATH}/ -type f -exec md5sum "{}" + > /tmp/manifest.txt.new
-    COMMAND cmp --silent ${CMAKE_BINARY_DIR}/manifest.txt /tmp/manifest.txt.new || cp /tmp/manifest.txt.new ${CMAKE_BINARY_DIR}/manifest.txt
+    COMMAND cmp --silent ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt /tmp/manifest.txt.new || cp /tmp/manifest.txt.new ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
     COMMENT "Checking disc content changes"
-    BYPRODUCTS ${CMAKE_BINARY_DIR}/manifest.txt
+    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
     VERBATIM
   )
 
@@ -411,11 +411,11 @@ function(os_build_memdisk TARGET FOLD)
       OUTPUT  memdisk.fat
       COMMAND ${INCLUDEOS_PREFIX}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
       COMMENT "Creating memdisk"
-      DEPENDS ${CMAKE_BINARY_DIR}/manifest.txt disccontent
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt ${TARGET}_disccontent
       )
-  add_custom_target(diskbuilder DEPENDS memdisk.fat)
-  os_add_dependencies(${TARGET} diskbuilder)
-  os_add_memdisk(${TARGET} "${CMAKE_BINARY_DIR}/memdisk.fat")
+  add_custom_target(${TARGET}_diskbuilder DEPENDS memdisk.fat)
+  os_add_dependencies(${TARGET} ${TARGET}_diskbuilder)
+  os_add_memdisk(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/memdisk.fat")
 endfunction()
 
 # call build_memdisk only if MEMDISK is not defined from command line
@@ -424,7 +424,7 @@ function(os_diskbuilder TARGET FOLD)
 endfunction()
 
 function(os_install_certificates FOLDER)
-  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   message(STATUS "Install certificate bundle at ${FOLDER}")
   file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
 endfunction()
@@ -444,28 +444,27 @@ endfunction()
 #this depends on a generic conanfile_service.py ?
 #if so you can edit plugins and such in that file..
 
-
 function(internal_os_add_config TARGET CONFIG_JSON)
   get_filename_component(FILENAME "${CONFIG_JSON}" NAME)
-  set(OUTFILE ${CMAKE_BINARY_DIR}/${FILENAME}.o)
+  set(OUTFILE ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}.o)
   add_custom_command(
     OUTPUT ${OUTFILE}
     COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CONFIG_JSON} ${OUTFILE}
     DEPENDS ${CONFIG_JSON}
     )
-  add_library(config_json STATIC ${OUTFILE})
-  set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
-  target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json --no-whole-archive)
+  add_library(config_json_${TARGET} STATIC ${OUTFILE})
+  set_target_properties(config_json_${TARGET} PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json_${TARGET} --no-whole-archive)
 endfunction()
 
 function(os_add_nacl TARGET FILENAME)
   set(NACL_PATH ${INCLUDEOS_PREFIX}/tools/NaCl)
   add_custom_command(
-     OUTPUT nacl_content.cpp
-     COMMAND cat ${CMAKE_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
-     DEPENDS ${CMAKE_SOURCE_DIR}/${FILENAME}
+     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
+     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}
    )
-   add_library(nacl_content STATIC nacl_content.cpp)
+   add_library(nacl_content STATIC ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp)
    set_target_properties(nacl_content PROPERTIES LINKER_LANGUAGE CXX)
    os_link_libraries(${TARGET} --whole-archive nacl_content --no-whole-archive)
    os_add_plugins(${TARGET} nacl)
@@ -483,7 +482,7 @@ function(os_install)
 
   foreach(T ${os_install_TARGETS})
     #message("OS install  ${T} to ${os_install_DESTINATION}")
-    install(PROGRAMS ${CMAKE_BINARY_DIR}/${T} DESTINATION ${os_install_DESTINATION})
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${T} DESTINATION ${os_install_DESTINATION})
   endforeach()
 
 endfunction()

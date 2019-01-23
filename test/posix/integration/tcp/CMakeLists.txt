@@ -23,7 +23,7 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "POSIX TCP test" ${SOURCES})
+os_add_executable(posix_tcp "POSIX TCP test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(posix_tcp virtionet)
+os_add_stdout(posix_tcp default_stdout)

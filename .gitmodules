@@ -1,7 +1,3 @@
-
-[submodule "test/lest"]
-	path = test/lest
-	url = https://github.com/martinmoene/lest.git
 [submodule "examples/SQlite/sqlite3_amalgamation"]
 	path = examples/SQlite/sqlite3_amalgamation
 	url = https://github.com/fwsGonzo/sqlite3_amalgamation.git

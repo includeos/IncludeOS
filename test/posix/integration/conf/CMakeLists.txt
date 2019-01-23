@@ -26,10 +26,10 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "POSIX pathconf test" ${SOURCES})
+os_add_executable(posix_conf "POSIX pathconf test" ${SOURCES})
 
-os_add_plugins(service vfs)
-os_add_stdout(service default_stdout)
+os_add_plugins(posix_conf vfs)
+os_add_stdout(posix_conf default_stdout)
 
 # Create memdisk from folder
-os_diskbuilder(service disk)
+os_diskbuilder(posix_conf disk)

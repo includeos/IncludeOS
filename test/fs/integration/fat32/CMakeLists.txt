@@ -21,11 +21,11 @@ set(SOURCES
     fat32.cpp
 )
 
-os_add_executable(service "FAT32 filesystem test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(fs_fat32 "FAT32 filesystem test" ${SOURCES})
+os_add_stdout(fs_fat32 default_stdout)
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service solo5blk)
+  os_add_drivers(fs_fat32 solo5blk)
 else()
-  os_add_drivers(service virtioblk)
+  os_add_drivers(fs_fat32 virtioblk)
 endif()

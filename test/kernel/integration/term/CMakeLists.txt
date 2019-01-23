@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "Terminal test" ${SOURCES})
-os_add_stdout(service default_stdout)
-os_add_drivers(service virtionet)
+os_add_executable(kernel_term "Terminal test" ${SOURCES})
+os_add_stdout(kernel_term default_stdout)
+os_add_drivers(kernel_term virtionet)
 #os_add_plugins(service vfs)

@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "IDE driver test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(fs_ide "IDE driver test" ${SOURCES})
+os_add_stdout(fs_ide default_stdout)
 
-os_add_drivers(service ide_readonly)
+os_add_drivers(fs_ide ide_readonly)

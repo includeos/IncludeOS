@@ -21,11 +21,11 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "VirtioBLK test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(virtio_block "VirtioBLK test" ${SOURCES})
+os_add_stdout(virtio_block default_stdout)
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service solo5blk)
+  os_add_drivers(virtio_block solo5blk)
 else()
-  os_add_drivers(service virtioblk)
+  os_add_drivers(virtio_block virtioblk)
 endif()

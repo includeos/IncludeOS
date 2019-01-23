@@ -22,6 +22,6 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "Stress test" ${SOURCES})
-os_add_stdout(service default_stdout)
-os_add_drivers(service virtionet)
+os_add_executable(stress "Stress test" ${SOURCES})
+os_add_stdout(stress default_stdout)
+os_add_drivers(stress virtionet)

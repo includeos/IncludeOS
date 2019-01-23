@@ -25,11 +25,11 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "POSIX file descriptor test" ${SOURCES})
+os_add_executable(posix_stat "POSIX file descriptor test" ${SOURCES})
 
-os_add_drivers(service boot_logger)
-os_add_plugins(service vfs)
-os_add_stdout(service default_stdout)
+os_add_drivers(posix_stat boot_logger)
+os_add_plugins(posix_stat vfs)
+os_add_stdout(posix_stat default_stdout)
 
 # Create memdisk from folder
-os_diskbuilder(service disk)
+os_diskbuilder(posix_stat disk)

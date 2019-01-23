@@ -23,6 +23,6 @@ set(SOURCES
 
 #os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "POSIX utsname test" ${SOURCES})
+os_add_executable(posix_utsname "POSIX utsname test" ${SOURCES})
 
-os_add_stdout(service default_stdout)
+os_add_stdout(posix_utsname default_stdout)
