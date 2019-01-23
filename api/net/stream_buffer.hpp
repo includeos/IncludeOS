@@ -1,17 +1,37 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
 #ifndef STREAMBUFFERR_HPP
 #define STREAMBUFFERR_HPP
+
 #include <net/stream.hpp>
 #include <queue>
 #include <util/timer.hpp>
 
-namespace net {
+namespace net
+{
   class StreamBuffer : public net::Stream
   {
   public:
     StreamBuffer(Timers::duration_t timeout=std::chrono::microseconds(10))
       : timer({this,&StreamBuffer::congested}),congestion_timeout(timeout) {}
     using buffer_t = os::mem::buf_ptr;
-    using Ready_queue  = std::deque<buffer_t>;
+
     virtual ~StreamBuffer() {
       timer.stop();
     }
@@ -103,16 +123,15 @@ namespace net {
     Timer timer;
 
   private:
-    Timer::duration_t congestion_timeout;
-    bool  m_write_congested= false;
-    bool  m_read_congested = false;
-
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
     DataCallback     m_on_data    = nullptr;
     WriteCallback    m_on_write   = nullptr;
     CloseCallback    m_on_close   = nullptr;
-    Ready_queue      m_send_buffers;
+    std::deque<buffer_t> m_send_buffers;
+    Timer::duration_t congestion_timeout;
+    bool m_write_congested = false;
+    bool m_read_congested  = false;
 
     /**
      * @brief Construct a shared vector and set congestion flag if allocation fails
@@ -139,8 +158,6 @@ namespace net {
       }
       return buffer;
     }
-
-
   }; // < class StreamBuffer
 
   inline size_t StreamBuffer::next_size()
@@ -215,4 +232,5 @@ namespace net {
     }
   }
 } // namespace net
-#endif // STREAMBUFFERR_HPP
+
+#endif // STREAM_BUFFER_HPP
