@@ -70,11 +70,11 @@ namespace microLB
     pool_signal_t           m_pool_signal = nullptr;
     std::vector<net::Stream_ptr> pool;
     net::Socket m_socket;
-    [[maybe_unused]] int m_idx;
-    bool       active = false;
-    const bool do_active_check;
-    signed int active_timer = -1;
-    signed int connecting = 0;
+    int         m_idx;
+    bool        active = false;
+    const bool  do_active_check;
+    int32_t     active_timer = -1;
+    int32_t     connecting = 0;
   };
 
   struct Nodes {
@@ -82,7 +82,7 @@ namespace microLB
     typedef nodevec_t::iterator iterator;
     typedef nodevec_t::const_iterator const_iterator;
 
-    Nodes(bool ac) : do_active_check(ac) {}
+    Nodes(Balancer& b, bool ac) : m_lb(b), do_active_check(ac) {}
 
     size_t   size() const noexcept;
     const_iterator begin() const;
@@ -111,6 +111,7 @@ namespace microLB
     delegate<void(int idx, int current, int total)> on_session_close = nullptr;
 
   private:
+    Balancer& m_lb;
     nodevec_t nodes;
     int64_t   session_total = 0;
     int       session_cnt = 0;
@@ -169,7 +170,7 @@ namespace microLB
 
   template <typename... Args>
   inline void Nodes::add_node(Args&&... args) {
-    nodes.emplace_back(std::forward<Args> (args)...,
+    nodes.emplace_back(m_lb, std::forward<Args> (args)...,
                        this->do_active_check, nodes.size());
   }
 }

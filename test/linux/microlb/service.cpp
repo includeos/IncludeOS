@@ -46,11 +46,11 @@ void Service::start()
   auto& inet_server = net::Interfaces::get(0);
   // add regular TCP nodes
   for (uint16_t i = 6001; i <= 6004; i++) {
-  balancer->nodes.add_node(
-        microLB::Balancer::connect_with_tcp(inet_server, {{10,0,0,1}, i}),
-        balancer->get_pool_signal());
+    const net::Socket socket{{10,0,0,1}, i};
+    balancer->nodes.add_node(socket,
+        microLB::Balancer::connect_with_tcp(inet_server, socket));
   }
-  
+
   balancer->nodes.on_session_close =
     [] (int idx, int current, int total) {
       printf("LB session closed %d (%d current, %d total)\n", idx, current, total);

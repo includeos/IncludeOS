@@ -23,7 +23,7 @@ using namespace std::chrono;
 // It uses tons of delegates that capture "this"
 namespace microLB
 {
-  Balancer::Balancer(const bool da) : nodes {da}  {}
+  Balancer::Balancer(const bool da) : nodes {*this, da}  {}
   Balancer::~Balancer()
   {
     queue.clear();
