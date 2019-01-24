@@ -60,30 +60,30 @@ void print_nic_stats() {
 }
 
 void print_mempool_stats() {
-      auto& inet1 = net::Super_stack::get(0);
-      auto& inet2 = net::Super_stack::get(1);
-      printf("\n\n<Timer>Heap used: %s\n", util::Byte_r(OS::heap_usage()).to_string().c_str());
-      auto pool1 = inet1.tcp().mempool();
-      auto pool2 = inet2.tcp().mempool();
+    auto& inet1 = net::Interfaces::get(0);
+    auto& inet2 = net::Interfaces::get(1);;
+    printf("\n\n<Timer>Heap used: %s\n", util::Byte_r(OS::heap_usage()).to_string().c_str());
+    auto pool1 = inet1.tcp().mempool();
+    auto pool2 = inet2.tcp().mempool();
 
-      // Hack to get the implementation details (e.g. the detail::pool ptr) for some stats
-      auto res1 = pool1.get_resource();
-      auto res2 = pool2.get_resource();
+    // Hack to get the implementation details (e.g. the detail::pool ptr) for some stats
+    auto res1 = pool1.get_resource();
+    auto res2 = pool2.get_resource();
 
-      auto pool_ptr1 = res1->pool();
-      auto pool_ptr2 = res2->pool();
+    auto pool_ptr1 = res1->pool();
+    auto pool_ptr2 = res2->pool();
 
-      res1.reset();
-      res2.reset();
+    res1.reset();
+    res2.reset();
 
-      printf("\n*** TCP0 ***\n%s\n pool: %zu / %zu allocs: %zu resources: %zu (used: %zu free: %zu)\n\n",
-             inet1.tcp().to_string().c_str(), pool1.allocated(), pool1.total_capacity(), pool1.alloc_count(),
-             pool1.resource_count(), pool_ptr1->used_resources(),
-             pool_ptr1->free_resources());
-      printf("*** TCP1 ***\n%s\npool: %zu / %zu allocs: %zu resources: %zu (used: %zu free: %zu)\n",
-             inet2.tcp().to_string().c_str(), pool2.allocated(), pool2.total_capacity(), pool2.alloc_count(),
-             pool2.resource_count(), pool_ptr2->used_resources(),
-             pool_ptr2->free_resources());
+    printf("\n*** TCP0 ***\n%s\n pool: %zu / %zu allocs: %zu resources: %zu (used: %zu free: %zu)\n\n",
+           inet1.tcp().to_string().c_str(), pool1.allocated(), pool1.total_capacity(), pool1.alloc_count(),
+           pool1.resource_count(), pool_ptr1->used_resources(),
+           pool_ptr1->free_resources());
+    printf("*** TCP1 ***\n%s\npool: %zu / %zu allocs: %zu resources: %zu (used: %zu free: %zu)\n",
+           inet2.tcp().to_string().c_str(), pool2.allocated(), pool2.total_capacity(), pool2.alloc_count(),
+           pool2.resource_count(), pool_ptr2->used_resources(),
+           pool_ptr2->free_resources());
 }
 
 void print_lb_stats() {
