@@ -98,6 +98,8 @@ if ("${ARCH}" STREQUAL "x86_64")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
   set(OBJCOPY_TARGET "elf64-x86-64")
 #  set(CAPABS "${CAPABS} -m64")
+elseif("${ARCH}" STREQUAL "aarch64")
+
 else()
   set(ARCH_INTERNAL "ARCH_X86")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
@@ -131,8 +133,11 @@ set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 # TODO: find a more proper way to get the linker.ld script ?
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE} ${PRE_BSS_SIZE}")
-
+if("${ARCH}" STREQUAL "aarch64")
+  set(LDFLAGS "-nostdlib -m${ELF}elf --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE}  ${PRE_BSS_SIZE}")
+else()
+  set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE} ${PRE_BSS_SIZE}")
+endif()
 
 set(ELF_POSTFIX .elf.bin)
 

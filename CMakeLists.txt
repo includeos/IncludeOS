@@ -13,7 +13,7 @@ endif()
 
 message(STATUS "Target CPU ${ARCH}")
 
-#only for clang..
+#only for clang.. and probably only for apple or when we dont have a cross compiler..
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
@@ -157,13 +157,19 @@ if ("${ARCH}" STREQUAL "i686" OR "${ARCH}" STREQUAL "i386" )
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
   set(OBJCOPY_TARGET "elf32-i386")
   set(CAPABS "${CAPABS} -m32")
+elseif ("${ARCH}" STREQUAL "aarch64")
+  #In cmake we trust
+  #set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  #TODO set(OBJCOPY_TARGET "elf64-x86-64")
+  #set(CAPABS "${CAPABS} -m64")
 else()
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
   set(OBJCOPY_TARGET "elf64-x86-64")
   set(CAPABS "${CAPABS} -m64")
+  enable_language(ASM_NASM)
 endif()
 
-enable_language(ASM_NASM)
+
 
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
@@ -226,7 +232,6 @@ endif()
 #
 add_subdirectory(src)
 
-#
 # Installation
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
@@ -238,7 +243,7 @@ install(FILES cmake/os.cmake DESTINATION cmake)
 install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
 
 
-# TODO ? move to "linux cmake"
+# TODO ? move to "linux cmake" this is only apple
 # Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION cmake)
 

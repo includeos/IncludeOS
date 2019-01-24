@@ -1,5 +1,5 @@
 ﻿set(SRCS
-    memstream.c
+#    memstream.c TODO delete
     async.cpp
     statman.cpp
     statman_liu.cpp
@@ -22,5 +22,7 @@ if (NOT CORE_OS)
     autoconf.cpp
   )
 endif()
+
+
 
 add_library(util OBJECT ${SRCS})

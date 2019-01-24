@@ -1,0 +1,189 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <kprint>
+#include <info>
+#include <kernel/os.hpp>
+#include <kernel/service.hpp>
+#include <boot/multiboot.h>
+
+extern "C" {
+  void __init_sanity_checks();
+  uintptr_t _move_symbols(uintptr_t loc);
+  void _init_bss();
+  void _init_heap(uintptr_t);
+  void _init_syscalls();
+}
+
+uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
+uintptr_t _multiboot_memory_end(uintptr_t boot_addr);
+extern bool os_default_stdout;
+
+
+struct fdt_header{
+    uint32_t magic;
+    uint32_t size;
+};
+
+extern "C"
+uint8_t nibble2hex(uint8_t nibble)
+{
+  nibble=nibble&0xF;
+  switch(nibble)
+  {
+    case 0x00: return '0';
+    case 0x01: return '1';
+    case 0x02: return '2';
+    case 0x03: return '3';
+    case 0x04: return '4';
+    case 0x05: return '5';
+    case 0x06: return '6';
+    case 0x07: return '7';
+    case 0x08: return '8';
+    case 0x09: return '9';
+    case 0x0A: return 'A';
+    case 0x0B: return 'B';
+    case 0x0C: return 'C';
+    case 0x0D: return 'D';
+    case 0x0E: return 'E';
+    case 0x0F: return 'F';
+    default: return 0x00; // unreachable
+  }
+  //unreachable
+}
+
+extern "C"
+void print_memory(const char *name,const char * mem,int size)
+{
+  kprint(name);
+  kprint(":\n");
+  int i;
+  for (i=0;i<size;i++)
+  {
+    *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]>>4);
+    *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]);
+    if (((i+1)%4)==0)
+    {
+      kprint(" ");
+    }
+    if (((i+1)%16)==0)
+    {
+      kprint("\n");
+    }
+
+  }
+  kprint("\n");
+}
+
+void print_le(const char *mem,int size)
+{
+  for (int i = (size-1);i >= 0; i--)
+  {
+    *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]>>4);
+    *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]);
+  }
+  *((volatile unsigned int *) 0x09000000) =' ';
+}
+
+void print_be(const char *mem,int size)
+{
+  for (int i =0;i < size; i++)
+  {
+    *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]>>4);
+    *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]);
+  }
+  *((volatile unsigned int *) 0x09000000) =' ';
+}
+
+extern "C"
+void kernel_start(uintptr_t magic, uintptr_t addr)
+{
+  kprint(" : magic : ");
+  print_le((char *)addr,sizeof(uintptr_t));
+  kprint("\n");
+  print_le((char *)magic,sizeof(uintptr_t));
+    kprint("\n");
+  uint16_t *data=(uint16_t*)0x40000000;
+  uint32_t i=0;
+  while(*data != 0x0dd0)
+  {
+    data++;
+    i++;
+    uint16_t val = *data;
+    uint64_t addr_value=(uint64_t)data;
+    if ((i%0xFFFF) == 0)
+    {
+      print_le((char *)&addr_value,sizeof(uint64_t));
+      print_le((char *)&val,sizeof(uint16_t));
+      kprint("\n");
+    }
+  }
+
+  kprint(" FOUND DTB MAGIC : \n");
+  print_le((char *)&data,sizeof(uint64_t));
+  kprint(": ");
+  print_be((char *)data,sizeof(uint32_t));
+  kprint("\n");
+
+
+  print_memory("Dumping first 256 bytes of DTB",(char *)data,256);
+  kprint("\n");
+  //cast ptr to int
+//  uint64_t offset=(uint64_t)data;
+//  print_memory("size",(char*)(&offset),sizeof(uintptr_t));
+//  print_memory("size",(char*)(data),sizeof(uintptr_t));
+
+  extern char _end;
+  uintptr_t free_mem_begin = (uintptr_t) &_end;
+  uintptr_t mem_end = __arch_max_canonical_addr;
+
+  if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
+    free_mem_begin = _multiboot_free_begin(addr);
+    mem_end = _multiboot_memory_end(addr);
+  }
+
+  // Preserve symbols from the ELF binary
+  free_mem_begin += _move_symbols(free_mem_begin);
+
+  // Initialize .bss
+  extern char _BSS_START_, _BSS_END_;
+  __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+
+  // Initialize heap
+  OS::init_heap(free_mem_begin, mem_end);
+
+  // Initialize system calls
+  _init_syscalls();
+
+  // Initialize stdout handlers
+  if (os_default_stdout)
+    OS::add_stdout(&OS::default_stdout);
+
+  OS::start(magic, addr);
+
+  // Start the service
+  Service::start();
+
+  __arch_poweroff();
+}
+
+/*
+extern "C" int __divdi3() {}
+extern "C" int __moddi3() {}
+extern "C" unsigned int __udivdi3() {}
+extern "C" unsigned int __umoddi3() {}
+*/

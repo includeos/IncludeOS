@@ -5,8 +5,6 @@
 #TODO restructure this in a different commit based on KJ/CMakeFixes branch
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-add_definitions(-DPLATFORM_${PLATFORM})
-add_definitions(-DPLATFORM="${PLATFORM}")
 
 if (smp)
   add_definitions(-DINCLUDEOS_SMP_ENABLE)
@@ -34,6 +32,10 @@ set(LIBRARIES
     hw
 )
 
+if (NOT CORE_OS)
+  list(APPEND LIBRARIES fuzz)
+endif()
+
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND LIBRARIES crt)
 endif()
@@ -52,7 +54,6 @@ if (CMAKE_TESTING_ENABLED)
 endif()
 add_library(os STATIC ${SRCS} ${OBJECTS})
 
-
 if (NOT CMAKE_TESTING_ENABLED)
   add_dependencies(os version )
   add_subdirectory(arch/${ARCH})
@@ -66,8 +67,13 @@ if (NOT CMAKE_TESTING_ENABLED)
 
     add_subdirectory(drivers)
     add_subdirectory(plugins)
+  else()
+    if (${ARCH} STREQUAL "aarch64")
+      add_subdirectory(platform/aarch64_vm)
+    else()
+      add_subdirectory(platform/x86_nano)
+    endif()
   endif()
-  add_subdirectory(platform/x86_nano)
   # Add musl
   add_subdirectory(musl)
 endif()
