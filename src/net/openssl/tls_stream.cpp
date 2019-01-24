@@ -83,7 +83,7 @@ int TLS_stream::decrypt(const void *indata, int size)
     //TODO can we handle this more gracefully?
     TLS_PRINT("BIO_write failed\n");
     this->close();
-    return 0;
+    return -1;
   }
 
   // if we aren't finished initializing session
@@ -106,7 +106,7 @@ int TLS_stream::decrypt(const void *indata, int size)
         #endif
       }
       this->close();
-      return 0;
+      return -1;
     }
     // nothing more to do if still not finished
     if (handshake_completed() == false) return 0;
@@ -118,7 +118,7 @@ int TLS_stream::decrypt(const void *indata, int size)
     if (this->m_deferred_close) {
       TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
       this->close();
-      return 0;
+      return -1;
     }
   }
   return n;
@@ -194,8 +194,13 @@ bool TLS_stream::tls_read(buffer_t buffer)
       return true;
     }
 
-    int decrypted_bytes=decrypt(buf_ptr,len);
-    if (UNLIKELY(decrypted_bytes==0)) return false;
+    const int decrypted_bytes = decrypt(buf_ptr, len);
+    if (UNLIKELY(decrypted_bytes == 0)) {
+      return false;
+    }
+    else if (UNLIKELY(decrypted_bytes < 0)) {
+      return true;
+    }
     buf_ptr += decrypted_bytes;
     len -= decrypted_bytes;
 
