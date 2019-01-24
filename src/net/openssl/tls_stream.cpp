@@ -164,12 +164,14 @@ void TLS_stream::handle_write_congestion()
 }
 void TLS_stream::handle_data()
 {
-  while ( m_transport->next_size() > 0)
+  while (m_transport->next_size() > 0)
   {
     if (UNLIKELY(read_congested())){
       break;
     }
-    bool closed = tls_read(m_transport->read_next());
+    auto buffer = m_transport->read_next();
+    if (UNLIKELY(!buffer)) break;
+    bool closed = tls_read(buffer);
     // tls_read can close this stream
     if (closed) break;
   }
@@ -241,6 +243,7 @@ bool TLS_stream::tls_read(buffer_t buffer)
     this->close();
     return true;
   }
+  return false;
 } // tls_read()
 
 int TLS_stream::tls_perform_stream_write()
