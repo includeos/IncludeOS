@@ -1,5 +1,8 @@
 #include "balancer.hpp"
 #include <stdexcept>
+#include <net/inet>
+#include <net/tcp/stream.hpp>
+#include <net/s2n/stream.hpp>
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
@@ -15,13 +18,10 @@ namespace microLB
   void Nodes::serialize(Storage& store)
   {
     store.add<int64_t>(100, this->session_total);
-    store.add_int(100, this->session_timeouts);
     store.put_marker(100);
 
-    const int tot_sessions = sessions.size() - free_sessions.size();
-
-    LBOUT("Serialize %llu sessions\n", tot_sessions);
-    store.add_int(102, tot_sessions);
+    LBOUT("Serialize %llu sessions\n", this->session_cnt);
+    store.add_int(102, this->session_cnt);
 
     int alive = 0;
     for(auto& session : sessions)
@@ -32,28 +32,63 @@ namespace microLB
         ++alive;
       }
     }
-    assert(alive == tot_sessions
-      && "Mismatch between number of said serialized sessions and the actual number serialized.");
+    assert(alive == this->session_cnt
+      && "Mismatch between number of serialized sessions and actual number serialized");
   }
-
 
   void Session::serialize(Storage& store)
   {
-    //store.add_connection(120, incoming);
-    //store.add_connection(121, outgoing);
+    store.add_stream(*incoming);
+    store.add_stream(*outgoing);
     store.put_marker(120);
   }
 
-  void Nodes::deserialize(netstack_t& in, netstack_t& out, Restore& store)
+  inline void serialize_stream(liu::Storage& store, net::Stream& stream)
+  {
+    const int subid = stream.serialization_subid();
+    switch (subid) {
+      case net::tcp::Stream::SUBID: // TCP
+          store.add_stream(stream);
+          break;
+      case s2n::TLS_stream::SUBID:  // S2N
+          store.add_stream(*stream.bottom_transport());
+          store.add_stream(stream);
+          break;
+      default:
+          throw std::runtime_error("Unimplemented subid " + std::to_string(subid));
+    }
+  }
+
+  inline std::unique_ptr<net::Stream>
+      deserialize_stream(liu::Restore& store, net::Inet& stack, void* ctx, bool outgoing)
+  {
+    assert(store.is_stream());
+    const int subid = store.get_id();
+    std::unique_ptr<net::Stream> result = nullptr;
+
+    switch (subid) {
+      case net::tcp::Stream::SUBID: // TCP
+          result = store.as_tcp_stream(stack.tcp()); store.go_next();
+          break;
+      case s2n::TLS_stream::SUBID: { // S2N
+          auto transp = store.as_tcp_stream(stack.tcp());
+          store.go_next();
+          result = store.as_tls_stream(ctx, outgoing, std::move(transp));
+          store.go_next();
+        } break;
+      default:
+          throw std::runtime_error("Unimplemented subid " + std::to_string(subid));
+    }
+    return result;
+  }
+
+  void Nodes::deserialize(Restore& store, DeserializationHelper& helper)
   {
     /// nodes member fields ///
     this->session_total = store.as_type<int64_t>(); store.go_next();
-    this->session_timeouts = store.as_int();        store.go_next();
     store.pop_marker(100);
 
     /// sessions ///
-    auto& tcp_in  = in.tcp();
-    auto& tcp_out = out.tcp();
     const int tot_sessions = store.as_int(); store.go_next();
     // since we are remaking all the sessions, reduce total
     this->session_total -= tot_sessions;
@@ -61,34 +96,22 @@ namespace microLB
     LBOUT("Deserialize %llu sessions\n", tot_sessions);
     for(auto i = 0; i < static_cast<int>(tot_sessions); i++)
     {
-      //auto incoming = store.as_tcp_connection(tcp_in); store.go_next();
-      //auto outgoing = store.as_tcp_connection(tcp_out); store.go_next();
+      auto incoming = deserialize_stream(store, *helper.clients, helper.cli_ctx, false);
+      auto outgoing = deserialize_stream(store, *helper.nodes,   helper.nod_ctx, true);
       store.pop_marker(120);
-
-      //create_session(true /* no readq atm */, incoming, outgoing);
+      this->create_session(std::move(incoming), std::move(outgoing));
     }
   }
 
   void Waiting::serialize(liu::Storage& store)
   {
-    /*
-    store.add_connection(10, this->conn);
-    store.add_int(11, (int) readq.size());
-    for (auto buffer : readq) {
-      store.add_buffer(12, buffer->data(), buffer->size());
-    }*/
+    //store.add_connection(10, this->conn);
+    store.add_stream(*this->conn);
     store.put_marker(10);
   }
-  Waiting::Waiting(liu::Restore& store, net::TCP& stack)
+  Waiting::Waiting(liu::Restore& store, DeserializationHelper& helper)
   {
-    /*
-    this->conn = store.as_tcp_connection(stack); store.go_next();
-    int qsize = store.as_int(); store.go_next();
-    for (int i = 0; i < qsize; i++)
-    {
-      auto buf = store.as_buffer(); store.go_next();
-      readq.push_back(net::tcp::construct_buffer(buf.begin(), buf.end()));
-    }*/
+    this->conn = deserialize_stream(store, *helper.clients, helper.cli_ctx, false);
     store.pop_marker(10);
   }
 
@@ -106,15 +129,21 @@ namespace microLB
   }
   void Balancer::deserialize(Restore& store)
   {
+    // can't proceed without these two interfaces
+    if (de_helper.clients == nullptr || de_helper.nodes == nullptr)
+    {
+      throw std::runtime_error("Missing deserialization interfaces. Forget to set them?");
+    }
+
     this->throw_counter = store.as_int(); store.go_next();
     store.pop_marker(0);
     /// wait queue
     int wsize = store.as_int(); store.go_next();
     for (int i = 0; i < wsize; i++) {
-      queue.emplace_back(store, this->netin.tcp());
+      queue.emplace_back(store, de_helper);
     }
     /// nodes
-    nodes.deserialize(netin, netout, store);
+    nodes.deserialize(store, this->de_helper);
   }
 
   void Balancer::resume_callback(liu::Restore& store)
@@ -123,17 +152,19 @@ namespace microLB
       this->deserialize(store);
     }
     catch (std::exception& e) {
-      printf("\n!!! Error during microLB resume !!!\n");
-      printf("REASON: %s\n", e.what());
+      fprintf(stderr, "\n!!! Error during microLB resume !!!\n");
+      fprintf(stderr, "REASON: %s\n", e.what());
     }
   }
 
   void Balancer::init_liveupdate()
   {
+#ifndef USERSPACE_LINUX
     liu::LiveUpdate::register_partition("microlb", {this, &Balancer::serialize});
     if(liu::LiveUpdate::is_resumable())
     {
       liu::LiveUpdate::resume("microlb", {this, &Balancer::resume_callback});
     }
+#endif
   }
 }

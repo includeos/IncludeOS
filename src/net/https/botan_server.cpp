@@ -59,7 +59,7 @@ namespace http
             server_name,
             get_rng(),
             std::move(ca_key),
-            Botan::X509_Certificate(*ca_cert.get()),
+            Botan::X509_Certificate(ca_cert.data(), ca_cert.size()),
             std::move(srv_key));
 
     this->credman.reset(credman);

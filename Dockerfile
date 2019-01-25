@@ -9,6 +9,7 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
+RUN echo "LANG=C.UTF-8" > /etc/default/locale
 
 # Add fixuid to change permissions for bind-mounts. Set uid to same as host with -u <uid>:<guid>
 RUN addgroup --gid 1000 docker && \
@@ -25,14 +26,14 @@ RUN USER=docker && \
     mkdir -p /etc/fixuid && \
     printf "user: $USER\ngroup: $GROUP\npaths:\n  - /service\n" > /etc/fixuid/config.yml
 
-ARG CUSTOM_TAG
-LABEL org.label-schema.schema-version="1.0" \
-      org.label-schema.name="IncludeOS builder" \
-      org.label-schema.vendor="IncludeOS" \
-      org.label-schema.version=$CUSTOM_TAG \
-      org.label-schema.vcs-url="https://github.com/hioa-cs/includeos"
+ARG VCSREF
+ARG VERSION
 
-RUN echo "LANG=C.UTF-8" > /etc/default/locale
+LABEL org.label-schema.schema-version="1.0" \
+      org.label-schema.vcs-url="https://github.com/hioa-cs/includeos" \
+      org.label-schema.vendor="IncludeOS" \
+      org.label-schema.vcs-ref=$VCSREF \
+      org.label-schema.version=$VERSION
 
 #########################
 FROM base as source-build
@@ -49,9 +50,9 @@ WORKDIR /root/IncludeOS
 COPY . .
 
 # Ability to specify custom tag that overwrites any existing tag. This will then match what IncludeOS reports itself.
-ARG CUSTOM_TAG
+ARG VERSION
 RUN git describe --tags --dirty > /ios_version.txt
-RUN : ${CUSTOM_TAG:=$(git describe --tags)} && git tag -d $(git describe --tags); git tag $CUSTOM_TAG && git describe --tags --dirty > /custom_tag.txt
+RUN echo ${VERSION:=$(git describe --tags --dirty)} && git tag -d $(git describe --tags); git tag $VERSION && git describe --tags --dirty > /version.txt
 
 # Installation
 RUN ./install.sh -n
@@ -62,6 +63,9 @@ FROM base as grubify
 RUN apt-get update && apt-get -y install \
   dosfstools \
   grub-pc
+
+LABEL org.label-schema.description="Add a grub bootloader to any binary" \
+      org.label-schema.name="IncludeOS_grubify"
 
 COPY --from=source-build /usr/local/includeos/scripts/grubify.sh /home/ubuntu/IncludeOS_install/includeos/scripts/grubify.sh
 
@@ -81,26 +85,27 @@ RUN apt-get update && apt-get -y install \
     apt-get remove -y python-pip && \
     apt autoremove -y
 
-ARG VCS_REF="Check file /ios_version.txt inside container"
+# Metadata used for labels
+ARG BUILDDATE
+
 LABEL org.label-schema.description="Build a service using IncludeOS" \
-      org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.docker.cmd="docker run -v $PWD:/service <container>"
+      org.label-schema.name="IncludeOS_builder" \
+      org.label-schema.docker.cmd="docker run -v $PWD:/service <container>" \
+      org.label-schema.build-date=$BUILDDATE
 
 WORKDIR /service
 
 COPY --from=source-build  /usr/local/includeos /usr/local/includeos/
-COPY --from=source-build  /usr/local/bin/boot /usr/local/bin/boot
-COPY --from=source-build  /root/IncludeOS/etc/install_dependencies_linux.sh /
 COPY --from=source-build  /root/IncludeOS/etc/use_clang_version.sh /
 COPY --from=source-build  /root/IncludeOS/lib/uplink/starbase /root/IncludeOS/lib/uplink/starbase/
 COPY --from=source-build  /ios_version.txt /
-COPY --from=source-build  /custom_tag.txt /
+COPY --from=source-build  /version.txt /
 COPY --from=source-build  /root/IncludeOS/etc/docker_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 CMD mkdir -p build && \
   cd build && \
   cp $(find /usr/local/includeos -name chainloader) /service/build/chainloader && \
-  echo "IncludeOS version:" $(cat /ios_version.txt) "tag:" $(cat /custom_tag.txt) && \
+  echo "IncludeOS reported version:" $(cat /ios_version.txt) "label Version:" $(cat /version.txt) && \
   cmake .. && \
   make

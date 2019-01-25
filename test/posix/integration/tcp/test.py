@@ -50,6 +50,7 @@ def TCP_connect():
   sock.connect((HOST, PORT))
   MESSAGE = "POSIX is for hipsters"
   sock.send(MESSAGE)
+  sock.close()
 
 def TCP_recv(trigger_line):
   server.listen(1)

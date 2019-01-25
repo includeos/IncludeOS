@@ -195,12 +195,12 @@ class hypervisor(object):
         return self._proc
 
 
-# Ukvm Hypervisor interface
-class ukvm(hypervisor):
+# Solo5-hvt Hypervisor interface
+class solo5(hypervisor):
 
     def __init__(self, config):
-        # config is not yet used for ukvm
-        super(ukvm, self).__init__(config)
+        # config is not yet used for solo5
+        super(solo5, self).__init__(config)
         self._proc = None
         self._stopped = False
         self._sudo = False
@@ -210,7 +210,7 @@ class ukvm(hypervisor):
         self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
 
     def name(self):
-        return "Ukvm"
+        return "Solo5-hvt"
 
     def image_name(self):
         return self._image_name
@@ -218,9 +218,9 @@ class ukvm(hypervisor):
     def drive_arg(self, filename,
                   device_format="raw", media_type="disk"):
         if device_format != "raw":
-            raise Exception("solo5/ukvm can only handle drives in raw format.")
+            raise Exception("solo5 can only handle drives in raw format.")
         if media_type != "disk":
-            raise Exception("solo5/ukvm can only handle drives of type disk.")
+            raise Exception("solo5 can only handle drives of type disk.")
         return ["--disk=" + filename]
 
     def net_arg(self):
@@ -232,7 +232,7 @@ class ukvm(hypervisor):
     def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
         self._stopped = False
 
-        qkvm_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/ukvm-bin"
+        qkvm_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/solo5-hvt"
 
         # Use provided image name if set, otherwise raise an execption
         if not image_name:
@@ -245,7 +245,7 @@ class ukvm(hypervisor):
         if not "drives" in self._config:
             command += self.drive_arg(self._image_name)
         elif len(self._config["drives"]) > 1:
-            raise Exception("solo5/ukvm can only handle one drive.")
+            raise Exception("solo5/solo5 can only handle one drive.")
         else:
             for disk in self._config["drives"]:
                 info ("Ignoring drive type argument: ", disk["type"])
@@ -655,8 +655,8 @@ class vm:
             panic_signature : self._on_panic,
             "SUCCESS" : self._on_success }
 
-        if hyper_name == "ukvm":
-            hyper = ukvm
+        if hyper_name == "solo5":
+            hyper = solo5
         else:
             hyper = qemu
 

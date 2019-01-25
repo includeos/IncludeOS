@@ -39,7 +39,7 @@ enum storage_type
   TYPE_TCP    = 100,
   TYPE_TCP6   = 101,
   TYPE_WEBSOCKET  = 105,
-  TYPE_TLS_STREAM = 106,
+  TYPE_STREAM = 106,
 };
 
 struct segmented_entry

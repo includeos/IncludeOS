@@ -7,7 +7,7 @@ void __arch_poweroff()
 }
 
 void __platform_init() {
-  // minimal CPU exception handlers already set by solo5/ukvm
+  // minimal CPU exception handlers already set by solo5 tender
 }
 
 void __arch_reboot() {}
