@@ -56,6 +56,9 @@ class IncludeOSConan(ConanFile):
         self.requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
         self.requires("libgcc/1.0@{}/{}".format(self.user,self.channel))
 
+        if self.settings.arch == "armv8":
+            self.requires("libfdt/1.4.7@includeos/test")
+
         if self.options.basic == 'OFF':
             self.requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
             self.requires("http-parser/2.8.1@{}/{}".format(self.user,self.channel)) #this one is almost free anyways

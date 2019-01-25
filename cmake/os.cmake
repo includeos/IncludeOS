@@ -192,7 +192,33 @@ function(os_add_executable TARGET NAME)
   endif()
 endfunction()
 
-##
+##string parse ? painful
+function(os_add_conan_package TARGET PACKAGE)
+
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                    "${CMAKE_BINARY_DIR}/conan.cmake")
+  endif()
+  #TODO se if this goes all wack
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+  #should we specify a directory.. can we run it multiple times ?
+  conan_cmake_run(
+    REQUIRES ${PACKAGE}
+    BASIC_SETUP
+    CMAKE_TARGETS
+    PROFILE ${CONAN_PROFILE}
+  )
+  #convert pkg/version@user/channel to pkg;versin;user;chanel
+  string(REPLACE "@" ";" LIST ${PACKAGE})
+  string(REPLACE "/" ";" LIST ${LIST})
+  #get the first element
+  list(GET LIST 0 PKG)
+
+  os_link_libraries(${TARGET} CONAN_PKG::${PKG})
+
+endfunction()
+
 function(os_compile_options TARGET)
   target_compile_options(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
