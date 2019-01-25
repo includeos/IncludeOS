@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #include <service>
+#include <cstdio>
+#include <isotime>
 
 extern "C" __attribute__((noreturn))
 void panic(const char* reason);
