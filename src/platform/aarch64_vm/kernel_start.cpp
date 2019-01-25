@@ -20,6 +20,9 @@
 #include <kernel/os.hpp>
 #include <kernel/service.hpp>
 #include <boot/multiboot.h>
+extern "C" {
+  #include <libfdt.h>
+}
 
 extern "C" {
   void __init_sanity_checks();
@@ -32,12 +35,6 @@ extern "C" {
 uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
 uintptr_t _multiboot_memory_end(uintptr_t boot_addr);
 extern bool os_default_stdout;
-
-
-struct fdt_header{
-    uint32_t magic;
-    uint32_t size;
-};
 
 extern "C"
 uint8_t nibble2hex(uint8_t nibble)
@@ -96,7 +93,24 @@ void print_le(const char *mem,int size)
     *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]>>4);
     *((volatile unsigned int *) 0x09000000) =nibble2hex(mem[i]);
   }
-  *((volatile unsigned int *) 0x09000000) =' ';
+}
+
+void print_le_named(const char *name,const char *mem,int size)
+{
+  kprint(name);
+  kprint(" ");
+  print_le(mem,size);
+  kprint("\r\n");
+}
+
+void print_le_named32(const char *name,const char *ptr)
+{
+  print_le_named(name,ptr,sizeof(uint32_t));
+}
+
+void print_le_named64(const char *name,const char *ptr)
+{
+  print_le_named(name,ptr ,sizeof(uint64_t));
 }
 
 void print_be(const char *mem,int size)
@@ -110,53 +124,67 @@ void print_be(const char *mem,int size)
 }
 
 extern "C"
-void kernel_start(uintptr_t magic, uintptr_t addr)
+void kernel_start(uintptr_t magic, uintptr_t addrin)
 {
-  kprint(" : magic : ");
-  print_le((char *)addr,sizeof(uintptr_t));
-  kprint("\n");
-  print_le((char *)magic,sizeof(uintptr_t));
-    kprint("\n");
-  uint16_t *data=(uint16_t*)0x40000000;
-  uint32_t i=0;
-  while(*data != 0x0dd0)
+  //its a "RAM address 0"
+  const struct fdt_property *prop;
+  int addr_cells = 0, size_cells = 0;
+  int proplen;
+  char *fdt=(char*)0x40000000;
+
+  //OK so these get overidden in the for loop which should return a map of memory and not just a single one
+  uint64_t addr = 0;
+  uint64_t size = 0;
+
+  //checks both magic and version
+  if ( fdt_check_header(fdt) != 0 )
   {
-    data++;
-    i++;
-    uint16_t val = *data;
-    uint64_t addr_value=(uint64_t)data;
-    if ((i%0xFFFF) == 0)
-    {
-      print_le((char *)&addr_value,sizeof(uint64_t));
-      print_le((char *)&val,sizeof(uint16_t));
-      kprint("\n");
-    }
+    kprint("FDT Header check failed\r\n");
   }
+  kprint("FDT is ok\r\n");
+  size_cells = fdt_size_cells(fdt,0);
+  print_le_named32("size_cells :",(char *)&size_cells);
+  addr_cells = fdt_address_cells(fdt, 0);//fdt32_ld((const fdt32_t *)prop->data);
+  print_le_named32("addr_cells :",(char *)&addr_cells);
 
-  kprint(" FOUND DTB MAGIC : \n");
-  print_le((char *)&data,sizeof(uint64_t));
-  kprint(": ");
-  print_be((char *)data,sizeof(uint32_t));
-  kprint("\n");
+  const int mem_offset = fdt_path_offset(fdt, "/memory");
+  if (mem_offset < 0)
+    return;
 
+  print_le_named32("mem_offset :",(char *)&mem_offset);
 
-  print_memory("Dumping first 256 bytes of DTB",(char *)data,256);
-  kprint("\n");
-  //cast ptr to int
-//  uint64_t offset=(uint64_t)data;
-//  print_memory("size",(char*)(&offset),sizeof(uintptr_t));
-//  print_memory("size",(char*)(data),sizeof(uintptr_t));
+  prop = fdt_get_property(fdt, mem_offset, "reg", &proplen);
+  int cellslen = (int)sizeof(uint32_t) * (addr_cells + size_cells);
+  int i;
 
-  extern char _end;
-  uintptr_t free_mem_begin = (uintptr_t) &_end;
-  uintptr_t mem_end = __arch_max_canonical_addr;
+  for (i = 0; i < proplen / cellslen; ++i) {
 
-  if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-    free_mem_begin = _multiboot_free_begin(addr);
-    mem_end = _multiboot_memory_end(addr);
-  }
+  	int memc_idx;
+  	int j;
+
+  	for (j = 0; j < addr_cells; ++j) {
+  		int offset = (cellslen * i) + (sizeof(uint32_t) * j);
+
+  		addr |= (uint64_t)fdt32_ld((const fdt32_t *)((char *)prop->data + offset)) <<
+  			((addr_cells - j - 1) * 32);
+  	}
+  	for (j = 0; j < size_cells; ++j) {
+  		int offset = (cellslen * i) +
+  			(sizeof(uint32_t) * (j + addr_cells));
+
+  		size |= (uint64_t)fdt32_ld((const fdt32_t *)((char *)prop->data + offset)) <<
+  			((size_cells - j - 1) * 32);
+  	}
+	}
+
+  print_le_named64("RAM BASE :",(char *)&addr);
+  print_le_named64("RAM SIZE :",(char *)&size);
+
+  uint64_t free_mem_begin=addr;
+  uint64_t mem_end=addr+size;
 
   // Preserve symbols from the ELF binary
+  //free_mem_begin = ?
   free_mem_begin += _move_symbols(free_mem_begin);
 
   // Initialize .bss
