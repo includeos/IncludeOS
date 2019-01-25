@@ -26,11 +26,6 @@ SECTIONS
 
   . = _ELF_START_ + SIZEOF_HEADERS;
 
-  .multiboot : {
-      PROVIDE(_MULTIBOOT_START_ = .);
-      *(.multiboot)
-   }
-
   .text ALIGN(0x1000):
   {
   PROVIDE( _TEXT_START_ = . );
@@ -171,6 +166,7 @@ SECTIONS
     *(.gcc_except_table)
   }
   _READONLY_END_ = .;
+
   .data :
   {
     _DATA_START_ = .;
