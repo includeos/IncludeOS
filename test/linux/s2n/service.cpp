@@ -214,7 +214,7 @@ void Service::start()
   printf("*** Loaded certificates and keys\n");
 
   // initialize S2N and store the certificate/key pair
-  printf("*** Init S2N\n");
+  printf("*** Initializing S2N\n");
   s2n::serial_test(ca_cert.to_string(), ca_key.to_string());
   printf("*** Create S2N configuration\n");
   s2n::serial_create_config();
@@ -240,7 +240,7 @@ void Service::start()
   client_test.setup_callbacks();
   printf("* TLS streams created!\n");
 
-  printf("*** Starting test...\n");
   // try serializing and deserializing just after creation
+  printf("*** Starting test...\n");
   do_test_serializing_tls(0);
 }
