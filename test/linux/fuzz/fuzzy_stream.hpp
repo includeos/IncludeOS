@@ -18,6 +18,7 @@
 #pragma once
 #include <net/stream.hpp>
 #include <kernel/events.hpp>
+#include <deque>
 
 //#define VERBOSE_FUZZY_STREAM
 #ifdef VERBOSE_FUZZY_STREAM
@@ -47,6 +48,26 @@ namespace fuzzy
     void write(const void* buf, size_t n) override;
     void close() override;
     void reset_callbacks() override;
+
+    void on_data(DataCallback cb) override {
+      (void) cb;
+    }
+
+    size_t next_size() override {
+      if (is_async() && !m_async_queue.empty()) {
+        return m_async_queue.front()->size();
+      }
+      return 0;
+    }
+
+    buffer_t read_next() override {
+      if (is_async() && !m_async_queue.empty()) {
+        auto buf = std::move(m_async_queue.front());
+        m_async_queue.pop_front();
+        return buf;
+      }
+      return nullptr;
+    }
 
     net::Socket local() const override {
       return m_local;
@@ -101,12 +122,12 @@ namespace fuzzy
     net::Socket m_local;
     net::Socket m_remote;
     delegate<void(buffer_t)> m_payload_out = nullptr;
-    
+
     bool    m_busy = false;
     bool    m_deferred_close = false;
     bool    m_is_closed    = false;
     uint8_t m_async_event  = 0;
-    std::vector<buffer_t> m_async_queue;
+    std::deque<buffer_t> m_async_queue;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
     WriteCallback    m_on_write   = nullptr;
