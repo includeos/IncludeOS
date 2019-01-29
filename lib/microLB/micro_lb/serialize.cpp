@@ -65,7 +65,7 @@ namespace microLB
     assert(store.is_stream());
     const int subid = store.get_id();
     std::unique_ptr<net::Stream> result = nullptr;
-    
+
     switch (subid) {
       case net::tcp::Stream::SUBID: // TCP
           result = store.as_tcp_stream(stack.tcp()); store.go_next();
@@ -107,21 +107,11 @@ namespace microLB
   {
     //store.add_connection(10, this->conn);
     store.add_stream(*this->conn);
-    store.add_int(11, (int) readq.size());
-    for (auto buffer : readq) {
-      store.add_buffer(12, buffer->data(), buffer->size());
-    }
     store.put_marker(10);
   }
   Waiting::Waiting(liu::Restore& store, DeserializationHelper& helper)
   {
     this->conn = deserialize_stream(store, *helper.clients, helper.cli_ctx, false);
-    int qsize = store.as_int(); store.go_next();
-    for (int i = 0; i < qsize; i++)
-    {
-      auto buf = store.as_buffer(); store.go_next();
-      readq.push_back(net::Stream::construct_buffer(buf.begin(), buf.end()));
-    }
     store.pop_marker(10);
   }
 

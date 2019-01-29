@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #pragma once
-#include <net/stream.hpp>
+#include <net/stream_buffer.hpp>
 #include <s2n.h>
 #include <util/ringbuffer.hpp>
 #include <errno.h>
@@ -27,6 +27,11 @@
 #else
 #define S2N_PRINT(fmt, ...) /* fmt */
 #endif
+#define S2N_BUSY(func, ...) \
+    { bool b = this->m_busy; \
+      this->m_busy = true;   \
+      func(__VA_ARGS__);     \
+      this->m_busy = b;}
 
 extern "C" int     s2n_connection_handshake_complete(struct s2n_connection*);
 extern "C" ssize_t s2n_conn_serialize_to(struct s2n_connection*, void* addr, size_t);
@@ -39,7 +44,7 @@ namespace s2n
   typedef int s2n_connection_recv(void *io_context, uint8_t *buf, uint32_t len);
   static inline s2n_connection_send s2n_send;
   static inline s2n_connection_recv s2n_recv;
-  
+
   static void print_s2n_error(const char* app_error)
   {
       fprintf(stderr, "%s: '%s' : '%s'\n",
@@ -48,7 +53,7 @@ namespace s2n
               s2n_strerror_debug(s2n_errno, "EN"));
   }
 
-  struct TLS_stream : public net::Stream
+  struct TLS_stream : public net::StreamBuffer
   {
     static const uint16_t SUBID = 21476;
     using TLS_stream_ptr = std::unique_ptr<TLS_stream>;
@@ -62,7 +67,6 @@ namespace s2n
     void write(const std::string&) override;
     void write(const void* buf, size_t n) override;
     void close() override;
-    void reset_callbacks() override;
 
     net::Socket local() const override {
       return m_transport->local();
@@ -72,19 +76,6 @@ namespace s2n
     }
     std::string to_string() const override {
       return m_transport->to_string();
-    }
-
-    void on_connect(ConnectCallback cb) override {
-      m_on_connect = std::move(cb);
-    }
-    void on_read(size_t, ReadCallback cb) override {
-      m_on_read = std::move(cb);
-    }
-    void on_close(CloseCallback cb) override {
-      m_on_close = std::move(cb);
-    }
-    void on_write(WriteCallback cb) override {
-      m_on_write = std::move(cb);
     }
 
     bool is_connected() const noexcept override {
@@ -122,19 +113,18 @@ namespace s2n
   private:
     void initialize(bool outgoing);
     void tls_read(buffer_t);
+    int  tls_write(const uint8_t*, uint32_t len);
     bool handshake_completed() const noexcept;
     void close_callback_once();
+    void handle_read_congestion() override;
+    void handle_write_congestion() override;
 
     Stream_ptr m_transport = nullptr;
     s2n_connection* m_conn = nullptr;
     bool  m_busy = false;
     bool  m_deferred_close = false;
-    ConnectCallback  m_on_connect = nullptr;
-    ReadCallback     m_on_read    = nullptr;
-    WriteCallback    m_on_write   = nullptr;
-    CloseCallback    m_on_close   = nullptr;
     FixedRingBuffer<16384> m_readq;
-    
+
     friend s2n_connection_recv s2n_recv;
     friend s2n_connection_send s2n_send;
   };
@@ -168,7 +158,7 @@ namespace s2n
     s2n_connection_set_recv_ctx(this->m_conn, this);
     s2n_connection_set_ctx(this->m_conn, this);
     this->m_transport->on_read(8192, {this, &TLS_stream::tls_read});
-    
+
     // initial handshake on outgoing connections
     if (outgoing)
     {
@@ -207,8 +197,9 @@ namespace s2n
     assert(handshake_completed());
     auto* buf = static_cast<const uint8_t*> (data);
     s2n_blocked_status blocked;
-    s2n_send(this->m_conn, buf, len, &blocked);
-    S2N_PRINT("write %zu bytes, blocked = %x\n", len, blocked);
+    int res = ::s2n_send(this->m_conn, buf, len, &blocked);
+    S2N_PRINT("write %zu bytes -> %d, blocked = %x\n", len, res, blocked);
+    (void) res;
   }
 
   inline void TLS_stream::tls_read(buffer_t data_in)
@@ -216,7 +207,7 @@ namespace s2n
     S2N_PRINT("s2n::tls_read(%p): %p, %zu bytes -> %p\n",
               this, data_in->data(), data_in->size(), m_readq.data());
     m_readq.write(data_in->data(), data_in->size());
-    
+
     s2n_blocked_status blocked;
     do {
       int r = 0;
@@ -227,9 +218,9 @@ namespace s2n
         r = s2n_recv(this->m_conn, buffer, size, &blocked);
         S2N_PRINT("s2n_recv: %d, blocked = %x\n", r, blocked);
         if (r > 0) {
-          if (this->m_on_read != nullptr)
-            this->m_on_read(
-               net::Stream::construct_buffer(buffer, buffer + r));
+          // TODO: this->enqueue_data(
+          StreamBuffer::stream_on_read(
+            net::Stream::construct_buffer(buffer, buffer + r));
         }
         else if (r == 0) {
           // normal peer shutdown
@@ -246,12 +237,11 @@ namespace s2n
           return;
         }
       } else {
-        S2N_PRINT("calling s2n_negotiate\n");
         r = s2n_negotiate(this->m_conn, &blocked);
         S2N_PRINT("s2n_negotiate: %d / %d, blocked = %x\n",
                   r, m_readq.size(), blocked);
         if (r == 0) {
-          if (this->m_on_connect) m_on_connect(*this);
+          this->connected();
         }
         else if (r < 0) {
           if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED)
@@ -280,8 +270,35 @@ namespace s2n
   int s2n_send(void* ctx, const uint8_t* buf, uint32_t len)
   {
     S2N_PRINT("s2n_send(%p): %p, %u\n", ctx, buf, len);
-    ((TLS_stream*) ctx)->m_transport->write(buf, len);
-    return len;
+    return ((TLS_stream*) ctx)->tls_write(buf, len);
+  }
+  inline int TLS_stream::tls_write(const uint8_t* buf, uint32_t len)
+  {
+    auto buffer = StreamBuffer::construct_write_buffer(len);
+    if (buffer != nullptr) {
+      this->m_transport->write(buf, len);
+      S2N_BUSY(StreamBuffer::stream_on_write, len);
+      return len;
+    }
+    errno = EWOULDBLOCK;
+    return -1;
+  }
+
+  inline void TLS_stream::handle_read_congestion()
+  {
+    this->tls_read(nullptr);
+
+    S2N_BUSY(StreamBuffer::signal_data);
+
+    if (this->m_deferred_close) {
+      S2N_PRINT("s2n::read() close after tls_perform_stream_write\n");
+      this->close();
+      return;
+    }
+  }
+  inline void TLS_stream::handle_write_congestion()
+  {
+    //while(tls_write(nullptr, 0) >  0);
   }
 
   inline void TLS_stream::close()
@@ -289,7 +306,7 @@ namespace s2n
     if (this->m_busy) {
       this->m_deferred_close = true; return;
     }
-    CloseCallback func = std::move(this->m_on_close);
+    CloseCallback func = this->getCloseCallback();
     this->reset_callbacks();
     if (m_transport->is_connected())
         m_transport->close();
@@ -300,36 +317,29 @@ namespace s2n
     if (this->m_busy) {
       this->m_deferred_close = true; return;
     }
-    CloseCallback func = std::move(this->m_on_close);
+    CloseCallback func = this->getCloseCallback();
     this->reset_callbacks();
     if (func) func();
-  }
-  inline void TLS_stream::reset_callbacks()
-  {
-    this->m_on_close = nullptr;
-    this->m_on_connect = nullptr;
-    this->m_on_read  = nullptr;
-    this->m_on_write = nullptr;
   }
 
   inline bool TLS_stream::handshake_completed() const noexcept
   {
     return s2n_connection_handshake_complete(this->m_conn);
   }
-  
+
   struct serialized_stream {
     ssize_t conn_size  = 0;
     char next[0];
-    
+
     void* conn_addr() {
       return &next[0];
     }
-    
+
     size_t size() const noexcept {
       return sizeof(serialized_stream) + conn_size;
     }
   };
-  
+
   inline size_t TLS_stream::serialize_to(void* addr, size_t size) const
   {
     assert(addr != nullptr && size > sizeof(serialized_stream));
@@ -345,7 +355,7 @@ namespace s2n
     }
     return hdr->size();
   }
-  
+
   inline TLS_stream_ptr
   TLS_stream::deserialize_from(s2n_config*  config,
                                Stream_ptr   transport,

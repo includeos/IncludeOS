@@ -1,6 +1,7 @@
 #pragma once
 #include <net/socket.hpp>
 #include <liveupdate>
+#include <util/timer.hpp>
 namespace net {
   class Inet;
 }
@@ -9,7 +10,6 @@ namespace microLB
 {
   typedef net::Inet netstack_t;
   typedef net::tcp::Connection_ptr tcp_ptr;
-  typedef std::vector<net::tcp::buffer_t> queue_vector_t;
   typedef delegate<void()> pool_signal_t;
 
   typedef delegate<void(net::Stream_ptr)> node_connect_result_t;
@@ -30,7 +30,6 @@ namespace microLB
     void serialize(liu::Storage&);
 
     net::Stream_ptr conn;
-    queue_vector_t readq;
     int total = 0;
   };
 
@@ -44,6 +43,9 @@ namespace microLB
     const int  self;
     net::Stream_ptr incoming;
     net::Stream_ptr outgoing;
+
+    void flush_incoming();
+    void flush_outgoing();
   };
 
   struct Balancer;
@@ -54,7 +56,7 @@ namespace microLB
     auto address() const noexcept { return m_socket; }
     int  connection_attempts() const noexcept { return this->connecting; }
     int  pool_size() const noexcept { return pool.size(); }
-    bool is_active() const noexcept { return active; };
+    bool is_active() const noexcept { return active; }
     bool active_check() const noexcept { return do_active_check; }
 
     void restart_active_check();
@@ -68,11 +70,11 @@ namespace microLB
     pool_signal_t           m_pool_signal = nullptr;
     std::vector<net::Stream_ptr> pool;
     net::Socket m_socket;
-    [[maybe_unused]] int m_idx;
-    bool       active = false;
-    const bool do_active_check;
-    signed int active_timer = -1;
-    signed int connecting = 0;
+    int         m_idx;
+    bool        active = false;
+    const bool  do_active_check;
+    int32_t     active_timer = -1;
+    int32_t     connecting = 0;
   };
 
   struct Nodes {
@@ -80,7 +82,7 @@ namespace microLB
     typedef nodevec_t::iterator iterator;
     typedef nodevec_t::const_iterator const_iterator;
 
-    Nodes(bool ac) : do_active_check(ac) {}
+    Nodes(Balancer& b, bool ac) : m_lb(b), do_active_check(ac) {}
 
     size_t   size() const noexcept;
     const_iterator begin() const;
@@ -96,9 +98,10 @@ namespace microLB
     void add_node(Args&&... args);
     void create_connections(int total);
     // returns the connection back if the operation fails
-    net::Stream_ptr assign(net::Stream_ptr, queue_vector_t&);
+    net::Stream_ptr assign(net::Stream_ptr);
     Session& create_session(net::Stream_ptr inc, net::Stream_ptr out);
     void     close_session(int);
+    void destroy_sessions();
     Session& get_session(int);
     void     close_all_sessions();
 
@@ -108,19 +111,23 @@ namespace microLB
     delegate<void(int idx, int current, int total)> on_session_close = nullptr;
 
   private:
+    Balancer& m_lb;
     nodevec_t nodes;
     int64_t   session_total = 0;
     int       session_cnt = 0;
     int       conn_iterator = 0;
     int       algo_iterator = 0;
     const bool do_active_check;
+    Timer cleanup_timer;
     std::deque<Session> sessions;
     std::deque<int> free_sessions;
+    std::deque<int> closed_sessions;
   };
 
   struct Balancer {
     Balancer(bool active_check);
     ~Balancer();
+
     static Balancer* from_config();
 
     // Frontend/Client-side of the load balancer
@@ -163,7 +170,7 @@ namespace microLB
 
   template <typename... Args>
   inline void Nodes::add_node(Args&&... args) {
-    nodes.emplace_back(std::forward<Args> (args)...,
+    nodes.emplace_back(m_lb, std::forward<Args> (args)...,
                        this->do_active_check, nodes.size());
   }
 }
