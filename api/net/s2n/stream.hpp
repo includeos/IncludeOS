@@ -197,8 +197,9 @@ namespace s2n
     assert(handshake_completed());
     auto* buf = static_cast<const uint8_t*> (data);
     s2n_blocked_status blocked;
-    ::s2n_send(this->m_conn, buf, len, &blocked);
-    S2N_PRINT("write %zu bytes, blocked = %x\n", len, blocked);
+    int res = ::s2n_send(this->m_conn, buf, len, &blocked);
+    S2N_PRINT("write %zu bytes -> %d, blocked = %x\n", len, res, blocked);
+    (void) res;
   }
 
   inline void TLS_stream::tls_read(buffer_t data_in)
@@ -217,7 +218,8 @@ namespace s2n
         r = s2n_recv(this->m_conn, buffer, size, &blocked);
         S2N_PRINT("s2n_recv: %d, blocked = %x\n", r, blocked);
         if (r > 0) {
-          this->enqueue_data(
+          // TODO: this->enqueue_data(
+          StreamBuffer::stream_on_read(
             net::Stream::construct_buffer(buffer, buffer + r));
         }
         else if (r == 0) {
@@ -235,7 +237,6 @@ namespace s2n
           return;
         }
       } else {
-        S2N_PRINT("calling s2n_negotiate\n");
         r = s2n_negotiate(this->m_conn, &blocked);
         S2N_PRINT("s2n_negotiate: %d / %d, blocked = %x\n",
                   r, m_readq.size(), blocked);
@@ -277,8 +278,10 @@ namespace s2n
     if (buffer != nullptr) {
       this->m_transport->write(buf, len);
       S2N_BUSY(StreamBuffer::stream_on_write, len);
+      return len;
     }
-    return 0;
+    errno = EWOULDBLOCK;
+    return -1;
   }
 
   inline void TLS_stream::handle_read_congestion()

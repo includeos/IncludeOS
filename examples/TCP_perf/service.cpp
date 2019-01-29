@@ -116,8 +116,8 @@ void Service::ready()
   static auto blob = net::tcp::construct_buffer(SIZE);
 
 #ifdef USERSPACE_LINUX
-  extern void create_network_device(int N, const char* route, const char* ip);
-  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+  extern void create_network_device(int N, const char* ip);
+  create_network_device(0, "10.0.0.1/24");
 #endif
 
   // Get the first IP stack configured from config.json
