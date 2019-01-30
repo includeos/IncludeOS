@@ -10,7 +10,7 @@ class VmbuildConan(ConanFile):
     url = "http://www.includeos.org/"
 
     def build_requirements(self):
-        self.build_requires("GSL/1.0.0@includeos/test")
+        self.build_requires("GSL/2.0.0@includeos/test")
 
     def source(self):
         repo = tools.Git(folder="includeos")
