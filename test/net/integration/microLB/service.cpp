@@ -100,11 +100,11 @@ void Service::start()
   balancer = microLB::Balancer::from_config();
   printf("MicroLB ready for test\n");
   auto& inet1 = net::Interfaces::get(0);
-  auto& inet2 = net::Interfaces::get(1);;
   inet1.tcp().set_MSL(std::chrono::seconds(2));
 
   // Increasing TCP buffer size may increase throughput
   //inet1.tcp().set_total_bufsize(256_MiB);
+  //auto& inet2 = net::Interfaces::get(1);;
   //inet2.tcp().set_total_bufsize(256_MiB);
 
   Timers::oneshot(std::chrono::seconds(5),
