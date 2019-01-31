@@ -23,6 +23,7 @@
 #include <net/util.hpp>
 #include <cstdlib>
 #include <string>
+#include <hw/mac_addr.hpp>
 
 namespace net {
 namespace ip6 {
@@ -45,24 +46,38 @@ struct Addr {
 
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
-  {
-    i16[0] = htons(a1); i16[1] = htons(a2);
-    i16[2] = htons(b1); i16[3] = htons(b2);
-    i16[4] = htons(c1); i16[5] = htons(c2);
-    i16[6] = htons(d1); i16[7] = htons(d2);
-  }
+    : i16{htons(a1), htons(a2), htons(b1), htons(b2),
+          htons(c1), htons(c2), htons(d1), htons(d2)}
+  {}
 
   explicit Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-  {
-    i32[0] = htonl(a); i32[1] = htonl(b);
-    i32[2] = htonl(c); i32[3] = htonl(d);
-  }
+    : i32{htonl(a), htonl(b), htonl(c), htonl(d)}
+  {}
+
+  explicit Addr(uint64_t a, uint64_t b)
+    : i64{htonll(a), htonll(b)}
+  {}
 
   Addr(const Addr& a) noexcept
     : i64{a.i64} {}
 
   Addr(Addr&& a) noexcept
     : i64{a.i64} {}
+
+  /**
+   * Constructor
+   *
+   * Construct an IPv6 address from a {std::string} object
+   * representing an IPv6 address
+   *
+   * @param addr
+   * A {std::string} object representing an IPv6 address
+   *
+   * @throws Invalid_address
+   *  IIf the {std::string} object doesn't representing a valid IPv6
+   *  address
+   */
+  Addr(const std::string &addr);
 
   // returns this IPv6 Address as a string
   std::string str() const {
@@ -104,7 +119,7 @@ struct Addr {
   static const Addr site_dhcp_servers;  // RFC 3315
 
   // returns true if this Addr is a IPv6 multicast Address
-  bool is_multicast() const
+  bool is_multicast() const noexcept
   {
     /**
        RFC 4291 2.7 Multicast Addresses
@@ -120,12 +135,17 @@ struct Addr {
     return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
-  bool is_solicit_multicast() const
+  bool is_linklocal() const noexcept
   {
-      return ((ntohs(i32[0]) ^  (0xff020000)) |
-              ntohs(i32[1]) |
-              (ntohs(i32[2]) ^ (0x00000001)) |
-              (ntohs(i32[3]) ^ 0xff)) == 0;
+    return ((ntohs(i16[0]) & 0xFE80) == 0xFE80);
+  }
+
+  bool is_solicit_multicast() const noexcept
+  {
+    return i32[0] == htonl(0xFF020000)
+       and i32[1] == 0
+       and i32[2] == htonl(0x1)
+       and (i32[3] & htonl(0xFF000000)) == htonl(0xFF000000);
   }
 
   uint8_t* data()
@@ -133,12 +153,14 @@ struct Addr {
       return reinterpret_cast<uint8_t*> (i16.data());
   }
 
-  Addr& solicit(const Addr other) noexcept {
-    i32[0] = htonl(0xFF020000);
-    i32[1] = 0;
-    i32[2] = htonl(0x1);
-    i32[3] = htonl(0xFF000000) | other.i32[3];
-    return *this;
+  static Addr solicit(const Addr& other) noexcept
+  {
+    return Addr{0xFF020000, 0, 0x1, (0xFF000000 | ntohl(other.i32[3]))};
+  }
+
+  static Addr link_local(uint64_t eui) noexcept
+  {
+    return Addr{0xFE80'0000'0000'0000, ntohll(eui)};
   }
 
   /**
@@ -153,7 +175,8 @@ struct Addr {
   {
      static_assert(std::is_same_v<T, uint8_t> or
              std::is_same_v<T, uint16_t> or
-             std::is_same_v<T, uint32_t>, "Unallowed T");
+             std::is_same_v<T, uint32_t> or
+             std::is_same_v<T, uint64_t>, "Unallowed T");
 
      if constexpr (std::is_same_v<T, uint8_t>) {
          Expects(n < 16);
@@ -164,7 +187,43 @@ struct Addr {
      } else if constexpr (std::is_same_v<T, uint32_t>) {
          Expects(n < 4);
          return i32[n];
+     } else {
+         Expects(n < 2);
+         return i64[n];
      }
+  }
+
+  template <typename T>
+  void set_part(const uint8_t n, T val)
+  {
+     static_assert(std::is_same_v<T, uint8_t> or
+             std::is_same_v<T, uint16_t> or
+             std::is_same_v<T, uint32_t> or
+             std::is_same_v<T, uint64_t>, "Unallowed T");
+
+     if constexpr (std::is_same_v<T, uint8_t>) {
+         Expects(n < 16);
+         i8[n] = val;
+     } else if constexpr (std::is_same_v<T, uint16_t>) {
+         Expects(n < 8);
+         i16[n] = val;
+     } else if constexpr (std::is_same_v<T, uint32_t>) {
+         Expects(n < 4);
+         i32[n] = val;
+     } else {
+         Expects(n < 2);
+         i64[n] = val;
+     }
+  }
+
+  void set(const MAC::Addr &mac, const uint8_t loc = 0)
+  {
+      Expects(loc <= (16 - 6));
+      uint8_t start_loc = (10 - loc);
+
+      for (int i = 0; i < 6; i++) {
+        i8[start_loc++] = mac[i];
+      }
   }
 
   /**
@@ -195,34 +254,28 @@ struct Addr {
   { return not (*this == other); }
 
   /**
-   * Operator to check for greater-than relationship
-   */
-  bool operator>(const Addr& other) const noexcept
-  {
-    if(ntohl(i32[0]) > ntohl(other.i32[0])) return true;
-    if(ntohl(i32[1]) > ntohl(other.i32[1])) return true;
-    if(ntohl(i32[2]) > ntohl(other.i32[2])) return true;
-    if(ntohl(i32[3]) > ntohl(other.i32[3])) return true;
-    return false;
-  }
-
-  /**
-   * Operator to check for greater-than-or-equal relationship
-   */
-  bool operator>=(const Addr& other) const noexcept
-  { return (*this > other or *this == other); }
-
-  /**
    * Operator to check for lesser-than relationship
    */
   bool operator<(const Addr& other) const noexcept
-  { return not (*this >= other); }
+  { return i32 < other.i32; }
+
+  /**
+   * Operator to check for greater-than relationship
+   */
+  bool operator>(const Addr& other) const noexcept
+  { return i32 > other.i32; }
 
   /**
    * Operator to check for lesser-than-or-equal relationship
    */
   bool operator<=(const Addr& other) const noexcept
   { return (*this < other or *this == other); }
+
+  /**
+   * Operator to check for greater-than-or-equal relationship
+   */
+  bool operator>=(const Addr& other) const noexcept
+  { return (*this > other or *this == other); }
 
   /**
    * Operator to perform a bitwise-and operation on the given

@@ -1,4 +1,5 @@
 #include "balancer.hpp"
+#include <net/inet>
 #include <net/tcp/stream.hpp>
 
 namespace microLB
@@ -13,6 +14,9 @@ namespace microLB
       assert(conn != nullptr && "TCP sanity check");
       this->incoming(std::make_unique<net::tcp::Stream> (conn));
     });
+
+    this->de_helper.clients = &interface;
+    //this->de_helper.cli_ctx = nullptr;
   }
   // default method for TCP nodes
   node_connect_function_t Balancer::connect_with_tcp(
@@ -21,7 +25,17 @@ namespace microLB
   {
 return [&interface, socket] (timeout_t timeout, node_connect_result_t callback)
     {
-      auto conn = interface.tcp().connect(socket);
+      net::tcp::Connection_ptr conn;
+      try
+      {
+        conn = interface.tcp().connect(socket);
+      }
+      catch([[maybe_unused]]const net::TCP_error& err)
+      {
+        //printf("Got exception: %s\n", err.what());
+        callback(nullptr);
+        return;
+      }
       assert(conn != nullptr && "TCP sanity check");
       // cancel connect after timeout
       int timer = Timers::oneshot(timeout,

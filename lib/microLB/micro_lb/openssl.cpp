@@ -2,6 +2,7 @@
 #include <memdisk>
 #include <net/openssl/init.hpp>
 #include <net/openssl/tls_stream.hpp>
+#include <net/inet>
 #include <net/tcp/stream.hpp>
 
 namespace microLB

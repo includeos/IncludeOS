@@ -312,8 +312,9 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
     bytes = buffer->size();
   });
 
-  // BLOCK HERE
-  while (!done || !conn->is_readable()) {
+  // BLOCK HERE:
+  // If we havent read the data we asked for or if we're not yet closed.
+  while (!done and !conn->is_closed()) {
     OS::block();
   }
   // restore

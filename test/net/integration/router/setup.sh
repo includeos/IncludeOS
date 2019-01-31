@@ -6,6 +6,8 @@ dest_net=10.42.42.0/24
 dest_bridge=bridge44
 dest_gateway=10.42.42.2
 
+if1=tap0
+if2=tap1
 
 export NSNAME="server1"
 shopt -s expand_aliases
@@ -51,6 +53,7 @@ setup() {
 
 }
 
+
 undo(){
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
@@ -61,10 +64,21 @@ undo(){
   sudo ip route del $dest_net dev $source_bridge
 }
 
+vmsetup(){
+  echo ">>> Moving VM iface $if2 to $dest_bridge"
+  sudo brctl delif $source_bridge $if2
+  sudo brctl addif $dest_bridge $if2
+  sudo ifconfig $if2 up
+  echo ">>> Done."
+
+}
 
 if [ "$1" == "--clean" ]
 then
   undo
+elif [ "$1" == "--vmsetup" ]
+then
+  vmsetup
 else
   setup
 fi

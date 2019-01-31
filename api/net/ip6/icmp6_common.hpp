@@ -26,25 +26,26 @@ namespace net {
 
   // ICMP types
   enum class Type : uint8_t {
-    DEST_UNREACHABLE          = 1,
-    PACKET_TOO_BIG            = 2,
-    TIME_EXCEEDED             = 3,
-    PARAMETER_PROBLEM         = 4,
-    ECHO                      = 128,
-    ECHO_REPLY                = 129,
-    MULTICAST_LISTENER_QUERY  = 130,
-    MULTICAST_LISTENER_REPORT = 131,
-    MULTICAST_LISTENER_DONE   = 132,
-    ND_ROUTER_SOL             = 133,
-    ND_ROUTER_ADV             = 134,
-    ND_NEIGHBOUR_SOL          = 135,
-    ND_NEIGHBOUR_ADV          = 136,
-    ND_REDIRECT               = 137,
-    ROUTER_RENUMBERING        = 138,
-    INFORMATION_QUERY         = 139,
-    INFORMATION_RESPONSE      = 140,
-    NO_REPLY                  = 199,  // Custom: Type in ICMP_view if no ping reply received
-    NO_ERROR                  = 200
+    DEST_UNREACHABLE              = 1,
+    PACKET_TOO_BIG                = 2,
+    TIME_EXCEEDED                 = 3,
+    PARAMETER_PROBLEM             = 4,
+    ECHO                          = 128,
+    ECHO_REPLY                    = 129,
+    MULTICAST_LISTENER_QUERY      = 130,
+    MULTICAST_LISTENER_REPORT     = 131,
+    MULTICAST_LISTENER_DONE       = 132,
+    ND_ROUTER_SOL                 = 133,
+    ND_ROUTER_ADV                 = 134,
+    ND_NEIGHBOUR_SOL              = 135,
+    ND_NEIGHBOUR_ADV              = 136,
+    ND_REDIRECT                   = 137,
+    ROUTER_RENUMBERING            = 138,
+    INFORMATION_QUERY             = 139,
+    INFORMATION_RESPONSE          = 140,
+    MULTICAST_LISTENER_REPORT_v2  = 143,
+    NO_REPLY                      = 199,  // Custom: Type in ICMP_view if no ping reply received
+    NO_ERROR                      = 200
   };
   namespace code {
 
