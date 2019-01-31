@@ -46,7 +46,12 @@ namespace microLB
     {
       assert(clients.HasMember("key") && "TLS-enabled microLB must also have key");
       // open for load balancing over TLS
+      /*
       balancer->open_for_ossl(netinc, CLIENT_PORT,
+            clients["certificate"].GetString(),
+            clients["key"].GetString());
+      */
+      balancer->open_for_s2n(netinc, CLIENT_PORT,
             clients["certificate"].GetString(),
             clients["key"].GetString());
     }

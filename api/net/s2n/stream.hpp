@@ -204,23 +204,26 @@ namespace s2n
 
   inline void TLS_stream::tls_read(buffer_t data_in)
   {
-    S2N_PRINT("s2n::tls_read(%p): %p, %zu bytes -> %p\n",
-              this, data_in->data(), data_in->size(), m_readq.data());
-    m_readq.write(data_in->data(), data_in->size());
+    if (data_in != nullptr) {
+      S2N_PRINT("s2n::tls_read(%p): %p, %zu bytes -> %p\n",
+                this, data_in->data(), data_in->size(), m_readq.data());
+      m_readq.write(data_in->data(), data_in->size());
+    }
 
     s2n_blocked_status blocked;
     do {
       int r = 0;
       if (handshake_completed())
       {
-        char buffer[8192];
-        const int size = sizeof(buffer);
-        r = s2n_recv(this->m_conn, buffer, size, &blocked);
+        auto buffer = StreamBuffer::construct_read_buffer(8192);
+        if (buffer == nullptr) return; // what else is there to do?
+
+        r = s2n_recv(this->m_conn, buffer->data(), buffer->size(), &blocked);
         S2N_PRINT("s2n_recv: %d, blocked = %x\n", r, blocked);
         if (r > 0) {
-          // TODO: this->enqueue_data(
-          StreamBuffer::stream_on_read(
-            net::Stream::construct_buffer(buffer, buffer + r));
+          buffer->resize(r);
+          this->enqueue_data(buffer);
+          this->signal_data();
         }
         else if (r == 0) {
           // normal peer shutdown
@@ -274,9 +277,9 @@ namespace s2n
   }
   inline int TLS_stream::tls_write(const uint8_t* buf, uint32_t len)
   {
-    auto buffer = StreamBuffer::construct_write_buffer(len);
+    auto buffer = StreamBuffer::construct_write_buffer(buf, buf + len);
     if (buffer != nullptr) {
-      this->m_transport->write(buf, len);
+      this->m_transport->write(std::move(buffer));
       S2N_BUSY(StreamBuffer::stream_on_write, len);
       return len;
     }
@@ -286,23 +289,26 @@ namespace s2n
 
   inline void TLS_stream::handle_read_congestion()
   {
+    S2N_PRINT("s2n::handle_read_congestion() calling tls_read\n");
     this->tls_read(nullptr);
 
     S2N_BUSY(StreamBuffer::signal_data);
 
     if (this->m_deferred_close) {
-      S2N_PRINT("s2n::read() close after tls_perform_stream_write\n");
+      S2N_PRINT("s2n::read() close after tls_read\n");
       this->close();
       return;
     }
   }
   inline void TLS_stream::handle_write_congestion()
   {
+    S2N_PRINT("s2n::handle_write_congestion() what now?\n");
     //while(tls_write(nullptr, 0) >  0);
   }
 
   inline void TLS_stream::close()
   {
+    S2N_PRINT("s2n::close(%p)\n", this);
     if (this->m_busy) {
       this->m_deferred_close = true; return;
     }
