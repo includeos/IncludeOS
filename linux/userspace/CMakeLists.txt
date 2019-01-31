@@ -129,6 +129,15 @@ set(LIU_SOURCES
     ${IOS}/src/util/statman_liu.cpp
   )
 
+set(MICROLB_SOURCES
+    ${IOS}/lib/microLB/micro_lb/autoconf.cpp
+    ${IOS}/lib/microLB/micro_lb/balancer.cpp
+    ${IOS}/lib/microLB/micro_lb/defaults.cpp
+    ${IOS}/lib/microLB/micro_lb/openssl.cpp
+    ${IOS}/lib/microLB/micro_lb/s2n.cpp
+    ${IOS}/lib/microLB/micro_lb/serialize.cpp
+  )
+
 add_library(includeos STATIC ${NET_SOURCES} ${OS_SOURCES} ${MOD_SOURCES})
 set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
@@ -146,6 +155,15 @@ target_include_directories(liveupdate PUBLIC
     ${IOS}/lib/LiveUpdate
   )
 
+add_library(microlb STATIC ${MICROLB_SOURCES})
+set_target_properties(microlb PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(microlb PUBLIC
+    ${IOS}/lib/microLB
+    ${IOS}/lib/LiveUpdate
+    ${IOS}/mod/rapidjson/include
+    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
+  )
+
 install(TARGETS includeos   DESTINATION includeos/linux)
 install(TARGETS http_parser DESTINATION includeos/linux)
-install(TARGETS liveupdate  DESTINATION includeos/linux)
+install(TARGETS liveupdate microlb DESTINATION includeos/linux)

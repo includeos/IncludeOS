@@ -889,7 +889,7 @@ namespace net
 
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
           [&ip] (const auto& obj) { return obj.addr() == ip; });
-    auto two_hours = 60 * 60 * 2;
+    uint32_t two_hours = 60 * 60 * 2;
 
     if (entry == prefix_list_.end()) {
       prefix_list_.emplace_back(ip, prefix, preferred_lifetime, valid_lifetime);

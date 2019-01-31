@@ -147,6 +147,24 @@ void VGA_gfx::set_palette(const uint32_t colors[256])
     hw::outb(0x3c9, (colors[c] >> 18) & 0x3F);
   }
 }
+void VGA_gfx::set_palette(const uint8_t idx, int r, int g, int b)
+{
+	// select color index
+	hw::outb(0x03c8, idx);
+	// write 18-bit color
+  hw::outb(0x3c9, r);
+  hw::outb(0x3c9, g);
+  hw::outb(0x3c9, b);
+}
+void VGA_gfx::set_pal24(const uint8_t idx, const uint32_t color)
+{
+	// select color index
+	hw::outb(0x03c8, idx);
+	// write 18-bit color
+	hw::outb(0x3c9, (color >>  2) & 0x3F);
+	hw::outb(0x3c9, (color >> 10) & 0x3F);
+	hw::outb(0x3c9, (color >> 18) & 0x3F);
+}
 
 void VGA_gfx::apply_default_palette()
 {

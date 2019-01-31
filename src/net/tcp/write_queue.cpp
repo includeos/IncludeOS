@@ -31,6 +31,7 @@ void Write_queue::advance(size_t bytes)
   auto& buf = nxt();
 
   offset_ += bytes;
+  assert(offset_ <= buf->size());
 
   debug2("<WriteQueue> Advance: bytes=%u off=%u rem=%u\n",
     bytes, offset_, (buf->size() - offset_));

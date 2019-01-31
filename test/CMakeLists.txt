@@ -47,7 +47,7 @@ if (APPLE)
     string(STRIP ${BREW_LLVM} BREW_LLVM)
     set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
     message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -Wno-unused-command-line-argument")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -lc++experimental -Wno-unused-command-line-argument")
   else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.12")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.12")
@@ -159,6 +159,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
+  ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 
 set(OS_SOURCES
@@ -250,6 +251,7 @@ set(OS_SOURCES
   ${SRC}/util/syslogd.cpp
   ${SRC}/util/tar.cpp
   ${SRC}/util/uri.cpp
+  # ${SRC}/util/pmr_default.cpp # <- older libc++ versions might need this
   ${SRC}/virtio/virtio_queue.cpp
 )
 
@@ -280,6 +282,8 @@ if (APPLE)
     ${TEST}/kernel/unit/memory.cpp
     ${TEST}/kernel/unit/x86_paging.cpp
     ${TEST}/kernel/unit/unit_liveupdate.cpp
+    ${TEST}/util/unit/buddy_alloc_test.cpp
+    ${TEST}/util/unit/lstack/test_lstack_common.cpp
     )
 endif()
 

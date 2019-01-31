@@ -18,11 +18,17 @@
 #include <os>
 #include <profile>
 #include <microLB>
+#include <net/interfaces>
 static void print_stats(int);
 #define STATS_PERIOD  5s
 
-static microLB::Balancer* balancer = nullptr;
+#include "../LiveUpdate/liu.hpp"
+static void save_state(liu::Storage& store, const liu::buffer_t*)
+{
 
+}
+
+static microLB::Balancer* balancer = nullptr;
 void Service::start()
 {
   balancer = microLB::Balancer::from_config();
@@ -30,6 +36,10 @@ void Service::start()
   Timers::periodic(1s, STATS_PERIOD, print_stats);
   StackSampler::begin();
   //StackSampler::set_mode(StackSampler::MODE_CURRENT);
+
+  // raw TCP liveupdate server
+  auto& inet = net::Interfaces::get(0);
+  setup_liveupdate_server(inet, 666, save_state);
 }
 
 /// statistics ///

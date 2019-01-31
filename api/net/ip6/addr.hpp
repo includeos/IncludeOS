@@ -254,34 +254,28 @@ struct Addr {
   { return not (*this == other); }
 
   /**
-   * Operator to check for greater-than relationship
-   */
-  bool operator>(const Addr& other) const noexcept
-  {
-    if(ntohl(i32[0]) > ntohl(other.i32[0])) return true;
-    if(ntohl(i32[1]) > ntohl(other.i32[1])) return true;
-    if(ntohl(i32[2]) > ntohl(other.i32[2])) return true;
-    if(ntohl(i32[3]) > ntohl(other.i32[3])) return true;
-    return false;
-  }
-
-  /**
-   * Operator to check for greater-than-or-equal relationship
-   */
-  bool operator>=(const Addr& other) const noexcept
-  { return (*this > other or *this == other); }
-
-  /**
    * Operator to check for lesser-than relationship
    */
   bool operator<(const Addr& other) const noexcept
-  { return not (*this >= other); }
+  { return i32 < other.i32; }
+
+  /**
+   * Operator to check for greater-than relationship
+   */
+  bool operator>(const Addr& other) const noexcept
+  { return i32 > other.i32; }
 
   /**
    * Operator to check for lesser-than-or-equal relationship
    */
   bool operator<=(const Addr& other) const noexcept
   { return (*this < other or *this == other); }
+
+  /**
+   * Operator to check for greater-than-or-equal relationship
+   */
+  bool operator>=(const Addr& other) const noexcept
+  { return (*this > other or *this == other); }
 
   /**
    * Operator to perform a bitwise-and operation on the given

@@ -183,6 +183,7 @@ namespace net {
     const auto port = port_util.get_next_ephemeral();
 
     Socket socket{addr, port};
+    debug("UDP bind to %s\n", socket.to_string().c_str());
 
     auto it = sockets_.emplace(
       std::piecewise_construct,

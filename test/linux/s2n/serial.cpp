@@ -3,6 +3,8 @@
 #include <string>
 using s2n::print_s2n_error;
 static s2n_config* config = nullptr;
+static std::string stored_ca_cert = "";
+static std::string stored_ca_key  = "";
 
 // allow all clients
 static uint8_t verify_host_passthrough(const char*, size_t, void* /*data*/) {
@@ -24,11 +26,18 @@ void serial_test(
     exit(1);
   }
 
+  stored_ca_cert  = ca_cert;
+  stored_ca_key   = ca_key;
+}
+
+s2n_config* serial_create_config()
+{
+  if (config) s2n_config_free(config);
   config = s2n_config_new();
   assert(config != nullptr);
 
-  int res =
-  s2n_config_add_cert_chain_and_key(config, ca_cert.c_str(), ca_key.c_str());
+  int res = s2n_config_add_cert_chain_and_key(config,
+            stored_ca_cert.c_str(), stored_ca_key.c_str());
   if (res < 0) {
     print_s2n_error("Error getting certificate/key");
     exit(1);
@@ -46,6 +55,8 @@ void serial_test(
     print_s2n_error("Error setting verify-host callback");
     exit(1);
   }
+  
+  return config;
 }
 
 s2n_config* serial_get_config()
@@ -53,18 +64,10 @@ s2n_config* serial_get_config()
   return config;
 }
 
-void serial_test_serialize(std::vector<net::Stream*>& conns)
-{
-  
-}
-std::vector<net::Stream*> serial_test_deserialize()
-{
-  return {};
-}
-
-void serial_test_over()
+void serial_free_config()
 {
   s2n_config_free(config);
+  config = nullptr;
 }
 
 } // s2n

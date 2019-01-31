@@ -28,7 +28,7 @@
 #include <statman>
 
 extern "C" {
-#include <solo5.h>
+#include <solo5/solo5.h>
 }
 
 class Solo5Net : public net::Link_layer<net::Ethernet> {

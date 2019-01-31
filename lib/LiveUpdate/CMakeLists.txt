@@ -12,10 +12,14 @@ add_custom_command(
 )
 add_custom_target(hotswap64 DEPENDS hotswap64.bin)
 
+if (${ARCH} STREQUAL "x86_64")
+  set(S2N_SOURCES "serialize_s2n.cpp")
+endif()
+
 # LiveUpdate static library
 add_library(liveupdate STATIC
     storage.cpp partition.cpp update.cpp resume.cpp rollback.cpp
-    elfscan.cpp os.cpp "serialize_tcp.cpp"
+    elfscan.cpp os.cpp "serialize_tcp.cpp" ${S2N_SOURCES}
     hotswap.cpp "hotswap64_blob.asm"
   )
 add_dependencies(liveupdate hotswap64)
