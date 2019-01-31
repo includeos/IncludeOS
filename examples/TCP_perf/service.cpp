@@ -17,7 +17,7 @@
 
 #include <os>
 #include <rtc>
-#include <net/inet>
+#include <net/interfaces>
 #include <statman>
 #include <profile>
 #include <cstdio>
@@ -163,7 +163,7 @@ void Service::ready()
 #endif
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   auto& tcp = inet.tcp();
   tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
