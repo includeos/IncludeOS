@@ -41,7 +41,7 @@ void Service::start()
 
   // open for TCP connections on client interface
   auto& inet_client = net::Interfaces::get(0);
-  balancer->open_for_tcp(inet_client, 80);
+  balancer->open_for_s2n(inet_client, 443, "/test.pem", "/test.key");
 
   auto& inet_server = net::Interfaces::get(0);
   // add regular TCP nodes

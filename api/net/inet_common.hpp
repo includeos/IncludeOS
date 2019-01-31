@@ -61,8 +61,9 @@ namespace net {
   template<typename Derived, typename Base>
   auto static_unique_ptr_cast( std::unique_ptr<Base>&& p )
   {
-      auto* d = static_cast<Derived *>(p.release());
-      return std::unique_ptr<Derived>(d);
+    static_assert(std::is_base_of<Base, Derived>::value, "Derived not derived of Base");
+    auto* d = static_cast<Derived *>(p.release());
+    return std::unique_ptr<Derived>(d);
   }
 
   inline uint16_t new_ephemeral_port() noexcept

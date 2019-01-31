@@ -37,7 +37,8 @@ namespace net {
     using Stack = Inet;
     using Stack_ptr = Stack*;
     using Addr = typename IPV::addr;
-    using Netmask = typename IPV::addr;
+    using Netmask = typename IPV::netmask;
+    using Packet_ptr = typename IPV::IP_packet_ptr;
 
     Addr net() const noexcept
     { return net_; }
@@ -48,14 +49,7 @@ namespace net {
     Addr nexthop() const noexcept
     { return nexthop_; }
 
-    Addr nexthop(Addr ip) const noexcept
-    {
-      // No need to go via nexthop if IP is on the same net as interface
-      if ((ip & iface_->netmask()) == (iface_->ip_addr() & iface_->netmask()))
-        return ip;
-
-      return nexthop_;
-    }
+    Addr nexthop(Addr ip)const noexcept;
 
     int cost() const noexcept
     { return cost_; }
@@ -77,9 +71,7 @@ namespace net {
         iface_ == b.interface();
     }
 
-    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
-      iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
-    }
+    void ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct);
 
     void ship(typename IPV::IP_packet_ptr pckt, Conntrack::Entry_ptr ct) {
       auto next = nexthop(pckt->ip_dst());
@@ -94,7 +86,7 @@ namespace net {
 
     std::string to_string() const
     {
-      return net_.str() + " " + netmask_.str() + " " + nexthop_.str()
+      return net_.str() + " " + " " + nexthop_.str()
       + " " + iface_->ifname() + " " + std::to_string(cost_);
     }
 
@@ -233,11 +225,43 @@ namespace net {
 
 #include <net/ip4/packet_ip4.hpp>
 #include <net/ip4/icmp4.hpp>
+#include <net/ip6/packet_ip6.hpp>
+#include <net/ip6/icmp6.hpp>
 
 namespace net {
 
-  template <typename IPV>
-  inline void Router<IPV>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
+  template <>
+  inline void Route<IP4>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+    iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
+  }
+
+  template <>
+  inline void Route<IP6>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+    iface_->ip6_obj().ship(std::move(pckt), nexthop, ct);
+  }
+
+  template<>
+  inline IP4::addr Route<IP4>::nexthop(IP4::addr ip) const noexcept
+  {
+      // No need to go via nexthop if IP is on the same net as interface
+      if ((ip & iface_->netmask()) == (iface_->ip_addr() & iface_->netmask()))
+        return ip;
+
+      return nexthop_;
+  }
+
+  template<>
+  inline IP6::addr Route<IP6>::nexthop(IP6::addr ip) const noexcept
+  {
+      // No need to go via nexthop if IP is on the same net as interface
+      if ((ip & iface_->netmask6()) == (iface_->ip6_addr() & iface_->netmask6()))
+        return ip;
+
+      return nexthop_;
+  }
+
+  template <>
+  inline void Router<IP4>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
   {
     Expects(pckt);
 
@@ -256,6 +280,49 @@ namespace net {
     const bool should_decrement_ttl = not stack.is_valid_source(pckt->ip_src());
     if(should_decrement_ttl)
       pckt->decrement_ttl();
+
+
+    // Call the forward chain
+    auto res = forward_chain(std::move(pckt), stack, ct);
+    if (res == Filter_verdict_type::DROP) return;
+
+    Ensures(res.packet != nullptr);
+    pckt = res.release();
+
+    // Look for a route
+    const auto dest = pckt->ip_dst();
+    auto* route = get_most_specific_route(dest);
+
+    if(route) {
+      PRINT("Found route: %s", route->to_string().c_str());
+      route->ship(std::move(pckt), ct);
+      return;
+    }
+    else {
+      PRINT("No route found for %s DROP", dest.to_string().c_str());
+      return;
+    }
+  }
+
+  template <>
+  inline void Router<IP6>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
+  {
+    Expects(pckt);
+
+    // Do not forward packets when TTL is 0
+    if(pckt->hop_limit() == 0)
+    {
+      PRINT("TTL equals 0 - dropping");
+      if(this->send_time_exceeded == true and not pckt->ip_dst().is_multicast())
+        stack.icmp6().time_exceeded(std::move(pckt), icmp6::code::Time_exceeded::HOP_LIMIT);
+      return;
+    }
+
+    // When the packet originates from our host, it still passes forward
+    // We add this check to prevent decrementing TTL for "none routed" packets. Hmm.
+    const bool should_decrement_hop_limit = not stack.is_valid_source(pckt->ip_src());
+    if(should_decrement_hop_limit)
+      pckt->decrement_hop_limit();
 
 
     // Call the forward chain

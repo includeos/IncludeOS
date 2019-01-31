@@ -48,15 +48,20 @@ set(OS_OBJECTS
   crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/pci_device.cpp hw/nic.cpp hw/ps2.cpp hw/serial.cpp hw/vga_gfx.cpp
   hw/msi.cpp hw/pci_msi.cpp virtio/virtio.cpp virtio/virtio_queue.cpp
-  net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
+  net/addr.cpp net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
   net/checksum.cpp net/ip4/arp.cpp net/ip4/ip4.cpp net/ip4/reassembly.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
   net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp
   net/tcp/read_buffer.cpp net/tcp/read_request.cpp net/tcp/stream.cpp
   net/tcp/tcp_conntrack.cpp
-  net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
-  net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp
-  net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
+  net/ip4/icmp4.cpp net/udp/udp.cpp net/udp/socket.cpp
+  net/ip6/addr.cpp
+  net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp net/ip6/mld.cpp
+  net/ip6/extension_header.cpp #net/ip6/packet_ndp.cpp
+  #net/ip6/packet_mld.cpp
+  net/ip6/slaac.cpp
+  net/dns/dns.cpp net/dns/client.cpp net/dns/record.cpp net/dns/response.cpp net/dns/query.cpp
+  net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
   net/interfaces.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp

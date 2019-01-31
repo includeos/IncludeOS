@@ -116,7 +116,7 @@ void send_cb() {
     data_len += SEND_BUF_LEN;
 }
 
-void send_data(net::UDPSocket& client, net::Inet& inet) {
+void send_data(net::udp::Socket& client, net::Inet& inet) {
     for (size_t i = 0; i < PACKETS_PER_INTERVAL; i++) {
         const char c = 'A' + (i % 26);
         std::string buff(SEND_BUF_LEN, c);
