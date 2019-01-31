@@ -103,7 +103,7 @@ private:
 
   void segment_arrived(Packet_view&);
 
-  void remove(Connection_ptr);
+  void remove(const Connection*);
 
   void connected(Connection_ptr);
 

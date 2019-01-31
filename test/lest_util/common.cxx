@@ -10,7 +10,7 @@ extern lest::tests & specification();
 #ifdef DEBUG_UNIT
 #define LINK printf("%s:%i: OK\n",__FILE__,__LINE__)
 #else
-#define LINK (void)
+#define LINK
 #endif
 
 namespace test

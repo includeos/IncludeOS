@@ -47,7 +47,7 @@ if (APPLE)
     string(STRIP ${BREW_LLVM} BREW_LLVM)
     set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
     message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -Wno-unused-command-line-argument")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -lc++experimental -Wno-unused-command-line-argument")
   else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.12")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.12")
@@ -156,8 +156,11 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
-  ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
+  ${TEST}/util/unit/lstack/test_lstack_merging.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
+  ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 
 set(OS_SOURCES
@@ -241,6 +244,7 @@ set(OS_SOURCES
   ${SRC}/util/syslogd.cpp
   ${SRC}/util/tar.cpp
   ${SRC}/util/uri.cpp
+  # ${SRC}/util/pmr_default.cpp # <- older libc++ versions might need this
   ${SRC}/virtio/virtio_queue.cpp
 )
 
@@ -259,6 +263,7 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/elfscan.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp

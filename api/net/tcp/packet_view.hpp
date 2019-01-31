@@ -163,7 +163,10 @@ public:
   const Option::opt_ts* ts_option() const noexcept
   { return ts_opt; }
 
-  inline const Option::opt_ts* parse_ts_option() noexcept;
+  inline const Option::opt_ts* parse_ts_option() const noexcept;
+
+  void set_ts_option(const Option::opt_ts* opt)
+  { this->ts_opt = opt; }
 
   // Data //
 
@@ -238,7 +241,7 @@ protected:
 
 
 private:
-  Option::opt_ts*   ts_opt = nullptr;
+  const Option::opt_ts*   ts_opt = nullptr;
 
   virtual void set_ip_src(const net::Addr& addr) noexcept = 0;
   virtual void set_ip_dst(const net::Addr& addr) noexcept = 0;
@@ -312,19 +315,34 @@ inline void Packet_v<Ptr_type>::add_tcp_option_aligned(Args&&... args) {
   set_length(); // update
 }
 
-// assumes the packet contains no other options.
 template <typename Ptr_type>
-inline const Option::opt_ts* Packet_v<Ptr_type>::parse_ts_option() noexcept
+inline const Option::opt_ts* Packet_v<Ptr_type>::parse_ts_option() const noexcept
 {
   auto* opt = this->tcp_options();
-  // TODO: improve by iterate option instead of byte (see Connection::parse_options)
-  while(((Option*)opt)->kind == Option::NOP and opt < (uint8_t*)this->tcp_data())
-    opt++;
+  while(opt < (uint8_t*)this->tcp_data())
+  {
+    auto* option = (Option*)opt;
+    switch(option->kind)
+    {
+      case Option::NOP: {
+        opt++;
+        break;
+      }
 
-  if(((Option*)opt)->kind == Option::TS)
-    this->ts_opt = (Option::opt_ts*)opt;
+      case Option::TS: {
+        return reinterpret_cast<Option::opt_ts*>(option);
+      }
 
-  return this->ts_opt;
+      case Option::END: {
+        return nullptr;
+      }
+
+      default:
+        opt += option->length;
+    }
+  }
+
+  return nullptr;
 }
 
 template <typename Ptr_type>

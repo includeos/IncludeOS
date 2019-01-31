@@ -352,11 +352,15 @@ public:
   */
   virtual Result handle(Connection&, Packet_view& in) override;
 
-  inline virtual std::string to_string() const override {
+  std::string to_string() const override {
     return "LAST-ACK";
   };
 
-  inline virtual bool is_closing() const override {
+  bool is_closing() const override {
+    return true;
+  }
+
+  bool is_closed() const override {
     return true;
   }
 

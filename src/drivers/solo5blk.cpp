@@ -10,7 +10,7 @@
 #include <statman>
 
 extern "C" {
-#include <solo5.h>
+#include <solo5/solo5.h>
 }
 
 Solo5Blk::Solo5Blk()

@@ -26,7 +26,7 @@ void begin_snake()
   static Snake snake {TextmodeVGA::get()};
 
   hw::KBM::set_virtualkey_handler(
-  [] (int key)
+  [] (int key, bool pressed)
   {
     snake.user_update(Snake::Direction(key));
 

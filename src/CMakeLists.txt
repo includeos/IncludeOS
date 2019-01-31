@@ -18,12 +18,14 @@ include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
-include_directories(${OPENSSL_DIR}/include)
+include_directories(${S2N_INCLUDE})
 if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
-                      "net/openssl/server.cpp"
-                      "net/https/openssl_server.cpp" "net/http/client.cpp")
-  set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
+                      "net/openssl/server.cpp" "net/openssl/tls_stream.cpp"
+                      "net/https/openssl_server.cpp" "net/http/client.cpp"
+                      "net/https/s2n_server.cpp"
+                    )
+  set(OPENSSL_LIBS    s2n_libs2n s2n_libssl s2n_crypto)
 endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
@@ -41,6 +43,7 @@ set(OS_OBJECTS
   util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp util/crc32.cpp
+  util/pmr_default.cpp
   crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
   crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/pci_device.cpp hw/nic.cpp hw/ps2.cpp hw/serial.cpp hw/vga_gfx.cpp
@@ -68,6 +71,7 @@ set(OS_OBJECTS
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   # POSIX
   posix/fd.cpp posix/file_fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unix_fd.cpp
+  posix/secure_getenv.cpp
 
 )
 

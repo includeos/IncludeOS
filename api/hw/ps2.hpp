@@ -21,12 +21,13 @@
 
 #include <delegate>
 #include <cstdint>
+#include <deque>
 
 namespace hw
 {
   class KBM {
   public:
-    typedef delegate<void(int)> on_virtualkey_func;
+    typedef delegate<void(int, bool)> on_virtualkey_func;
     typedef delegate<void(int, int, int)> on_mouse_func;
 
     enum {
@@ -44,6 +45,9 @@ namespace hw
       VK_9,
       VK_0,
 
+      VK_Z,
+      VK_X,
+
       VK_BACK,
       VK_TAB,
       VK_ENTER,
@@ -55,7 +59,8 @@ namespace hw
       VK_LEFT,
       VK_RIGHT,
 
-      VK_COUNT
+      VK_COUNT,
+      VK_WAIT_MORE
     };
 
     static void set_virtualkey_handler(on_virtualkey_func func) {
@@ -67,23 +72,41 @@ namespace hw
       return kbm;
     }
 
+    struct keystate_t {
+      int  key;
+      bool pressed;
+    };
     static void init();
-    static uint8_t get_kbd_irq();
-    static int     get_kbd_vkey();
-    static uint8_t get_mouse_irq();
+    static uint8_t    get_kbd_irq();
+    static uint8_t    get_mouse_irq();
 
+    // if you want to control PS/2 yourself
+    static void    flush_data();
+    static uint8_t read_status();
+    static uint8_t read_data();
+    static void    write_cmd(uint8_t);
+    static void    write_data(uint8_t);
+    static void    write_port1(uint8_t);
+    static void    write_port2(uint8_t);
+
+    void kbd_process_data();
   private:
     KBM();
+    void internal_init();
+
     int  mouse_x;
     int  mouse_y;
     bool mouse_button[4];
+    bool mouse_enabled = false;
+    bool m_initialized = false;
 
-    static int transform_vk(uint8_t scancode);
-    static int transform_ascii(int vk);
+    keystate_t process_vk();
+    int        transform_ascii();
     void handle_mouse(uint8_t scancode);
 
     on_virtualkey_func on_virtualkey;
     on_mouse_func      on_mouse;
+    std::deque<uint8_t> m_queue;
   };
 }
 

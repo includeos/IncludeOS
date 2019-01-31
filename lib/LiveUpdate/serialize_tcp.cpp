@@ -113,7 +113,7 @@ int Write_queue::deserialize_from(void* addr)
     len += sizeof(write_buffer);
 
     // insert shared buffer into write queue
-    this->q.emplace_back(std::make_shared<std::vector<uint8_t>>());
+    this->q.emplace_back(net::tcp::construct_buffer());
 
     // copy data
     auto wbuf = this->q.back();
@@ -175,11 +175,14 @@ void Connection::deserialize_from(void* addr)
     slumbering_ip4.insert(&this->host_.stack());
   }
 
+  // Assign new memory resource from TCP
+  this->bufalloc = host_.mempool_.get_resource();
+
   /// restore read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   if (readq->capacity)
   {
-    read_request = std::make_unique<Read_request>(readq->seq, readq->capacity, host_.max_bufsize(), nullptr);
+    read_request = std::make_unique<Read_request>(readq->seq, readq->capacity, host_.max_bufsize(), bufalloc.get());
     read_request->front().deserialize_from(readq);
   }
 

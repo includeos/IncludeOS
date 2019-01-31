@@ -15,13 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
-#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
-
-#ifndef PANIC_ACTION
-#define PANIC_ACTION halt
-#endif
-
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <service>
@@ -29,6 +22,7 @@
 #include <cinttypes>
 #include <util/fixed_vector.hpp>
 #include <system_log>
+#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -40,7 +34,6 @@
 
 using namespace util;
 
-extern "C" void* get_cpu_esp();
 extern char _start;
 extern char _end;
 extern char _ELF_START_;
@@ -59,7 +52,8 @@ bool  OS::m_timestamps_ready    = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 
-OS::Panic_action OS::panic_action_ = OS::Panic_action::PANIC_ACTION;
+__attribute__((weak))
+OS::Panic_action OS::panic_action_ = OS::Panic_action::halt;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
@@ -81,7 +75,7 @@ void* OS::liveupdate_storage_area() noexcept
 }
 
 __attribute__((weak))
-size_t OS::liveupdate_phys_size(size_t phys_max) noexcept {
+size_t OS::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
   return 4096;
 };
 
@@ -168,6 +162,10 @@ void OS::post_start()
          static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
+#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(DISABLE_INET_CHECKSUMS)
+  printf(" +--> WARNiNG: Environment unsafe for production\n");
+  FILLINE('~');
+#endif
 
   Service::start();
 }

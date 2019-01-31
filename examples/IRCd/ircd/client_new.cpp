@@ -11,7 +11,9 @@ inline void Client::need_parms(const std::string& cmd)
 
 void Client::handle_new(const std::vector<std::string>& msg)
 {
+#ifndef USERSPACE_LINUX
   volatile ScopedProfiler profile;
+#endif
   const std::string& cmd = msg[0];
 
   if (cmd == TK_CAP)

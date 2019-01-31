@@ -25,6 +25,7 @@
 #include <util/crc32.hpp>
 #include <cassert>
 //#define VERIFY_MEMORY
+extern bool LIVEUPDATE_USE_CHEKSUMS;
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -111,6 +112,7 @@ void storage_header::add_end()
 {
   auto& ent = create_entry(TYPE_END, 0, 0);
 
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
   // test against heap max
   const auto storage_end = os::mem::virt_to_phys((uintptr_t) ent.vla);
   if (storage_end > OS::heap_max())
@@ -122,6 +124,7 @@ void storage_header::add_end()
           storage_end - (OS::heap_max()+1));
     throw std::runtime_error("LiveUpdate storage end outside memory");
   }
+#endif
   // verify memory is writable at the current end
   static const int END_CANARY = 0xbeefc4f3;
   *((volatile int*) &ent.len) = END_CANARY;
@@ -137,13 +140,16 @@ void storage_header::finalize()
       throw std::runtime_error("Magic field invalidated during store process");
   // add end if missing
   if (this->length == 0) this->add_end();
-  // generate checksum for header
-  this->crc = generate_checksum();
+  if (LIVEUPDATE_USE_CHEKSUMS)
+    // generate checksum for header
+    this->crc = generate_checksum();
+  else
+    this->crc = 0;
 }
 bool storage_header::validate() const noexcept
 {
   if (this->magic != LIVEUPD_MAGIC) return false;
-  if (this->crc   == 0) return false;
+  if (LIVEUPDATE_USE_CHEKSUMS == false) return true;
 
   uint32_t chsum = generate_checksum();
   if (this->crc != chsum) return false;

@@ -14,7 +14,7 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 #dependencies
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
-include_directories(${OPENSSL_DIR}/include)
+include_directories(${S2N_INCLUDE})
 
 set(LIBRARY_NAME "uplink")
 
@@ -35,12 +35,12 @@ install(DIRECTORY . DESTINATION includeos/include/uplink
 # Uplink library
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
 add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
-add_dependencies(${LIBRARY_NAME} openssl_bundle)
+add_dependencies(${LIBRARY_NAME} s2n_bundle)
 install(TARGETS ${LIBRARY_NAME} DESTINATION includeos/${ARCH}/plugins)
 
 # Uplink log driver
 add_library(uplink_log STATIC uplink_log.cpp)
 add_dependencies(uplink_log PrecompiledLibraries)
-add_dependencies(uplink_log openssl_bundle)
+add_dependencies(uplink_log s2n_bundle)
 install(TARGETS uplink_log DESTINATION includeos/${ARCH}/drivers)
 endif()

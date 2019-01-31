@@ -321,6 +321,10 @@ set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
 
 if(${ARCH} STREQUAL "x86_64")
+  add_library(libs2n STATIC IMPORTED)
+  set_target_properties(libs2n PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libs2n PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libs2n.a)
+
   add_library(libssl STATIC IMPORTED)
   set_target_properties(libssl PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libssl PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libssl.a)
@@ -328,7 +332,7 @@ if(${ARCH} STREQUAL "x86_64")
   add_library(libcrypto STATIC IMPORTED)
   set_target_properties(libcrypto PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrypto.a)
-  set(OPENSSL_LIBS libssl libcrypto)
+  set(OPENSSL_LIBS libs2n libssl libcrypto)
 
   include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
@@ -384,7 +388,7 @@ set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION "${COMPILER_RT_FILE}")
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   add_library(solo5 STATIC IMPORTED)
   set_target_properties(solo5 PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/solo5.o)
+  set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/solo5_hvt.o)
 endif()
 
 # Depending on the output of this command will make it always run. Like magic.
@@ -517,19 +521,23 @@ target_link_libraries(service
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 # old behavior: remove all symbols after elfsym
-if (NOT debug)
+if (stripped)
+  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
+elseif (NOT debug)
   set(STRIP_LV ${CMAKE_STRIP} --strip-debug ${BINARY})
 else()
   set(STRIP_LV true)
 endif()
 
-add_custom_target(
-  pruned_elf_symbols ALL
-  COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
-  COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-  COMMAND ${STRIP_LV}
-  DEPENDS service
-  )
+if (NOT stripped)
+  add_custom_target(
+    pruned_elf_symbols ALL
+    COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
+    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+    COMMAND ${STRIP_LV}
+    DEPENDS service
+    )
+endif()
 
 # create bare metal .img: make legacy_bootloader
 add_custom_target(

@@ -24,5 +24,6 @@
 #include "net/http/request.hpp"
 #include "net/https/botan_server.hpp"
 #include "net/https/openssl_server.hpp"
+#include "net/https/s2n_server.hpp"
 
 #endif

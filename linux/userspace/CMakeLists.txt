@@ -57,6 +57,7 @@ set(NET_SOURCES
 
   ${IOS}/src/net/https/botan_server.cpp
   ${IOS}/src/net/https/openssl_server.cpp
+  ${IOS}/src/net/https/s2n_server.cpp
 
   ${IOS}/src/net/ws/websocket.cpp
 
@@ -109,6 +110,27 @@ set(MOD_SOURCES
     ${IOS}/lib/mana/src/components/dashboard/dashboard.cpp
   )
 
+set(LIU_SOURCES
+    ${IOS}/lib/LiveUpdate/elfscan.cpp
+    ${IOS}/lib/LiveUpdate/hotswap.cpp
+    ${IOS}/lib/LiveUpdate/partition.cpp
+    ${IOS}/lib/LiveUpdate/resume.cpp
+    ${IOS}/lib/LiveUpdate/rollback.cpp
+    ${IOS}/lib/LiveUpdate/serialize_tcp.cpp
+    ${IOS}/lib/LiveUpdate/storage.cpp
+    ${IOS}/lib/LiveUpdate/update.cpp
+    ${IOS}/src/util/statman_liu.cpp
+  )
+
+set(MICROLB_SOURCES
+    ${IOS}/lib/microLB/micro_lb/autoconf.cpp
+    ${IOS}/lib/microLB/micro_lb/balancer.cpp
+    ${IOS}/lib/microLB/micro_lb/defaults.cpp
+    ${IOS}/lib/microLB/micro_lb/openssl.cpp
+    ${IOS}/lib/microLB/micro_lb/s2n.cpp
+    ${IOS}/lib/microLB/micro_lb/serialize.cpp
+  )
+
 add_library(includeos STATIC ${NET_SOURCES} ${OS_SOURCES} ${MOD_SOURCES})
 set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
@@ -120,5 +142,21 @@ target_include_directories(includeos PUBLIC
 add_library(http_parser STATIC "${IOS}/mod/http-parser/http_parser.c")
 set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE C)
 
-install(TARGETS includeos   DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)
-install(TARGETS http_parser DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)
+add_library(liveupdate STATIC ${LIU_SOURCES})
+set_target_properties(liveupdate PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(liveupdate PUBLIC
+    ${IOS}/lib/LiveUpdate
+  )
+
+add_library(microlb STATIC ${MICROLB_SOURCES})
+set_target_properties(microlb PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(microlb PUBLIC
+    ${IOS}/lib/microLB
+    ${IOS}/lib/LiveUpdate
+    ${IOS}/mod/rapidjson/include
+    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
+  )
+
+install(TARGETS includeos   DESTINATION includeos/linux)
+install(TARGETS http_parser DESTINATION includeos/linux)
+install(TARGETS liveupdate microlb DESTINATION includeos/linux)

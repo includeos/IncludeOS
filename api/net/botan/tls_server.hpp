@@ -55,6 +55,18 @@ public:
     m_transport->on_read(bs, {this, &Server::tls_read});
     this->m_on_read = cb;
   }
+  void on_data(DataCallback cb) override {
+    // FIXME
+    throw std::runtime_error("on_data not implemented on botan::server");
+  }
+  size_t next_size() override {
+    // FIXME
+    throw std::runtime_error("next_size not implemented on botan::server");
+  }
+  buffer_t read_next() override {
+    // FIXME
+    throw std::runtime_error("read_next not implemented on botan::server");
+  }
   void on_write(WriteCallback cb) override {
     this->m_on_write = cb;
   }
@@ -134,11 +146,6 @@ public:
 
   Stream* transport() noexcept override {
     return m_transport.get();
-  }
-
-  /** Not implemented **/
-  size_t serialize_to(void* /*ptr*/) const override {
-    throw std::runtime_error("Not implemented");
   }
 
 protected:

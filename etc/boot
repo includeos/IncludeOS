@@ -68,7 +68,7 @@ parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                     help="Start hypervisor in debug mode if available")
 
 parser.add_argument("--with-solo5", dest="solo5", action="store_true",
-                    help="Run includeOS on solo5 kernel with ukvm-bin as monitor")
+                    help="Run includeOS on solo5 kernel with hvt tender as monitor")
 
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 
@@ -158,12 +158,12 @@ if args.config:
 
 hyper_name = "qemu"
 if args.solo5:
-    hyper_name = "ukvm"
+    hyper_name = "solo5"
     os.environ['PLATFORM'] = "x86_solo5"
-    qkvm_bin = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/ukvm-bin"
+    solo5_hvt = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/solo5-hvt"
 
-    subprocess.call(['chmod', '+x', qkvm_bin])
-    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/ukvm-ifup.sh" ])
+    subprocess.call(['chmod', '+x', solo5_hvt])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
 
 vm = vmrunner.vm(config = config, hyper_name = hyper_name)
 
