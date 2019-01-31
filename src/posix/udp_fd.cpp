@@ -36,13 +36,13 @@ size_t UDP_FD::max_buffer_msgs() const
   return (rcvbuf_ / net_stack().udp().max_datagram_size());
 }
 
-void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
-  net::UDPSocket::port_t port, const char* buf, size_t len)
+void UDP_FD::recv_to_buffer(net::udp::addr_t addr,
+  net::udp::port_t port, const char* buf, size_t len)
 {
   // only recv to buffer if not full
   if(buffer_.size() < max_buffer_msgs()) {
     // copy data into to-be Message buffer
-    auto buff = net::tcp::buffer_t(new std::vector<uint8_t> (buf, buf + len));
+    auto buff = net::tcp::construct_buffer(buf, buf + len);
     // emplace the message in buffer
     buffer_.emplace_back(htonl(addr.v4().whole), htons(port), std::move(buff));
   }
@@ -210,10 +210,10 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
     int bytes = 0;
     bool done = false;
 
-    this->sock->on_read(net::UDPSocket::recvfrom_handler::make_packed(
+    this->sock->on_read(net::udp::Socket::recvfrom_handler::make_packed(
     [&bytes, &done, this,
       buffer, len, flags, address, address_len]
-    (net::UDPSocket::addr_t addr, net::UDPSocket::port_t port,
+    (net::udp::addr_t addr, net::udp::port_t port,
       const char* data, size_t data_len)
     {
       // if this already been called once while blocking, buffer

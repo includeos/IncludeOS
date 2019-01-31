@@ -52,10 +52,10 @@ namespace net {
     uint16_t seq() const noexcept
     { return seq_; }
 
-    IP4::addr src() const noexcept
+    ip4::Addr src() const noexcept
     { return src_; }
 
-    IP4::addr dst() const noexcept
+    ip4::Addr dst() const noexcept
     { return dst_; }
 
     ICMP_type type() const noexcept
@@ -78,8 +78,8 @@ namespace net {
   private:
     uint16_t      id_{0};
     uint16_t      seq_{0};
-    IP4::addr     src_{0,0,0,0};
-    IP4::addr     dst_{0,0,0,0};
+    ip4::Addr     src_{0,0,0,0};
+    ip4::Addr     dst_{0,0,0,0};
     ICMP_type     type_{ICMP_type::NO_REPLY};
     uint8_t       code_{0};
     uint16_t      checksum_{0};
@@ -140,11 +140,11 @@ namespace net {
     void parameter_problem(Packet_ptr pckt, uint8_t error_pointer);
 
     // May
-    void timestamp_request(IP4::addr ip);
+    void timestamp_request(ip4::Addr ip);
     void timestamp_reply(icmp4::Packet& req);
 
-    void ping(IP4::addr ip);
-    void ping(IP4::addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+    void ping(ip4::Addr ip);
+    void ping(ip4::Addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
 
     void ping(const std::string& hostname);
     void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
@@ -221,7 +221,7 @@ namespace net {
       }
     }
 
-    void send_request(IP4::addr dest_ip, ICMP_type type, ICMP_code code,
+    void send_request(ip4::Addr dest_ip, ICMP_type type, ICMP_code code,
       icmp_func callback = nullptr, int sec_wait = SEC_WAIT_FOR_REPLY, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */

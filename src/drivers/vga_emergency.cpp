@@ -65,7 +65,8 @@ void keyboard_emergency_handler()
 {
   render_vga_text();
   using namespace hw;
-  auto keystate = KBM::get_kbd_vkey();
+  /*
+  auto keystate = KBM::kbd_process_data();
   switch (keystate.key)
   {
   case KBM::VK_UP:
@@ -75,6 +76,7 @@ void keyboard_emergency_handler()
       read_position = find_nth(read_position+1, read_maxpos, 1);
       break;
   }
+  */
   // update
   current_eoi_mechanism();
 }

@@ -18,6 +18,9 @@
 #ifndef NET_ERROR_HPP
 #define NET_ERROR_HPP
 
+#include <cstdint>
+#include <string>
+
 namespace net {
 
   /**
@@ -33,7 +36,8 @@ namespace net {
       no_error,
       general_IO,
       ifdown,
-      ICMP
+      ICMP,
+      timeout
       // Add more as needed
     };
 

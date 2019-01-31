@@ -18,16 +18,18 @@ set(SOURCES
 
 # DRIVERS / PLUGINS:
 set(DRIVERS
-  virtionet
+    virtionet
   )
 
 set(PLUGINS
+    autoconf
+    vfs
   )
 
 # STATIC LIBRARIES:
 set(LIBRARIES
-  libmicrolb.a
-  libliveupdate.a
+    libmicrolb.a
+    libliveupdate.a
   )
 
 

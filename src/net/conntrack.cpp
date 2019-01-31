@@ -102,6 +102,9 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
 Conntrack::Entry* dumb_in(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
 { return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
 
+Conntrack::Entry* dumb6_in(Conntrack& ct, Quadruple q, const PacketIP6& pkt)
+{ return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
+
 Conntrack::Conntrack()
  : Conntrack(0)
 {}
@@ -109,6 +112,7 @@ Conntrack::Conntrack()
 Conntrack::Conntrack(size_t max_entries)
  : maximum_entries{max_entries},
    tcp_in{&dumb_in},
+   tcp6_in{&dumb6_in},
    flush_timer({this, &Conntrack::on_timeout})
 {
 }
@@ -130,6 +134,23 @@ Conntrack::Entry* Conntrack::get(const PacketIP4& pkt) const
   }
 }
 
+Conntrack::Entry* Conntrack::get(const PacketIP6& pkt) const
+{
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+    case Protocol::UDP:
+      return get(get_quadruple(pkt), proto);
+
+    case Protocol::ICMPv6:
+      return get(get_quadruple_icmp(pkt), proto);
+
+    default:
+      return nullptr;
+  }
+}
+
 Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) const
 {
   auto it = entries.find({quad, proto});
@@ -138,31 +159,6 @@ Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) co
     return it->second.get();
 
   return nullptr;
-}
-
-Quadruple Conntrack::get_quadruple(const PacketIP4& pkt)
-{
-  const auto* ports = reinterpret_cast<const uint16_t*>(pkt.ip_data().data());
-  uint16_t src_port = ntohs(*ports);
-  uint16_t dst_port = ntohs(*(ports + 1));
-
-  return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
-}
-
-Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
-{
-  Expects(pkt.ip_protocol() == Protocol::ICMPv4);
-
-  struct partial_header {
-    uint16_t  type_code;
-    uint16_t  checksum;
-    uint16_t  id;
-  };
-
-  // not sure if sufficent
-  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
-
-  return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
 }
 
 Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
@@ -184,6 +180,25 @@ Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
   }
 }
 
+Conntrack::Entry* Conntrack::in(const PacketIP6& pkt)
+{
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+      return tcp6_in(*this, get_quadruple(pkt), pkt);
+
+    case Protocol::UDP:
+      return simple_track_in(get_quadruple(pkt), proto);
+
+    case Protocol::ICMPv6:
+      return simple_track_in(get_quadruple_icmp(pkt), proto);
+
+    default:
+      return nullptr;
+  }
+}
+
 Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
 {
   const auto proto = pkt.ip_protocol();
@@ -196,6 +211,28 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
         return get_quadruple(pkt);
 
       case Protocol::ICMPv4:
+        return get_quadruple_icmp(pkt);
+
+      default:
+        return Quadruple();
+    }
+  }();
+
+  return confirm(quad, proto);
+}
+
+Conntrack::Entry* Conntrack::confirm(const PacketIP6& pkt)
+{
+  const auto proto = pkt.ip_protocol();
+
+  auto quad = [&]()->Quadruple {
+    switch(proto)
+    {
+      case Protocol::TCP:
+      case Protocol::UDP:
+        return get_quadruple(pkt);
+
+      case Protocol::ICMPv6:
         return get_quadruple_icmp(pkt);
 
       default:
@@ -287,13 +324,21 @@ Conntrack::Entry* Conntrack::update_entry(
   // give it a new value
   quad = newq;
 
-  // TODO: this could probably be optimized with C++17 map::extract
+  // replace this ...
   // erase the old entry
   entries.erase(quint);
   // insert the entry with updated quintuple
   entries.emplace(std::piecewise_construct,
     std::forward_as_tuple(newq, proto),
     std::forward_as_tuple(entry));
+
+  // ... with this (when compile on clang)
+  /*
+  // update the key in the map with the new quadruple
+  auto ent = entries.extract(it);
+  ent.key().quad = newq;
+  entries.insert(std::move(ent));
+  */
 
   CTDBG("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
 
@@ -353,22 +398,23 @@ int Conntrack::deserialize_from(void* addr)
   const auto size = *reinterpret_cast<size_t*>(buffer);
   buffer += sizeof(size_t);
 
+  size_t dupes = 0;
   for(auto i = size; i > 0; i--)
   {
     // create the entry
     auto entry = std::make_shared<Entry>();
     buffer += entry->deserialize_from(buffer);
 
-    entries.emplace(std::piecewise_construct,
-      std::forward_as_tuple(entry->first, entry->proto),
-      std::forward_as_tuple(entry));
-
-    entries.emplace(std::piecewise_construct,
-      std::forward_as_tuple(entry->second, entry->proto),
-      std::forward_as_tuple(entry));
+    bool insert = false;
+    insert = entries.insert_or_assign({entry->first, entry->proto}, entry).second;
+    if(not insert)
+      dupes++;
+    insert = entries.insert_or_assign({entry->second, entry->proto}, entry).second;
+    if(not insert)
+      dupes++;
   }
 
-  Ensures(entries.size() - prev_size == size * 2);
+  Ensures(entries.size() - (prev_size-dupes) == size * 2);
 
   return buffer - reinterpret_cast<uint8_t*>(addr);
 }

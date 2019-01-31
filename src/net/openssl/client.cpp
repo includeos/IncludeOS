@@ -30,7 +30,7 @@ tls_load_from_memory(X509_STORE* store,
   auto* cert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
   assert(cert != NULL && "Invalid certificate");
   int res = X509_STORE_add_cert(store, cert);
-  assert(res == 1);
+  assert(res == 1 && "The X509 store did not accept the certificate");
   BIO_free(cbio);
 }
 
@@ -44,7 +44,8 @@ tls_private_key_for_ctx(SSL_CTX* ctx, int bits = 2048)
   int ret = RSA_generate_key_ex(rsa, bits, bne, NULL);
   assert(ret == 1);
 
-  SSL_CTX_use_RSAPrivateKey(ctx, rsa);
+  ret = SSL_CTX_use_RSAPrivateKey(ctx, rsa);
+  assert(ret == 1 && "OpenSSL context did not accept the private key");
 }
 
 static SSL_CTX*

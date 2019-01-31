@@ -102,8 +102,8 @@ static void tcp_service(net::TCP& tcp)
 
 void Service::start()
 {
-  extern void create_network_device(int N, const char* route, const char* ip);
-  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+  extern void create_network_device(int N, const char* ip);
+  create_network_device(0, "10.0.0.1/24");
 
   auto& inet = net::Interfaces::get(0);
   inet.network_config(

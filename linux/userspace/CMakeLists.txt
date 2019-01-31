@@ -1,6 +1,7 @@
 set(IOS ${CMAKE_SOURCE_DIR}/..)
 
 set(NET_SOURCES
+  ${IOS}/src/net/addr.cpp
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
   ${IOS}/src/net/configure.cpp
@@ -13,8 +14,11 @@ set(NET_SOURCES
   ${IOS}/src/net/ip4/ip4.cpp
   ${IOS}/src/net/ip4/reassembly.cpp
   ${IOS}/src/net/ip6/ip6.cpp
+  ${IOS}/src/net/ip6/extension_header.cpp
   ${IOS}/src/net/ip6/icmp6.cpp
+  ${IOS}/src/net/ip6/mld.cpp
   ${IOS}/src/net/ip6/ndp.cpp
+  ${IOS}/src/net/ip6/slaac.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp
@@ -25,12 +29,15 @@ set(NET_SOURCES
   ${IOS}/src/net/tcp/rttm.cpp
   ${IOS}/src/net/tcp/listener.cpp
   ${IOS}/src/net/tcp/stream.cpp
+  ${IOS}/src/net/udp/udp.cpp
+  ${IOS}/src/net/udp/socket.cpp
   ${IOS}/src/net/ip4/icmp4.cpp
-  ${IOS}/src/net/ip4/udp.cpp
-  ${IOS}/src/net/ip4/udp_socket.cpp
 
-  ${IOS}/src/net/dns/dns.cpp
   ${IOS}/src/net/dns/client.cpp
+  ${IOS}/src/net/dns/dns.cpp
+  ${IOS}/src/net/dns/query.cpp
+  ${IOS}/src/net/dns/record.cpp
+  ${IOS}/src/net/dns/response.cpp
   ${IOS}/src/net/dhcp/dh4client.cpp
   ${IOS}/src/net/dhcp/dhcpd.cpp
 
@@ -122,6 +129,15 @@ set(LIU_SOURCES
     ${IOS}/src/util/statman_liu.cpp
   )
 
+set(MICROLB_SOURCES
+    ${IOS}/lib/microLB/micro_lb/autoconf.cpp
+    ${IOS}/lib/microLB/micro_lb/balancer.cpp
+    ${IOS}/lib/microLB/micro_lb/defaults.cpp
+    ${IOS}/lib/microLB/micro_lb/openssl.cpp
+    ${IOS}/lib/microLB/micro_lb/s2n.cpp
+    ${IOS}/lib/microLB/micro_lb/serialize.cpp
+  )
+
 add_library(includeos STATIC ${NET_SOURCES} ${OS_SOURCES} ${MOD_SOURCES})
 set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
@@ -139,6 +155,15 @@ target_include_directories(liveupdate PUBLIC
     ${IOS}/lib/LiveUpdate
   )
 
+add_library(microlb STATIC ${MICROLB_SOURCES})
+set_target_properties(microlb PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(microlb PUBLIC
+    ${IOS}/lib/microLB
+    ${IOS}/lib/LiveUpdate
+    ${IOS}/mod/rapidjson/include
+    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
+  )
+
 install(TARGETS includeos   DESTINATION includeos/linux)
 install(TARGETS http_parser DESTINATION includeos/linux)
-install(TARGETS liveupdate  DESTINATION includeos/linux)
+install(TARGETS liveupdate microlb DESTINATION includeos/linux)

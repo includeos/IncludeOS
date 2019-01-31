@@ -20,10 +20,11 @@
 #include <hw/async_device.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet>
-#define ENABLE_JUMBO_FRAMES
-
+#include <net/interfaces>
+static constexpr bool debug = false;
 static const size_t CHUNK_SIZE = 1024 * 1024;
 static const size_t NUM_CHUNKS = 2048;
+static const uint16_t      MTU = 6000;
 static std::unique_ptr<hw::Async_device<UserNet>> dev1 = nullptr;
 static std::unique_ptr<hw::Async_device<UserNet>> dev2 = nullptr;
 
@@ -36,8 +37,8 @@ static inline auto now() {
 
 void Service::start()
 {
-  dev1 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
-  dev2 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
+  dev1 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(MTU));
+  dev2 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(MTU));
   dev1->connect(*dev2);
   dev2->connect(*dev1);
 
@@ -55,17 +56,21 @@ void Service::start()
 
   // Add a TCP connection handler
   server.on_connect(
-  [] (net::tcp::Connection_ptr conn) {
-
+  [] (net::tcp::Connection_ptr conn)
+  {
     conn->on_read(CHUNK_SIZE, [conn] (auto buf) {
-        static size_t count_bytes = 0;
+        static size_t   count_bytes = 0;
 
-        //printf("CHUNK_SIZE: %zu \n", buf->size());
         assert(buf->size() <= CHUNK_SIZE);
         count_bytes += buf->size();
 
-        if (count_bytes >= NUM_CHUNKS * CHUNK_SIZE) {
-
+        if constexpr (debug) {
+        static uint32_t count_chunks = 0;
+        printf("Received chunk %u (%zu bytes) for a total of %zu / %zu kB\n",
+               ++count_chunks, buf->size(), count_bytes / 1024, NUM_CHUNKS * CHUNK_SIZE / 1024);
+        }
+        if (count_bytes >= NUM_CHUNKS * CHUNK_SIZE)
+        {
           auto timediff = now() - time_start;
           assert(count_bytes == NUM_CHUNKS * CHUNK_SIZE);
 
@@ -88,24 +93,16 @@ void Service::start()
   printf("*** Linux userspace TCP demo started ***\n");
 
   printf("Measuring memory <-> memory bandwidth...\n");
-  time_start = now();
   inet_client.tcp().connect({net::ip4::Addr{"10.0.0.42"}, 80},
     [buf](auto conn)
     {
-      if (not conn)
-        std::abort();
-
-      for (size_t i = 0; i < NUM_CHUNKS; i++)
+      if constexpr (debug) {
+          printf("Connected\n");
+      }
+      assert(conn != nullptr);
+      time_start = now();
+      for (size_t i = 0; i < NUM_CHUNKS; i++) {
         conn->write(buf);
+      }
     });
 }
-
-#ifdef ENABLE_JUMBO_FRAMES
-#include <hw/nic.hpp>
-namespace hw {
-  uint16_t Nic::MTU_detection_override(int idx, const uint16_t default_MTU)
-  {
-    return 9000;
-  }
-}
-#endif

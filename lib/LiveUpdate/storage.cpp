@@ -112,6 +112,7 @@ void storage_header::add_end()
 {
   auto& ent = create_entry(TYPE_END, 0, 0);
 
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
   // test against heap max
   const auto storage_end = os::mem::virt_to_phys((uintptr_t) ent.vla);
   if (storage_end > kernel::heap_max())
@@ -123,6 +124,7 @@ void storage_header::add_end()
           storage_end - (kernel::heap_max()+1));
     throw std::runtime_error("LiveUpdate storage end outside memory");
   }
+#endif
   // verify memory is writable at the current end
   static const int END_CANARY = 0xbeefc4f3;
   *((volatile int*) &ent.len) = END_CANARY;

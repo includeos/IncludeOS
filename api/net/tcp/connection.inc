@@ -14,6 +14,11 @@ inline Connection& Connection::on_read(size_t recv_bufsz, ReadCallback cb)
   return *this;
 }
 
+inline Connection& Connection::on_data(DataCallback cb) {
+  _on_data(cb);
+  return *this;
+}
+
 inline Connection& Connection::on_disconnect(DisconnectCallback cb) {
   on_disconnect_ = cb;
   return *this;
@@ -31,13 +36,27 @@ inline Connection& Connection::on_close(CloseCallback cb) {
 
 inline Connection& Connection::set_on_read_callback(ReadCallback cb) {
   Expects(read_request != nullptr && "on_read hasn't been called before.");
-  read_request->callback = cb;
+  read_request->on_read_callback = cb;
   return *this;
 }
 
 inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
   _on_cleanup_ = cb;
   return *this;
+}
+
+inline buffer_t Connection::read_next() {
+  if (UNLIKELY(read_request == nullptr)) {
+    return nullptr;
+  }
+  return read_request->read_next();
+}
+
+inline size_t Connection::next_size() {
+  if (UNLIKELY(read_request == nullptr)) {
+    return 0;
+  }
+  return read_request->next_size();
 }
 
 inline void Connection::write(const void* buf, size_t n) {

@@ -23,7 +23,7 @@
 #include "options.hpp"
 
 #include <util/timer.hpp>
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 
 namespace net {
 
@@ -33,7 +33,7 @@ namespace net {
     static constexpr std::chrono::seconds RETRY_FREQUENCY{1};
     static constexpr std::chrono::seconds RETRY_FREQUENCY_SLOW{10};
 
-    using Stack = IP4::Stack;
+    using Stack = Inet;
     using config_func = delegate<void(bool)>;
 
     DHClient() = delete;
@@ -58,7 +58,7 @@ namespace net {
 
     Stack& stack;
     uint32_t     xid = 0;
-    IP4::addr    ipaddr, netmask, router, dns_server;
+    ip4::Addr    ipaddr, netmask, router, dns_server;
     std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
@@ -66,7 +66,7 @@ namespace net {
     int          progress = 0;
     Timer        timeout_timer_;
     std::chrono::milliseconds timeout;
-    UDPSocket* socket = nullptr;
+    udp::Socket* socket = nullptr;
   };
 
 }

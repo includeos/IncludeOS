@@ -21,6 +21,7 @@
 
 #include <net/socket.hpp>
 #include <net/ip4/packet_ip4.hpp>
+#include <net/ip6/packet_ip6.hpp>
 #include <vector>
 #include <unordered_map>
 #include <rtc>
@@ -37,6 +38,7 @@ public:
    * Custom handler for tracking packets in a certain way
    */
   using Packet_tracker = delegate<Entry*(Conntrack&, Quadruple, const PacketIP4&)>;
+  using Packet_tracker6 = delegate<Entry*(Conntrack&, Quadruple, const PacketIP6&)>;
 
   using Entry_handler = delegate<void(Entry*)>;
 
@@ -172,6 +174,7 @@ public:
    * @return     A matching conntrack entry (nullptr if not found)
    */
   Entry* get(const PacketIP4& pkt) const;
+  Entry* get(const PacketIP6& pkt) const;
 
   /**
    * @brief      Find the entry where the quadruple
@@ -192,6 +195,7 @@ public:
    * @return     The conntrack entry related to this packet.
    */
   Entry* in(const PacketIP4& pkt);
+  Entry* in(const PacketIP6& pkt);
 
   /**
    * @brief      Confirms a connection, moving the entry to confirmed.
@@ -201,6 +205,7 @@ public:
    * @return     The confirmed entry, if any
    */
   Entry* confirm(const PacketIP4& pkt);
+  Entry* confirm(const PacketIP6& pkt);
 
   /**
    * @brief      Confirms a connection, moving the entry to confirmed
@@ -266,24 +271,26 @@ public:
   Entry* simple_track_in(Quadruple quad, const Protocol proto);
 
   /**
-   * @brief      Gets the quadruple from a IP4 packet.
+   * @brief      Gets the quadruple from a IP packet.
    *             Assumes the packet has protocol specific payload.
    *
    * @param[in]  pkt   The packet
    *
    * @return     The quadruple.
    */
-  static Quadruple get_quadruple(const PacketIP4& pkt);
+  template <typename IP_packet>
+  static Quadruple get_quadruple(const IP_packet& pkt);
 
   /**
-   * @brief      Gets the quadruple from a IP4 packet carrying
+   * @brief      Gets the quadruple from a IP packet carrying
    *             ICMP payload
    *
    * @param[in]  pkt   The packet
    *
    * @return     The quadruple for ICMP.
    */
-  static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
+  template <typename IP_packet>
+  static Quadruple get_quadruple_icmp(const IP_packet& pkt);
 
   /**
    * @brief      Construct a Conntrack with unlimited maximum entries.
@@ -301,7 +308,8 @@ public:
   std::chrono::seconds flush_interval {10};
 
   /** Custom TCP handler can (and should) be added here */
-  Packet_tracker tcp_in;
+  Packet_tracker  tcp_in;
+  Packet_tracker6 tcp6_in;
 
   int deserialize_from(void*);
   void serialize_to(std::vector<char>&) const;
@@ -316,6 +324,34 @@ private:
   void on_timeout();
 
 };
+
+template <typename IP_packet>
+inline Quadruple Conntrack::get_quadruple(const IP_packet& pkt)
+{
+  Expects(pkt.ip_protocol() == Protocol::TCP or pkt.ip_protocol() == Protocol::UDP);
+
+  const auto* ports = reinterpret_cast<const uint16_t*>(pkt.ip_data().data());
+  uint16_t src_port = ntohs(*ports);
+  uint16_t dst_port = ntohs(*(ports + 1));
+
+  return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
+}
+
+template <typename IP_packet>
+inline Quadruple Conntrack::get_quadruple_icmp(const IP_packet& pkt)
+{
+  Expects(pkt.ip_protocol() == Protocol::ICMPv4 or pkt.ip_protocol() == Protocol::ICMPv6);
+
+  struct partial_header {
+    uint16_t  type_code;
+    uint16_t  checksum;
+    uint16_t  id;
+  };
+
+  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
+
+  return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
+}
 
 inline void Conntrack::update_timeout(Entry& ent, const Timeout_settings& timeouts)
 {

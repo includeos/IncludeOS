@@ -50,6 +50,7 @@ def TCP_connect():
   sock.connect((HOST, PORT))
   MESSAGE = "POSIX is for hipsters"
   sock.send(MESSAGE)
+  sock.close()
 
 def TCP_recv(trigger_line):
   server.listen(1)
@@ -67,4 +68,4 @@ vm.on_output("accept()", TCP_connect_thread)
 vm.on_output("Trigger TCP_recv", TCP_recv)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(10).clean()
+vm.cmake().boot(20).clean()

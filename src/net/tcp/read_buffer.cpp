@@ -31,6 +31,17 @@ Read_buffer::Read_buffer(const seq_t startv, const size_t min, const size_t max)
   buf->reserve(min);
 }
 
+Read_buffer::Read_buffer(const seq_t startv, const size_t min, const size_t max,
+                         const Alloc& alloc)
+  : buf(tcp::construct_buffer(alloc)),
+    start{startv}, cap{max}, hole{0}
+{
+  Expects(util::bits::is_pow2(cap));
+  Expects(util::bits::is_pow2(min));
+  Expects(cap >= min);
+  buf->reserve(min);
+}
+
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
   assert(buf != nullptr && "Buffer seems to be stolen, make sure to renew()");
@@ -91,7 +102,7 @@ void Read_buffer::reset_buffer_if_needed()
   // if the buffer isnt unique, create a new one
   else
   {
-    buf = tcp::construct_buffer();
+    buf = tcp::construct_buffer(buf->get_allocator());
   }
 
   // This case is when we need a small buffer in front of

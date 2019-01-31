@@ -20,10 +20,10 @@
 namespace net {
 namespace tcp {
 
-  Read_request::Read_request(seq_t start, size_t min, size_t max, ReadCallback cb)
-    : callback{cb}
+  Read_request::Read_request(seq_t start, size_t min, size_t max, Alloc&& alloc)
+    : alloc{alloc}
   {
-    buffers.push_back(std::make_unique<Read_buffer>(start, min, max));
+    buffers.push_back(std::make_unique<Read_buffer>(start, min, max, alloc));
   }
 
   size_t Read_request::insert(seq_t seq, const uint8_t* data, size_t n, bool psh)
@@ -56,7 +56,13 @@ namespace tcp {
       {
         const auto rem = buf->capacity() - buf->size();
         const auto end_seq = buf->end_seq(); // store end_seq if reseted in callback
-        if (callback) callback(buf->buffer());
+
+        if (on_read_callback != nullptr) {
+          on_read_callback(buf->buffer());
+        } else {
+          // Ready buffer for read_next
+          complete_buffers.push_back(buf->buffer());
+        }
 
         // this is the only one, so we can reuse it
         if(buffers.size() == 1)
@@ -98,6 +104,8 @@ namespace tcp {
 
     } // < while(n)
 
+    signal_data();
+
     Ensures(not buffers.empty());
     return recv;
   }
@@ -124,7 +132,7 @@ namespace tcp {
       // we probably need to create multiple buffers,
       // ... or just decide we only support gaps of 1 buffer size.
       buffers.push_back(
-        std::make_unique<Read_buffer>(cur_back->end_seq(), cur_back->capacity(), cur_back->capacity()));
+        std::make_unique<Read_buffer>(cur_back->end_seq(), cur_back->capacity(), cur_back->capacity(), alloc));
 
       auto& back = buffers.back();
       //printf("new buffer added start=%u end=%u, fits(%lu)=%lu\n",
@@ -184,6 +192,40 @@ namespace tcp {
     }
   }
 
+  void Read_request::signal_data() {
+
+    if (not complete_buffers.empty()) {
+      if (on_data_callback != nullptr){
+        on_data_callback();
+        if (not complete_buffers.empty()) {
+          // FIXME: Make sure this event gets re-triggered
+          // For now the user will have to make sure to re-read later if they couldn't
+        }
+      } else if (on_read_callback != nullptr) {
+        for (auto buf : complete_buffers) {
+          // Pop each time, in case callback leads to another call here.
+          complete_buffers.pop_front();
+          on_read_callback(buf);
+        }
+      }
+    }
+  }
+
+  size_t Read_request::next_size() {
+    if (not complete_buffers.empty()) {
+      return complete_buffers.front()->size();
+    }
+    return 0;
+  }
+
+  buffer_t Read_request::read_next() {
+    if (UNLIKELY(complete_buffers.empty()))
+        return nullptr;
+    auto buf = std::move(complete_buffers.front());
+    complete_buffers.pop_front();
+    return buf;
+  }
+
   void Read_request::reset(const seq_t seq)
   {
     Expects(not buffers.empty());
@@ -201,10 +243,13 @@ namespace tcp {
     // if noone is using the buffer right now, (stupid yes)
     // AND it contains data without any holes,
     // return it to the user
-    if(buf->buffer().unique() and buf->size() > 0 and buf->missing() == 0)
+    if (buf->has_unhandled_data())
     {
-      callback(buf->buffer());
+      complete_buffers.push_back(buf->buffer());
     }
+
+    signal_data();
+
     // reset the first buffer
     buf->reset(seq);
     // throw the others away

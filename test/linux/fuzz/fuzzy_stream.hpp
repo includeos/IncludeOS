@@ -18,6 +18,7 @@
 #pragma once
 #include <net/stream.hpp>
 #include <kernel/events.hpp>
+#include <deque>
 
 //#define VERBOSE_FUZZY_STREAM
 #ifdef VERBOSE_FUZZY_STREAM
@@ -48,6 +49,32 @@ namespace fuzzy
     void close() override;
     void reset_callbacks() override;
 
+    void on_data(DataCallback cb) override {
+      (void) cb;
+      printf("fuzzy stream %p on_data\n", this);
+    }
+
+    size_t next_size() override {
+      if (is_async() && !m_async_queue.empty()) {
+        const size_t size = m_async_queue.front()->size();
+        printf("fuzzy stream %p next_size -> %zu\n", this, size);
+        return size;
+      }
+      printf("fuzzy stream %p next_size -> 0 (empty)\n");
+      return 0;
+    }
+
+    buffer_t read_next() override {
+      if (is_async() && !m_async_queue.empty()) {
+        auto buf = std::move(m_async_queue.front());
+        printf("fuzzy stream %p read_next -> %zu\n", this, buf->size());
+        m_async_queue.pop_front();
+        return buf;
+      }
+      printf("fuzzy stream %p read_next -> empty\n", this);
+      return nullptr;
+    }
+
     net::Socket local() const override {
       return m_local;
     }
@@ -73,19 +100,19 @@ namespace fuzzy
     }
 
     bool is_connected() const noexcept override {
-      return true;
+      return !m_is_closed;
     }
     bool is_writable() const noexcept override {
-      return true;
+      return !m_is_closed;
     }
     bool is_readable() const noexcept override {
-      return true;
+      return !m_is_closed;
     }
     bool is_closing() const noexcept override {
-      return false;
+      return m_is_closed;
     }
     bool is_closed() const noexcept override {
-      return false;
+      return m_is_closed;
     }
     int get_cpuid() const noexcept override {
       return 0;
@@ -101,11 +128,12 @@ namespace fuzzy
     net::Socket m_local;
     net::Socket m_remote;
     delegate<void(buffer_t)> m_payload_out = nullptr;
-    
+
     bool    m_busy = false;
     bool    m_deferred_close = false;
+    bool    m_is_closed    = false;
     uint8_t m_async_event  = 0;
-    std::vector<buffer_t> m_async_queue;
+    std::deque<buffer_t> m_async_queue;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
     WriteCallback    m_on_write   = nullptr;
@@ -135,6 +163,9 @@ namespace fuzzy
   {
     FZS_PRINT("fuzzy::Stream::~Stream(%p)\n", this);
     assert(m_busy == false && "Cannot delete stream while in its call stack");
+    if (!this->is_closed()) {
+      this->transport_level_close();
+    }
   }
 
   inline void Stream::write(buffer_t buffer)
@@ -173,7 +204,8 @@ namespace fuzzy
   }
   inline void Stream::transport_level_close()
   {
-    if (this->m_on_close) this->m_on_close();
+    CloseCallback callback = std::move(this->m_on_close);
+    if (callback) callback();
   }
 
   inline void Stream::close()
@@ -188,9 +220,8 @@ namespace fuzzy
         Events::get().unsubscribe(this->m_async_event);
         this->m_async_event = 0;
     }
+    this->m_is_closed = true;
     this->reset_callbacks();
-    if (this->is_connected())
-        this->close();
     if (func) func();
   }
   inline void Stream::close_callback_once()

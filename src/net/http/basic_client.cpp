@@ -74,6 +74,7 @@ namespace http {
 
   void Basic_client::send(Request_ptr req, URI url, Response_handler cb, Options options)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     // find out if this is a secured request or not
     const bool secure = url.scheme_is_secure();
     validate_secure(secure);
@@ -103,17 +104,16 @@ namespace http {
         secure,
         port
       ]
-        (net::ip4::Addr ip, const net::Error&) mutable
+        (net::dns::Response_ptr res, const net::Error&) mutable
       {
-        // Host resolved
-        if (ip != 0)
-        {
-          send(move(request), {ip, port}, move(cb), secure, move(opt));
-        }
-        else
+        auto addr = res->get_first_addr();
+        if(UNLIKELY(addr == net::Addr::addr_any))
         {
           cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+          return;
         }
+        // Host resolved
+        send(move(request), {addr, port}, move(cb), secure, move(opt));
       }));
     }
   }
@@ -121,6 +121,7 @@ namespace http {
   void Basic_client::request(Method method, URI url, Header_set hfields,
                        Response_handler cb, Options options)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     Expects(cb != nullptr);
 
     // find out if this is a secured request or not
@@ -158,11 +159,17 @@ namespace http {
         opt{move(options)},
         secure
       ]
-        (net::ip4::Addr ip, const net::Error&)
+        (net::dns::Response_ptr res, const net::Error& err)
       {
         // Host resolved
-        if (ip != 0)
+        if (not err)
         {
+          auto addr = res->get_first_addr();
+          if(UNLIKELY(addr == net::Addr::addr_any))
+          {
+            cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+            return;
+          }
           // setup request with method and headers
           auto req = create_request(method);
           *req << hfields;
@@ -173,7 +180,7 @@ namespace http {
           // Default to port 80 if non given
           const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          send(move(req), {ip, port}, move(cb), secure, move(opt));
+          send(move(req), {addr, port}, move(cb), secure, move(opt));
         }
         else
         {
@@ -204,6 +211,7 @@ namespace http {
                        std::string data, Response_handler cb,
                        Options options)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     // find out if this is a secured request or not
     const bool secure = url.scheme_is_secure();
     validate_secure(secure);
@@ -242,11 +250,18 @@ namespace http {
           cb{move(cb)},
           opt{move(options)},
           secure
-        ] (auto ip, const net::Error&)
+        ]
+          (net::dns::Response_ptr res, const net::Error& err)
         {
           // Host resolved
-          if(ip != 0)
+          if (not err)
           {
+            auto addr = res->get_first_addr();
+            if(UNLIKELY(addr == net::Addr::addr_any))
+            {
+              cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+              return;
+            }
             // setup request with method and headers
             auto req = this->create_request(method);
             *req << hfields;
@@ -260,7 +275,7 @@ namespace http {
             // Default to port 80 if non given
             const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-            this->send(move(req), {ip, port}, move(cb), secure, move(opt));
+            this->send(move(req), {addr, port}, move(cb), secure, move(opt));
           }
           else
           {
@@ -306,6 +321,7 @@ namespace http {
 
   void Basic_client::populate_from_url(Request& req, const URI& url)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     // Set uri path (default "/")
     req.set_uri((!url.path().empty()) ? URI{url.path()} : URI{"/"});
 

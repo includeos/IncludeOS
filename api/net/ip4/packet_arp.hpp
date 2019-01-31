@@ -38,7 +38,7 @@ namespace net
 
     /** initializes to a default, empty Arp packet, given
         a valid MTU-sized buffer */
-    void init(MAC::Addr local_mac, IP4::addr local_ip, IP4::addr dest_ip)
+    void init(MAC::Addr local_mac, ip4::Addr local_ip, ip4::Addr dest_ip)
     {
 
       auto& hdr = header();
@@ -62,15 +62,15 @@ namespace net
       header().opcode = op;
     }
 
-    void set_dest_ip(IP4::addr ip) {
+    void set_dest_ip(ip4::Addr ip) {
       header().dipaddr = ip;
     }
 
-    IP4::addr source_ip() const {
+    ip4::Addr source_ip() const {
       return header().sipaddr;
     }
 
-    IP4::addr dest_ip() const {
+    ip4::Addr dest_ip() const {
       return header().dipaddr;
     }
 

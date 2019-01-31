@@ -121,11 +121,12 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
-#ifndef PLATFORM_UNITTEST
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
+  // NOTE: on linux the heap location is randomized,
+  // so we could compare against that but: How to get the heap base address?
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-#endif
   if (storage_area >= (char*) kernel::heap_begin() && storage_area < (char*) kernel::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
@@ -137,6 +138,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
            (void*) storage_area_phys, (void*) kernel::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
+#endif
 
   // search for ELF header
   LPRINT("* Looking for ELF header at %p\n", update_area);
@@ -357,4 +359,20 @@ void Storage::add_vector(uid id, const void* buf, size_t count, size_t esize)
 void Storage::add_string_vector(uid id, const std::vector<std::string>& vec)
 {
   hdr.add_string_vector(id, vec);
+}
+#include <net/stream.hpp>
+void Storage::add_stream(net::Stream& stream)
+{
+  auto* stream_ptr = (net::Stream*) &stream;
+  // get the sub-ID for this stream:
+  // it will be used when deserializing to make sure we arent
+  // calling the wrong deserialization function on the stream
+  const uint16_t subid = stream_ptr->serialization_subid();
+  assert(subid != 0 && "Stream should not return 0 for subid");
+  // serialize the stream
+  hdr.add_struct(TYPE_STREAM, subid,
+  [stream_ptr] (char* location) -> int {
+    // returns size of all the serialized data
+    return stream_ptr->serialize_to(location, 0xFFFFFFFF);
+  });
 }

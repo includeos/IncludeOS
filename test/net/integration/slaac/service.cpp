@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <common.cxx>
-#include <net/dns/dns.hpp>
+//#define DEBUG // Debug supression
 
-CASE("DNS::question_string returns string representation of DNS record type")
+#include <os>
+#include <net/interfaces>
+
+using namespace net;
+
+void Service::start(const std::string&)
 {
-  EXPECT(net::DNS::question_string(DNS_TYPE_A) == "IPv4 address");
+  static auto& inet = net::Interfaces::get(0);
+  inet.autoconf_v6(1, [](bool completed) {
+    if (!completed) {
+       panic("Auto-configuration of IP address failed");
+    }
+    INFO("Slaac test", "Got IP from Auto-configuration");
+    printf("%s\n", inet.ip6_addr().str().c_str());
+  });
+  INFO("Slaac test", "Waiting for Auto-configuration");
 }

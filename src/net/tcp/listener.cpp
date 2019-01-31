@@ -115,12 +115,12 @@ void Listener::segment_arrived(Packet_view& packet) {
   TCPL_PRINT2("<Listener::segment_arrived> No receipent\n");
 }
 
-void Listener::remove(Connection_ptr conn) {
+void Listener::remove(const Connection* conn) {
   TCPL_PRINT2("<Listener::remove> Try remove %s\n", conn->to_string().c_str());
   auto it = syn_queue_.begin();
   while(it != syn_queue_.end())
   {
-    if((*it) == conn)
+    if(it->get() == conn)
     {
       syn_queue_.erase(it);
       debug("<Listener::remove> %s removed.\n", conn->to_string().c_str());
@@ -132,9 +132,10 @@ void Listener::remove(Connection_ptr conn) {
 
 void Listener::connected(Connection_ptr conn) {
   debug("<Listener::connected> %s connected\n", conn->to_string().c_str());
-  remove(conn);
+  remove(conn.get());
   Expects(conn->is_connected());
-  host_.add_connection(conn);
+  if (UNLIKELY(! host_.add_connection(conn)))
+    return;
 
   if(on_connect_ != nullptr)
     on_connect_(conn);
