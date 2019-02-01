@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/router.hpp>
 using namespace net;
 
@@ -61,14 +61,14 @@ ip_forward (IP6::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr)
 
 void Service::start(const std::string&)
 {
-  auto& inet = Inet::stack<0>();
+  auto& inet = Interfaces::get(0);
   inet.network_config6({ 0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85cd },    // IP
                       112,                                                      // Prefix6
                       { 0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 });  // Gateway
 
   INFO("Router","Interface 1 IP: %s\n", inet.ip6_addr().str().c_str());
 
-  auto& inet2 = Inet::stack<1>();
+  auto& inet2 = Interfaces::get(1);
   inet2.network_config6({ 0xfe80, 0, 0, 0, 0xabcd, 0xabcd, 0x1234, 0x5678 },  // IP
                       112,                                                   // Prefix6
                       { 0xfe80, 0, 0, 0, 0xabcd, 0xabcd, 0x1234, 0x8367}); // Gateway
