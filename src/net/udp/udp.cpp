@@ -56,7 +56,11 @@ namespace net {
   {
     auto ip6 = static_unique_ptr_cast<PacketIP6>(std::move(ptr));
     auto pkt = std::make_unique<udp::Packet6_view>(std::move(ip6));
-
+    // Bounds check **BEFORE** checksumming
+    if (pkt->validate_length() == false) {
+      // TODO: call drop()
+      return;
+    }
     // Validate checksum
     // TODO: Maybe wasteful to do checksum calc before other checks
     if (auto csum = pkt->compute_udp_checksum(); UNLIKELY(csum != 0)) {
