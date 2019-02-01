@@ -78,7 +78,7 @@ namespace net
     /** Protocol after Extension headers */
     Protocol ip_protocol() const noexcept
     {
-      return ip6::parse_upper_layer_proto(ext_hdr_start(), next_protocol());
+      return ip6::parse_upper_layer_proto(ext_hdr_start(), data_end(), next_protocol());
     }
 
     /** Get next header */
@@ -185,8 +185,8 @@ namespace net
       return {ip_data_ptr(), ip_data_length()};
     }
 
-    const ip6::Extension_header* ext_hdr_start() const
-    { return reinterpret_cast<ip6::Extension_header*>(layer_begin() + sizeof(ip6::Header)); }
+    const uint8_t* ext_hdr_start() const
+    { return layer_begin() + sizeof(ip6::Header); }
 
     /**
      *  Set IP6 payload length

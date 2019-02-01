@@ -78,7 +78,7 @@ namespace net
 
   void PacketIP6::calculate_payload_offset()
   {
-    auto reader = this->ext_hdr_start();
+    const auto* reader = this->ext_hdr_start();
     auto next_proto = this->next_protocol();
     uint16_t pl_off = sizeof(ip6::Header);
 
@@ -90,6 +90,11 @@ namespace net
             PRINT("Done parsing extension header, next proto: %d\n", next_proto);
             this->set_payload_offset(pl_off);
             return;
+        }
+        // bounds check
+        if (reader + sizeof(ip6::Extension_header) >= this->data_end())
+        {
+          break;
         }
         auto& ext = *(ip6::Extension_header*)reader;
         next_proto = ext.proto();

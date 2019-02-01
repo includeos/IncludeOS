@@ -52,7 +52,7 @@ namespace net::ip6 {
    *
    * @return     Upper layer protocol
    */
-  Protocol parse_upper_layer_proto(const Extension_header* start, Protocol proto);
+  Protocol parse_upper_layer_proto(const uint8_t* start, const uint8_t* end, Protocol proto);
 
   using Extension_header_inspector = delegate<void(const Extension_header*)>;
   /**
