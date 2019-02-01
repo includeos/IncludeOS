@@ -35,13 +35,13 @@ namespace fuzzy
   add_udp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
                 const uint16_t dport)
   {
-    auto* hdr = new (data) net::UDP::header();
+    auto* hdr = new (data) net::udp::Header();
     hdr->sport = htons(fuzzer.steal16());
     hdr->dport = htons(dport);
     hdr->length = htons(fuzzer.size);
     hdr->checksum = 0;
-    fuzzer.increment_data(sizeof(net::UDP::header));
-    return &data[sizeof(net::UDP::header)];
+    fuzzer.increment_data(sizeof(net::udp::Header));
+    return &data[sizeof(net::udp::Header)];
   }
   uint8_t*
   add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
@@ -60,4 +60,23 @@ namespace fuzzy
     fuzzer.increment_data(sizeof(net::tcp::Header));
     return &data[sizeof(net::tcp::Header)];
   }
+
+  uint8_t*
+  add_ip6_layer(uint8_t* data, FuzzyIterator& fuzzer,
+                const net::ip6::Addr src_addr,
+                const net::ip6::Addr dst_addr,
+                const uint8_t protocol)
+  {
+    auto* hdr = new (data) net::ip6::Header();
+    hdr->ver_tc_fl = fuzzer.steal32();
+    hdr->version = 0x6;
+    hdr->payload_length = htons(sizeof(net::ip6::Header) + fuzzer.size);
+    hdr->next_header = protocol;
+    hdr->hop_limit = 32;
+    hdr->saddr    = src_addr;
+    hdr->daddr    = dst_addr;
+    fuzzer.increment_data(sizeof(net::ip6::Header));
+    return &data[sizeof(net::ip6::Header)];
+  }
+
 }

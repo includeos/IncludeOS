@@ -14,6 +14,9 @@ namespace fuzzy
     TCP,
     TCP_CONNECTION,
     UDP,
+    IP6,
+    UDP6,
+    TCP6,
     DNS,
     HTTP,
     WEBSOCKET

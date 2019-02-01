@@ -1,5 +1,6 @@
 #include "fuzzy_stack.hpp"
 #include "fuzzy_packet.hpp"
+#include <net/interfaces>
 
 static inline uint16_t udp_port_scan(net::Inet& inet)
 {
@@ -16,14 +17,21 @@ namespace fuzzy
   void insert_into_stack(AsyncDevice_ptr& device, stack_config config,
                          const uint8_t* data, const size_t size)
   {
-    auto& inet = net::Super_stack::get(0);
+    auto& inet = net::Interfaces::get(0);
     const size_t packet_size = std::min((size_t) inet.MTU(), size);
     FuzzyIterator fuzzer{data, packet_size};
-    
+
     auto p = inet.create_packet();
-    // link layer -> IP4
-    auto* eth_end = add_eth_layer(p->layer_begin(), fuzzer,
-                                  net::Ethertype::IP4);
+    uint8_t* eth_end = nullptr;
+    if (config.layer == IP6) {
+      // link layer -> IP6
+      eth_end = add_eth_layer(p->layer_begin(), fuzzer, net::Ethertype::IP6);
+    }
+    else {
+      // link layer -> IP4
+      eth_end = add_eth_layer(p->layer_begin(), fuzzer, net::Ethertype::IP4);
+    }
+
     // select layer to fuzz
     switch (config.layer) {
     case ETH:
@@ -34,6 +42,15 @@ namespace fuzzy
       {
         auto* next_layer = add_ip4_layer(eth_end, fuzzer,
                            {10, 0, 0, 1}, inet.ip_addr());
+        fuzzer.fill_remaining(next_layer);
+        break;
+      }
+    case IP6:
+      {
+        const net::ip6::Addr src {fuzzer.steal64(), fuzzer.steal64()};
+        const uint8_t proto = fuzzer.steal8();
+        auto* next_layer = add_ip6_layer(eth_end, fuzzer,
+                           src, inet.ip6_addr(), proto);
         fuzzer.fill_remaining(next_layer);
         break;
       }

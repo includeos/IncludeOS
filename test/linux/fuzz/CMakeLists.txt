@@ -8,7 +8,7 @@ set(SERVICE_NAME "Linux userspace IP-stack fuzzer")
 set(BINARY       "linux_fuzz")
 
 set(SOURCES
-  service.cpp fuzzy_packet.cpp fuzzy_stack.cpp ../s2n/http.cpp
+  service.cpp fuzzy_packet.cpp fuzzy_stack.cpp
   )
 
 option(LIBCPP "" ON)
