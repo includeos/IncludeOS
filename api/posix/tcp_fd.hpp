@@ -20,7 +20,6 @@
 #define INCLUDE_TCP_FD_HPP
 
 #include "sockfd.hpp"
-#include <ringbuffer>
 
 struct TCP_FD_Conn;
 struct TCP_FD_Listen;
@@ -73,7 +72,7 @@ struct TCP_FD_Conn
 {
   TCP_FD_Conn(net::tcp::Connection_ptr c);
 
-  void recv_to_ringbuffer(net::tcp::buffer_t);
+  void retrieve_buffer();
   void set_default_read();
 
   ssize_t send(const void *, size_t, int fl);
@@ -84,7 +83,8 @@ struct TCP_FD_Conn
   std::string to_string() const { return conn->to_string(); }
 
   net::tcp::Connection_ptr conn;
-  FixedRingBuffer<16384> readq;
+  net::tcp::buffer_t buffer;
+  size_t buf_offset;
   bool recv_disc = false;
 };
 
