@@ -61,10 +61,6 @@ public:
   inline net::tcp::Listener& get_listener() noexcept;
   inline bool has_connq();
 
-  on_read_func   get_default_read_func()   override;
-  on_write_func  get_default_write_func()  override;
-  on_except_func get_default_except_func() override;
-
   ~TCP_FD() {}
 private:
   std::unique_ptr<TCP_FD_Conn> cd = nullptr;

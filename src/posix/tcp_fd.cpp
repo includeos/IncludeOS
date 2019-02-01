@@ -210,30 +210,6 @@ int TCP_FD::shutdown(int mode)
   return cd->shutdown(mode);
 }
 
-/// socket default handler getters
-
-TCP_FD::on_read_func TCP_FD::get_default_read_func()
-{
-  if (cd) {
-    return {cd.get(), &TCP_FD_Conn::recv_to_ringbuffer};
-  }
-  if (ld) {
-    return
-    [/*this*/] (net::tcp::buffer_t) {
-      // what to do here?
-    };
-  }
-  throw std::runtime_error("Invalid socket");
-}
-TCP_FD::on_write_func TCP_FD::get_default_write_func()
-{
-  return [] {};
-}
-TCP_FD::on_except_func TCP_FD::get_default_except_func()
-{
-  return [] {};
-}
-
 /// socket as connection
 TCP_FD_Conn::TCP_FD_Conn(net::tcp::Connection_ptr c)
   : conn{std::move(c)}
