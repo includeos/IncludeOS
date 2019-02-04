@@ -41,7 +41,7 @@ namespace net::ip6 {
     {
       return hdr_ext_len;
     }
-  };
+  } __attribute__((packed));
 
   /**
    * @brief      Parse the upper layer protocol (TCP/UDP/ICMPv6).

@@ -40,7 +40,7 @@ struct Header {
   uint8_t  hop_limit   = 0;
   Addr     saddr;
   Addr     daddr;
-}; //< struct Header
+} __attribute__((packed)); //< struct Header
 
 static_assert(sizeof(Header) == 40, "IPv6 Header is of constant size (40 bytes)");
 
