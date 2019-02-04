@@ -19,9 +19,10 @@
 
 #include <common.cxx>
 
-#include <hal/machine.cpp>
+#include <hal/machine.hpp>
 #include <malloc.h>
 
+using namespace util::literals;
 struct Pool {
   Pool(size_t size) : size(size) {
     Expects(size);

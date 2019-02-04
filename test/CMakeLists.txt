@@ -175,6 +175,7 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hal/machine.cpp
   ${SRC}/hw/nic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
