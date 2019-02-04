@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <net/interfaces.hpp>
-//#include <hw/devices.hpp>
 #include <hal/machine.hpp>
 
 namespace net
@@ -87,13 +86,13 @@ Inet& Interfaces::get(int N, int sub)
 }
 
 
-ssize_t id_by_mac(const std::string& mac) {
-  MAC::Addr link_addr{mac.c_str()};
+ssize_t Interfaces::get_nic_index(const MAC::Addr& mac)
+{
   ssize_t index = -1;
   auto nics = os::machine().get<hw::Nic>();
-  for (int i = 0; i < nics.size(); i++) {
-    hw::Nic& nic = nics.at(i);
-    if (nic.mac() == link_addr) {
+  for (size_t i = 0; i < nics.size(); i++) {
+    const hw::Nic& nic = nics.at(i);
+    if (nic.mac() == mac) {
       index = i;
       break;
     }
@@ -101,14 +100,14 @@ ssize_t id_by_mac(const std::string& mac) {
 
   // If no NIC, no point looking more
   if(index < 0)
-    throw Stack_not_found{"No NIC found with MAC address " + mac};
+    throw Interfaces_err{"No NIC found with MAC address " + mac.to_string()};
 
   return index;
 }
 
 Inet& Interfaces::get(const std::string& mac)
 {
-  auto index = id_by_mac(mac);
+  auto index = get_nic_index(mac);
   auto& stacks = instance().stacks_.at(index);
   auto& stack = stacks[0];
   if(stack != nullptr) {
@@ -123,7 +122,7 @@ Inet& Interfaces::get(const std::string& mac)
 // Duplication of code to keep sanity intact
 Inet& Interfaces::get(const std::string& mac, int sub)
 {
-  auto index = id_by_mac(mac);
+  auto index = get_nic_index(mac);
   return get(index, sub);
 }
 
