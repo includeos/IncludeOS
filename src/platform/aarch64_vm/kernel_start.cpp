@@ -19,9 +19,14 @@
 #include <info>
 #include <kernel/os.hpp>
 #include <kernel/service.hpp>
-#include <boot/multiboot.h>
+//#include <boot/multiboot.h>
 extern "C" {
   #include <libfdt.h>
+}
+
+extern "C" {
+  //nasty..
+  #include "../../arch/aarch64/cpu.h"
 }
 
 extern "C" {
@@ -126,6 +131,8 @@ void print_be(const char *mem,int size)
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addrin)
 {
+
+  cpu_print_current_el();
   //its a "RAM address 0"
   const struct fdt_property *prop;
   int addr_cells = 0, size_cells = 0;
@@ -197,6 +204,9 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   // Initialize system calls
   _init_syscalls();
 
+  //enable exceptions
+  cpu_serror_enable();
+  cpu_debug_enable();
   // Initialize stdout handlers
   if (os_default_stdout)
     OS::add_stdout(&OS::default_stdout);

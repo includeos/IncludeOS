@@ -18,6 +18,7 @@
 #include <service>
 #include <cstdio>
 #include <isotime>
+#include <stdexcept>
 
 extern "C" __attribute__((noreturn))
 void panic(const char* reason);
