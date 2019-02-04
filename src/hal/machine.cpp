@@ -33,37 +33,6 @@ static constexpr auto reserve_mem = 1_MiB;
 static constexpr int  reserve_pct_max = 10;
 static_assert(reserve_pct_max > 0 and reserve_pct_max < 90);
 
-namespace os::detail {
-
-
-  Machine::Machine(void* mem, size_t size)
-    : mem_{(void*)bits::align(Memory::align, (uintptr_t)mem),
-      bits::align(Memory::align, size)},
-      ptr_alloc_(mem_), parts_(ptr_alloc_) {
-        kprintf("[%s %s] constructor \n", arch(), name());
-      }
-
-  void Machine::init() {
-    MINFO("Initializing heap\n");
-    auto main_mem = memory().allocate_largest();
-    MINFO("Main memory detected as %zu b\n", main_mem.size);
-
-    if (memory().bytes_free() < reserve_mem) {
-      if (main_mem.size > reserve_mem * (100 - reserve_pct_max)) {
-        main_mem.size -= reserve_mem;
-        auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve_mem;
-        memory().deallocate((void*)back, reserve_mem);
-        MINFO("Reserving %zu b for machine use \n", reserve_mem);
-      }
-    }
-
-    kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
-  }
-
-  const char* Machine::arch() { return Arch::name; }
-}
-
-
 namespace os {
 
   Machine::Memory& Machine::memory() noexcept {
@@ -95,4 +64,37 @@ namespace os {
                                       size - sizeof(detail::Machine)}};
   }
 
+}
+
+// Detail implementations
+namespace os::detail {
+
+  Machine::Machine(void* mem, size_t size)
+    : mem_{
+        (void*) bits::align(Memory::align, (uintptr_t)mem),
+        size - (bits::align(Memory::align, (uintptr_t)mem) - (uintptr_t)mem)
+      },
+      ptr_alloc_(mem_), parts_(ptr_alloc_)
+  {
+    kprintf("[%s %s] constructor \n", arch(), name());
+  }
+
+  void Machine::init() {
+    MINFO("Initializing heap\n");
+    auto main_mem = memory().allocate_largest();
+    MINFO("Main memory detected as %zu b\n", main_mem.size);
+
+    if (memory().bytes_free() < reserve_mem) {
+      if (main_mem.size > reserve_mem * (100 - reserve_pct_max)) {
+        main_mem.size -= reserve_mem;
+        auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve_mem;
+        memory().deallocate((void*)back, reserve_mem);
+        MINFO("Reserving %zu b for machine use \n", reserve_mem);
+      }
+    }
+
+    kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
+  }
+
+  const char* Machine::arch() { return Arch::name; }
 }

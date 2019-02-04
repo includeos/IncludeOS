@@ -93,7 +93,6 @@ CASE("os::Machine basics") {
     EXPECT((std::addressof(p) > pool.begin() and std::addressof(p) < pool.end()));
   }
 
-
   machine->remove<Pool>(2);
   auto p2 = machine->get<Pool>(2);
   EXPECT(p2.size == 400);
@@ -145,6 +144,7 @@ CASE("os::Machine basics") {
       EXPECT((std::addressof(p) > pool.begin() and std::addressof(p) < pool.end()));
   }
 
-  for (auto i = 0; i < 6; i++)
+  for (auto i = 5; i >= 0; i--) {
     machine->remove<Pool>(i);
+  }
 }

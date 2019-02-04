@@ -148,10 +148,15 @@ namespace os::detail {
 
       auto& vec = get_vector<T>();
       return vec.size();
-    };
+    }
 
     template <typename T>
-    void remove(int i) {}; // TODO: implement
+    void remove(int i) {
+      auto& vec = get_vector<T>();
+      if(UNLIKELY(vec.size() < i))
+        throw Machine_access_error{"Requested machine part not found: " + std::to_string(i)};
+      vec.erase(vec.begin() + i);
+    }
 
 
     inline Memory& memory() {
