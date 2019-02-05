@@ -119,10 +119,12 @@ namespace net
   void ICMPv6::forward_to_transport_layer(icmp6::Packet& req) {
     ICMP6_error err{req.type(), req.code()};
 
+    // store index before releasing the packet
+    const int payload_index = req.payload_index();
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in an error
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(req.payload_index());
+    packet_ptr->increment_layer_begin(payload_index);
 
     // inet forwards to transport layer (UDP or TCP)
     inet_.error_report(err, std::move(packet_ptr));
@@ -133,10 +135,12 @@ namespace net
     // the sequence number in an ECHO message f.ex.
     ICMP6_error err{req.type(), req.code(), req.sequence()};
 
+    // store index before releasing the packet
+    const int payload_index = req.payload_index();
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in the Fragmentation Needed
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(req.payload_index());
+    packet_ptr->increment_layer_begin(payload_index);
 
     // Inet updates the corresponding Path MTU value in IP and notifies the transport/packetization layer
     inet_.error_report(err, std::move(packet_ptr));
