@@ -108,7 +108,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
   // IP-stack fuzzing
   fuzzy::stack_config config {
-    .layer   = fuzzy::IP6,
+    .layer   = fuzzy::ICMP6,
     .ip_port = TCP_PORT
   };
   fuzzy::insert_into_stack(dev1, config, data, size);

@@ -79,4 +79,16 @@ namespace fuzzy
     return &data[sizeof(net::ip6::Header)];
   }
 
+  uint8_t*
+  add_icmp6_layer(uint8_t* data, FuzzyIterator& fuzzer)
+  {
+    using ICMPv6_header = net::icmp6::Packet::Header;
+    auto* hdr = new (data) ICMPv6_header();
+    hdr->type = (net::icmp6::Type) fuzzer.steal8();
+    hdr->code = fuzzer.steal8();
+    hdr->checksum = 0;
+    fuzzer.increment_data(sizeof(ICMPv6_header));
+    return &data[sizeof(ICMPv6_header)];
+  }
+
 }

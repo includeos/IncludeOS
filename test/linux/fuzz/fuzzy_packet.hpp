@@ -24,5 +24,6 @@ namespace fuzzy
                 const net::ip6::Addr src_addr,
                 const net::ip6::Addr dst_addr,
                 const uint8_t protocol);
-
+  extern uint8_t*
+  add_icmp6_layer(uint8_t* data, FuzzyIterator& fuzzer);
 }

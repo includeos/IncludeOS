@@ -23,7 +23,7 @@ namespace fuzzy
 
     auto p = inet.create_packet();
     uint8_t* eth_end = nullptr;
-    if (config.layer == IP6) {
+    if (config.layer == IP6 || config.layer == ICMP6) {
       // link layer -> IP6
       eth_end = add_eth_layer(p->layer_begin(), fuzzer, net::Ethertype::IP6);
     }
@@ -86,6 +86,16 @@ namespace fuzzy
     case TCP_CONNECTION:
       //
       break;
+    case ICMP6:
+      {
+        const net::ip6::Addr src {fuzzer.steal64(), fuzzer.steal64()};
+        const uint8_t proto = 58; // ICMPv6
+        auto* ip_layer = add_ip6_layer(eth_end, fuzzer,
+                           src, inet.ip6_addr(), proto);
+        auto* icmp_layer = add_icmp6_layer(ip_layer, fuzzer);
+        fuzzer.fill_remaining(icmp_layer);
+        break;
+      }
     default:
       assert(0 && "Implement me");
     }

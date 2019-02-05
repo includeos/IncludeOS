@@ -15,6 +15,7 @@ namespace fuzzy
     TCP_CONNECTION,
     UDP,
     IP6,
+    ICMP6,
     UDP6,
     TCP6,
     DNS,
