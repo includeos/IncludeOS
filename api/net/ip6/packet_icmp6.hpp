@@ -249,7 +249,9 @@ namespace net::icmp6 {
     const T& view_payload_as()
     {
       const Span payload = this->payload();
-      Expects(static_cast<size_t>(payload.size()) >= sizeof(T));
+      if (UNLIKELY((size_t) payload.size() < sizeof(T))) {
+          throw std::runtime_error("Not enough room for payload");
+      }
       return *reinterpret_cast<const T*>(payload.data());
     }
 
