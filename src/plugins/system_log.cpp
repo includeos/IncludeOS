@@ -32,7 +32,7 @@ inline static char* get_system_log_loc()
 #ifdef ARCH_x86_64
   return (char*) ((1ull << 45) - MRB_AREA_SIZE);
 #else
-  return (char*) OS::liveupdate_storage_area() - MRB_AREA_SIZE;
+  return (char*) kernel::liveupdate_storage_area() - MRB_AREA_SIZE;
 #endif
 }
 inline static auto* get_ringbuffer_data()
