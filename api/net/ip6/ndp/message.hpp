@@ -45,6 +45,11 @@ namespace net::ndp {
 
       while(opt->type != option::END and raw < end)
       {
+        // no options can have zero size
+        if (UNLIKELY(opt->size() == 0)) break;
+        // can't parse an option we don't have the room to read
+        if (UNLIKELY(raw + opt->size() > end)) break;
+
         ++n;
         on_option(opt);
         raw += opt->size();
