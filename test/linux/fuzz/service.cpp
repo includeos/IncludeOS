@@ -63,7 +63,7 @@ void Service::start()
   inet_server.tcp().listen(
     TCP_PORT,
     [] (auto connection) {
-      connection->write("test");
+      //connection->write("test");
     });
 
 	static bool connected = false;
@@ -152,9 +152,9 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 	// create connection
 	auto& inet = net::Interfaces::get(0);
 	auto conn = deserialize_connection(TCP_buffer, inet.tcp());
+	//printf("Deserialized %s\n", conn->to_string().c_str());
 
   // IP-stack fuzzing
-	/*
   const fuzzy::stack_config config {
     .layer   = fuzzy::TCP,
     .ip_port = TCP_PORT,
@@ -162,12 +162,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 		.tcp_seq = extract_seq(),
 		.tcp_ack = extract_ack()
   };
-	*/
-	const fuzzy::stack_config config {
-    .layer   = fuzzy::UDP,
-    .ip_port = 25
-  };
-  fuzzy::insert_into_stack(dev1, config, data, size);
+insert_into_stack(dev1, config, data, size);
 
 	conn->abort();
   return 0;

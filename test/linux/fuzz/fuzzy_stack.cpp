@@ -79,7 +79,7 @@ namespace fuzzy
         assert(config.ip_port != 0 && "Port must be set in the config");
         // generate IP4 and TCP data
         auto* ip_layer = add_ip4_layer(eth_end, fuzzer,
-                           {10, 0, 0, 1}, inet.ip_addr(),
+                           {10, 0, 0, 43}, inet.ip_addr(),
                             (uint8_t) net::Protocol::TCP);
         auto* tcp_layer = add_tcp4_layer(ip_layer, fuzzer,
                             config.ip_src_port, config.ip_port,

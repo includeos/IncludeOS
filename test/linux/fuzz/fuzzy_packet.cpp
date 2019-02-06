@@ -51,10 +51,9 @@ namespace fuzzy
     auto* hdr = new (data) net::tcp::Header();
     hdr->source_port      = htons(sport);
     hdr->destination_port = htons(dport);
-    hdr->seq_nr      = seq;
-    hdr->ack_nr      = ack;
-    hdr->offset_flags.offset_reserved = 0;
-    hdr->offset_flags.flags = fuzzer.steal8();
+    hdr->seq_nr      = fuzzer.steal32();
+    hdr->ack_nr      = fuzzer.steal32();
+    hdr->offset_flags.whole = fuzzer.steal16();
     hdr->window_size = fuzzer.steal16();
     hdr->checksum    = 0;
     hdr->urgent      = 0;
