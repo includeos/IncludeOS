@@ -45,13 +45,14 @@ namespace fuzzy
   }
   uint8_t*
   add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
-                const uint16_t dport)
+                const uint16_t sport, const uint16_t dport,
+                uint32_t seq, uint32_t ack)
   {
     auto* hdr = new (data) net::tcp::Header();
-    hdr->source_port      = htons(1234);
+    hdr->source_port      = htons(sport);
     hdr->destination_port = htons(dport);
-    hdr->seq_nr      = fuzzer.steal32();
-    hdr->ack_nr      = fuzzer.steal32();
+    hdr->seq_nr      = seq;
+    hdr->ack_nr      = ack;
     hdr->offset_flags.offset_reserved = 0;
     hdr->offset_flags.flags = fuzzer.steal8();
     hdr->window_size = fuzzer.steal16();

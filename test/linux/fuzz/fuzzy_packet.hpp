@@ -17,7 +17,8 @@ namespace fuzzy
                 const uint16_t dport);
   extern uint8_t*
   add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
-                const uint16_t dport);
+                const uint16_t sport, const uint16_t dport,
+                uint32_t seq, uint32_t ack);
 
   extern uint8_t*
   add_ip6_layer(uint8_t* data, FuzzyIterator& fuzzer,

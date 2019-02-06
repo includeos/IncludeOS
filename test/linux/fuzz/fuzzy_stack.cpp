@@ -79,7 +79,8 @@ namespace fuzzy
                            {10, 0, 0, 1}, inet.ip_addr(),
                             (uint8_t) net::Protocol::TCP);
         auto* tcp_layer = add_tcp4_layer(ip_layer, fuzzer,
-                            config.ip_port);
+                            config.ip_src_port, config.ip_port,
+                            config.tcp_seq, config.tcp_ack);
         fuzzer.fill_remaining(tcp_layer);
         break;
       }

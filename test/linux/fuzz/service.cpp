@@ -22,6 +22,9 @@
 static fuzzy::AsyncDevice_ptr dev1;
 static fuzzy::AsyncDevice_ptr dev2;
 static const int TCP_PORT = 12345;
+static uint16_t  TCP_LOCAL_PORT = 0;
+static int  TCP_buflen = 0;
+static char TCP_buffer[8192];
 
 std::vector<uint8_t> load_file(const std::string& file)
 {
@@ -43,11 +46,8 @@ void Service::start()
 {
   dev1 = std::make_unique<fuzzy::AsyncDevice>(UserNet::create(4000));
   dev2 = std::make_unique<fuzzy::AsyncDevice>(UserNet::create(4000));
-  dev1->set_transmit(
-    [] (net::Packet_ptr packet) {
-      (void) packet;
-      //fprintf(stderr, "."); // drop
-    });
+	dev1->connect(*dev2);
+	dev2->connect(*dev1);
 
   auto& inet_server = net::Interfaces::get(0);
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
@@ -75,8 +75,29 @@ void Service::start()
   inet_server.tcp().listen(
     TCP_PORT,
     [] (auto connection) {
-      printf("Writing test to new connection\n");
       connection->write("test");
+    });
+
+	static bool connected = false;
+	auto conn = inet_client.tcp().connect({inet_server.ip_addr(), TCP_PORT});
+	conn->on_connect(
+    [] (auto connection) {
+			connected = true;
+    });
+	// block until connected
+	while (!connected) {
+		Events::get().process_events();
+	}
+	TCP_LOCAL_PORT = conn->local().port();
+	printf("TCP source port is %u\n", TCP_LOCAL_PORT);
+	TCP_buflen = conn->serialize_to(TCP_buffer);
+	conn->abort();
+
+	// make sure error packets are discarded
+	dev1->set_transmit(
+    [] (net::Packet_ptr packet) {
+      (void) packet;
+      //fprintf(stderr, "."); // drop
     });
 
   printf(R"FUzzY(
@@ -92,6 +113,28 @@ void Service::start()
 #include "fuzzy_http.hpp"
 #include "fuzzy_stream.hpp"
 //#include "fuzzy_webserver.cpp"
+extern net::tcp::Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
+
+struct serialized_tcp
+{
+  typedef net::tcp::Connection Connection;
+  typedef net::tcp::port_t     port_t;
+  typedef net::Socket          Socket;
+
+  Socket local;
+  Socket remote;
+
+  int8_t  state_now;
+  int8_t  state_prev;
+
+  Connection::TCB tcb;
+};
+static inline uint32_t extract_seq() {
+	return ((serialized_tcp*) TCP_buffer)->tcb.RCV.NXT;
+}
+static inline uint32_t extract_ack() {
+	return ((serialized_tcp*) TCP_buffer)->tcb.SND.NXT;
+}
 
 // libfuzzer input
 extern "C"
@@ -106,12 +149,20 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   }
   if (size == 0) return 0;
 
+	// create connection
+	auto& inet = net::Interfaces::get(0);
+	auto conn = deserialize_connection(TCP_buffer, inet.tcp());
+
   // IP-stack fuzzing
-  fuzzy::stack_config config {
-    .layer   = fuzzy::ICMP6,
-    .ip_port = TCP_PORT
+  const fuzzy::stack_config config {
+    .layer   = fuzzy::TCP,
+    .ip_port = TCP_PORT,
+		.ip_src_port = TCP_LOCAL_PORT,
+		.tcp_seq = extract_seq(),
+		.tcp_ack = extract_ack()
   };
   fuzzy::insert_into_stack(dev1, config, data, size);
 
+	conn->abort();
   return 0;
 }

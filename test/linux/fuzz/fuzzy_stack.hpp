@@ -26,6 +26,9 @@ namespace fuzzy
   struct stack_config {
     layer_t  layer   = IP4;
     uint16_t ip_port = 0;
+    uint16_t ip_src_port = 0;
+    uint32_t tcp_seq;
+    uint32_t tcp_ack;
   };
 
   extern void
