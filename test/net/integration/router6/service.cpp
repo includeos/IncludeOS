@@ -62,16 +62,14 @@ ip_forward (IP6::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr)
 void Service::start(const std::string&)
 {
   auto& inet = Interfaces::get(0);
-  inet.network_config6({ 0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85cd },    // IP
-                      112,                                                      // Prefix6
-                      { 0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 });  // Gateway
+  inet.add_addr({"fe80::e823:fcff:fef4:85cd"}, 112);
+  //inet.ndp().add_router({"fe80::e823:fcff:fef4:83e7"}, 0xffff);
 
   INFO("Router","Interface 1 IP: %s\n", inet.ip6_addr().str().c_str());
 
   auto& inet2 = Interfaces::get(1);
-  inet2.network_config6({ 0xfe80, 0, 0, 0, 0xabcd, 0xabcd, 0x1234, 0x5678 },  // IP
-                      112,                                                   // Prefix6
-                      { 0xfe80, 0, 0, 0, 0xabcd, 0xabcd, 0x1234, 0x8367}); // Gateway
+  inet2.add_addr({"fe80::abcd:abcd:1234:5678"}, 112);
+  //inet2.ndp().add_router({"fe80::abcd:abcd:1234:8367"}, 0xffff);
 
   INFO("Router","Interface2 IP: %s\n", inet2.ip6_addr().str().c_str());
 
