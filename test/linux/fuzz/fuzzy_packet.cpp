@@ -92,4 +92,17 @@ namespace fuzzy
     return &data[sizeof(ICMPv6_header)];
   }
 
+  uint8_t*
+  add_dns4_layer(uint8_t* data, FuzzyIterator& fuzzer, uint32_t xid)
+  {
+    using DNS_header = net::dns::Header;
+    auto* hdr = new (data) DNS_header();
+    ((uint32_t*) data)[0] = fuzzer.steal32();
+    ((uint32_t*) data)[1] = fuzzer.steal32();
+    ((uint32_t*) data)[2] = fuzzer.steal32();
+    hdr->id = xid;
+    fuzzer.increment_data(sizeof(DNS_header));
+    return &data[sizeof(DNS_header)];
+  }
+
 }

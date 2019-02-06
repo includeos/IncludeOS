@@ -54,23 +54,11 @@ void Service::start()
   auto& inet_client = net::Interfaces::get(1);
   inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
 
-#ifndef LIBFUZZER_ENABLED
-  std::vector<std::string> files = {
-  };
-  for (const auto& file : files) {
-    auto v = load_file(file);
-    printf("*** Inserting payload %s into stack...\n", file.c_str());
-    insert_into_stack(v.data(), v.size());
-    printf("*** Payload %s was inserted into stack\n", file.c_str());
-    printf("\n");
-  }
-#endif
-
   inet_server.resolve("www.oh.no",
       [] (net::dns::Response_ptr resp, const net::Error& error) -> void {
         (void) resp;
         (void) error;
-        printf("resolve() call ended\n");
+        printf("!!\n!! resolve() call ended\n!!\n");
       });
   inet_server.tcp().listen(
     TCP_PORT,
@@ -100,6 +88,17 @@ void Service::start()
       //fprintf(stderr, "."); // drop
     });
 
+#ifndef LIBFUZZER_ENABLED
+  std::vector<std::string> files = {
+  };
+  for (const auto& file : files) {
+    auto v = load_file(file);
+    printf("*** Inserting payload %s into stack...\n", file.c_str());
+    insert_into_stack(v.data(), v.size());
+    printf("*** Payload %s was inserted into stack\n", file.c_str());
+    printf("\n");
+  }
+#else
   printf(R"FUzzY(
    __  __                     ___                            _  _
   |  \/  |  __ _     __      | __|  _  _      ___     ___   | || |
@@ -108,6 +107,7 @@ void Service::start()
   _|"""""|_|"""""|_|"""""|_| """ |_|"""""|_|"""""|_|"""""|_| """"|
   "`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'
 )FUzzY");
+#endif
 }
 
 #include "fuzzy_http.hpp"
@@ -154,12 +154,18 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 	auto conn = deserialize_connection(TCP_buffer, inet.tcp());
 
   // IP-stack fuzzing
+	/*
   const fuzzy::stack_config config {
     .layer   = fuzzy::TCP,
     .ip_port = TCP_PORT,
 		.ip_src_port = TCP_LOCAL_PORT,
 		.tcp_seq = extract_seq(),
 		.tcp_ack = extract_ack()
+  };
+	*/
+	const fuzzy::stack_config config {
+    .layer   = fuzzy::UDP,
+    .ip_port = 25
   };
   fuzzy::insert_into_stack(dev1, config, data, size);
 

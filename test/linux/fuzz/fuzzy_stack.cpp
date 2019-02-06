@@ -1,6 +1,9 @@
 #include "fuzzy_stack.hpp"
 #include "fuzzy_packet.hpp"
 #include <net/interfaces>
+namespace net::dns {
+	extern uint16_t g_last_xid;
+}
 
 static inline uint16_t udp_port_scan(net::Inet& inet)
 {
@@ -95,6 +98,25 @@ namespace fuzzy
                            src, inet.ip6_addr(), proto);
         auto* icmp_layer = add_icmp6_layer(ip_layer, fuzzer);
         fuzzer.fill_remaining(icmp_layer);
+        break;
+      }
+    case DNS:
+      {
+        // scan for UDP port (once)
+        static uint16_t udp_port = 0;
+        if (udp_port == 0) {
+          udp_port = udp_port_scan(inet);
+          assert(udp_port != 0);
+        }
+        // generate IP4 and UDP datagrams
+        auto* ip_layer = add_ip4_layer(eth_end, fuzzer,
+                           {10, 0, 0, 1}, inet.ip_addr(),
+                            (uint8_t) net::Protocol::UDP);
+        auto* udp_layer = add_udp4_layer(ip_layer, fuzzer,
+                            udp_port);
+        auto* dns_layer = add_dns4_layer(udp_layer, fuzzer,
+                            net::dns::g_last_xid);
+        fuzzer.fill_remaining(dns_layer);
         break;
       }
     default:

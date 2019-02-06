@@ -27,4 +27,7 @@ namespace fuzzy
                 const uint8_t protocol);
   extern uint8_t*
   add_icmp6_layer(uint8_t* data, FuzzyIterator& fuzzer);
+
+  extern uint8_t*
+  add_dns4_layer(uint8_t* data, FuzzyIterator& fuzzer, uint32_t xid);
 }
