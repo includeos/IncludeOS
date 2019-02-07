@@ -38,8 +38,8 @@ static_assert(sizeof(void*) == 8, "Pointer must match arch");
 #include "debug"
 #include "info"
 
-#define LIKELY(x)       __builtin_expect(!!(x), 1)
-#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+// LIKELY/UNLIKELY
+#include "branch_prediction"
 
 #include <gsl/gsl>
 
