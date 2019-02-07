@@ -20,7 +20,11 @@
 #include <os>
 
 #ifndef INFO_MACHINE
+#ifndef USERSPACE_KERNEL
 #define MINFO(fmt, ...) kprintf("[ Machine ] " fmt, ##__VA_ARGS__)
+#else
+#define MINFO(fmt, ...) printf("[ Machine ] " fmt, ##__VA_ARGS__)
+#endif
 #endif
 
 using namespace util;
@@ -76,7 +80,9 @@ namespace os::detail {
       },
       ptr_alloc_(mem_), parts_(ptr_alloc_)
   {
+#ifndef USERSPACE_KERNEL
     kprintf("[%s %s] constructor \n", arch(), name());
+#endif
   }
 
   void Machine::init() {
