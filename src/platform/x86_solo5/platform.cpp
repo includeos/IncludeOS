@@ -1,4 +1,4 @@
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <smp>
 
 void __arch_poweroff()

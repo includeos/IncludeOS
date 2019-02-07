@@ -3,7 +3,8 @@
 #include <service>
 #include <smp>
 #include <boot/multiboot.h>
-#include <kernel/os.hpp>
+#include <kernel.hpp>
+#include <os.hpp>
 
 extern "C" {
 #include <solo5/solo5.h>
@@ -41,7 +42,7 @@ void kernel_start()
   //_init_bss();
 
   // Initialize heap
-  OS::init_heap(free_mem_begin, mem_size);
+  kernel::init_heap(free_mem_begin, mem_size);
 
   _init_elf_parser();
 
@@ -49,11 +50,11 @@ void kernel_start()
   _init_syscalls();
 
   // Initialize OS including devices
-  OS::start(temp_cmdline);
-  OS::post_start();
+  kernel::start(temp_cmdline);
+  kernel::post_start();
 
   // Starting event loop from here allows us to profile OS::start
-  OS::event_loop();
+  os::event_loop();
 }
 
 extern "C"

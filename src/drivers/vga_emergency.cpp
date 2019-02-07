@@ -122,5 +122,5 @@ void panic_perform_inspection_procedure()
 static __attribute__((constructor))
 void hest()
 {
-  OS::add_stdout(emergency_logging);
+  os::add_stdout(emergency_logging);
 }

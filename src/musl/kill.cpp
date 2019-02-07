@@ -1,19 +1,19 @@
 #include "common.hpp"
-#include <kernel/syscalls.hpp>
+#include <sys/types.h>
 
 int sys_kill(pid_t /*pid*/, int /*sig*/) {
-  panic("KILL called");
+  os::panic("KILL called");
 }
 
 int sys_tkill(int /*tid*/, int /*sig*/) {
 #ifndef INCLUDEOS_SINGLE_THREADED
 #   warning "tkill not implemented for threaded IncludeOS"
 #endif
-  panic("TKILL called");
+  os::panic("TKILL called");
 }
 
 int sys_tgkill(int /*tgid*/, int /*tid*/, int /*sig*/) {
-  panic("TGKILL called");
+  os::panic("TGKILL called");
 }
 
 extern "C"

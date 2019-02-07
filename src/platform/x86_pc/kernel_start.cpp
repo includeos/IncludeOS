@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/os.hpp>
-#include <kernel/syscalls.hpp>
+#include <kernel.hpp>
+#include <os.hpp>
 #include <kernel/cpuid.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
@@ -24,6 +24,8 @@
 #include <arch/x86/cpu.hpp>
 #include <kernel/auxvec.h>
 #include <kernel/service.hpp>
+
+#include <kernel.hpp>
 
 #include "idt.hpp"
 
@@ -73,19 +75,26 @@ static void global_ctor_test(){
   __global_ctors_ok = 42;
 }
 
+
+static os::Machine* __machine = nullptr;
+os::Machine& os::machine() noexcept {
+  Expects(__machine != nullptr);
+  return *__machine;
+}
+
 int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> libc initialization complete \n");
   Expects(__global_ctors_ok == 42);
-  extern bool __libc_initialized;
-  __libc_initialized = true;
+  kernel::state().libc_initialized = true;
 
   Expects(__tl1__ == 42);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF() && "ELF header intact");
 
   PRATTLE("<kernel_main> OS start \n");
+
   // Initialize early OS, platform and devices
-  OS::start(__grub_magic,__grub_addr);
+  kernel::start(__grub_magic, __grub_addr);
 
   // verify certain read-only sections in memory
   // NOTE: because of page protection we can choose to stop checking here
@@ -93,10 +102,10 @@ int kernel_main(int, char * *, char * *) {
 
   PRATTLE("<kernel_main> post start \n");
   // Initialize common subsystems and call Service::start
-  OS::post_start();
+  kernel::post_start();
 
   // Starting event loop from here allows us to profile OS::start
-  OS::event_loop();
+  os::event_loop();
   return 0;
 }
 
@@ -126,15 +135,15 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
-  uintptr_t memory_end     = OS::memory_end();
+  uintptr_t memory_end     = kernel::memory_end();
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
     memory_end     = _multiboot_memory_end(addr);
   }
-  else if (OS::is_softreset_magic(magic))
+  else if (kernel::is_softreset_magic(magic))
   {
-    memory_end = OS::softreset_memory_end(addr);
+    memory_end = kernel::softreset_memory_end(addr);
   }
   PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
           free_mem_begin, memory_end);
@@ -150,11 +159,17 @@ void kernel_start(uint32_t magic, uint32_t addr)
   PRATTLE("* Init .bss\n");
   _init_bss();
 
+  // Instantiate machine
+  size_t memsize = memory_end - free_mem_begin;
+  __machine = os::Machine::create((void*)free_mem_begin, memsize);
+
   PRATTLE("* Init ELF parser\n");
   _init_elf_parser();
 
-  PRATTLE("* Init heap\n");
-  OS::init_heap(free_mem_begin, memory_end);
+  // Begin portable HAL initialization
+  __machine->init();
+
+  // TODO: Move more stuff into Machine::init
 
   PRATTLE("* Init syscalls\n");
   _init_syscalls();

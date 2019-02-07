@@ -1,7 +1,7 @@
 #include <arch.hpp>
 #include <cstdint>
 #include <ctime>
-#include <kernel/os.hpp>
+#include <os.hpp>
 # define weak_alias(name, aliasname) \
   extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
 

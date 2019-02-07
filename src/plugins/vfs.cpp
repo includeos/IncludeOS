@@ -128,5 +128,5 @@ static void vfs_mount()
 #include <os>
 __attribute__((constructor))
 static void vfs_mount_plugin() {
-  OS::register_plugin(vfs_mount, "VFS Mounter");
+  os::register_plugin(vfs_mount, "VFS Mounter");
 }

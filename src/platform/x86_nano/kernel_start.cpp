@@ -17,7 +17,8 @@
 
 #include <kprint>
 #include <info>
-#include <kernel/os.hpp>
+#include <kernel.hpp>
+#include <os.hpp>
 #include <kernel/service.hpp>
 #include <boot/multiboot.h>
 
@@ -39,7 +40,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = (uintptr_t) &_end;
-  uintptr_t mem_end = __arch_max_canonical_addr;
+  uintptr_t mem_end = os::Arch::max_canonical_addr;
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
@@ -54,16 +55,16 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
   // Initialize heap
-  OS::init_heap(free_mem_begin, mem_end);
+  kernel::init_heap(free_mem_begin, mem_end);
 
   // Initialize system calls
   _init_syscalls();
 
   // Initialize stdout handlers
   if (os_default_stdout)
-    OS::add_stdout(&OS::default_stdout);
+    os::add_stdout(&kernel::default_stdout);
 
-  OS::start(magic, addr);
+  kernel::start(magic, addr);
 
   // Start the service
   Service::start();

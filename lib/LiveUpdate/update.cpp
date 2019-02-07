@@ -27,7 +27,8 @@
 #include <unordered_map>
 #include <elf.h>
 #include "storage.hpp"
-#include <kernel/os.hpp>
+#include <kernel.hpp>
+#include <os.hpp>
 #include <kernel/memory.hpp>
 #include <hw/devices.hpp>
 
@@ -96,7 +97,7 @@ void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
 
 void LiveUpdate::exec(const buffer_t& blob, void* location)
 {
-  if (location == nullptr) location = OS::liveupdate_storage_area();
+  if (location == nullptr) location = kernel::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
 #if defined(__includeos__)
   // 1. turn off interrupts
@@ -126,17 +127,15 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-  if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
+  if (storage_area >= (char*) kernel::heap_begin() && storage_area < (char*) kernel::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
-  if (storage_area_phys >= OS::heap_max()) {
-    printf("Storage area is at %p / %p\n",
-           (void*) storage_area_phys, (void*) OS::heap_max());
+  if (storage_area_phys >= kernel::heap_max()) {
     throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
-  if (storage_area_phys >= OS::heap_max() - 0x10000) {
+  if (storage_area_phys >= kernel::heap_max() - 0x10000) {
     printf("Storage area is at %p / %p\n",
-           (void*) storage_area_phys, (void*) OS::heap_max());
+           (void*) storage_area_phys, (void*) kernel::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
 #endif
@@ -271,7 +270,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len,
                 start_offset,          /* binary entry point */
                 sr_data,               /* softreset location */
-                (void*) OS::heap_end() /* zero memory until this location */);
+                (void*) kernel::heap_end() /* zero memory until this location */);
   } else {
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, nullptr);
   }
@@ -289,14 +288,14 @@ void LiveUpdate::restore_environment()
 }
 buffer_t LiveUpdate::store()
 {
-  char* location = (char*) OS::liveupdate_storage_area();
+  char* location = (char*) kernel::liveupdate_storage_area();
   size_t size = update_store_data(location, nullptr);
   return buffer_t(location, location + size);
 }
 
 size_t LiveUpdate::stored_data_length(const void* location)
 {
-  if (location == nullptr) location = OS::liveupdate_storage_area();
+  if (location == nullptr) location = kernel::liveupdate_storage_area();
   auto* storage = (storage_header*) location;
 
   if (storage->validate() == false)

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <net/interfaces.hpp>
-#include <hw/devices.hpp>
+#include <hal/machine.hpp>
 
 namespace net
 {
@@ -52,7 +52,7 @@ Inet& Interfaces::create(hw::Nic& nic, int N, int sub)
 
 Inet& Interfaces::get(int N)
 {
-  if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
+  if (N < 0 || N >= os::machine().count<hw::Nic>())
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
@@ -62,13 +62,13 @@ Inet& Interfaces::get(int N)
     return *stacks[0];
 
   // create network stack
-  auto& nic = hw::Devices::get<hw::Nic>(N);
+  auto& nic = os::machine().get<hw::Nic>(N);
   return instance().create(nic, N, 0);
 }
 
 Inet& Interfaces::get(int N, int sub)
 {
-  if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
+  if (N < 0 || N >= os::machine().count<hw::Nic>())
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
@@ -85,43 +85,53 @@ Inet& Interfaces::get(int N, int sub)
       + std::to_string(N) + "," + std::to_string(sub) + "]"};
 }
 
-Inet& Interfaces::get(const std::string& mac)
+
+ssize_t Interfaces::get_nic_index(const MAC::Addr& mac)
 {
-  MAC::Addr link_addr{mac.c_str()};
-  auto index = hw::Devices::nic_index(link_addr);
+  ssize_t index = -1;
+  auto nics = os::machine().get<hw::Nic>();
+  for (size_t i = 0; i < nics.size(); i++) {
+    const hw::Nic& nic = nics.at(i);
+    if (nic.mac() == mac) {
+      index = i;
+      break;
+    }
+  }
 
   // If no NIC, no point looking more
   if(index < 0)
-    throw Stack_not_found{"No NIC found with MAC address " + mac};
+    throw Interfaces_err{"No NIC found with MAC address " + mac.to_string()};
 
+  return index;
+}
+
+Inet& Interfaces::get(const std::string& mac)
+{
+  auto index = get_nic_index(mac);
   auto& stacks = instance().stacks_.at(index);
   auto& stack = stacks[0];
   if(stack != nullptr) {
-    Expects(stack->link_addr() == link_addr);
+    Expects(stack->link_addr() == MAC::Addr(mac.c_str()));
     return *stack;
   }
 
   // If not found, create
-  return instance().create(hw::Devices::nic(index), index, 0);
+  return instance().create(os::machine().get<hw::Nic>(index), index, 0);
 }
 
 // Duplication of code to keep sanity intact
 Inet& Interfaces::get(const std::string& mac, int sub)
 {
-  auto index = hw::Devices::nic_index(mac.c_str());
-
-  if(index < 0)
-    throw Stack_not_found{"No NIC found with MAC address " + mac};
-
+  auto index = get_nic_index(mac);
   return get(index, sub);
 }
 
 Interfaces::Interfaces()
 {
-  if (hw::Devices::devices<hw::Nic>().empty())
+  if (os::machine().count<hw::Nic>() == 0)
     INFO("Network", "No registered network interfaces found");
 
-  for (size_t i = 0; i < hw::Devices::devices<hw::Nic>().size(); i++) {
+  for (size_t i = 0; i < os::machine().get<hw::Nic>().size(); i++) {
     stacks_.emplace_back();
     stacks_.back()[0] = nullptr;
   }

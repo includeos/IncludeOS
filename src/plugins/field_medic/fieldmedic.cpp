@@ -55,7 +55,7 @@ void init(){
 
   __attribute__ ((constructor))
   void register_medic() {
-    OS::register_plugin(medic::init, "Field medic");
+    os::register_plugin(medic::init, "Field medic");
   }
 
 

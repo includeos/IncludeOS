@@ -109,5 +109,5 @@ static void syslog_mount()
 #include <os>
 __attribute__((constructor))
 static void syslog_plugin() {
-  OS::register_plugin(syslog_mount, "Syslog Unix backend");
+  os::register_plugin(syslog_mount, "Syslog Unix backend");
 }

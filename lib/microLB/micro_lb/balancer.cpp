@@ -1,6 +1,6 @@
 #include "balancer.hpp"
 #include <net/tcp/stream.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 
 #define MAX_OUTGOING_ATTEMPTS    100
 // checking if nodes are dead or not

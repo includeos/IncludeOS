@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <vector>
 #include <elf.h>
+#include <os.hpp>
 #include <arch.hpp>
 
 #if __LP64__
@@ -243,7 +244,7 @@ bool Elf::verify_symbols()
   return get_parser().verify_symbols();
 }
 
-void print_backtrace2(void(*stdout_function)(const char*, size_t))
+void os::print_backtrace(void(*stdout_function)(const char*, size_t)) noexcept
 {
   char _symbol_buffer[8192];
   char _btrace_buffer[8192];
@@ -308,9 +309,9 @@ void print_backtrace2(void(*stdout_function)(const char*, size_t))
                                 PRINT_TRACE(14, ra);
   }}}}}}}}}}}}}}}
 }
-void print_backtrace()
+void os::print_backtrace() noexcept
 {
-  print_backtrace2([] (const char* text, size_t length) {
+  print_backtrace([] (const char* text, size_t length) {
     write(1, text, length);
   });
 }
@@ -469,17 +470,17 @@ void elf_check_symbols_ok()
 #ifdef ARCH_x86_64
 #include <kernel/memmap.hpp>
 #include <kernel/memory.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 void elf_protect_symbol_areas()
 {
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
-  if (size % OS::page_size()) size += OS::page_size() - (size & (OS::page_size()-1));
+  if (size % os::mem::min_psize()) size += os::mem::min_psize() - (size & (os::mem::min_psize()-1));
   if (size == 0) return;
   // create the ELF symbols & strings area
-  OS::memory_map().assign_range(
+  os::mem::vmmap().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
-  
+
   INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);
   os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
 }

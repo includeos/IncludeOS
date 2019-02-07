@@ -18,7 +18,7 @@
 #include "pit.hpp"
 #include "cpu_freq_sampling.hpp"
 #include <hw/ioport.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/events.hpp>
 #include <kernel/rtc.hpp>
 //#undef NO_DEBUG

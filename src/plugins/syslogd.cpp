@@ -34,5 +34,5 @@ void register_plugin_syslogd() {
 
 __attribute__((constructor))
 void register_syslogd(){
-  OS::register_plugin(register_plugin_syslogd, "Syslog over UDP");
+  os::register_plugin(register_plugin_syslogd, "Syslog over UDP");
 }

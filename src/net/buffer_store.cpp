@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <net/buffer_store.hpp>
 #include <os>
+#include <kernel/memory.hpp>
 #include <common>
 #include <cassert>
 #include <smp>
@@ -75,7 +76,7 @@ namespace net {
 
   void BufferStore::create_new_pool()
   {
-    auto* pool = (uint8_t*) aligned_alloc(OS::page_size(), poolsize_);
+    auto* pool = (uint8_t*) aligned_alloc(os::mem::min_psize(), poolsize_);
     if (UNLIKELY(pool == nullptr)) {
       throw std::runtime_error("Buffer store failed to allocate memory");
     }

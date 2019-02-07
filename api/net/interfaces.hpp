@@ -92,6 +92,15 @@ public:
 
   static Inet& create(hw::Nic& nic, int N, int sub);
 
+  /**
+   * @brief      Gets the NIC index among the machines stored nics.
+   *
+   * @param[in]  mac   The mac address
+   *
+   * @return     The nic index.
+   */
+  static ssize_t get_nic_index(const MAC::Addr& mac);
+
 private:
   Stacks stacks_;
 

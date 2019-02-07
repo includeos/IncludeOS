@@ -242,10 +242,10 @@ Access mem::protect_range(uintptr_t linear, Access flags)
   MEM_PRINT("::protect 0x%lx \n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
 
-  auto key = OS::memory_map().in_range(linear);
+  auto key = os::mem::vmmap().in_range(linear);
 
   // Throws if entry wasn't previously mapped.
-  auto map_ent = OS::memory_map().at(key);
+  auto map_ent = os::mem::vmmap().at(key);
 
   MEM_PRINT("Found entry: %s\n", map_ent.to_string().c_str());
   int sz_prot = 0;
@@ -273,10 +273,10 @@ Map mem::protect(uintptr_t linear, size_t len, Access flags)
     mem_fail_fast("Can't map to address 0");
 
   MEM_PRINT("::protect 0x%lx \n", linear);
-  auto key = OS::memory_map().in_range(linear);
+  auto key = os::mem::vmmap().in_range(linear);
   MEM_PRINT("Found key: 0x%zx\n", key);
   // Throws if entry wasn't previously mapped.
-  auto map_ent = OS::memory_map().at(key);
+  auto map_ent = os::mem::vmmap().at(key);
   MEM_PRINT("Found entry: %s\n", map_ent.to_string().c_str());
 
   auto xflags = x86::paging::to_x86(flags);
@@ -322,7 +322,7 @@ Map mem::map(Map m, const char* name)
   // Align size to minimal page size;
   auto req_addr_end = m.lin + bits::roundto(m.min_psize(), m.size) - 1;
 
-  OS::memory_map().assign_range({m.lin, req_addr_end, name});
+  os::mem::vmmap().assign_range({m.lin, req_addr_end, name});
 
   auto new_map = __pml4->map_r(to_x86(m));
   if (new_map) {
@@ -338,11 +338,11 @@ Map mem::map(Map m, const char* name)
 };
 
 Map mem::unmap(uintptr_t lin){
-  auto key = OS::memory_map().in_range(lin);
+  auto key = os::mem::vmmap().in_range(lin);
   Map_x86 m;
   if (key) {
     MEM_PRINT("mem::unmap %p \n", (void*)lin);
-    auto map_ent = OS::memory_map().at(key);
+    auto map_ent = os::mem::vmmap().at(key);
     m.lin = lin;
     m.phys = 0;
     m.size = map_ent.size();
@@ -350,7 +350,7 @@ Map mem::unmap(uintptr_t lin){
     m = __pml4->map_r({key, 0, x86::paging::to_x86(Access::none), (size_t)map_ent.size()});
 
     Ensures(m.size == util::bits::roundto<4_KiB>(map_ent.size()));
-    OS::memory_map().erase(key);
+    os::mem::vmmap().erase(key);
   }
 
   return to_mmap(m);

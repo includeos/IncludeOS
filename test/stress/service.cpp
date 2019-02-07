@@ -71,8 +71,8 @@ uint64_t TCP_BYTES_RECV = 0;
 uint64_t TCP_BYTES_SENT = 0;
 
 void print_memuse(uintptr_t u) {
-  auto end = OS::heap_end();
-  auto bytes_used = OS::heap_end() - OS::heap_begin();
+  auto end = os::heap_end();
+  auto bytes_used = os::heap_end() - os::heap_begin();
   auto kb_used = bytes_used / 1024;
 
   printf("Current memory usage: %s (%zi b) heap_end: 0x%zx (%s) calculated used: %zu (%zu kb)\n",
@@ -84,8 +84,8 @@ void Service::start(const std::string&)
 {
   using namespace util::literals;
   // Allocation / free spam to warm up
-  auto initial_memuse =  OS::heap_usage();
-  auto initial_highest_used = OS::heap_end();
+  auto initial_memuse =  os::heap_usage();
+  auto initial_highest_used = os::heap_end();
   print_memuse(initial_memuse);
 
   std::array<volatile void*, 10> allocs {};
@@ -99,18 +99,18 @@ void Service::start(const std::string&)
     memset((void*)ptr, '!', chunksize);
     for (char* c = (char*)ptr; c < (char*)ptr + chunksize; c++)
       Expects(*c == '!');
-    printf("Allocated area: %p heap_end: %p\n", (void*)ptr, (void*)OS::heap_end());
-    auto memuse = OS::heap_usage();
+    printf("Allocated area: %p heap_end: %p\n", (void*)ptr, (void*)os::heap_end());
+    auto memuse = os::heap_usage();
 
     print_memuse(memuse);
     Expects(memuse > initial_memuse);
   }
 
   // Verify new used heap area covers recent heap growth
-  Expects(OS::heap_end() - initial_highest_used >=
-          OS::heap_usage() - initial_memuse);
+  Expects(os::heap_end() - initial_highest_used >=
+          os::heap_usage() - initial_memuse);
 
-  auto high_memuse = OS::heap_usage();
+  auto high_memuse = os::heap_usage();
   Expects(high_memuse >= (chunksize * allocs.size()) + initial_memuse);
 
   auto prev_memuse = high_memuse;
@@ -118,7 +118,7 @@ void Service::start(const std::string&)
   printf("Deallocating \n");
   for (auto& ptr : allocs) {
     free((void*)ptr);
-    auto memuse = OS::heap_usage();
+    auto memuse = os::heap_usage();
     print_memuse(memuse);
     Expects(memuse < high_memuse);
     Expects(memuse < prev_memuse);
@@ -130,7 +130,7 @@ void Service::start(const std::string&)
   // munmap, so we could expect to be back to exacty where we were, but
   // we're adding some room (somewhat arbitrarily) for malloc to change and
   // not necessarily give back all it allocated.
-  Expects(OS::heap_usage() <= initial_memuse + 1_MiB);
+  Expects(os::heap_usage() <= initial_memuse + 1_MiB);
   printf("Heap functioning as expected\n");
 
   // Timer spam
@@ -146,7 +146,7 @@ void Service::start(const std::string&)
                        { 10,0,0,1 },       // Gateway
                        { 8,8,8,8 } );      // DNS
 
-  srand(OS::cycles_since_boot());
+  srand(os::cycles_since_boot());
 
   // Set up a TCP server
   auto& server = inet.tcp().listen(80);
@@ -163,7 +163,7 @@ void Service::start(const std::string&)
 
   Timers::periodic(1s, 10s,
   [] (Timers::id_t) {
-    auto memuse =  OS::heap_usage();
+    auto memuse =  os::heap_usage();
     printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
     printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
     printf("eth0.sendq_max: %zu, eth0.sendq_now: %zu"
@@ -186,7 +186,7 @@ void Service::start(const std::string&)
           TCP_BYTES_RECV += buf->size();
           // create string from buffer
           std::string received { (char*) buf->data(), buf->size() };
-          auto reply = std::to_string(OS::heap_usage())+"\n";
+          auto reply = std::to_string(os::heap_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
           conn->on_write([](size_t n) {
@@ -244,7 +244,7 @@ void Service::start(const std::string&)
   conn_mem.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
       std::string received = std::string(data,len);
       Expects(received == "memsize");
-      auto reply = std::to_string(OS::heap_usage());
+      auto reply = std::to_string(os::heap_usage());
       // Send the first packet, and then wait for ARP
       printf("Reporting memory size as %s bytes\n", reply.c_str());
       conn.sendto(addr, port, reply.c_str(), reply.size());
@@ -253,7 +253,7 @@ void Service::start(const std::string&)
 
 
   printf("*** TEST SERVICE STARTED *** \n");
-  auto memuse = OS::heap_usage();
+  auto memuse = os::heap_usage();
   printf("Current memory usage: %zi b, (%f MB) \n", memuse, float(memuse)  / 1000000);
 
   /** These printouts are event-triggers for the vmrunner **/

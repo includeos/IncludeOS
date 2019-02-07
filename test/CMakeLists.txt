@@ -99,6 +99,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/unit_events.cpp
   ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/kernel/unit/unit_liveupdate.cpp
+  ${TEST}/kernel/unit/test_hal.cpp
   ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
@@ -174,6 +175,7 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hal/machine.cpp
   ${SRC}/hw/nic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
@@ -187,7 +189,7 @@ set(OS_SOURCES
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
-  ${SRC}/kernel/syscalls.cpp
+  #${SRC}/kernel/syscalls.cpp
   ${SRC}/kernel/timers.cpp
   ${SRC}/musl/brk.cpp
   ${SRC}/net/addr.cpp

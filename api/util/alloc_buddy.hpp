@@ -734,37 +734,6 @@ namespace os::mem::buddy {
     bool overbooked_ = false;
   };
 
-  /**
-   * C++17 std::allocator interface using buddy allocator
-   **/
-  template <typename T, typename Resource>
-  struct Allocator {
-    using value_type = T;
-
-    Allocator(Resource* alloc)
-      : resource{alloc}
-    {}
-
-    T* allocate(std::size_t size) {
-      return reinterpret_cast<T*>(resource->allocate(size * sizeof(T)));
-    }
-
-    void deallocate(T* ptr, std::size_t size) {
-      resource->deallocate(ptr, size * sizeof(T));
-    }
-
-    bool operator==(const Allocator& other) {
-      return resource == other.resource;
-    }
-
-    bool operator!=(const Allocator& other) {
-      return not other == *this;
-    }
-
-    Resource* resource;
-
-  };
-
 }
 
 #endif
