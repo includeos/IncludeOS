@@ -46,8 +46,8 @@ namespace net::icmp6 {
       void set_seq(uint16_t seq) noexcept
       { sequence = htons(seq); }
     };
-  private:
 
+    /* fuzzer needs access */
     struct RaHeader {
       uint8_t   cur_hop_limit;
       uint8_t   ma_config_flag : 1,
@@ -78,6 +78,7 @@ namespace net::icmp6 {
       uint8_t  payload[0];
     }__attribute__((packed));
 
+  private:
     Header& header()
     { return *reinterpret_cast<Header*>(pckt_->payload()); }
 
@@ -248,7 +249,9 @@ namespace net::icmp6 {
     const T& view_payload_as()
     {
       const Span payload = this->payload();
-      Expects(static_cast<size_t>(payload.size()) >= sizeof(T));
+      if (UNLIKELY((size_t) payload.size() < sizeof(T))) {
+          throw std::runtime_error("Not enough room for payload");
+      }
       return *reinterpret_cast<const T*>(payload.data());
     }
 

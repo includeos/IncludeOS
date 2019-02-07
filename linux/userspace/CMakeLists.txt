@@ -102,6 +102,7 @@ set(OS_SOURCES
     ${IOS}/src/util/statman.cpp
     ${IOS}/src/util/path_to_regex.cpp
     ${IOS}/src/util/percent_encoding.cpp
+    #${IOS}/src/util/pmr_default.cpp
     ${IOS}/src/util/uri.cpp
   )
 

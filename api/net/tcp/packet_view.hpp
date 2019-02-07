@@ -337,6 +337,9 @@ inline const Option::opt_ts* Packet_v<Ptr_type>::parse_ts_option() const noexcep
   while(opt < (uint8_t*)this->tcp_data())
   {
     auto* option = (Option*)opt;
+    // zero-length options cause infinite loops (and are invalid)
+    if (option->length == 0) break;
+    
     switch(option->kind)
     {
       case Option::NOP: {

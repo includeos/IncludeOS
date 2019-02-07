@@ -9,12 +9,14 @@ namespace fuzzy
     size_t         size;
     size_t         data_counter = 0;
     uint16_t       ip_port = 0;
-    
+
     void increment_data(size_t i) { data_counter += i; }
-    
+
     uint8_t  steal8();
     uint16_t steal16();
     uint32_t steal32();
+    uint64_t steal64();
+
     // take up to @bytes and insert into buffer
     size_t insert(net::Stream::buffer_t buffer, size_t bytes) {
       const size_t count = std::min(bytes, this->size);
@@ -50,7 +52,7 @@ namespace fuzzy
       buffer->insert(buffer->end(), this->data, this->data + this->size);
       this->size = 0;
     }
-    
+
     void fill_remaining(uint8_t* next_layer)
     {
       std::memcpy(next_layer, this->data, this->size);
@@ -71,5 +73,8 @@ namespace fuzzy
   }
   inline uint32_t FuzzyIterator::steal32() {
     return (steal16() >> 16) | steal16();
+  }
+  inline uint64_t FuzzyIterator::steal64() {
+    return ((uint64_t) steal32() >> 32) | steal32();
   }
 }
