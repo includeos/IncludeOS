@@ -112,7 +112,7 @@ void storage_header::add_end()
 {
   auto& ent = create_entry(TYPE_END, 0, 0);
 
-#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
   // test against heap max
   const auto storage_end = os::mem::virt_to_phys((uintptr_t) ent.vla);
   if (storage_end > kernel::heap_max())

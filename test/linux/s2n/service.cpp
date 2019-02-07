@@ -194,7 +194,7 @@ void do_test_completed()
 {
   printf("SUCCESS\n");
   s2n::serial_free_config();
-  OS::shutdown();
+  os::shutdown();
 }
 
 void Service::start()

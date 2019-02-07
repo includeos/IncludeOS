@@ -63,7 +63,7 @@ static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbac
 
 void LiveUpdate::register_partition(std::string key, storage_func callback)
 {
-#if defined(USERSPACE_LINUX)
+#if defined(USERSPACE_KERNEL)
   // on linux we cant make the jump, so the tracking wont reset
   storage_callbacks[key] = std::move(callback);
 #else
@@ -121,7 +121,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
-#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
   // NOTE: on linux the heap location is randomized,
   // so we could compare against that but: How to get the heap base address?
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
@@ -255,7 +255,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   throw std::runtime_error("solo5_exec returned");
 # elif defined(PLATFORM_UNITTEST)
   throw liveupdate_exec_success();
-# elif defined(USERSPACE_LINUX)
+# elif defined(USERSPACE_KERNEL)
   hotswap(bin_data, bin_len, phys_base, start_offset, sr_data);
   throw liveupdate_exec_success();
 # elif defined(ARCH_x86_64)

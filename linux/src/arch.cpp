@@ -40,12 +40,15 @@ void __arch_system_deactivate()
   // nada
 }
 
+#ifdef __linux__
 #include <execinfo.h>
-void print_backtrace()
+#endif
+void os::print_backtrace() noexcept
 {
   static const int NUM_ADDRS = 64;
   void*  addresses[NUM_ADDRS];
 
+#ifdef __linux__
   int nptrs = backtrace(addresses, NUM_ADDRS);
   printf("backtrace() returned %d addresses\n", nptrs);
 
@@ -62,6 +65,7 @@ void print_backtrace()
       printf("#%02d: %8p %s\n", j, addresses[j], strings[j]);
 
   free(strings);
+#endif
 }
 
 // context buffer
@@ -76,13 +80,15 @@ char*  get_crash_context_buffer()
 }
 
 #include <signal.h>
-extern "C"
-void panic(const char* why)
+namespace os
 {
-  printf("!! PANIC !!\nReason: %s\n", why);
-  print_backtrace();
-  raise(SIGINT);
-  exit(1);
+  void panic(const char* why) noexcept
+  {
+    printf("!! PANIC !!\nReason: %s\n", why);
+    print_backtrace();
+    raise(SIGINT);
+    exit(1);
+  }
 }
 
 extern "C"
