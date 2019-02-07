@@ -22,6 +22,7 @@ namespace net::dns
 {
 #ifdef LIBFUZZER_ENABLED
   Timer::duration_t Client::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(9999)};
+  uint16_t g_last_xid = 0;
 #else
   Timer::duration_t Client::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
 #endif
@@ -60,6 +61,9 @@ namespace net::dns
 
     // Create our query
     Query query{std::move(hostname), (dns_server.is_v6() ? Record_type::AAAA : Record_type::A)};
+#ifdef LIBFUZZER_ENABLED
+    g_last_xid = query.id;
+#endif
 
     // store the request for later match
     auto emp = requests_.emplace(std::piecewise_construct,

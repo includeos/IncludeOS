@@ -19,14 +19,18 @@
 
 namespace net::ip6 {
 
-  Protocol parse_upper_layer_proto(const Extension_header* start, Protocol proto)
+  Protocol parse_upper_layer_proto(const uint8_t* reader, const uint8_t* end,  Protocol proto)
   {
-    auto* reader = start;
-
-    // TODO: Verify options. If corrupt options, the loop will go forever.
-    while(proto != Protocol::IPv6_NONXT)
+    while (proto != Protocol::IPv6_NONXT)
     {
-      switch(proto)
+      // bounds check
+      if (reader + sizeof(ip6::Extension_header) >= end)
+      {
+        // the packet is invalid
+        return Protocol::IPv6_NONXT;
+      }
+
+      switch (proto)
       {
         // One of these should be the last one, and isn't a IP6 option.
         case Protocol::TCP:
@@ -50,7 +54,7 @@ namespace net::ip6 {
   uint16_t parse_extension_headers(const Extension_header* start, Protocol proto,
                                    Extension_header_inspector on_ext_hdr)
   {
-    auto* reader = start;
+    const auto* reader = (uint8_t*) start;
     uint16_t n = 0;
 
     // TODO: Verify options. If corrupt options, the loop will go forever.
@@ -80,5 +84,4 @@ namespace net::ip6 {
 
     return n;
   }
-
 }

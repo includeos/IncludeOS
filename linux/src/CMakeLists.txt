@@ -6,9 +6,12 @@ set(SOURCES
     os.cpp
     profile.cpp
     drivers/usernet.cpp
-    drivers/tap_driver.cpp
     drivers/memdisk.cpp
   )
+
+if (NOT PORTABLE)
+  set(SOURCES ${SOURCES} drivers/tap_driver.cpp linux_evloop.cpp)
+endif()
 
 add_library(linuxrt STATIC ${SOURCES})
 install(TARGETS linuxrt DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)

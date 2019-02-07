@@ -84,7 +84,7 @@ void Service::start()
           {
             printf("-> %s: %s\n", stat.name(), stat.to_string().c_str());
           }
-          OS::shutdown();
+          os::shutdown();
         }
 
       });

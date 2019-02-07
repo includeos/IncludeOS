@@ -62,7 +62,7 @@ namespace kernel {
 
   inline bool block_drivers_ready() noexcept {
     return state().block_drivers_ready;
-  };
+  }
 
   inline bool timestamps() noexcept {
     return state().timestamps;
@@ -78,11 +78,11 @@ namespace kernel {
 
   inline const char* cmdline() {
     return state().cmdline;
-  };
+  }
 
-  inline bool is_panicking() {
+  inline bool is_panicking() noexcept {
     return state().panics > 0;
-  };
+  }
 
   inline int panics() {
     return state().panics;
@@ -186,8 +186,6 @@ namespace kernel {
   constexpr uintptr_t page_to_addr(uint32_t page) noexcept {
     return page << page_shift;
   }
-
-
 }
 
 #endif

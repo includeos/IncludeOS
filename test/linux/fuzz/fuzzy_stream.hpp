@@ -60,7 +60,7 @@ namespace fuzzy
         printf("fuzzy stream %p next_size -> %zu\n", this, size);
         return size;
       }
-      printf("fuzzy stream %p next_size -> 0 (empty)\n");
+      printf("fuzzy stream %p next_size -> 0 (empty)\n", this);
       return 0;
     }
 

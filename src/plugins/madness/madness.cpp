@@ -28,7 +28,6 @@ namespace madness {
 
   static std::vector<const char*> allocations{};
   static int32_t alloc_timer   = 0;
-  static int32_t dealloc_timer = 0;
   static int64_t bytes_held    = 0;
 
   bool do_allocs = true;
@@ -40,7 +39,7 @@ namespace madness {
   }
 
   void init_heap_steal() {
-    INFO("Madness", "Starting allocation timer every %isec.", alloc_freq);
+    INFO("Madness", "Starting allocation timer every %lld sec.", alloc_freq.count());
     Timers::periodic(alloc_freq, alloc_freq, [](uint32_t id) {
         if (alloc_timer == 0)
           alloc_timer = id;
@@ -63,12 +62,13 @@ namespace madness {
           INFO("Madness", "Allocation of %s failed. Available heap: %s",
                util::Byte_r(sz).to_string().c_str(),
                util::Byte_r(kernel::heap_avail()).to_string().c_str());
-          INFO("Madness", "Cleaning up in %isec \n", dealloc_delay);
+          INFO("Madness", "Cleaning up in %lld sec \n", dealloc_delay.count());
           auto* first = allocations.front();
           allocations.erase(allocations.begin());
           free((void*)first);
-          Timers::oneshot(dealloc_delay, [](uint32_t id) {
-              INFO("Madness", "Cleaning up %i allocations\n", dealloc_delay);
+          Timers::oneshot(dealloc_delay,
+            [] (int) {
+              INFO("Madness", "Cleaning up %zu allocations\n", allocations.size());
               for (auto* a : allocations)
                 free((void*)a);
               allocations.clear();
@@ -76,7 +76,8 @@ namespace madness {
             });
 
           do_allocs = false;
-          Timers::oneshot(alloc_restart_delay, [](auto id) {
+          Timers::oneshot(alloc_restart_delay,
+            [] (int) {
               do_allocs = true;
             });
 
@@ -95,9 +96,10 @@ namespace madness {
   }
 
   void init_status_printing() {
-    Timers::periodic(1s, alloc_freq, [](auto id) {
+    Timers::periodic(1s, alloc_freq,
+      [] (int) {
         static int i = 0;
-        INFO("Madness", "Runtime: %is. Available heap: %s. Occupied by me: %s",
+        INFO("Madness", "Runtime: %lld s. Available heap: %s. Occupied by me: %s",
              i++ * alloc_freq.count(),
              util::Byte_r(kernel::heap_avail()).to_string().c_str(),
              util::Byte_r(bytes_held).to_string().c_str());

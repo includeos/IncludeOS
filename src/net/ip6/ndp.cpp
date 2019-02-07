@@ -565,29 +565,34 @@ namespace net
     auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pkt));
     auto pckt = icmp6::Packet(std::move(pckt_ip6));
 
-    switch(pckt.type()) {
-    case (ICMP_type::ND_ROUTER_SOL):
-      PRINT("NDP: Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
-      receive_router_solicitation(pckt);
-      break;
-    case (ICMP_type::ND_ROUTER_ADV):
-      PRINT("NDP: Router advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
-      receive_router_advertisement(pckt);
-      break;
-    case (ICMP_type::ND_NEIGHBOUR_SOL):
-      PRINT("NDP: Neigbor solictation message from %s\n", pckt.ip().ip_src().str().c_str());
-      receive_neighbour_solicitation(pckt);
-      break;
-    case (ICMP_type::ND_NEIGHBOUR_ADV):
-      PRINT("NDP: Neigbor advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
-      receive_neighbour_advertisement(pckt);
-      break;
-    case (ICMP_type::ND_REDIRECT):
-      receive_redirect(pckt);
-      PRINT("NDP: Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
-      break;
-    default:
-      return;
+    try {
+      switch(pckt.type()) {
+      case (ICMP_type::ND_ROUTER_SOL):
+        PRINT("NDP: Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+        receive_router_solicitation(pckt);
+        break;
+      case (ICMP_type::ND_ROUTER_ADV):
+        PRINT("NDP: Router advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+        receive_router_advertisement(pckt);
+        break;
+      case (ICMP_type::ND_NEIGHBOUR_SOL):
+        PRINT("NDP: Neigbor solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+        receive_neighbour_solicitation(pckt);
+        break;
+      case (ICMP_type::ND_NEIGHBOUR_ADV):
+        PRINT("NDP: Neigbor advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+        receive_neighbour_advertisement(pckt);
+        break;
+      case (ICMP_type::ND_REDIRECT):
+        receive_redirect(pckt);
+        PRINT("NDP: Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
+        break;
+      default:
+        return;
+      }
+    }
+    catch (const std::runtime_error&) {
+      // TODO: drop
     }
   }
 

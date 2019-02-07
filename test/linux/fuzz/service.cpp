@@ -22,6 +22,9 @@
 static fuzzy::AsyncDevice_ptr dev1;
 static fuzzy::AsyncDevice_ptr dev2;
 static const int TCP_PORT = 12345;
+static uint16_t  TCP_LOCAL_PORT = 0;
+static int  TCP_buflen = 0;
+static char TCP_buffer[8192];
 
 std::vector<uint8_t> load_file(const std::string& file)
 {
@@ -38,21 +41,53 @@ std::vector<uint8_t> load_file(const std::string& file)
 	return data;
 }
 
+#include <net/interfaces>
 void Service::start()
 {
   dev1 = std::make_unique<fuzzy::AsyncDevice>(UserNet::create(4000));
   dev2 = std::make_unique<fuzzy::AsyncDevice>(UserNet::create(4000));
-  dev1->set_transmit(
+	dev1->connect(*dev2);
+	dev2->connect(*dev1);
+
+  auto& inet_server = net::Interfaces::get(0);
+  inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
+  auto& inet_client = net::Interfaces::get(1);
+  inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
+
+  inet_server.resolve("www.oh.no",
+      [] (net::dns::Response_ptr resp, const net::Error& error) -> void {
+        (void) resp;
+        (void) error;
+        printf("!!\n!! resolve() call ended\n!!\n");
+      });
+  inet_server.tcp().listen(
+    TCP_PORT,
+    [] (auto connection) {
+      //connection->write("test");
+    });
+
+	static bool connected = false;
+	auto conn = inet_client.tcp().connect({inet_server.ip_addr(), TCP_PORT});
+	conn->on_connect(
+    [] (auto connection) {
+			connected = true;
+    });
+	// block until connected
+	while (!connected) {
+		Events::get().process_events();
+	}
+	TCP_LOCAL_PORT = conn->local().port();
+	printf("TCP source port is %u\n", TCP_LOCAL_PORT);
+	TCP_buflen = conn->serialize_to(TCP_buffer);
+	conn->abort();
+
+	// make sure error packets are discarded
+	dev1->set_transmit(
     [] (net::Packet_ptr packet) {
       (void) packet;
       //fprintf(stderr, "."); // drop
     });
 
-  auto& inet_server = net::Super_stack::get(0);
-  inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
-  auto& inet_client = net::Super_stack::get(1);
-  inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
-  
 #ifndef LIBFUZZER_ENABLED
   std::vector<std::string> files = {
   };
@@ -63,21 +98,7 @@ void Service::start()
     printf("*** Payload %s was inserted into stack\n", file.c_str());
     printf("\n");
   }
-#endif
-
-  inet_server.resolve("www.oh.no",
-      [] (net::IP4::addr addr, const auto& error) -> void {
-        (void) addr;
-        (void) error;
-        printf("resolve() call ended\n");
-      });
-  inet_server.tcp().listen(
-    TCP_PORT,
-    [] (auto connection) {
-      printf("Writing test to new connection\n");
-      connection->write("test");
-    });
-  
+#else
   printf(R"FUzzY(
    __  __                     ___                            _  _
   |  \/  |  __ _     __      | __|  _  _      ___     ___   | || |
@@ -86,23 +107,33 @@ void Service::start()
   _|"""""|_|"""""|_|"""""|_| """ |_|"""""|_|"""""|_|"""""|_| """"|
   "`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'
 )FUzzY");
+#endif
 }
 
 #include "fuzzy_http.hpp"
 #include "fuzzy_stream.hpp"
-#include <net/ws/connector.hpp>
-extern http::Response_ptr handle_request(const http::Request&);
-static struct upper_layer
-{
-  fuzzy::HTTP_server*   server = nullptr;
-  net::WS_server_connector* ws_serve = nullptr;
-} httpd;
+//#include "fuzzy_webserver.cpp"
+extern net::tcp::Connection_ptr deserialize_connection(void* addr, net::TCP& tcp);
 
-static bool accept_client(net::Socket remote, std::string origin)
+struct serialized_tcp
 {
-  (void) origin; (void) remote;
-  //return remote.address() == net::ip4::Addr(10,0,0,1);
-  return true;
+  typedef net::tcp::Connection Connection;
+  typedef net::tcp::port_t     port_t;
+  typedef net::Socket          Socket;
+
+  Socket local;
+  Socket remote;
+
+  int8_t  state_now;
+  int8_t  state_prev;
+
+  Connection::TCB tcb;
+};
+static inline uint32_t extract_seq() {
+	return ((serialized_tcp*) TCP_buffer)->tcb.RCV.NXT;
+}
+static inline uint32_t extract_ack() {
+	return ((serialized_tcp*) TCP_buffer)->tcb.SND.NXT;
 }
 
 // libfuzzer input
@@ -117,91 +148,22 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     userspace_main(1, args);
   }
   if (size == 0) return 0;
-  
+
+	// create connection
+	auto& inet = net::Interfaces::get(0);
+	auto conn = deserialize_connection(TCP_buffer, inet.tcp());
+	//printf("Deserialized %s\n", conn->to_string().c_str());
+
   // IP-stack fuzzing
-  /*
-  fuzzy::stack_config config {
-    .layer   = fuzzy::IP4,
-    .ip_port = TCP_PORT
+  const fuzzy::stack_config config {
+    .layer   = fuzzy::TCP,
+    .ip_port = TCP_PORT,
+		.ip_src_port = TCP_LOCAL_PORT,
+		.tcp_seq = extract_seq(),
+		.tcp_ack = extract_ack()
   };
-  fuzzy::insert_into_stack(dev1, config, data, size);
-  */
+insert_into_stack(dev1, config, data, size);
 
-  // Upper layer fuzzing using fuzzy::Stream
-  auto& inet = net::Super_stack::get(0);
-  static bool init_http = false;
-  if (UNLIKELY(init_http == false)) {
-    init_http = true;
-    // server setup
-    httpd.server = new fuzzy::HTTP_server(inet.tcp());
-    /*
-    httpd.server->on_request(
-      [] (http::Request_ptr request,
-          http::Response_writer_ptr response_writer)
-      {
-        response_writer->set_response(handle_request(*request));
-        response_writer->write();
-      });
-    */
-    // websocket setup
-    httpd.ws_serve = new net::WS_server_connector(
-      [] (net::WebSocket_ptr ws)
-      {
-        // sometimes we get failed WS connections
-        if (ws == nullptr) return;
-
-        auto wptr = ws.release();
-        // if we are still connected, attempt was verified and the handshake was accepted
-        assert (wptr->is_alive());
-        wptr->on_read =
-        [] (auto message) {
-          printf("WebSocket on_read: %.*s\n", (int) message->size(), message->data());
-        };
-        wptr->on_close =
-        [wptr] (uint16_t) {
-          delete wptr;
-        };
-
-        //wptr->write("THIS IS A TEST CAN YOU HEAR THIS?");
-        wptr->close();
-      },
-      accept_client);
-    httpd.server->on_request(*httpd.ws_serve);
-  }
-
-  fuzzy::FuzzyIterator fuzzer{data, size};
-  // create HTTP stream
-  const net::Socket local  {inet.ip_addr(), 80};
-  const net::Socket remote {{10,0,0,1}, 1234};
-  auto http_stream = std::make_unique<fuzzy::Stream> (local, remote,
-    [] (net::Stream::buffer_t buffer) {
-      //printf("Received %zu bytes on fuzzy stream\n%.*s\n",
-      //      buffer->size(), (int) buffer->size(), buffer->data());
-      (void) buffer;
-    });
-  auto* test_stream = http_stream.get();
-  httpd.server->add(std::move(http_stream));
-  auto buffer = net::Stream::construct_buffer();
-  // websocket HTTP upgrade
-  const std::string webs = "GET / HTTP/1.1\r\n"
-        "Host: www.fake.com\r\n"
-        "Upgrade: WebSocket\r\n"
-        "Connection: Upgrade\r\n"
-        "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
-        "Sec-WebSocket-Version: 13\r\n"
-        "Origin: http://www.fake.com\r\n"
-        "\r\n";
-  buffer->insert(buffer->end(), webs.c_str(), webs.c_str() + webs.size());
-  //printf("Request: %.*s\n", (int) buffer->size(), buffer->data());
-  test_stream->give_payload(std::move(buffer));
-  
-  // random websocket stuff
-  buffer = net::Stream::construct_buffer();
-  fuzzer.insert(buffer, fuzzer.size);
-  test_stream->give_payload(std::move(buffer));
-  
-  
-  // close stream from our end
-  test_stream->transport_level_close();
+	conn->abort();
   return 0;
 }

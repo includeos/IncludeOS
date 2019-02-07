@@ -35,29 +35,73 @@ namespace fuzzy
   add_udp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
                 const uint16_t dport)
   {
-    auto* hdr = new (data) net::UDP::header();
+    auto* hdr = new (data) net::udp::Header();
     hdr->sport = htons(fuzzer.steal16());
     hdr->dport = htons(dport);
     hdr->length = htons(fuzzer.size);
     hdr->checksum = 0;
-    fuzzer.increment_data(sizeof(net::UDP::header));
-    return &data[sizeof(net::UDP::header)];
+    fuzzer.increment_data(sizeof(net::udp::Header));
+    return &data[sizeof(net::udp::Header)];
   }
   uint8_t*
   add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
-                const uint16_t dport)
+                const uint16_t sport, const uint16_t dport,
+                uint32_t seq, uint32_t ack)
   {
     auto* hdr = new (data) net::tcp::Header();
-    hdr->source_port      = htons(1234);
+    hdr->source_port      = htons(sport);
     hdr->destination_port = htons(dport);
     hdr->seq_nr      = fuzzer.steal32();
     hdr->ack_nr      = fuzzer.steal32();
-    hdr->offset_flags.offset_reserved = 0;
-    hdr->offset_flags.flags = fuzzer.steal8();
+    hdr->offset_flags.whole = fuzzer.steal16();
     hdr->window_size = fuzzer.steal16();
     hdr->checksum    = 0;
     hdr->urgent      = 0;
     fuzzer.increment_data(sizeof(net::tcp::Header));
     return &data[sizeof(net::tcp::Header)];
   }
+
+  uint8_t*
+  add_ip6_layer(uint8_t* data, FuzzyIterator& fuzzer,
+                const net::ip6::Addr src_addr,
+                const net::ip6::Addr dst_addr,
+                const uint8_t protocol)
+  {
+    auto* hdr = new (data) net::ip6::Header();
+    hdr->ver_tc_fl = fuzzer.steal32();
+    hdr->version = 0x6;
+    hdr->payload_length = htons(sizeof(net::ip6::Header) + fuzzer.size);
+    hdr->next_header = protocol;
+    hdr->hop_limit = 32;
+    hdr->saddr    = src_addr;
+    hdr->daddr    = dst_addr;
+    fuzzer.increment_data(sizeof(net::ip6::Header));
+    return &data[sizeof(net::ip6::Header)];
+  }
+
+  uint8_t*
+  add_icmp6_layer(uint8_t* data, FuzzyIterator& fuzzer)
+  {
+    using ICMPv6_header = net::icmp6::Packet::Header;
+    auto* hdr = new (data) ICMPv6_header();
+    hdr->type = (net::icmp6::Type) fuzzer.steal8();
+    hdr->code = fuzzer.steal8();
+    hdr->checksum = 0;
+    fuzzer.increment_data(sizeof(ICMPv6_header));
+    return &data[sizeof(ICMPv6_header)];
+  }
+
+  uint8_t*
+  add_dns4_layer(uint8_t* data, FuzzyIterator& fuzzer, uint32_t xid)
+  {
+    using DNS_header = net::dns::Header;
+    auto* hdr = new (data) DNS_header();
+    ((uint32_t*) data)[0] = fuzzer.steal32();
+    ((uint32_t*) data)[1] = fuzzer.steal32();
+    ((uint32_t*) data)[2] = fuzzer.steal32();
+    hdr->id = xid;
+    fuzzer.increment_data(sizeof(DNS_header));
+    return &data[sizeof(DNS_header)];
+  }
+
 }

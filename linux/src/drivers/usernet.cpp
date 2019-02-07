@@ -1,5 +1,5 @@
 #include "usernet.hpp"
-#include <hw/devices.hpp>
+#include <hal/machine.hpp>
 
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
@@ -22,7 +22,7 @@ UserNet& UserNet::create(const uint16_t mtu)
   auto* usernet = new UserNet(mtu);
   // register driver for superstack
   auto driver = std::unique_ptr<hw::Nic> (usernet);
-  hw::Devices::register_device<hw::Nic> (std::move(driver));
+  os::machine().add<hw::Nic> (std::move(driver));
   return *usernet;
 }
 

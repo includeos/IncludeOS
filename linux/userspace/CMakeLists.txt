@@ -88,8 +88,10 @@ set(OS_SOURCES
     ${IOS}/src/fs/filesystem.cpp
     ${IOS}/src/fs/mbr.cpp
     ${IOS}/src/fs/path.cpp
+    ${IOS}/src/hal/machine.cpp
     ${IOS}/src/kernel/cpuid.cpp
     ${IOS}/src/kernel/events.cpp
+    ${IOS}/src/kernel/kernel.cpp
     ${IOS}/src/kernel/os.cpp
     ${IOS}/src/kernel/rdrand.cpp
     ${IOS}/src/kernel/rng.cpp
@@ -102,6 +104,7 @@ set(OS_SOURCES
     ${IOS}/src/util/statman.cpp
     ${IOS}/src/util/path_to_regex.cpp
     ${IOS}/src/util/percent_encoding.cpp
+    #${IOS}/src/util/pmr_default.cpp
     ${IOS}/src/util/uri.cpp
   )
 
