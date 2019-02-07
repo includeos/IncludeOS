@@ -21,7 +21,6 @@ const char* os::arch() noexcept {
   return Arch::name;
 }
 
-__attribute__((noreturn));
 os::Panic_action os::panic_action() noexcept {
   return kernel::panic_action();
 }
