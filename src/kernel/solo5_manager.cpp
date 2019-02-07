@@ -22,13 +22,10 @@
 
 #include <kernel/solo5_manager.hpp>
 #include <stdexcept>
+#include <hal/machine.hpp>
 
-using namespace hw;
-using Nic_ptr = std::unique_ptr<hw::Nic>;
-using Blk_ptr = std::unique_ptr<hw::Block_device>;
-
-static std::vector<delegate<Nic_ptr()>> nics;
-static std::vector<delegate<Blk_ptr()>> blks;
+static std::vector<delegate<Solo5_manager::Nic_ptr()>> nics;
+static std::vector<delegate<Solo5_manager::Blk_ptr()>> blks;
 
 void Solo5_manager::register_net(delegate<Nic_ptr()> func)
 {
@@ -43,7 +40,7 @@ void Solo5_manager::init() {
   INFO("Solo5", "Looking for solo5 devices");
 
   for (auto nic : nics)
-    hw::Devices::register_device<hw::Nic> (nic());
+    os::machine().add<hw::Nic> (nic());
   for (auto blk : blks)
-    hw::Devices::register_device<hw::Block_device> (blk());
+    os::machine().add<hw::Block_device> (blk());
 }

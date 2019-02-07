@@ -43,12 +43,6 @@ add_dependencies(ip4_reassembly PrecompiledLibraries)
 add_library(heap_debugging STATIC heap_debugging.cpp)
 add_dependencies(heap_debugging PrecompiledLibraries)
 
-add_library(disk_logger STATIC "disk_logger.cpp")
-add_dependencies(disk_logger PrecompiledLibraries)
-
-add_library(disklog_reader STATIC "disklog_reader.cpp")
-add_dependencies(disklog_reader PrecompiledLibraries)
-
 add_library(timestamps STATIC stdout/timestamps.cpp)
 add_dependencies(timestamps PrecompiledLibraries)
 
@@ -77,7 +71,6 @@ install(TARGETS
     vmxnet3 e1000
     ip4_reassembly
     heap_debugging
-    disk_logger disklog_reader
     # stdout drivers that are simple enough to remain here
     boot_logger timestamps
   DESTINATION includeos/${ARCH}/drivers)

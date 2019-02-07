@@ -20,7 +20,7 @@
 #define ___API_OS_INCLUDEOS___
 
 // The service and os classes
-#include "hw/devices.hpp"
+#include "info"
 #include "os.hpp"
 #include "service"
 
