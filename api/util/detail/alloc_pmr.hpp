@@ -37,17 +37,17 @@ namespace os::mem::detail {
         throw std::bad_alloc();
       }
 
-      // Adapt to memalign's minimum size- and alignemnt requiremnets
+      // Adapt to aligned_alloc's minimum size- and alignemnt requiremnets
       if (align < sizeof(void*))
         align = sizeof(void*);
 
       if (size < sizeof(void*))
         size = sizeof(void*);
 
-      void* buf = memalign(align, size);
+      void* buf = aligned_alloc(align, size);
 
       if (buf == nullptr) {
-        //printf("pmr memalign return nullptr, throw bad alloc\n");
+        //printf("pmr aligned_alloc return nullptr, throw bad alloc\n");
         throw std::bad_alloc();
       }
 
@@ -58,7 +58,7 @@ namespace os::mem::detail {
 
     void do_deallocate (void* ptr, size_t size, size_t) override {
 
-      // Adapt to memalign
+      // Adapt to aligned_alloc
       if (size < sizeof(void*))
         size = sizeof(void*);
 

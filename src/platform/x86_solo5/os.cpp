@@ -174,8 +174,8 @@ static inline void event_loop_inner()
   if (res != 0)
   {
     // handle any network traffic
-    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-      nic->poll();
+    for (auto& nic : os::machine().get<hw::Nic>()) {
+      nic.get().poll();
     }
   }
 }
