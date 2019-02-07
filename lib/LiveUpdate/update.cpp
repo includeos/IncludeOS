@@ -222,13 +222,11 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   update_store_data(storage_area, &blob);
 
   // 2. flush all NICs
-  auto nics = os::machine().get<hw::Nic>();
-  for(auto& nic : nics)
+  for(auto& nic : os::machine().get<hw::Nic>())
     nic.get().flush();
-  // 3. deactivate all NICs (eg. mask all MSI-X vectors)
+  // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
-  for(auto& nic : nics)
-    nic.get().deactivate();
+  os::machine().deactivate_devices();
   // turn off devices that affect memory
   __arch_system_deactivate();
 
