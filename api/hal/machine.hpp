@@ -78,6 +78,9 @@ namespace os {
     template <typename T>
     ssize_t count();
 
+    inline void deactivate_devices();
+    inline void print_devices() const;
+
     Machine(void* mem, size_t size) noexcept;
 
     /** Factory function for creating machine instance in-place **/

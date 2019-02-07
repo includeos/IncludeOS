@@ -23,6 +23,9 @@
 #include <hal/machine_memory.hpp>
 #include <util/typename.hpp>
 
+#include <set>
+#include <hw/device.hpp>
+
 namespace os::detail {
   using namespace util;
 
@@ -61,6 +64,7 @@ namespace os::detail {
     using Parts_alloc = const Allocator<Parts_ent>;
     using Parts_map   = Map<std::type_index, Parts_vec>;
     using Ptr_alloc   = const Allocator<void*>;
+    using Device_types = std::set<std::type_index>;
 
     template <typename T>
     struct Deleter {
@@ -131,6 +135,11 @@ namespace os::detail {
       Part p {part, storage, t_idx};
       vec.push_back(p);
       Ensures(vec.size() > 0);
+
+      // Mark type as "Device" if needed
+      if constexpr(std::is_base_of<hw::Device,T>::value)
+        add_device_type(t_idx);
+
       return vec.size() - 1;
     }
 
@@ -165,10 +174,20 @@ namespace os::detail {
 
     void init();
 
+    inline void deactivate_devices();
+    inline void print_devices() const;
+
   private:
     Memory mem_;
     Ptr_alloc ptr_alloc_;
     Parts_map parts_;
+    Device_types device_types_;
+
+    void add_device_type(const std::type_index t_idx)
+    {
+      if(device_types_.find(t_idx) == device_types_.end())
+        device_types_.insert(t_idx);
+    }
   };
 
 } // namespace detail
@@ -206,6 +225,50 @@ namespace os {
   template <typename T>
   ssize_t Machine::count() {
     return impl->count<T>();
+  }
+
+  inline void Machine::deactivate_devices() {
+    impl->deactivate_devices();
+  }
+
+  inline void Machine::print_devices() const {
+    impl->print_devices();
+  }
+
+}
+
+namespace os::detail
+{
+  inline void Machine::deactivate_devices()
+  {
+    INFO("Machine", "Deactivating devices");
+
+    for(const auto idx : device_types_)
+    {
+      for(auto& part : parts_.at(idx))
+      {
+        auto& dev = *reinterpret_cast<hw::Device*>(part.ptr);
+        dev.deactivate();
+      }
+    }
+  }
+
+  inline void Machine::print_devices() const
+  {
+    INFO("Machine", "Listing registered devices");
+
+    for(const auto idx : device_types_)
+    {
+      INFO2("|");
+      for(const auto& part : parts_.at(idx))
+      {
+        const auto& dev = *reinterpret_cast<const hw::Device*>(part.ptr);
+        INFO2("+--+ %s", dev.to_string().c_str());
+      }
+    }
+
+    INFO2("|");
+    INFO2("o");
   }
 
 }

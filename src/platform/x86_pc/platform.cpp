@@ -106,6 +106,8 @@ void __platform_init()
   kernel::state().block_drivers_ready = true;
   // Initialize network devices
   PCI_manager::init(PCI::NIC);
+  // Print registered devices
+  os::machine().print_devices();
 }
 
 #ifdef ARCH_i686
