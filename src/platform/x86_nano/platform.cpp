@@ -2,6 +2,7 @@
 #include <kernel.hpp>
 #include <kprint>
 #include "../x86_pc/idt.hpp"
+#include <smp>
 
 extern "C" void noop_eoi() {}
 extern "C" void cpu_sampling_irq_handler() {}
