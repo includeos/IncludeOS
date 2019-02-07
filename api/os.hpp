@@ -85,6 +85,7 @@ namespace os {
   //
 
   /** Trigger unrecoverable error and output diagnostics **/
+  __attribute__((noreturn))
   void panic(const char* why) noexcept;
 
   /** Default behavior after panic **/
