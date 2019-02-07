@@ -82,7 +82,6 @@ set(LEST_UTIL
 )
 
 set(TEST_SOURCES
-  ${TEST}/fs/unit/block_device_test.cpp
   ${TEST}/fs/unit/memdisk_test.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
@@ -90,7 +89,6 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/unit_fat.cpp
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
-  ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
