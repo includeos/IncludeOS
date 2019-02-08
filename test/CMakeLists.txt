@@ -348,7 +348,7 @@ if (COVERAGE)
       COMMAND ctest
       DEPENDS ${TEST_BINARIES}
     )
-    
+
     #generate coverage for the excuted code.. TODO make it run all the code ?
     add_custom_target(coverage_executed
       COMMENT "Generating executed coverage"
@@ -384,7 +384,8 @@ if (COVERAGE)
 endif()
 
 if (GENERATE_SUPPORT_FILES)
-
+  add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar
+    PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
