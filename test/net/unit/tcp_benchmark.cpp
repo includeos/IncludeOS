@@ -35,11 +35,11 @@ CASE("TCP benchmark")
   static const size_t CHUNK_SIZE = 1024 * 1024;
   static const size_t NUM_CHUNKS = 2; // smaller for coverage
   static std::chrono::milliseconds time_start;
-  
+
   auto& inet_server = net::Interfaces::get(0);
   auto& inet_client = net::Interfaces::get(1);
   static bool done = false;
-  
+
   // Set up a TCP server on port 80
   auto& server = inet_server.tcp().listen(80);
   // the shared buffer
@@ -66,6 +66,8 @@ CASE("TCP benchmark")
           printf("Server received %zu Mb in %f sec. - %f Mbps \n",
                  count_bytes / (1024 * 1024), time_sec,  mbps);
           done = true;
+
+          conn->close();
         }
       });
   });
