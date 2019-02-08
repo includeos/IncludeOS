@@ -135,15 +135,7 @@ public:
    *
    * @return A buffer containing the data or nullptr if an error occurred
    */
-  virtual buffer_t read_sync(block_t blk, size_t count) = 0;
-
-  /**
-   * Write blocks of data to device, IF specially supported
-   * This functionality is not enabled by default, nor always supported
-  **/
-  virtual void write(block_t blk, buffer_t, on_write_func) = 0;
-
-  virtual bool write_sync(block_t blk, buffer_t) = 0;
+  virtual buffer_t read_sync(block_t blk, size_t count=1) = 0;
 
   /**
    * Method to deactivate the block device
