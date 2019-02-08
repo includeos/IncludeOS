@@ -110,6 +110,7 @@ set(SRCS
     packet_debug.cpp
     conntrack.cpp
     vlan_manager.cpp
+    addr.cpp
     ws/websocket.cpp
 )
 
