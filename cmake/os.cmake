@@ -154,19 +154,6 @@ else()
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
 
-  # libgcc/compiler-rt detection
-  if (UNIX)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(TARGET_LINE --target=${TRIPLE})
-    endif()
-    execute_process(
-        COMMAND ${CMAKE_CXX_COMPILER} ${TARGET_LINE} --print-libgcc-file-name
-        RESULT_VARIABLE CC_RT_RES
-        OUTPUT_VARIABLE COMPILER_RT_FILE OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if (NOT ${CC_RT_RES} EQUAL 0)
-      message(AUTHOR_WARNING "Failed to detect libgcc/compiler-rt: ${COMPILER_RT_FILE}")
-    endif()
-  endif()
   if (NOT COMPILER_RT_FILE)
     set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
   endif()
@@ -299,7 +286,7 @@ function(os_add_executable TARGET NAME)
   if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(STRIP_LV )
   else()
-    set(STRIP_LV strip --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
+    set(STRIP_LV ${CMAKE_STRIP} --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
   endif()
   FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binary.txt
     "${TARGET}"
