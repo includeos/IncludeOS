@@ -92,14 +92,18 @@ public:
 
   static Inet& create(hw::Nic& nic, int N, int sub);
 
+  // NIC helpers @todo: Maybe move away from Interfaces
+  static hw::Nic& get_nic(int idx);
+  static hw::Nic& get_nic(const MAC::Addr& mac);
   /**
    * @brief      Gets the NIC index among the machines stored nics.
+   *             Negative number if not found.
    *
    * @param[in]  mac   The mac address
    *
    * @return     The nic index.
    */
-  static ssize_t get_nic_index(const MAC::Addr& mac);
+  static int get_nic_index(const MAC::Addr& mac);
 
 private:
   Stacks stacks_;

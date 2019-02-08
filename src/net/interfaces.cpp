@@ -85,10 +85,39 @@ Inet& Interfaces::get(int N, int sub)
       + std::to_string(N) + "," + std::to_string(sub) + "]"};
 }
 
-
-ssize_t Interfaces::get_nic_index(const MAC::Addr& mac)
+hw::Nic& Interfaces::get_nic(int idx)
 {
-  ssize_t index = -1;
+  try
+  {
+    return os::machine().get<hw::Nic>(idx);
+  }
+  catch(...)
+  {
+    throw Interfaces_err{"No NIC found with index " + std::to_string(idx)};
+  }
+}
+
+hw::Nic& Interfaces::get_nic(const MAC::Addr& mac)
+{
+  try
+  {
+    for(auto& nic : os::machine().get<hw::Nic>())
+    {
+      if (nic.get().mac() == mac)
+        return nic;
+    }
+  }
+  catch(const std::runtime_error& err)
+  {
+    throw Interfaces_err{"No NICs found: " + std::string{err.what()}};
+  }
+
+  throw Interfaces_err{"No NIC found with MAC address " + mac.to_string()};
+}
+
+int Interfaces::get_nic_index(const MAC::Addr& mac)
+{
+  int index = -1;
   auto nics = os::machine().get<hw::Nic>();
   for (size_t i = 0; i < nics.size(); i++) {
     const hw::Nic& nic = nics.at(i);
@@ -98,20 +127,19 @@ ssize_t Interfaces::get_nic_index(const MAC::Addr& mac)
     }
   }
 
-  // If no NIC, no point looking more
-  if(index < 0)
-    throw Interfaces_err{"No NIC found with MAC address " + mac.to_string()};
-
   return index;
 }
 
 Inet& Interfaces::get(const std::string& mac)
 {
   auto index = get_nic_index(mac);
+  if(index < 0)
+    throw Interfaces_err{"No NIC found with MAC address " + mac};
+
   auto& stacks = instance().stacks_.at(index);
   auto& stack = stacks[0];
   if(stack != nullptr) {
-    Expects(stack->link_addr() == MAC::Addr(mac.c_str()));
+    Expects(stack->link_addr() == MAC::Addr(mac));
     return *stack;
   }
 
