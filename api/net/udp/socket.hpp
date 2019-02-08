@@ -18,26 +18,30 @@
 #pragma once
 #ifndef NET_IP4_UDP_SOCKET_HPP
 #define NET_IP4_UDP_SOCKET_HPP
-#include "udp.hpp"
+
+#include "common.hpp"
+#include "header.hpp"
+#include "packet_view.hpp"
+
+#include <net/socket.hpp>
+
 #include <string>
 
-namespace net
+namespace net {
+  class UDP;
+}
+namespace net::udp
 {
-  class UDPSocket
+  class Socket
   {
   public:
+    using multicast_group_addr = ip4::Addr;
 
-    typedef UDP::port_t port_t;
-    typedef net::Addr addr_t;
-    typedef IP4::addr multicast_group_addr;
-
-    typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
-    typedef UDP::sendto_handler sendto_handler;
-    typedef UDP::error_handler error_handler;
+    using recvfrom_handler  = delegate<void(addr_t, port_t, const char*, size_t)>;
 
     // constructors
-    UDPSocket(UDP&, Socket socket);
-    UDPSocket(const UDPSocket&) = delete;
+    Socket(UDP&, net::Socket socket);
+    Socket(const Socket&) = delete;
     // ^ DON'T USE THESE. We could create our own allocators just to prevent
     // you from creating sockets, but then everyone is wasting time.
     // These are public to allow us to use emplace(...).
@@ -57,39 +61,35 @@ namespace net
                sendto_handler cb = nullptr,
                error_handler ecb = nullptr);
 
-    void close()
-    { udp_.close(socket_); }
+    void close();
 
     void join(multicast_group_addr);
     void leave(multicast_group_addr);
 
     // stuff
     addr_t local_addr() const
-    { return socket_.address().v4(); }
+    { return socket_.address(); }
 
     port_t local_port() const
     { return socket_.port(); }
 
-    const Socket& local() const
+    const net::Socket& local() const
     { return socket_; }
 
-    UDP& udp()
-    { return udp_; }
-
   private:
-    void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
-    void internal_read(const PacketUDP&);
+    void internal_read(const Packet_view&);
 
     UDP&    udp_;
-    Socket  socket_;
+    net::Socket  socket_;
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};
 
+    const bool is_ipv6_;
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender
 
-    friend class UDP;
-    friend class std::allocator<UDPSocket>;
+    friend class net::UDP;
+    friend class std::allocator<net::udp::Socket>;
   };
 }
 

@@ -6,12 +6,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE "Debug")
 
 # IncludeOS install location
-#if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-#  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-#endif()
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
 
 option(COVERAGE "Build with coverage generation" OFF)
-option(CPPCHECK "Enable cppcheck when building" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
 
 option(INFO "Print INFO macro output" OFF)
@@ -65,7 +64,7 @@ if (APPLE)
     string(STRIP ${BREW_LLVM} BREW_LLVM)
     set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
     message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -Wno-unused-command-line-argument")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -lc++experimental -Wno-unused-command-line-argument")
   else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.12")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.12")
@@ -150,7 +149,6 @@ set(TEST_SOURCES
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
-  ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/error.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
@@ -208,6 +206,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
+  ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 if (COVERAGE)
   list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
@@ -386,8 +385,6 @@ endif()
 
 if (GENERATE_SUPPORT_FILES)
 
-  add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar
-    PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
@@ -398,11 +395,9 @@ if (GENERATE_SUPPORT_FILES)
     )
 endif()
 
-#TODO fix clang tidy target ?
 add_custom_target(
   clang-tidy
   COMMAND clang-tidy-3.8
   -checks=clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability,cppcoreguidelines*,modernize*,performance*,misc*,-misc-virtual-near-miss
   -p=compile_commands.json
-  #${OS_SOURCES}
 )

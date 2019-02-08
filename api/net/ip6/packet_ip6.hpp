@@ -20,11 +20,17 @@
 #define IP6_PACKET_IP6_HPP
 
 #include "header.hpp"
+#include "extension_header.hpp"
 #include <cassert>
 #include <net/packet.hpp>
 
 namespace net
 {
+  enum {
+      OPT_HOP,
+      OPT_V6,
+      OPT_MAX
+  };
 
   /** IPv6 packet. */
   class PacketIP6 : public Packet {
@@ -69,6 +75,12 @@ namespace net
     Protocol next_protocol() const noexcept
     { return static_cast<Protocol>(ip6_header().next_header); }
 
+    /** Protocol after Extension headers */
+    Protocol ip_protocol() const noexcept
+    {
+      return ip6::parse_upper_layer_proto(ext_hdr_start(), data_end(), next_protocol());
+    }
+
     /** Get next header */
     uint8_t next_header() const noexcept
     { return ip6_header().next_header; }
@@ -89,12 +101,12 @@ namespace net
     uint16_t ip_data_length() const noexcept
     {
       Expects(size() and static_cast<size_t>(size()) >= sizeof(ip6::Header));
-      return size() - IP6_HEADER_LEN;
+      return size() - sizeof(ip6::Header);
     }
 
     /** Get total data capacity of IP packet in bytes  */
     uint16_t ip_capacity() const noexcept
-    { return capacity() - IP6_HEADER_LEN; }
+    { return capacity() - sizeof(ip6::Header); }
 
     /* This returns the IPv6 header and extension header len.
      * Note: Extension header needs to be parsed to know this */
@@ -158,8 +170,8 @@ namespace net
       hdr = {};
       hdr.hop_limit   = DEFAULT_HOP_LIMIT;
       hdr.next_header = static_cast<uint8_t>(proto);
-      increment_data_end(IP6_HEADER_LEN);
-      set_payload_offset(IP6_HEADER_LEN);
+      increment_data_end(sizeof(ip6::Header));
+      set_payload_offset(sizeof(ip6::Header));
       assert(this->payload_length() == 0);
     }
 
@@ -173,11 +185,14 @@ namespace net
       return {ip_data_ptr(), ip_data_length()};
     }
 
+    const uint8_t* ext_hdr_start() const
+    { return layer_begin() + sizeof(ip6::Header); }
+
     /**
      *  Set IP6 payload length
      */
     void set_segment_length() noexcept
-    { ip6_header().payload_length = htons(size() - IP6_HEADER_LEN); }
+    { ip6_header().payload_length = htons(size() - sizeof(ip6::Header)); }
 
   protected:
 
@@ -199,5 +214,6 @@ namespace net
     { return *reinterpret_cast<const ip6::Header*>(layer_begin()); }
 
   }; //< PacketIP6
+
 } //< namespace net
 #endif

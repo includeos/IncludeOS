@@ -34,8 +34,8 @@ namespace net {
 
   public:
     using Stack   = IP4::Stack;
-    using Route_checker = delegate<bool(IP4::addr)>;
-    using Arp_resolver = delegate<void(IP4::addr)>;
+    using Route_checker = delegate<bool(ip4::Addr)>;
+    using Arp_resolver = delegate<void(ip4::Addr)>;
 
     enum Opcode { H_request = 0x100, H_reply = 0x200 };
 
@@ -56,9 +56,9 @@ namespace net {
       uint16_t         hlen_plen; // Protocol address length
       uint16_t         opcode;    // Opcode
       MAC::Addr     shwaddr;   // Source mac
-      IP4::addr        sipaddr;   // Source ip
+      ip4::Addr        sipaddr;   // Source ip
       MAC::Addr     dhwaddr;   // Target mac
-      IP4::addr        dipaddr;   // Target ip
+      ip4::Addr        dipaddr;   // Target ip
     };
 
     /** Handle incoming ARP packet. */
@@ -84,10 +84,10 @@ namespace net {
     { linklayer_out_ = link; }
 
     /** Downstream transmission. */
-    void transmit(Packet_ptr, IP4::addr next_hop);
+    void transmit(Packet_ptr, ip4::Addr next_hop);
 
     /** Cache IP resolution. */
-    void cache(IP4::addr, MAC::Addr);
+    void cache(ip4::Addr, MAC::Addr);
 
     /** Flush the ARP cache. RFC-2.3.2.1 */
     void flush_cache()
@@ -144,8 +144,8 @@ namespace net {
       {}
     };
 
-    using Cache       = std::unordered_map<IP4::addr, Cache_entry>;
-    using PacketQueue = std::unordered_map<IP4::addr, Queue_entry>;
+    using Cache       = std::unordered_map<ip4::Addr, Cache_entry>;
+    using PacketQueue = std::unordered_map<ip4::Addr, Queue_entry>;
 
 
     /** Stats */
@@ -178,10 +178,10 @@ namespace net {
     Arp_resolver arp_resolver_ = {this, &Arp::arp_resolve};
 
     /** Respond to arp request */
-    void arp_respond(header* hdr_in, IP4::addr ack_ip);
+    void arp_respond(header* hdr_in, ip4::Addr ack_ip);
 
     /** Send an arp resolution request */
-    void arp_resolve(IP4::addr next_hop);
+    void arp_resolve(ip4::Addr next_hop);
 
     /**
      * Add a packet to waiting queue, to be sent when IP is resolved.
@@ -190,7 +190,7 @@ namespace net {
      * 2.3.2.1 : Prevent ARP flooding
      * 2.3.2.2 : Packets SHOULD be queued.
      */
-    void await_resolution(Packet_ptr, IP4::addr);
+    void await_resolution(Packet_ptr, ip4::Addr);
 
     /** Create a default initialized ARP-packet */
     Packet_ptr create_packet();

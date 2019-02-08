@@ -561,7 +561,7 @@ CASE("lstack::" STR(LSTACK_OPT) " random allocs") {
   std::vector<alloc::Allocation> allocs;
   char data = 'A';
   for (auto rnd : rnds) {
-    size_t r = std::max(heap.min_alloc, rnd);
+    size_t r = std::max<size_t>(heap.min_alloc, rnd);
     if (heap.bytes_free() == 0)
       break;
     size_t sz = std::max(heap.min_alloc, r % heap.bytes_free());

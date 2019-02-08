@@ -20,6 +20,7 @@
 #include <hw/async_device.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet>
+#include <net/interfaces>
 static constexpr bool debug = false;
 static const size_t CHUNK_SIZE = 1024 * 1024;
 static const size_t NUM_CHUNKS = 2048;
@@ -62,7 +63,7 @@ void Service::start()
 
         assert(buf->size() <= CHUNK_SIZE);
         count_bytes += buf->size();
-        
+
         if constexpr (debug) {
         static uint32_t count_chunks = 0;
         printf("Received chunk %u (%zu bytes) for a total of %zu / %zu kB\n",
@@ -95,6 +96,9 @@ void Service::start()
   inet_client.tcp().connect({net::ip4::Addr{"10.0.0.42"}, 80},
     [buf](auto conn)
     {
+      if constexpr (debug) {
+          printf("Connected\n");
+      }
       assert(conn != nullptr);
       time_start = now();
       for (size_t i = 0; i < NUM_CHUNKS; i++) {

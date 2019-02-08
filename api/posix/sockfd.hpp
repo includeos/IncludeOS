@@ -30,17 +30,6 @@ public:
   {}
 
   bool is_socket() override { return true; }
-
-  typedef delegate<void(net::tcp::buffer_t)> on_read_func;
-  typedef delegate<void()> on_write_func;
-  typedef delegate<void()> on_except_func;
-
-  virtual on_read_func   get_default_read_func()
-  { return [] (net::tcp::buffer_t) {}; }
-  virtual on_write_func  get_default_write_func()
-  { return [] {}; }
-  virtual on_except_func get_default_except_func()
-  { return [] {}; }
 };
 
 struct sockaddr;

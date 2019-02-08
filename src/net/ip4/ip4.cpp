@@ -31,11 +31,13 @@
 
 namespace net {
 
-  const ip4::Addr ip4::Addr::addr_any{0};
-  const IP4::addr IP4::ADDR_ANY(0);
-  const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
+  const ip4::Addr IP4::ADDR_ANY(0);
+  const ip4::Addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Stack& inet) noexcept :
+  addr_             {IP4::ADDR_ANY},
+  netmask_          {IP4::ADDR_ANY},
+  gateway_          {IP4::ADDR_ANY},
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
@@ -120,11 +122,10 @@ namespace net {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
-    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x LinkBcast: %d ",
+    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x ",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           (int) packet->ip_protocol(),
-           link_bcast);
+           (int) packet->ip_protocol());
     switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
        PRINT("Type: ICMP\n"); break;
@@ -203,6 +204,7 @@ namespace net {
 
     Ensures(res.packet != nullptr);
     packet = res.release();
+    PRINT("* Done parsing the packet header\n");
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -268,7 +270,7 @@ namespace net {
     ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP4::ship(Packet_ptr pckt, ip4::Addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
@@ -309,8 +311,8 @@ namespace net {
       }
       else {
         // Create local and target subnets
-        addr target = packet->ip_dst()  & stack_.netmask();
-        addr local  = stack_.ip_addr() & stack_.netmask();
+        ip4::Addr target = packet->ip_dst()  & stack_.netmask();
+        ip4::Addr local  = stack_.ip_addr() & stack_.netmask();
 
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway();

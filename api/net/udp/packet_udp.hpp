@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include "udp.hpp"
-#include "packet_ip4.hpp"
+#include "common.hpp"
+#include "header.hpp"
+#include <net/ip4/packet_ip4.hpp>
 #include <net/socket.hpp>
 #include <cassert>
 
@@ -36,7 +37,7 @@ namespace net
       set_src_port(l_port);
       set_dst_port(d_port);
       // set zero length
-      set_length(sizeof(UDP::header));
+      set_length(sizeof(udp::Header));
       // zero the optional checksum
       header().checksum = 0;
       set_protocol(Protocol::UDP);
@@ -46,7 +47,7 @@ namespace net
     {
       header().sport = htons(port);
     }
-    UDP::port_t src_port() const noexcept
+    udp::port_t src_port() const noexcept
     {
       return htons(header().sport);
     }
@@ -55,7 +56,7 @@ namespace net
     {
       header().dport = htons(port);
     }
-    UDP::port_t dst_port() const noexcept
+    udp::port_t dst_port() const noexcept
     {
       return htons(header().dport);
     }
@@ -73,23 +74,24 @@ namespace net
 
     void set_data_length(uint16_t len)
     {
-      set_length(sizeof(UDP::header) + len);
+      set_length(sizeof(udp::Header) + len);
     }
+
     uint16_t data_length() const noexcept
     {
       const uint16_t hdr_len = ip_header_length();
       uint16_t real_length = size() - hdr_len;
       uint16_t final_length = std::min(real_length, length());
-      return final_length - sizeof(UDP::header);
+      return final_length - sizeof(udp::Header);
     }
 
     Byte* data()
     {
-      return ip_data_ptr() + sizeof(UDP::header);
+      return ip_data_ptr() + sizeof(udp::Header);
     }
 
     const Byte* data() const
-    { return ip_data_ptr() + sizeof(UDP::header); }
+    { return ip_data_ptr() + sizeof(udp::Header); }
 
     Byte* begin()
     {
@@ -126,7 +128,7 @@ namespace net
     }
 
     bool validate_length() const noexcept {
-      return length() >= sizeof(UDP::header);
+      return length() >= sizeof(udp::Header);
     }
 
   private:
@@ -140,14 +142,14 @@ namespace net
       set_data_end(ip_header_length() + newlen);
     }
 
-    UDP::header& header() noexcept
+    udp::Header& header() noexcept
     {
-      return *reinterpret_cast<UDP::header*>(ip_data_ptr());
+      return *reinterpret_cast<udp::Header*>(ip_data_ptr());
     }
 
-    const UDP::header& header() const noexcept
+    const udp::Header& header() const noexcept
     {
-      return *reinterpret_cast<const UDP::header*>(ip_data_ptr());
+      return *reinterpret_cast<const udp::Header*>(ip_data_ptr());
     }
 
   };

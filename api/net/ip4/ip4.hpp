@@ -64,17 +64,18 @@ namespace net {
     using IP_packet = PacketIP4;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
     using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
-    using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
+    using downstream_arp = delegate<void(Packet_ptr, ip4::Addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
-    using resolve_func = delegate<void(IP4::addr, const Error&)>;
+    using netmask = ip4::Addr;
+    using resolve_func = delegate<void(ip4::Addr, const Error&)>;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;
 
-    static const addr ADDR_ANY;
-    static const addr ADDR_BCAST;
+    static const ip4::Addr ADDR_ANY;
+    static const ip4::Addr ADDR_BCAST;
 
     /**
      * How often the pmtu_timer_ is triggered, in seconds
@@ -163,7 +164,7 @@ namespace net {
      *  Source IP *can* be set - if it's not, IP4 will set it
      */
     void transmit(Packet_ptr);
-    void ship(Packet_ptr, addr next_hop = 0, Conntrack::Entry_ptr ct = nullptr);
+    void ship(Packet_ptr, ip4::Addr next_hop = 0, Conntrack::Entry_ptr ct = nullptr);
 
 
     /**
@@ -171,7 +172,7 @@ namespace net {
      *
      * Returns the IPv4 address associated with this interface
      **/
-    const addr local_ip() const;
+    const ip4::Addr local_ip() const;
 
     /**
      * @brief      Determines if the packet is for me (this host).
@@ -305,7 +306,32 @@ namespace net {
     PMTU minimum_MTU() const noexcept
     { return (PMTU) PMTU_plateau::ONE; }
 
+    ip4::Addr address() const noexcept
+    { return addr_; }
+
+    ip4::Addr networkmask() const noexcept
+    { return netmask_; }
+
+    ip4::Addr gateway() const noexcept
+    { return gateway_; }
+
+    ip4::Addr broadcast_addr() const noexcept
+    { return addr_ | ( ~ netmask_); }
+
+    void set_addr(ip4::Addr addr)
+    { addr_ = addr; }
+
+    void set_netmask(ip4::Addr netmask)
+    { netmask_ = netmask; }
+
+    void set_gateway(ip4::Addr gateway)
+    { gateway_ = gateway; }
+
   private:
+    /* Network config for the inet stack */
+    ip4::Addr addr_;
+    ip4::Addr netmask_;
+    ip4::Addr gateway_;
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;

@@ -17,8 +17,7 @@
 
 #pragma once
 #include <kernel/events.hpp>
-#include <hw/drivers/usernet.hpp>
-#include <net/interfaces>
+#include <drivers/usernet.hpp>
 #include <deque>
 
 namespace hw
@@ -41,6 +40,7 @@ public:
           this->driver_receive(std::move(queue.front()));
           queue.pop_front();
         }
+        this->m_nic.signal_tqa();
       });
   }
 

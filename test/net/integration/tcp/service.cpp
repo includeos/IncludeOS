@@ -23,6 +23,7 @@
 
 using namespace net;
 using namespace std::chrono; // For timers and MSL
+using namespace util;        // For KiB/MiB/GiB literals
 tcp::Connection_ptr client;
 
 static Inet& stack()
@@ -32,7 +33,7 @@ static Inet& stack()
   TEST VARIABLES
 */
 tcp::port_t
-TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
+TEST0{8080},TEST1{8081}, TEST2{8082}, TEST3{8083}, TEST4{8084}, TEST5{8085};
 
 using HostAddress = std::pair<std::string, tcp::port_t>;
 HostAddress
@@ -73,12 +74,12 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
   stack().resolve(address.first,
-    [port](auto ip_address, const Error&) {
-      CHECK(ip_address != 0, "Resolved host");
+    [port](auto res, const Error&) {
+      CHECK(res != nullptr, "Resolved host");
 
-      if(ip_address != 0)
+      if(res and res->has_addr())
       {
-        stack().tcp().connect({ip_address, port})
+        stack().tcp().connect({res->get_first_addr(), port})
           ->on_connect([](tcp::Connection_ptr conn)
           {
             CHECKSERT(conn != nullptr, "Connected");
@@ -131,6 +132,8 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
+size_t recv = 0;
+size_t chunks = 0;
 void Service::start()
 {
 #ifdef USERSPACE_LINUX
@@ -155,15 +158,15 @@ void Service::start()
     {  10,  0,  0,  1 },  // Gateway
     {   8,  8,  8,  8 }   // DNS
   );
-  inet.network_config6(
-    {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
-    64,                                                     // Prefix6
-    {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
-  );
+  inet.add_addr({"fe80::e823:fcff:fef4:85bd"}, 64);
+  static ip6::Addr gateway{"fe80::e823:fcff:fef4:83e7"};
 
   auto& tcp = inet.tcp();
   // reduce test duration
   tcp.set_MSL(MSL_TEST);
+
+  // Modify total buffers assigned to TCP here
+  tcp.set_total_bufsize(64_MiB);
 
   /*
     TEST: Send and receive small string.
@@ -175,6 +178,24 @@ void Service::start()
   */
   CHECK(tcp.listening_ports() == 0, "No (0) open ports (listening connections)");
   CHECK(tcp.active_connections() == 0, "No (0) active connections");
+
+  // Trigger with e.g.:
+  // dd if=/dev/zero bs=9000 count=1000000 | nc 10.0.0.44 8080 | grep Received -a
+  tcp.listen(TEST0).on_connect([](tcp::Connection_ptr conn) {
+      INFO("Test 0", "Circle of Evil");
+      conn->on_read(424242, [conn](tcp::buffer_t buffer) {
+          recv += buffer->size();
+          chunks++;
+          if (chunks % 100 == 0) {
+            std::string res = std::string("Received ") + util::Byte_r(recv).to_string() + "\n";
+            printf("%s", res.c_str());
+            auto new_buf = std::make_shared<std::pmr::vector<uint8_t>>(res.begin(), res.end());
+            conn->write(new_buf);
+          }
+          conn->write(buffer);
+        });
+    });
+
 
   tcp.listen(TEST1).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 1", "SMALL string (%u)", small.size());
@@ -189,7 +210,8 @@ void Service::start()
   /*
     TEST: Server should be bound.
   */
-  CHECK(tcp.listening_ports() == 1, "One (1) open port");
+
+  CHECKSERT(tcp.listening_ports() >= 1, "One or more open port");
 
   /*
     TEST: Send and receive big string.
@@ -239,7 +261,7 @@ void Service::start()
   /*
     TEST: More servers should be bound.
   */
-  CHECK(tcp.listening_ports() == 3, "Three (3) open ports");
+  CHECKSERT(tcp.listening_ports() >= 3, "Three or more open ports");
 
   /*
     TEST: Connection (Status etc.) and Active Close
@@ -265,7 +287,7 @@ void Service::start()
         [conn] (auto) {
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
             INFO("Test 4", "Succeeded. Trigger TEST5");
-            OUTGOING_TEST({stack().gateway6(), TEST5});
+            OUTGOING_TEST({gateway, TEST5});
           });
 
         Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });

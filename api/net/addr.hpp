@@ -107,14 +107,17 @@ public:
   bool operator==(const Addr& other) const noexcept
   { return ip6_ == other.ip6_; }
 
+  bool operator!=(const Addr& other) const noexcept
+  { return ip6_ != other.ip6_; }
+
+  bool operator<(const Addr& other) const noexcept
+  { return ip6_ < other.ip6_; }
+
   bool operator>(const Addr& other) const noexcept
   { return ip6_ > other.ip6_; }
 
   bool operator>=(const Addr& other) const noexcept
   { return (*this > other or *this == other); }
-
-  bool operator<(const Addr& other) const noexcept
-  { return not (*this >= other); }
 
   bool operator<=(const Addr& other) const noexcept
   { return (*this < other or *this == other); }

@@ -72,8 +72,7 @@ namespace microLB
       net::Socket socket{
         net::ip4::Addr{addr[0].GetString()}, (uint16_t) port
       };
-      balancer->nodes.add_node(*balancer, socket,
-            Balancer::connect_with_tcp(netout, socket));
+      balancer->nodes.add_node(socket, Balancer::connect_with_tcp(netout, socket));
     }
 
     balancer->init_liveupdate();

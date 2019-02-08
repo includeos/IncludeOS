@@ -50,6 +50,7 @@ def TCP_connect():
   sock.connect((HOST, PORT))
   MESSAGE = "POSIX is for hipsters"
   sock.send(MESSAGE)
+  sock.close()
 
 def TCP_recv(trigger_line):
   server.listen(1)
@@ -70,4 +71,4 @@ vm.on_output("Trigger TCP_recv", TCP_recv)
 if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(10,image_name='posix_tcp').clean()
+    vm.cmake().boot(20,image_name='posix_tcp').clean()

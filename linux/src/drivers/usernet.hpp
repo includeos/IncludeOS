@@ -65,6 +65,7 @@ public:
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override;
+  void   signal_tqa() { transmit_queue_available_event(transmit_queue_available()); }
 
   void deactivate() override {}
   void move_to_this_cpu() override {}
