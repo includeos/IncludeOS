@@ -26,7 +26,7 @@ using namespace util::literals;
 struct Pool {
   Pool(size_t size) : size(size) {
     Expects(size);
-    data = memalign(os::Machine::Memory::align, size);
+    data = aligned_alloc(4096, size);
     Expects(data);
   }
 
