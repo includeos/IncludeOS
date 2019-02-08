@@ -157,7 +157,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
-  ${TEST}/util/unit/buddy_alloc_test.cpp
+  #${TEST}/util/unit/buddy_alloc_test.cpp
   ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 

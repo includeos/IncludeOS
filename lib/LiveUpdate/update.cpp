@@ -221,12 +221,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // save ourselves if function passed
   update_store_data(storage_area, &blob);
 
+#ifndef PLATFORM_UNITTEST
   // 2. flush all NICs
   for(auto& nic : os::machine().get<hw::Nic>())
     nic.get().flush();
   // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
   os::machine().deactivate_devices();
+#endif
   // turn off devices that affect memory
   __arch_system_deactivate();
 

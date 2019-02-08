@@ -229,9 +229,12 @@ bool rdrand32(uint32_t* result) {
 
 os::Machine& os::machine() noexcept {
   static os::Machine* m = nullptr;
-  constexpr size_t memsize = 0x1000000;
-  if (UNLIKELY(m == nullptr))
-    m = os::Machine::create(malloc(memsize), memsize);
+  static const size_t memsize = 0x1000000;
+  if (UNLIKELY(m == nullptr)) {
+    void* memory = aligned_alloc(4096, memsize);
+    assert(memory != nullptr);
+    m = os::Machine::create(memory, memsize);
+  }
   return *m;
 }
 
