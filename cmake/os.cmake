@@ -138,6 +138,7 @@ else()
   add_library(libcxx STATIC IMPORTED)
   add_library(cxxabi STATIC IMPORTED)
   add_library(libunwind STATIC IMPORTED)
+  add_library(libcxx_experimental STATIC IMPORTED)
 
   set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc++.a)
@@ -145,6 +146,8 @@ else()
   set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc++abi.a)
   set_target_properties(libunwind PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libunwind.a)
+  set_target_properties(libcxx_experimental PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libcxx_experimental PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc++experimental.a)
 
   add_library(libc STATIC IMPORTED)
   set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
@@ -212,6 +215,7 @@ else()
       libpthread
       libc
       libgcc
+      libcxx_experimental
     )
   endif()
 
