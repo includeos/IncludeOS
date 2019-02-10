@@ -106,4 +106,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(thread_timeout,,image_name='net_icmp').clean()
+    vm.cmake().boot(thread_timeout,image_name='net_icmp').clean()
