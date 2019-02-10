@@ -5,7 +5,7 @@ import os
 import subprocess
 import subprocess32
 import thread
-import time 
+import time
 
 thread_timeout = 60
 
@@ -53,6 +53,8 @@ def iperf_client(o):
     return True
 
 #TODO pythonize ?
+#clean anything hangig after a crash.. from previous test
+subprocess.call(["./setup.sh", "--clean"])
 subprocess.call("./setup.sh")
 
 vm = vmrunner.vms[0]

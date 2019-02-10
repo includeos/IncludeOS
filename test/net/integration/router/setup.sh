@@ -19,7 +19,7 @@ setup() {
   #sudo apt-get -qqq install -y iperf3
 
   # Make sure the default bridge exists
-  $INCLUDEOS_PREFIX/includeos/scripts/create_bridge.sh
+  $INCLUDEOS_PREFIX/scripts/create_bridge.sh
 
   # Create veth link
   sudo ip link add veth_src type veth peer name veth_dest
@@ -55,6 +55,9 @@ setup() {
 
 
 undo(){
+  echo ">>> Deleting veth devices"
+  ip link delete veth_src
+  ip link delete veth_src
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
   sudo brctl delbr $dest_bridge
@@ -62,6 +65,7 @@ undo(){
   sudo ip netns del $NSNAME
   echo ">>> Deleting route to namespace"
   sudo ip route del $dest_net dev $source_bridge
+
 }
 
 vmsetup(){
