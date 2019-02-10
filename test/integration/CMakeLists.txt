@@ -12,28 +12,13 @@
 
 #TODO enable pulling everything from conan..
 if(NOT DEFINED INCLUDEOS_PREFIX)
-  if (DEFINED ENV{INCLUDEOS_PREFIX})
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
     message(FATAL_ERROR "IncludeOS prefix is required")
   else()
     add_custom_target(IncludeOS)
     set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
   endif()
 endif()
-
-set(FS_TESTS
-  fat16   20
-  fat32   20
-  ide     20
-  ide_write 20
-  memdisk 20
-  vfs 20
-  virtio_block 30
-)
-set(HW_TESTS
-  serial 20
-  vga 20
-  virtio_queue 20
-)
 
 cmake_minimum_required(VERSION 3.12)
 
@@ -45,7 +30,7 @@ project(IntegrationTests)
 #TODO check these and notify if any is missing
 find_program(HPING3 hping3)
 find_program(NODEJS nodejs) #if not found look for node
-
+#TODO ADD ws4py to deps
 enable_testing()
 
 SET(TEST_PARAMS 3)
@@ -61,8 +46,9 @@ set(TEST_LIST
   #FS test
   "fat16"     "20" "fs"
   "fat32"     "30" "fs"
-  "ide"       "30" "fs"
-  "ide_write" "20" "fs"
+#TODO REMOVE IDE
+# "ide"       "30" "fs"
+#  "ide_write" "20" "fs"
   "memdisk"   "20" "fs"
   "vfs"       "20" "fs"
   "virtio_block"  "30" "fs"
@@ -101,20 +87,25 @@ set(TEST_LIST
   "http"      "20"    "net"
   "icmp"      "50"    "net"
   "icmp6"     "50"    "net"
+  # TODO FIXME MORE!!!
+  #"microLB"   "50"    "net"
   "nat"       "30"    "net"
   "router"    "30"    "net"
+  "router6"   "30"     "net"
+  "slaac"     "30"    "net"
   "tcp"       "120"    "net"
   "udp"       "30"    "net"
   "vlan"      "20"    "net"
   "websocket" "20"    "net"
   #microLB #gonzo how to fix ubsan.
-  #"microLB" "20" "net"
+  "microLB" "20" "net"
   #TODO add a cmake variable to exclude these ?
   #dhclient
   #dhcpd
   #dhcpd_dhclient_linux
 
   "block"     "40" "kernel"
+  ##TODO check if context test is old and should be removed!!
   "context"   "20" "kernel"
   "exception" "20" "kernel"
   "fiber"     "20" "kernel"
