@@ -1,24 +1,23 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
+#service
 project (test_slaac)
+include(os)
 
-MESSAGE(STATUS "IncludeOS prefix: " $ENV{INCLUDEOS_PREFIX})
+os_add_executable(net_slaac "IncludeOS Slaac test" service.cpp)
 
-set(SERVICE_NAME "IncludeOS Slaac test")
-set(BINARY       "test_slaac")
-set(MAX_MEM 128)
-set(SOURCES
-    service.cpp
-    )
-
-# Enable virtionet driver
-set(DRIVERS virtionet)
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_drivers(net_slaac virtionet)
+os_add_stdout(net_slaac default_stdout)

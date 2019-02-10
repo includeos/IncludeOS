@@ -68,4 +68,8 @@ vm.on_output("Service ready", iperf_client)
 vm.on_exit(clean)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(30).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(30,image_name='net_router6').clean()
