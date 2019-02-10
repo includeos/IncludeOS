@@ -11,11 +11,18 @@ class OpenSSLConan(ConanFile):
     name = "openssl"
     version = "1.1.1" ##if we remove this line we can specify it from outside this script!! ps ps
 
-    options = {"threads":[True, False],"shared":[True,False]}
+    options = {
+        "threads":[True, False],
+        "shared":[True,False],
+        "ubsan" : [True,False]
+        }
 
-    default_options = {"threads": True,"shared":False}
-    #options = {"shared":False}
-    #branch = "version"+version
+    default_options = {
+        "threads": True,
+        "shared": False,
+        "ubsan" : False
+        }
+    
     license = 'Apache 2.0'
     description = 'A language-neutral, platform-neutral extensible mechanism for serializing structured data.'
     url = "https://www.openssl.org"
@@ -35,10 +42,12 @@ class OpenSSLConan(ConanFile):
         #TODO handle arch target and optimalizations
         #TODO use our own includes!
         #TODO TODO
-        options=["no-ssl3","enable-ubsan"]
-        if (not self.options.threads):
+        options=["no-ssl3"]
+        if self.options.ubsan:
+            options+=['enable-ubsan']
+        if not self.options.threads:
             options+=['no-threads']
-        if (not self.options.shared):
+        if not self.options.shared:
             options+=['no-shared']
 
         if str(self.settings.arch) == "x86":
