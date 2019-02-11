@@ -62,7 +62,7 @@ void print_nic_stats() {
 void print_mempool_stats() {
     auto& inet1 = net::Interfaces::get(0);
     auto& inet2 = net::Interfaces::get(1);;
-    printf("\n\n<Timer>Heap used: %s\n", util::Byte_r(OS::heap_usage()).to_string().c_str());
+    printf("\n\n<Timer>Mem used: %s\n", util::Byte_r(os::total_memuse()).to_string().c_str());
     auto pool1 = inet1.tcp().mempool();
     auto pool2 = inet2.tcp().mempool();
 
@@ -90,7 +90,7 @@ void print_lb_stats() {
   FILLINE('-');
   CENTER("LB-Stats");
   auto& nodes = balancer->nodes;
-  printf("Wait queue: %i nodes: %zu tot_sess: %i open_sess: %i timeout_sess: %i pool_size: %i \n",
+  printf("Wait queue: %i nodes: %zu tot_sess: %zi open_sess: %i timeout_sess: %i pool_size: %i \n",
          balancer->wait_queue(), nodes.size(), nodes.total_sessions(), nodes.open_sessions(), nodes.timed_out_sessions(), nodes.pool_size());
   printf("\n\n");
 }
