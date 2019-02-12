@@ -52,3 +52,5 @@ IncludeOS_install
 
 # Starbase disk file
 lib/uplink/starbase/disk
+
+!Jenkinsfile

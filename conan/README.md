@@ -18,11 +18,11 @@ conan remote list
 ```
 
 # Building includeos with dependencies from conan
-Build includeos using clang-5.0. if no CONAN_PROFILE is defined it will build using clang-5.0 by default.
+Build includeos using clang-6.0. if no CONAN_PROFILE is defined it will build using clang-6.0 by default.
 Passing ́`-DCONAN_DISABLE_CHECK_COMPILER` disables this check
 If the environment variable `INCLUDEOS_PREFIX` is set the install will install includeos almost like before.
 ```
-cmake -DCONAN_PROFILE=clang-5.0 <path to includeos repo>
+cmake -DCONAN_PROFILE=clang-6.0-linux-x86_64 <path to includeos repo>
 make
 make install
 ```
@@ -33,35 +33,24 @@ if you want to check if a package exists you can search for it
 
 # Getting started developing packages
 ## profile and depencencies
-Currently building works for clang-5/6 and gcc-7.3.0 and gcc-8.2.0 compiler toolchain. its expected that these are already installed in your systems. However we hope to provide toolchains in the future.
+Currently building works for clang-6 and gcc-7.3.0 compiler toolchain. It is expected that these are already installed in your system. However we hope to provide toolchains in the future.
 
-in your `~/.conan/profiles` folder create for instance a clang-6.0 profile for x86_64 looks something like the following. An `x86` profile is simply replacing the `arch=x86_64` arch to `arch=x86`. The toolchain version would be the same profile but without the `[build_requres]` section.
-```
-[build_requires]
-*: binutils/2.31@includeos/toolchain
-[settings]
-os=Linux
-os_build=Linux
-arch=x86_64
-arch_build=x86_64
-compiler=clang
-compiler.version=6.0
-compiler.libcxx=libstdc++11
-cppstd=17
-build_type=Release
-[options]
-[build_requires]
-[env]
-CC=clang-6.0
-CXX=clang++-6.0
-CFLAGS=-msse3 -mfpmath=sse
-CXXFLAGS=-msse3 -mfpmath=sse
-```
+The target profiles we have verified are the following:
+- [clang-6.0-linux-x86](profiles/clang-6.0-linux-x86)
+- [clang-6.0-linux-x86_64](profiles/clang-6.0-linux-x86_64)
+- [gcc-7.3.0-linux-x86_64](profiles/gcc-7.3.0-linux-x86_64)
+- [clang-6.0-macos-x86_64](profiles/clang-6.0-macos-x86_64)
 
-you can se yout list of profiles
-        `conan profile list`
-view the content by typing
-        `conan profile show <yourprofilename>`
+Copy these to your `~/.conan/profiles` folder to make them available to conan. An `x86` profile is simply replacing the `arch=x86_64` arch to `arch=x86`. The toolchain version would be the same profile but without the `[build_requres]` section.
+
+You can see your list of profiles
+```
+conan profile list
+```
+view the content by
+```
+conan profile show <yourprofilename>
+```
 ## building tools
 Binutils is a tool and not an actual part of the final binary by having it added in the profile the binaries are allway executable inside the conan env.
 

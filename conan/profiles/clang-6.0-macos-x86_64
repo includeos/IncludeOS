@@ -1,7 +1,7 @@
 [build_requires]
 [settings]
 os=Linux
-os_build=Linux
+os_build=Macos
 arch=x86_64
 arch_build=x86_64
 compiler=clang
@@ -11,7 +11,6 @@ cppstd=17
 build_type=Release
 [options]
 [env]
-CC=clang-6.0
-CXX=clang++-6.0
-CFLAGS=-msse3 -mfpmath=sse
-CXXFLAGS=-msse3 -mfpmath=sse
+# Brew install llvm@6
+CC=/usr/local/Cellar/llvm\@6/6.0.1_1/bin/clang
+CXX=/usr/local/Cellar/llvm\@6/6.0.1_1/bin/clang++

@@ -1,20 +1,17 @@
 [build_requires]
-binutils/2.31@includeos/tools
 [settings]
 os=Linux
 os_build=Linux
 arch=x86_64
 arch_build=x86_64
-arch_target=x86
 compiler=gcc
-compiler.version=8
-compiler.libcxx=libstdc++11
-build_type=Release
+compiler.version=7
+compiler.libcxx=libc++
 cppstd=17
+build_type=Release
 [options]
 [env]
-CC=gcc-8.2.0
-CXX=g++-8.2.0
+CC=gcc-7.3.0
+CXX=g++-7.3.0
 CFLAGS=-msse3 -mfpmath=sse
 CXXFLAGS=-msse3 -mfpmath=sse
-
