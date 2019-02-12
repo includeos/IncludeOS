@@ -13,14 +13,13 @@ pipeline {
   stages {
     stage('Setup') {
       steps {
-        sh 'rm -rf install || :'
-        sh 'mkdir install'
+        sh 'rm -rf install || : && mkdir install'
         sh 'cp conan/profiles/* ~/.conan/profiles/'
       }
     }
     stage('Build 64 bit') {
       steps {
-        sh 'rm -rf build_x86_64; mkdir build_x86_64'
+        sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
         sh "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 .."
         sh "cd build_x86_64; make -j $CPUS"
         sh 'cd build_x86_64; make install'
@@ -28,16 +27,27 @@ pipeline {
     }
     stage('Build 32 bit') {
       steps {
-        sh 'rm -rf build_x86; mkdir build_x86'
+        sh 'rm -rf build_x86 || : && mkdir build_x86'
         sh "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano .."
         sh "cd build_x86; make -j $CPUS"
         sh 'cd build_x86; make install'
       }
     }
 
-    stage('Test') {
+    stage('Unit tests') {
       steps {
-        echo "No tests so far"
+        sh 'rm -rf unittests || : && mkdir unittests'
+        sh 'cd unittests; cmake ../test'
+        sh "cd unittests; make -j $CPUS"
+        sh 'cd unittests; ctest'
+      }
+    }
+
+    stage('Code coverage') {
+      steps {
+        sh 'rm -rf coverage || : && mkdir coverage'
+        sh 'cd coverage; cmake -DCOVERAGE=ON ../test'
+        sh "cd coverage; make -j $CPUS"
       }
     }
 
