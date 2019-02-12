@@ -18,7 +18,6 @@
 #include <os>
 #include <statman>
 #include <hw/async_device.hpp>
-#include <drivers/usernet.hpp>
 #include <net/inet>
 #include <net/interfaces>
 static constexpr bool debug = false;

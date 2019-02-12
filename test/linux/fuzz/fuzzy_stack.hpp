@@ -1,7 +1,7 @@
 #pragma once
 #include <net/inet>
 #include <hw/async_device.hpp>
-#include <drivers/usernet.hpp>
+#include <hw/usernet.hpp>
 
 namespace fuzzy
 {

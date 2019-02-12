@@ -5,7 +5,6 @@ set(SOURCES
     main.cpp
     os.cpp
     profile.cpp
-    drivers/usernet.cpp
     drivers/memdisk.cpp
   )
 

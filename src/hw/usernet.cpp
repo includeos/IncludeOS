@@ -1,4 +1,4 @@
-#include "usernet.hpp"
+#include <hw/usernet.hpp>
 #include <hal/machine.hpp>
 
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
