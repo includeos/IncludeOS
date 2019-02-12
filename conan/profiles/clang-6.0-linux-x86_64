@@ -7,7 +7,7 @@ arch=x86_64
 arch_build=x86_64
 compiler=clang
 compiler.version=6.0
-compiler.libcxx=libstdc++11
+compiler.libcxx=libc++
 build_type=Release
 [options]
 [env]
