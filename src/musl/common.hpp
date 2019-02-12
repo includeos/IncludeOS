@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cstdio>
 #include <branch_prediction>
+#include <kernel.hpp>
 
 #define STUB(X) printf("<stubtrace> stubbed syscall %s  called\n", X)
 
@@ -12,6 +13,7 @@
 #endif
 
 constexpr bool __strace = ENABLE_STRACE;
+
 extern "C" void __serial_print(const char*, size_t);
 
 template <typename ...Args>
@@ -49,9 +51,7 @@ inline constexpr auto& pr_param(std::ostream& out,  L lhs, Args&&... rest){
 
 template <typename Ret, typename ...Args>
 inline void strace_print(const char* name, Ret ret, Args&&... args){
-  extern bool __libc_initialized;
-
-  if (not __libc_initialized)
+  if (not kernel::state().libc_initialized)
     return;
 
   std::stringstream out;

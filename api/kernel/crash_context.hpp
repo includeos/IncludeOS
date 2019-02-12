@@ -20,11 +20,8 @@
 
 #include <sys/types.h>
 
-extern "C" {
-
-  char*  get_crash_context_buffer();
-  size_t get_crash_context_length();
-}
+char*  get_crash_context_buffer();
+size_t get_crash_context_length();
 
 #ifndef SET_CRASH_CONTEXT
 // used to set a message that will be printed on crash the message is to
