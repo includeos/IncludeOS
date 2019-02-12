@@ -36,6 +36,7 @@ if you want to check if a package exists you can search for it
 Currently building works for clang-6 and gcc-7.3.0 compiler toolchain. It is expected that these are already installed in your system. However we hope to provide toolchains in the future.
 
 The target profiles we have verified are the following:
+- [clang-6.0-linux-x86](profiles/clang-6.0-linux-x86)
 - [clang-6.0-linux-x86_64](profiles/clang-6.0-linux-x86_64)
 - [gcc-7.3.0-linux-x86_64](profiles/gcc-7.3.0-linux-x86_64)
 - [clang-6.0-macos-x86_64](profiles/clang-6.0-macos-x86_64)
