@@ -1,5 +1,5 @@
 [build_requires]
-binutils/2.31@includeos/test
+binutils/2.31@includeos/toolchain
 [settings]
 os=Linux
 os_build=Linux
