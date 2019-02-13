@@ -88,8 +88,12 @@ namespace kernel {
     return state().panics;
   }
 
-  inline os::Panic_action panic_action() {
+  inline os::Panic_action panic_action() noexcept {
     return state().panic_action;
+  }
+
+  inline void set_panic_action(os::Panic_action action) noexcept {
+    state().panic_action = action;
   }
 
   using ctor_t = void (*)();
