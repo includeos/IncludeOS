@@ -33,7 +33,6 @@ pipeline {
         sh 'cd build_x86; make install'
       }
     }
-
     stage('Unit tests') {
       steps {
         sh 'rm -rf unittests || : && mkdir unittests'
@@ -42,14 +41,12 @@ pipeline {
         sh 'cd unittests; ctest'
       }
     }
-
     stage('Code coverage') {
       steps {
         sh 'rm -rf coverage || : && mkdir coverage'
-        sh 'cd coverage; cmake -DCOVERAGE=ON ../test'
-        sh "cd coverage; make -j $CPUS"
+        sh 'cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test'
+        sh "cd coverage; env CC=gcc CXX=g++ make -j $CPUS"
       }
     }
-
   }
 }
