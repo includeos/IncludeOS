@@ -169,6 +169,11 @@ void os::add_stdout(os::print_func func)
 {
   os_print_handlers.push_back(func);
 }
+
+void os::default_stdout(const char* str, size_t len)
+{
+  kernel::default_stdout(str, len);
+}
 __attribute__((weak))
 bool os_enable_boot_logging = false;
 __attribute__((weak))
