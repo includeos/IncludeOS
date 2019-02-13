@@ -41,6 +41,10 @@ bool LiveUpdate::is_resumable(const void* location)
 {
   return ((const storage_header*) location)->validate();
 }
+bool LiveUpdate::os_is_liveupdated() noexcept
+{
+  return kernel::state().is_live_updated;
+}
 
 static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
 {
