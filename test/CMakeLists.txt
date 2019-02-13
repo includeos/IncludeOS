@@ -99,6 +99,7 @@ conan_cmake_run(
     rapidjson/1.1.0@includeos/test
     GSL/2.0.0@includeos/test
     lest/1.33.5@includeos/test
+    openssl/1.1.1@includeos/test
     BASIC_SETUP
     ${CONAN_UPDATE}
 )
@@ -349,7 +350,7 @@ if (COVERAGE)
       COMMAND ctest
       DEPENDS ${TEST_BINARIES}
     )
-    
+
     #generate coverage for the excuted code.. TODO make it run all the code ?
     add_custom_target(coverage_executed
       COMMENT "Generating executed coverage"
