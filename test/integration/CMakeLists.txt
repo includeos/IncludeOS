@@ -1,4 +1,4 @@
-
+cmake_minimum_required(VERSION 3.10)
 
 #to avoid parameters getting mixed between different tests ?
 #or does the new "OS cmake fix this.. so we can build many ?"
@@ -34,8 +34,6 @@ set(HW_TESTS
   vga 20
   virtio_queue 20
 )
-
-cmake_minimum_required(VERSION 3.12)
 
 option(STRESS "Enable includeos stress test" OFF)
 project(IntegrationTests)
