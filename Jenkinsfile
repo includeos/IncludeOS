@@ -48,5 +48,12 @@ pipeline {
         sh "cd coverage; env CC=gcc CXX=g++ make -j $CPUS"
       }
     }
+    stage('Integration tests') {
+      sh 'rm -rf integration || : && mkdir integration'
+      sh 'cd integration; cmake ../test/integration'
+      sh "cd integration; make -j $CPUS"
+      // TODO: Run the integration tests
+      // sh 'cd integration; ctest'
+    }
   }
 }
