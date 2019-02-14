@@ -89,7 +89,7 @@ void Service::start()
       });
   });
 
-  printf("*** Linux userspace TCP demo started ***\n");
+  printf("*** Userspace TCP benchmark started ***\n");
 
   printf("Measuring memory <-> memory bandwidth...\n");
   inet_client.tcp().connect({net::ip4::Addr{"10.0.0.42"}, 80},
