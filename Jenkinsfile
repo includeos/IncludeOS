@@ -50,10 +50,12 @@ pipeline {
       }
     }
     stage('Integration tests') {
-      sh 'rm -rf integration || : && mkdir integration'
-      sh 'cd integration; cmake ../test/integration'
-      sh "cd integration; make -j $CPUS"
-      sh 'cd integration; ctest'
+      steps {
+        sh 'rm -rf integration || : && mkdir integration'
+        sh 'cd integration; cmake ../test/integration'
+        sh "cd integration; make -j $CPUS"
+        sh 'cd integration; ctest'
+      }
     }
   }
 }
