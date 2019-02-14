@@ -164,7 +164,7 @@ else()
   endif()
 endif()
 if (LIBFUZZER)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=fuzzer -stdlib=libc++")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=fuzzer")
 endif()
 
 if (STRIP_BINARY)
