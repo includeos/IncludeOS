@@ -44,7 +44,7 @@ using namespace liu;
 
 static void store_func(Storage& storage, const buffer_t* blob)
 {
-  timestamps.push_back(OS::nanos_since_boot());
+  timestamps.push_back(os::nanos_since_boot());
   storage.add_vector(0, timestamps);
   assert(blob != nullptr);
   storage.add_buffer(2, *blob);
@@ -65,7 +65,7 @@ static void restore_func(Restore& thing)
   timestamps = thing.as_vector<uint64_t>(); thing.go_next();
   // calculate time spent
   auto t1 = timestamps.back();
-  auto t2 = OS::nanos_since_boot();
+  auto t2 = os::nanos_since_boot();
   // set final time
   timestamps.back() = t2 - t1;
   // retrieve binary blob
@@ -135,5 +135,5 @@ void Service::start()
 
   delete[] kernel;
   delete[] liu_storage_area;
-  OS::shutdown();
+  os::shutdown();
 }

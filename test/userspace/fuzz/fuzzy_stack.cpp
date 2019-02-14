@@ -87,9 +87,6 @@ namespace fuzzy
         fuzzer.fill_remaining(tcp_layer);
         break;
       }
-    case TCP_CONNECTION:
-      //
-      break;
     case ICMP6:
       {
         const net::ip6::Addr src {fuzzer.steal64(), fuzzer.steal64()};

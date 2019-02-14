@@ -1,4 +1,7 @@
 #! /bin/bash
+set -e
 echo -e "\n>>> Running service with profile-guided optimizations"
-source lxp-run pgo-gen
-source lxp-run pgo-use
+source lxp-run -DPGO_ENABLE=ON -DPGO_GENERATE=ON
+# TODO: figure out if we are using clang or gcc as this is only for clang
+#llvm-profdata merge -output build/default.profdata build/default.profraw
+source lxp-run -DPGO_ENABLE=ON -DPGO_GENERATE=OFF

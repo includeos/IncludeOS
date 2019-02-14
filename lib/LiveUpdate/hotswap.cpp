@@ -27,7 +27,8 @@ asm(".org 0x8000");
 #define SOFT_RESET_MAGIC   0xFEE1DEAD
 
 extern "C" HOTS_ATTR
-void hotswap(const char* base, int len, char* dest, void* start, void* reset_data)
+void hotswap(char* dest, const char* base, int len,
+             void* start, void* reset_data)
 {
   // remainder
   for (int i = 0; i < len; i++)

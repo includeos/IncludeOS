@@ -1,5 +1,8 @@
 #include <net/interfaces>
 #include <net/ws/connector.hpp>
+#include "fuzzy_helpers.hpp"
+#include "fuzzy_http.hpp"
+#include "fuzzy_stream.hpp"
 
 extern http::Response_ptr handle_request(const http::Request&);
 static struct upper_layer
@@ -15,7 +18,7 @@ static bool accept_client(net::Socket remote, std::string origin)
   return true;
 }
 
-void fuzzy_webserver(const uint8_t* data, size_t size)
+void fuzzy_http(const uint8_t* data, size_t size)
 {
   // Upper layer fuzzing using fuzzy::Stream
   auto& inet = net::Interfaces::get(0);
@@ -24,7 +27,6 @@ void fuzzy_webserver(const uint8_t* data, size_t size)
     init_http = true;
     // server setup
     httpd.server = new fuzzy::HTTP_server(inet.tcp());
-    /*
     httpd.server->on_request(
       [] (http::Request_ptr request,
           http::Response_writer_ptr response_writer)
@@ -32,7 +34,38 @@ void fuzzy_webserver(const uint8_t* data, size_t size)
         response_writer->set_response(handle_request(*request));
         response_writer->write();
       });
-    */
+    httpd.server->listen(80);
+  }
+  fuzzy::FuzzyIterator fuzzer{data, size};
+  // create HTTP stream
+  const net::Socket local  {inet.ip_addr(), 80};
+  const net::Socket remote {{10,0,0,1}, 1234};
+  auto http_stream = std::make_unique<fuzzy::Stream> (local, remote,
+    [] (net::Stream::buffer_t buffer) {
+      //printf("Received %zu bytes on fuzzy stream\n%.*s\n",
+      //      buffer->size(), (int) buffer->size(), buffer->data());
+      (void) buffer;
+    });
+  auto* test_stream = http_stream.get();
+  httpd.server->add(std::move(http_stream));
+  // random websocket stuff
+  auto buffer = net::Stream::construct_buffer();
+  fuzzer.insert(buffer, fuzzer.size);
+  test_stream->give_payload(std::move(buffer));
+
+  // close stream from our end
+  test_stream->transport_level_close();
+}
+
+void fuzzy_websocket(const uint8_t* data, size_t size)
+{
+  // Upper layer fuzzing using fuzzy::Stream
+  auto& inet = net::Interfaces::get(0);
+  static bool init_http = false;
+  if (UNLIKELY(init_http == false)) {
+    init_http = true;
+    // server setup
+    httpd.server = new fuzzy::HTTP_server(inet.tcp());
     // websocket setup
     httpd.ws_serve = new net::WS_server_connector(
       [] (net::WebSocket_ptr ws)
@@ -89,7 +122,6 @@ void fuzzy_webserver(const uint8_t* data, size_t size)
   buffer = net::Stream::construct_buffer();
   fuzzer.insert(buffer, fuzzer.size);
   test_stream->give_payload(std::move(buffer));
-
 
   // close stream from our end
   test_stream->transport_level_close();

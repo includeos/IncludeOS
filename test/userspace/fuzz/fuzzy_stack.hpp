@@ -1,7 +1,7 @@
 #pragma once
 #include <net/inet>
 #include <hw/async_device.hpp>
-#include <drivers/usernet.hpp>
+#include <hw/usernet.hpp>
 
 namespace fuzzy
 {
@@ -12,7 +12,6 @@ namespace fuzzy
     ETH,
     IP4,
     TCP,
-    TCP_CONNECTION,
     UDP,
     IP6,
     ICMP6,

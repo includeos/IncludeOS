@@ -1,4 +1,4 @@
-set(IOS ${CMAKE_SOURCE_DIR}/..)
+set(IOS $ENV{INCLUDEOS_SRC})
 
 set(NET_SOURCES
   ${IOS}/src/net/addr.cpp
@@ -88,6 +88,7 @@ set(OS_SOURCES
     ${IOS}/src/fs/filesystem.cpp
     ${IOS}/src/fs/mbr.cpp
     ${IOS}/src/fs/path.cpp
+    ${IOS}/src/hw/usernet.cpp
     ${IOS}/src/hal/machine.cpp
     ${IOS}/src/kernel/cpuid.cpp
     ${IOS}/src/kernel/events.cpp
@@ -104,8 +105,9 @@ set(OS_SOURCES
     ${IOS}/src/util/statman.cpp
     ${IOS}/src/util/path_to_regex.cpp
     ${IOS}/src/util/percent_encoding.cpp
-    #${IOS}/src/util/pmr_default.cpp
     ${IOS}/src/util/uri.cpp
+    # remove this on clang < 9.0
+    #${IOS}/src/util/pmr_default.cpp
   )
 
 set(MOD_SOURCES
@@ -148,6 +150,7 @@ target_include_directories(includeos PUBLIC
     ${IOS}/mod/rapidjson/include
     $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
   )
+set_source_files_properties("${IOS}/src/version.cpp" PROPERTIES COMPILE_DEFINITIONS OS_VERSION="4")
 
 add_library(http_parser STATIC "${IOS}/mod/http-parser/http_parser.c")
 set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE C)
@@ -167,6 +170,6 @@ target_include_directories(microlb PUBLIC
     $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
   )
 
-install(TARGETS includeos   DESTINATION includeos/linux)
-install(TARGETS http_parser DESTINATION includeos/linux)
-install(TARGETS liveupdate microlb DESTINATION includeos/linux)
+#install(TARGETS includeos   DESTINATION includeos/linux)
+#install(TARGETS http_parser DESTINATION includeos/linux)
+#install(TARGETS liveupdate microlb DESTINATION includeos/linux)

@@ -10,8 +10,6 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)
 export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST:-OFF}
-# Enable building of the Linux platform (default: OFF)
-export INCLUDEOS_ENABLE_LXP=${INCLUDEOS_ENABLE_LXP:-OFF}
 # Set CPU-architecture (default x86_64)
 export ARCH=${ARCH:-x86_64}
 # Enable threading
@@ -177,7 +175,6 @@ printf "    %-25s %-25s %s\n"\
 	   "INCLUDEOS_PREFIX" "Install location" "$INCLUDEOS_PREFIX"\
 	   "ARCH" "CPU Architecture" "$ARCH"\
 	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"\
-     "INCLUDEOS_ENABLE_LXP" "Linux Userspace platform" "$INCLUDEOS_ENABLE_LXP"\
 	   "INCLUDEOS_THREADING" "Enable threading / SMP" "$INCLUDEOS_THREADING"
 
 # Give user option to evaluate install options
@@ -252,22 +249,6 @@ if ! ./etc/build_chainloader.sh; then
   exit 1
 fi
 
-
-# Install Linux platform
-if [ "$INCLUDEOS_ENABLE_LXP" = "ON" ]; then
-  printf "\n\n>>> Installing Linux Userspace platform\n"
-  pushd linux
-    mkdir -p build
-    pushd build
-      set -e
-      CXX=g++-7 CC=gcc-7 cmake .. -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX
-      make ${num_jobs:="-j 4"} install
-      set +e
-    popd
-  popd
-else
-  printf "\n\n>>> Not installing Linux Userspace platform\n"
-fi
 
 ############################################################
 # INSTALL FINISHED:

@@ -7,9 +7,10 @@ set(COMMON "-g -O2 -march=native -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON}")
 
+option(BUILD_PLUGINS "Build all plugins as libraries" OFF)
+option(DEBUGGING    "Enable debugging" OFF)
 option(PORTABLE     "Enable portable TAP-free userspace" ON)
 option(LIBCPP       "Enable libc++" OFF)
-option(DEBUGGING    "Enable debugging" OFF)
 option(PERFORMANCE  "Enable performance mode" OFF)
 option(GPROF        "Enable profiling with gprof" OFF)
 option(PGO_ENABLE   "Enable guided profiling (PGO)" OFF)
@@ -22,7 +23,7 @@ option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
 option(ENABLE_S2N   "Enable building a local s2n" OFF)
 option(STATIC_BUILD "Build a portable static executable" ON)
 option(STRIP_BINARY "Strip final binary to reduce size" ON)
-option(USE_LLD "Allow linking against LTO archives" ON)
+option(USE_LLD "Allow linking against LTO archives" OFF)
 
 if(DEBUGGING)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
@@ -33,10 +34,10 @@ endif()
 if (ENABLE_LTO)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
-    set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
-    set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto=thin")
   endif()
 endif()
 
@@ -45,10 +46,21 @@ if(GPROF)
 endif()
 
 if (PGO_ENABLE)
-  if (PGO_GENERATE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-dir=$ENV{HOME}/pgo -fprofile-generate")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set (PROF_LOCATION "${CMAKE_BINARY_DIR}/pgo")
+    file(MAKE_DIRECTORY ${PROF_LOCATION})
+    if (PGO_GENERATE)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-dir=${PROF_LOCATION} -fprofile-generate")
+    else()
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-dir=${PROF_LOCATION} -fprofile-use")
+    endif()
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-dir=$ENV{HOME}/pgo -fprofile-use")
+    set (PROF_LOCATION "${CMAKE_BINARY_DIR}")
+    if (PGO_GENERATE)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate=${PROF_LOCATION}/default.profraw")
+    else()
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-use=${PROF_LOCATION}/default.profdata")
+    endif()
   endif()
 endif()
 
@@ -84,64 +96,28 @@ if (PORTABLE)
 	add_definitions(-DPORTABLE_USERSPACE)
 endif()
 
-set(IOSPATH $ENV{INCLUDEOS_PREFIX}/includeos)
-set(IOSLIBS ${IOSPATH}/${ARCH}/lib)
+set(IOSPATH $ENV{INCLUDEOS_SRC})
+set(IOSLIBS $ENV{INCLUDEOS_PREFIX}/${ARCH}/lib)
 
-# includes
-include_directories(${LOCAL_INCLUDES})
-include_directories(${IOSPATH}/${ARCH}/include)
-include_directories(${IOSPATH}/api)
-include_directories(${IOSPATH}/include)
-include_directories(${IOSPATH}/linux)
-include_directories(${IOSPATH}/../include)
+# IncludeOS userspace
+add_subdirectory(${IOSPATH}/userspace   userspace)
 
 # linux executable
 add_executable(service ${SOURCES} ${IOSPATH}/src/service_name.cpp)
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
+
+target_include_directories(service PUBLIC
+    ${IOSPATH}/api
+    ${IOSPATH}/mod/GSL
+    ${LOCAL_INCLUDES}
+  )
 
 set(LPATH ${IOSPATH}/linux)
 set(PLUGIN_LOC "${IOSPATH}/linux/plugins")
 set(DRIVER_LOC "${IOSPATH}/${ARCH}/drivers")
 
 # IncludeOS plugins
-set(PLUGINS_LIST)
-function(configure_plugin type name path)
-  add_library(${type}_${name} STATIC IMPORTED)
-  set_target_properties(${type}_${name} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${type}_${name} PROPERTIES IMPORTED_LOCATION ${path})
-  set(PLUGINS_LIST ${PLUGINS_LIST} -Wl,--whole-archive ${type}_${name} -Wl,--no-whole-archive PARENT_SCOPE)
-endfunction()
-foreach(PNAME ${PLUGINS})
-  set(PPATH "${PLUGIN_LOC}/lib${PNAME}.a")
-  message(STATUS "Enabling plugin: ${PNAME} --> ${PPATH}")
-  configure_plugin("plugin" ${PNAME} ${PPATH})
-endforeach()
-foreach(DNAME ${DRIVERS})
-  set(DPATH "${DRIVER_LOC}/lib${DNAME}.a")
-  message(STATUS "Enabling driver: ${DNAME} --> ${DPATH}")
-  configure_plugin("driver" ${DNAME} ${DPATH})
-endforeach()
-
-# static imported libraries
-add_library(linuxrt STATIC IMPORTED)
-set_target_properties(linuxrt PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(linuxrt PROPERTIES IMPORTED_LOCATION ${LPATH}/liblinuxrt.a)
-
-add_library(includeos STATIC IMPORTED)
-set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(includeos PROPERTIES IMPORTED_LOCATION ${LPATH}/libincludeos.a)
-
-add_library(liveupdate STATIC IMPORTED)
-set_target_properties(liveupdate PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(liveupdate PROPERTIES IMPORTED_LOCATION ${LPATH}/libliveupdate.a)
-
-add_library(microlb STATIC IMPORTED)
-set_target_properties(microlb PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(microlb PROPERTIES IMPORTED_LOCATION ${LPATH}/libmicrolb.a)
-
-add_library(http_parser STATIC IMPORTED)
-set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${LPATH}/libhttp_parser.a)
+# TODO: implement me
 
 if (CUSTOM_BOTAN)
   set(BOTAN_LIBS /usr/local/lib/libbotan-2.a)
@@ -180,11 +156,15 @@ if (STATIC_BUILD)
   set(BUILD_SHARED_LIBRARIES OFF)
 endif()
 
-if (ENABLE_LTO OR USE_LLD)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # use system linker
+else()
+  if (ENABLE_LTO OR USE_LLD)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+  endif()
 endif()
 if (LIBFUZZER)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=fuzzer -stdlib=libc++")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=fuzzer")
 endif()
 
 if (STRIP_BINARY)

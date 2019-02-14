@@ -40,7 +40,7 @@ static const int ELF_MINIMUM = 164;
 // hotswapping functions
 extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
-extern "C" void  hotswap(const char*, int, char*, uint32_t, void*);
+extern "C" void  hotswap(char*, const char*, int, void*, void*);
 extern "C" char  __hotswap_length;
 extern "C" void  hotswap64(char*, const char*, int, uint32_t, void*, void*);
 extern uint32_t  hotswap64_len;
@@ -115,13 +115,13 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
       throw std::runtime_error("Buffer too small to be valid ELF");
   const char* update_area  = blob.data();
   char* storage_area = (char*) location;
-  const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
 
   // validate not overwriting heap, kernel area and other things
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
 #if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
+  const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
   // NOTE: on linux the heap location is randomized,
   // so we could compare against that but: How to get the heap base address?
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
@@ -221,7 +221,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // save ourselves if function passed
   update_store_data(storage_area, &blob);
 
-#ifndef PLATFORM_UNITTEST
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
   // 2. flush all NICs
   for(auto& nic : os::machine().get<hw::Nic>())
     nic.get().flush();
@@ -259,7 +259,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 # elif defined(PLATFORM_UNITTEST)
   throw liveupdate_exec_success();
 # elif defined(USERSPACE_KERNEL)
-  hotswap(bin_data, bin_len, phys_base, start_offset, sr_data);
+  hotswap(phys_base, bin_data, bin_len, (void*) (uintptr_t) start_offset, sr_data);
   throw liveupdate_exec_success();
 # elif defined(ARCH_x86_64)
     // change to simple pagetable
@@ -282,7 +282,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
   /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
+  ((decltype(&hotswap)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, (void*) start_offset, sr_data);
 }
 void LiveUpdate::restore_environment()
 {
