@@ -36,7 +36,7 @@ pipeline {
     stage('Unit tests') {
       steps {
         sh 'rm -rf unittests || : && mkdir unittests'
-        sh 'cd unittests; cmake ../test'
+        sh 'cd unittests; env CC=gcc CXX=g++ cmake ../test'
         sh "cd unittests; make -j $CPUS"
         sh 'cd unittests; ctest'
       }
@@ -45,7 +45,7 @@ pipeline {
       steps {
         sh 'rm -rf coverage || : && mkdir coverage'
         sh 'cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test'
-        sh "cd coverage; env CC=gcc CXX=g++ make -j $CPUS"
+        sh "cd coverage; make -j $CPUS"
       }
     }
     stage('Integration tests') {
