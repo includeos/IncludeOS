@@ -148,8 +148,10 @@ void kernel::post_start()
   // the boot sequence is over when we get to plugins/Service::start
   kernel::state().boot_sequence_passed = true;
 
+#ifndef __MACH__
     // Run service constructors
   kernel::run_ctors(&__service_ctors_start, &__service_ctors_end);
+#endif
 
   PROFILE("Service::start");
   // begin service start
