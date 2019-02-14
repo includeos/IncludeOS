@@ -18,5 +18,7 @@ set(SOURCES
   )
 
 option(ENABLE_S2N "" ON)
+option(STATIC_BUILD "" OFF)
+option(STRIP_BINARY "" OFF)
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/linux.service.cmake)

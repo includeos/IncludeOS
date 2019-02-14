@@ -4,7 +4,6 @@
 #include <kernel/timers.hpp>
 #include <system_log>
 #include <sys/time.h>
-#include <malloc.h> // mallinfo()
 #include <unistd.h>
 #ifndef PORTABLE_USERSPACE
 #include <sched.h>
