@@ -12,9 +12,9 @@ Add the IncludeOS-Develop conan Artifactory repo
 ```
 conan remote add includeos-develop https://api.bintray.com/conan/kristianj/IncludeOS-devel
 ```
-You can list remotes with
+The following dependencies are required when building:
 ```
-conan remote list
+apt install cmake gcc-7 g++-multilib clang-6.0 libssl-dev lcov
 ```
 
 # Building includeos with dependencies from conan
