@@ -21,7 +21,7 @@ import validate_tests
 startdir = os.getcwd()
 
 test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']
-test_types = ['integration', 'stress', 'unit', 'misc', 'linux']
+test_types = ['integration', 'stress', 'unit', 'misc', 'userspace']
 
 """
 Script used for running all the valid tests in the terminal.
@@ -86,9 +86,9 @@ class Test:
             self.category_ = 'misc'
             self.type_ = 'misc'
             self.command_ = ['./test.sh']
-        elif self.path_.split("/")[1] == 'linux':
-            self.category_ = 'linux'
-            self.type_ = 'linux'
+        elif self.path_.split("/")[1] == 'userspace':
+            self.category_ = 'userspace'
+            self.type_ = 'userspace'
             self.command_ = ['./test.sh']
         elif self.path_ == 'mod/gsl':
             self.category_ = 'mod'
@@ -215,8 +215,8 @@ class Test:
             self.skip_reason_ = None
             return
 
-        # Linux tests only need a test.sh
-        if self.type_ == "linux":
+        # Userspace tests only need a test.sh
+        if self.type_ == "userspace":
             for f in ["CMakeLists.txt", "test.sh"]:
                 if not os.path.isfile(self.path_ + "/" + f):
                     self.skip_ = True
@@ -386,7 +386,7 @@ def find_test_folders():
 
         # Only look in folders listed as a test category
         if directory in test_types:
-            if directory == 'misc' or directory == 'linux':
+            if directory == 'misc' or directory == 'userspace':
                 # For each subfolder in misc, register test
                 for subdir in os.listdir("/".join(path)):
                     path.append(subdir)
@@ -537,7 +537,7 @@ def main():
     integration_result = integration_tests([x for x in filtered_tests if x.type_ == "integration"])
     stress_result = stress_test([x for x in filtered_tests if x.type_ == "stress"])
     misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"], "misc")
-    linux_result = misc_working([x for x in filtered_tests if x.type_ == "linux"], "linux platform")
+    linux_result = misc_working([x for x in filtered_tests if x.type_ == "userspace"], "Userspace platform")
 
     # Print status from test run
     status = max(integration_result, stress_result, misc_result, linux_result)
