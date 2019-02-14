@@ -23,6 +23,9 @@
 #include <cassert>
 #include <smp>
 #include <cstddef>
+#ifdef __MACH__
+extern void* aligned_alloc(size_t alignment, size_t size);
+#endif
 //#define DEBUG_BUFSTORE
 
 #ifdef DEBUG_BUFSTORE
