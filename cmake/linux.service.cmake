@@ -124,17 +124,28 @@ if (CUSTOM_BOTAN)
   target_link_libraries(service ${BOTAN_LIBS} -ldl -pthread)
 endif()
 if (ENABLE_S2N)
+  find_package(OpenSSL REQUIRED)
+  include(ExternalProject)
+  ExternalProject_add(libs2n
+      URL https://github.com/fwsGonzo/s2n_bundle/releases/download/v1.4/libs2n.a
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND     ""
+      INSTALL_COMMAND   ""
+      DOWNLOAD_NAME libs2n.a
+      DOWNLOAD_NO_EXTRACT 1
+  )
+
   add_library(s2n STATIC IMPORTED)
   set_target_properties(s2n PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(s2n PROPERTIES IMPORTED_LOCATION ${IOSLIBS}/libs2n.a)
+  set_target_properties(s2n PROPERTIES IMPORTED_LOCATION libs2n-prefix/src/libs2n.a)
   add_library(crypto STATIC IMPORTED)
   set_target_properties(crypto PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(crypto PROPERTIES IMPORTED_LOCATION ${IOSLIBS}/libcrypto.a)
+  set_target_properties(crypto PROPERTIES IMPORTED_LOCATION libcrypto.a)
   add_library(openssl STATIC IMPORTED)
   set_target_properties(openssl PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(openssl PROPERTIES IMPORTED_LOCATION ${IOSLIBS}/libssl.a)
+  set_target_properties(openssl PROPERTIES IMPORTED_LOCATION libssl.a)
 
-  set(S2N_LIBS s2n openssl crypto)
+  set(S2N_LIBS s2n OpenSSL::SSL)
   target_link_libraries(service ${S2N_LIBS} -ldl -pthread)
 endif()
 target_link_libraries(service ${PLUGINS_LIST})
