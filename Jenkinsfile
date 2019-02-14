@@ -17,6 +17,14 @@ pipeline {
         sh 'cp conan/profiles/* ~/.conan/profiles/'
       }
     }
+    stage('Unit tests') {
+      steps {
+        sh 'rm -rf unittests || : && mkdir unittests'
+        sh 'cd unittests; env CC=gcc CXX=g++ cmake ../test'
+        sh "cd unittests; make -j $CPUS"
+        sh 'cd unittests; ctest'
+      }
+    }
     stage('Build 64 bit') {
       steps {
         sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
@@ -31,14 +39,6 @@ pipeline {
         sh "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano .."
         sh "cd build_x86; make -j $CPUS"
         sh 'cd build_x86; make install'
-      }
-    }
-    stage('Unit tests') {
-      steps {
-        sh 'rm -rf unittests || : && mkdir unittests'
-        sh 'cd unittests; env CC=gcc CXX=g++ cmake ../test'
-        sh "cd unittests; make -j $CPUS"
-        sh 'cd unittests; ctest'
       }
     }
     stage('Code coverage') {
