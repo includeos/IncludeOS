@@ -150,7 +150,7 @@ if (ENABLE_S2N)
 endif()
 target_link_libraries(service ${PLUGINS_LIST})
 target_link_libraries(service includeos linuxrt microlb liveupdate
-                      includeos linuxrt http_parser rt)
+                      includeos linuxrt http_parser)
 target_link_libraries(service ${EXTRA_LIBS})
 if (CUSTOM_BOTAN)
   target_link_libraries(service ${BOTAN_LIBS})
