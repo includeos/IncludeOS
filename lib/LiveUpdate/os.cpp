@@ -32,6 +32,10 @@ void kernel::setup_liveupdate(uintptr_t phys)
     PRATTLE("Deferring setup because too early\n");
     temp_phys = phys; return;
   }
+  else {
+    PRATTLE("Using temp at %p\n", (void*) temp_phys);
+    phys = temp_phys;
+  }
   if (kernel::state().liveupdate_loc != 0) return;
   PRATTLE("New virtual move heap_max: %p\n", (void*) OS::heap_max());
 
