@@ -53,8 +53,7 @@ pipeline {
       sh 'rm -rf integration || : && mkdir integration'
       sh 'cd integration; cmake ../test/integration'
       sh "cd integration; make -j $CPUS"
-      // TODO: Run the integration tests
-      // sh 'cd integration; ctest'
+      sh 'cd integration; ctest'
     }
   }
 }
