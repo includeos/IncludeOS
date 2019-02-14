@@ -10,7 +10,7 @@ Profiles can be found in conan/profiles folder in the IncludeOS repository and i
 
 Add the IncludeOS-Develop conan Artifactory repo
 ```
-conan remote add includeos-develop https://api.bintray.com/conan/kristianj/IncludeOS-devel
+conan remote add includeos-test https://api.bintray.com/conan/includeos/test-packages
 ```
 The following dependencies are required when building:
 ```
