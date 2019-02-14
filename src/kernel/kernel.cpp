@@ -130,9 +130,11 @@ void kernel::post_start()
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
+#ifndef __MACH__
   // Custom initialization functions
   MYINFO("Initializing plugins");
   kernel::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
+#endif
 
   // Run plugins
   PROFILE("Plugins init");
