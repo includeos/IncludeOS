@@ -46,6 +46,7 @@ pipeline {
         sh 'rm -rf coverage || : && mkdir coverage'
         sh 'cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test'
         sh "cd coverage; make -j $CPUS"
+        sh 'cd coverage; make coverage'
       }
     }
     stage('Integration tests') {
