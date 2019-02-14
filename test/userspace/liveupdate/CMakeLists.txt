@@ -4,6 +4,9 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 project (service C CXX)
 
+option(STRIP_BINARY "" OFF)
+option(STATIC_BUILD "" OFF) # avoid compiler bug
+
 # Human-readable name of your service
 set(SERVICE_NAME "Linux userspace LiveUpdate test")
 
