@@ -59,16 +59,13 @@ static std::string now()
 
 static void print_heap_info()
 {
-  static intptr_t last = 0;
+  static auto last = os::total_memuse();
   // show information on heap status, to discover leaks etc.
-  auto heap_begin = OS::heap_begin();
-  auto heap_end   = OS::heap_end();
-  auto heap_usage = OS::heap_usage();
-  intptr_t heap_size = heap_end - heap_begin;
-  auto diff = heap_size - last;
-  printf("Heap size %lu Kb  diff %ld (%ld Kb)  usage  %lu kB\n",
-        heap_size / 1024, diff, diff / 1024, heap_usage / 1024);
-  last = (int32_t) heap_size;
+  auto heap_usage = os::total_memuse();
+  auto diff = heap_usage - last;
+  printf("Mem usage %zu Kb  diff %zu (%zu Kb)\n",
+        heap_usage / 1024, diff, diff / 1024);
+  last = heap_usage;
 }
 
 template <int N, typename T>

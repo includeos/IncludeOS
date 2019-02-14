@@ -25,6 +25,10 @@ os::Panic_action os::panic_action() noexcept {
   return kernel::panic_action();
 }
 
+void os::set_panic_action(Panic_action action) noexcept {
+  kernel::set_panic_action(action);
+}
+
 os::Span_mods os::modules()
 {
   auto* bootinfo_ = kernel::bootinfo();

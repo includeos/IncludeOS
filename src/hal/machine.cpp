@@ -31,7 +31,7 @@ using namespace util;
 
 // Reserve some machine memory for e.g. devices
 // (can still be used by heap as fallback).
-static constexpr auto reserve_mem = 1_MiB;
+static constexpr size_t reserve_mem = 1_MiB;
 
 // Max percent of memory reserved by machine
 static constexpr int  reserve_pct_max = 10;
@@ -73,12 +73,12 @@ namespace os {
 // Detail implementations
 namespace os::detail {
 
-  Machine::Machine(void* mem, size_t size)
+  Machine::Machine(void* raw_mem, size_t size)
     : mem_{
-        (void*) bits::align(Memory::align, (uintptr_t)mem),
-        size - (bits::align(Memory::align, (uintptr_t)mem) - (uintptr_t)mem)
+        (void*) bits::align(Memory::align, (uintptr_t)raw_mem),
+        size - (bits::align(Memory::align, (uintptr_t)raw_mem) - (uintptr_t)raw_mem)
       },
-      ptr_alloc_(mem_), parts_(ptr_alloc_)
+      ptr_alloc_(mem_), parts_(ptr_alloc_), device_types_(mem_)
   {
 #ifndef USERSPACE_KERNEL
     kprintf("[%s %s] constructor \n", arch(), name());
@@ -90,14 +90,12 @@ namespace os::detail {
     auto main_mem = memory().allocate_largest();
     MINFO("Main memory detected as %zu b\n", main_mem.size);
 
-    if (memory().bytes_free() < reserve_mem) {
-      if (main_mem.size > reserve_mem * (100 - reserve_pct_max)) {
-        main_mem.size -= reserve_mem;
-        auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve_mem;
-        memory().deallocate((void*)back, reserve_mem);
-        MINFO("Reserving %zu b for machine use \n", reserve_mem);
-      }
-    }
+    const auto percent = (main_mem.size / 100) * reserve_pct_max;
+    const auto reserve = std::min(reserve_mem, percent);
+    main_mem.size -= reserve;
+    auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve;
+    memory().deallocate((void*)back, reserve_mem);
+    MINFO("Reserving %zu b for machine use \n", reserve);
 
     kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
   }

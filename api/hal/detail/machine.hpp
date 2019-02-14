@@ -64,7 +64,8 @@ namespace os::detail {
     using Parts_alloc = const Allocator<Parts_ent>;
     using Parts_map   = Map<std::type_index, Parts_vec>;
     using Ptr_alloc   = const Allocator<void*>;
-    using Device_types = std::set<std::type_index>;
+    using Device_types = std::set<std::type_index, std::less<std::type_index>,
+                                  Allocator<std::type_index>>;
 
     template <typename T>
     struct Deleter {
@@ -197,13 +198,18 @@ namespace os {
 
   template <typename T>
   ssize_t Machine::add(std::unique_ptr<T> part) noexcept {
-    INFO("Machine", "Adding %s", demangle(typeid(T).name()).c_str());
-    return impl->add<T>(part.release(), detail::Machine::Part::Storage::heap);
+    try {
+      return impl->add<T>(part.release(), detail::Machine::Part::Storage::heap);
+    }
+    catch(const std::bad_alloc&) {
+      //printf("Bad alloc on insert free=%zu alloced=%zu\n",
+      //  memory().bytes_free(), memory().bytes_allocated());
+      return -1; // do we rather wanna throw here?
+    }
   }
 
   template <typename T, typename... Args>
   ssize_t Machine::add_new(Args&&... args) {
-    INFO("Machine", "Adding new %s", demangle(typeid(T).name()).c_str());
     return impl->add_new<T>(args...);
   }
 

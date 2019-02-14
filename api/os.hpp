@@ -118,6 +118,9 @@ namespace os {
   /** Add handler for standard output **/
   void add_stdout(print_func func);
 
+  /** The OS default stdout handler. TODO: try to remove me */
+  void default_stdout(const char*, size_t);
+
   /**
    *  Enable or disable automatic prepension of
    *  timestamps to all os::print calls
