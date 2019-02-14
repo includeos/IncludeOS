@@ -99,7 +99,6 @@ conan_cmake_run(
     rapidjson/1.1.0@includeos/test
     GSL/2.0.0@includeos/test
     lest/1.33.5@includeos/test
-    openssl/1.1.1@includeos/test
     BASIC_SETUP
     ${CONAN_UPDATE}
 )
