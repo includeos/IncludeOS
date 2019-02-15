@@ -184,7 +184,7 @@ __attribute__((weak))
 bool os_default_stdout = false;
 
 #include <isotime>
-bool contains(const char* str, size_t len, char c)
+static inline bool contains(const char* str, size_t len, char c)
 {
   for (size_t i = 0; i < len; i++) if (str[i] == c) return true;
   return false;

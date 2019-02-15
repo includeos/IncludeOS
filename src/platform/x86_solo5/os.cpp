@@ -1,12 +1,11 @@
 #include <os>
 
-#include <info>
-#include <smp>
-#include <statman>
 #include <kernel.hpp>
 #include <kernel/events.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/solo5_manager.hpp>
+//#include <smp>
+#include <info>
 
 extern "C" {
 #include <solo5/solo5.h>
@@ -16,15 +15,20 @@ extern "C" {
 static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
-extern uintptr_t _start;
-extern uintptr_t _end;
-extern uintptr_t mem_size;
+extern void __platform_init();
+extern char _end;
 extern char _ELF_START_;
 extern char _TEXT_START_;
 extern char _LOAD_START_;
 extern char _ELF_END_;
 // in kernel/os.cpp
 extern bool os_default_stdout;
+extern kernel::ctor_t __stdout_ctors_start;
+extern kernel::ctor_t __stdout_ctors_end;
+extern kernel::ctor_t __init_array_start;
+extern kernel::ctor_t __init_array_end;
+extern kernel::ctor_t __driver_ctors_start;
+extern kernel::ctor_t __driver_ctors_end;
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
@@ -48,7 +52,7 @@ uint64_t __arch_system_time() noexcept
 }
 timespec __arch_wall_clock() noexcept
 {
-  uint64_t stamp = solo5_clock_wall();
+  const uint64_t stamp = solo5_clock_wall();
   timespec result;
   result.tv_sec = stamp / 1000000000ul;
   result.tv_nsec = stamp % 1000000000ul;
@@ -78,14 +82,10 @@ void kernel::start(const char* cmdline)
   }
 
   PROFILE("Global stdout constructors");
-  extern kernel::ctor_t __stdout_ctors_start;
-  extern kernel::ctor_t __stdout_ctors_end;
   kernel::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
 
   // Call global ctors
   PROFILE("Global kernel constructors");
-  extern kernel::ctor_t __init_array_start;
-  extern kernel::ctor_t __init_array_end;
   kernel::run_ctors(&__init_array_start, &__init_array_end);
 
   PROFILE("");
@@ -122,14 +122,11 @@ void kernel::start(const char* cmdline)
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-  extern void __platform_init();
   __platform_init();
 
   MYINFO("Booted at monotonic_ns=%ld walltime_ns=%ld",
          solo5_clock_monotonic(), solo5_clock_wall());
 
-  extern kernel::ctor_t __driver_ctors_start;
-  extern kernel::ctor_t __driver_ctors_end;
   kernel::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
   Solo5_manager::init();
