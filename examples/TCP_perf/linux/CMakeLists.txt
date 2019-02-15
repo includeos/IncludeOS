@@ -4,6 +4,8 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 project (service C CXX)
 
+option(PORTABLE "" OFF)
+
 # Human-readable name of your service
 set(SERVICE_NAME "Linux TCP perf service")
 

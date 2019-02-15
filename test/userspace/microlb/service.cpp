@@ -54,6 +54,6 @@ void Service::start()
   balancer->nodes.on_session_close =
     [] (int idx, int current, int total) {
       printf("LB session closed %d (%d current, %d total)\n", idx, current, total);
-      if (total >= 5) OS::shutdown();
+      if (total >= 5) os::shutdown();
     };
 }

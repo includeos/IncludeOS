@@ -1,7 +1,8 @@
 #include "epoll_evloop.hpp"
 
 #include "drivers/tap_driver.hpp"
-#include "drivers/usernet.hpp"
+#include <hal/machine.hpp>
+#include <hw/usernet.hpp>
 #include <net/inet>
 #include <vector>
 
@@ -17,7 +18,7 @@ void create_network_device(int N, const char* ip)
   auto* usernet = new UserNet(1500);
   // register driver for superstack
   auto driver = std::unique_ptr<hw::Nic> (usernet);
-  hw::Devices::register_device<hw::Nic> (std::move(driver));
+  os::machine().add<hw::Nic> (std::move(driver));
   // connect driver to tap device
   usernet->set_transmit_forward(
     [tap] (net::Packet_ptr packet) {

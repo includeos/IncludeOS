@@ -96,6 +96,7 @@ set(OS_SOURCES
     ${IOS}/src/kernel/os.cpp
     ${IOS}/src/kernel/rdrand.cpp
     ${IOS}/src/kernel/rng.cpp
+    ${IOS}/src/kernel/service_stub.cpp
     ${IOS}/src/kernel/timers.cpp
     ${IOS}/src/util/async.cpp
     ${IOS}/src/util/autoconf.cpp
