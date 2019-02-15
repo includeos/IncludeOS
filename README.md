@@ -114,7 +114,7 @@ Take a look at the [examples](./examples) and the [tests](./test). These all sta
 
 ## Contributing to IncludeOS
 
-IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
+IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
 
