@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
-export CC=gcc-7
-export CXX=g++-7
+export CC=clang-6.0
+export CXX=clang++-6.0
 RUN=OFF $INCLUDEOS_PREFIX/bin/lxp-run
 
 if [ $? == 0 ]; then
