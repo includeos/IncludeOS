@@ -4,6 +4,9 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 project (service C CXX)
 
+option(PORTABLE "" OFF)
+option(ENABLE_S2N "" ON)
+
 # Human-readable name of your service
 set(SERVICE_NAME "Linux userspace microLB test")
 # Name of your service binary

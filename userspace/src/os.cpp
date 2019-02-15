@@ -40,19 +40,6 @@ void SMP::global_unlock() noexcept {}
 void SMP::add_task(SMP::task_func, int) {}
 void SMP::signal(int) {}
 
-#include <service>
-__attribute__((weak)) void Service::ready() {}
-__attribute__((weak)) void Service::stop() {}
-extern const char* service_name__;
-extern const char* service_binary_name__;
-const char* Service::name() {
-  return service_name__;
-}
-const char* Service::binary_name() {
-  return service_binary_name__;
-}
-
-
 // timer system
 static void begin_timer(std::chrono::nanoseconds) {}
 static void stop_timers() {}

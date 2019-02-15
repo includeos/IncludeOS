@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
-set -x
 NUM_JOBS=${NUM_JOBS:--j8}
 RUN=${RUN:-"ON"}
+AS_ROOT=${AS_ROOT:-"OFF"}
 
 function make_service() {
   mkdir -p build
@@ -22,9 +22,13 @@ make_service "$@"
 if [[ "$RUN" = "ON" ]]; then
   #sudo mknod /dev/net/tap c 10 200
   BINARY=build/"`cat build/binary.txt`"
+  # run with GDB
   if [[ "$DBG" = "ON" ]]; then
-    gdb $BINARY
-  else
-    $BINARY
+    BINARY="gdb $BINARY"
   fi
+  # run as root with sudo
+  if [[ "$AS_ROOT" = "ON" ]]; then
+    BINARY="sudo $BINARY"
+  fi
+  $BINARY
 fi
