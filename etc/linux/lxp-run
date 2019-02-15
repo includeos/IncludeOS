@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-set -x
 NUM_JOBS=${NUM_JOBS:--j8}
 RUN=${RUN:-"ON"}
 
