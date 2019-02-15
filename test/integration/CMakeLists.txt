@@ -11,11 +11,10 @@ cmake_minimum_required(VERSION 3.10)
 #TODO create a "single" list of tests ?
 
 #TODO enable pulling everything from conan..
-if(NOT DEFINED INCLUDEOS_PREFIX)
-  if (DEFINED ENV{INCLUDEOS_PREFIX})
-    message(FATAL_ERROR "IncludeOS prefix is required")
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
   else()
-    add_custom_target(IncludeOS)
     set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
   endif()
 endif()

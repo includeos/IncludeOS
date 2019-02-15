@@ -10,11 +10,11 @@ Profiles can be found in conan/profiles folder in the IncludeOS repository and i
 
 Add the IncludeOS-Develop conan Artifactory repo
 ```
-conan remote add includeos-develop https://api.bintray.com/conan/kristianj/IncludeOS-devel
+conan remote add includeos-test https://api.bintray.com/conan/includeos/test-packages
 ```
-You can list remotes with
+The following dependencies are required when building:
 ```
-conan remote list
+apt install cmake gcc-7 g++-multilib clang-6.0 libssl-dev lcov
 ```
 
 # Building includeos with dependencies from conan

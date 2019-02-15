@@ -17,6 +17,14 @@ pipeline {
         sh 'cp conan/profiles/* ~/.conan/profiles/'
       }
     }
+    stage('Unit tests') {
+      steps {
+        sh 'rm -rf unittests || : && mkdir unittests'
+        sh 'cd unittests; env CC=gcc CXX=g++ cmake ../test'
+        sh "cd unittests; make -j $CPUS"
+        sh 'cd unittests; ctest'
+      }
+    }
     stage('Build 64 bit') {
       steps {
         sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
@@ -33,27 +41,21 @@ pipeline {
         sh 'cd build_x86; make install'
       }
     }
-    stage('Unit tests') {
-      steps {
-        sh 'rm -rf unittests || : && mkdir unittests'
-        sh 'cd unittests; cmake ../test'
-        sh "cd unittests; make -j $CPUS"
-        sh 'cd unittests; ctest'
-      }
-    }
     stage('Code coverage') {
       steps {
         sh 'rm -rf coverage || : && mkdir coverage'
         sh 'cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test'
-        sh "cd coverage; env CC=gcc CXX=g++ make -j $CPUS"
+        sh "cd coverage; make -j $CPUS"
+        sh 'cd coverage; make coverage'
       }
     }
     stage('Integration tests') {
-      sh 'rm -rf integration || : && mkdir integration'
-      sh 'cd integration; cmake ../test/integration'
-      sh "cd integration; make -j $CPUS"
-      // TODO: Run the integration tests
-      // sh 'cd integration; ctest'
+      steps {
+        sh 'rm -rf integration || : && mkdir integration'
+        sh 'cd integration; cmake ../test/integration'
+        sh "cd integration; make -j $CPUS"
+        sh 'cd integration; ctest'
+      }
     }
   }
 }
