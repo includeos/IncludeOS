@@ -1,4 +1,8 @@
 
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 # configure options
 option(default_stdout "Use the OS default stdout (serial)" ON)
 
@@ -37,12 +41,39 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
-#TODO move this into sub scripts conan.cmake and normal.cmake
-if(CONAN_EXPORTED)
+#TODO also support conanfile.py ?
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt)
+  SET(CONANFILE_TXT ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt)
+endif()
+
+if (CONANFILE_TXT OR CONAN_EXPORTED)
+  #TODO move this into sub scripts conan.cmake and oldscool.cmake
+  if (CONANFILE_TXT)
+    #TODO VERIFY are we only testing release  version of includeos
+    set(CMAKE_BUILD_TYPE Release)
+    if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+      message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+      file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                        "${CMAKE_BINARY_DIR}/conan.cmake")
+    endif()
+      #TODO se if this goes all wack
+    include(${CMAKE_BINARY_DIR}/conan.cmake)
+      #should we specify a directory.. can we run it multiple times ?
+    conan_cmake_run(
+      CONANFILE conanfile.txt
+        BASIC_SETUP
+        CMAKE_TARGETS
+      )
+    #include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  else()
+
   # standard conan installation, deps will be defined in conanfile.py
   # and not necessary to call conan again, conan is already running
-  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  conan_basic_setup()
+    include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+
+    conan_basic_setup()
+
+  endif()
 
   #TODO use these
   #CONAN_SETTINGS_ARCH Provides arch type
@@ -50,9 +81,6 @@ if(CONAN_EXPORTED)
   #CONAN_SETTINGS_COMPILER AND CONAN_SETTINGS_COMPILER_VERSION
   #CONAN_SETTINGS_OS ("Linux","Windows","Macos")
 
-  set(NAME_STUB "${CONAN_INCLUDEOS_ROOT}/src/service_name.cpp")
-  set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
-  set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
   if (NOT DEFINED ARCH)
     if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
       set(ARCH i686)
@@ -60,10 +88,21 @@ if(CONAN_EXPORTED)
       set(ARCH ${CONAN_SETTINGS_ARCH})
     endif()
   endif()
+
+
+  set(NAME_STUB "${CONAN_INCLUDEOS_ROOT}/src/service_name.cpp")
+  set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
+  set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
+
   set(TRIPLE "${ARCH}-pc-linux-elf")
   set(LIBRARIES ${CONAN_LIBS})
   set(ELF_SYMS elf_syms)
   set(LINK_SCRIPT ${CONAN_INCLUDEOS_ROOT}/${ARCH}/linker.ld)
+  #includeos package can provide this!
+  include_directories(
+    ${CONAN_INCLUDEOS_ROOT}/include/os
+  )
+
 else()
   #TODO initialise self
   #message(FATAL_ERROR "Not running under conan")
@@ -157,22 +196,8 @@ else()
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
 
-  # libgcc/compiler-rt detection
-  if (UNIX)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(TARGET_LINE --target=${TRIPLE})
-    endif()
-    execute_process(
-        COMMAND ${CMAKE_CXX_COMPILER} ${TARGET_LINE} --print-libgcc-file-name
-        RESULT_VARIABLE CC_RT_RES
-        OUTPUT_VARIABLE COMPILER_RT_FILE OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if (NOT ${CC_RT_RES} EQUAL 0)
-      message(AUTHOR_WARNING "Failed to detect libgcc/compiler-rt: ${COMPILER_RT_FILE}")
-    endif()
-  endif()
-  if (NOT COMPILER_RT_FILE)
-    set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
-  endif()
+  #allways use the provided libcompiler.a
+  set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
 
   add_library(libgcc STATIC IMPORTED)
   set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
@@ -290,6 +315,33 @@ function(os_add_config TARGET FILE)
 endfunction()
 
 
+function(os_add_conan_package TARGET PACKAGE)
+
+#TODO MOVE SOMEWHERE MORE SANE
+
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                    "${CMAKE_BINARY_DIR}/conan.cmake")
+  endif()
+  #TODO se if this goes all wack
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+  #should we specify a directory.. can we run it multiple times ?
+  conan_cmake_run(
+    REQUIRES ${PACKAGE}
+    BASIC_SETUP
+    CMAKE_TARGETS
+  )
+  #convert pkg/version@user/channel to pkg;versin;user;chanel
+  string(REPLACE "@" ";" LIST ${PACKAGE})
+  string(REPLACE "/" ";" LIST ${LIST})
+  #get the first element
+  list(GET LIST 0 PKG)
+
+  os_link_libraries(${TARGET} CONAN_PKG::${PKG})
+
+endfunction()
+
 # TODO: fix so that we can add two executables in one service (NAME_STUB)
 function(os_add_executable TARGET NAME)
   set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
@@ -325,7 +377,10 @@ function(os_add_executable TARGET NAME)
     internal_os_add_config(${ELF_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
     set(JSON_CONFIG_FILE_${ELF_TARGET} "${CMAKE_CURRENT_SOURCE_DIR}/config.json" PARENT_SCOPE)
   endif()
-
+  #copy the vm.json out of tree
+  if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vm.json)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vm.json ${CMAKE_CURRENT_BINARY_DIR})
+  endif()
 endfunction()
 
 ##
@@ -344,7 +399,6 @@ endfunction()
 function(os_include_directories TARGET)
   target_include_directories(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
-
 
 function(os_add_dependencies TARGET ${ARGN})
   add_dependencies(${TARGET}${ELF_POSTFIX} ${ARGN})
@@ -384,10 +438,27 @@ function(os_add_os_library TARGET LIB)
   os_add_library_from_path(${TARGET} ${LIB} "${INCLUDEOS_PREFIX}/${ARCH}/lib")
 endfunction()
 
+#input file blob name and blob type eg add_binary_blob(<somefile> input.bin binary)
+#results in an object called binary_input_bin
+function(os_add_binary_blob TARGET BLOB_FILE BLOB_NAME BLOB_TYPE)
+  set(OBJECT_FILE ${TARGET}_blob_${BLOB_TYPE}.o)
+  add_custom_command(
+    OUTPUT ${OBJECT_FILE}
+    COMMAND cp ${BLOB_FILE} ${BLOB_NAME}
+    COMMAND ${CMAKE_OBJCOPY} -I ${BLOB_TYPE} -O ${OBJCOPY_TARGET} -B i386 ${BLOB_NAME} ${OBJECT_FILE}
+    COMMAND rm ${BLOB_NAME}
+    DEPENDS ${BLOB_FILE}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+  add_library(${TARGET}_blob_${BLOB_TYPE} STATIC ${OBJECT_FILE})
+  set_target_properties(${TARGET}_blob_${BLOB_TYPE} PROPERTIES LINKER_LANGUAGE CXX)
+  os_link_libraries(${TARGET} --whole-archive ${TARGET}_blob_${BLOB_TYPE} --no-whole-archive)
+endfunction()
 # add memdisk
 function(os_add_memdisk TARGET DISK)
   get_filename_component(DISK_RELPATH "${DISK}"
-                         REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+    REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
     COMMAND ${Python2_EXECUTABLE} ${INCLUDEOS_PREFIX}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
@@ -433,20 +504,6 @@ function(os_install_certificates FOLDER)
   file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
 endfunction()
 
-
-#TODO investigate could be wrapped in generic embed object ?
-#If the user sets the config.json in the CMAKE then at least he knows its inluded :)
-#If the user sets the nacl in CMAKE thats also specific..
-#so the idea is..
-#SET(OS_NACL ON)
-#SET(OS_CONFIG ON)
-#SET(OS_NACL_FILE
-#SET(OS_CONFIG_FILE
-
-#Investigate how to add drivers for a service !!
-#idea is to have a conanfile.txt in the service you edit..
-#this depends on a generic conanfile_service.py ?
-#if so you can edit plugins and such in that file..
 
 function(internal_os_add_config TARGET CONFIG_JSON)
   get_filename_component(FILENAME "${CONFIG_JSON}" NAME)
