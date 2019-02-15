@@ -17,10 +17,10 @@ project (tar_service)
 include(os)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz
+  COMMENT "Creating tar file"
   COMMAND tar cfvz ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz -C ${CMAKE_CURRENT_SOURCE_DIR} tar_example
-  COMMAND mv ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz ${CMAKE_CURRENT_BINARY_DIR}/input.bin
+  BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz
 )
-
 
 os_add_executable(util_tar_gz "Tar.gz Test Service" service.cpp)
 
