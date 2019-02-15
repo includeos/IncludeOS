@@ -16,13 +16,17 @@ extern "C" {
   void __init_sanity_checks();
   void kernel_sanity_checks();
   uintptr_t _move_symbols(uintptr_t loc);
-  void _init_bss();
-  void _init_heap(uintptr_t);
   void _init_syscalls();
   void _init_elf_parser();
   uintptr_t _end;
   void set_stack();
   void* get_cpu_ebp();
+}
+
+static os::Machine* __machine = nullptr;
+os::Machine& os::machine() noexcept {
+  Expects(__machine != nullptr);
+  return *__machine;
 }
 
 static char temp_cmdline[1024];
@@ -38,17 +42,22 @@ void kernel_start()
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
 
-  // Do not zero out all solo5 global variables!! == don't touch the BSS
-  //_init_bss();
-
   // Initialize heap
   kernel::init_heap(free_mem_begin, mem_size);
 
+  // Ze machine
+  __machine = os::Machine::create((void*)free_mem_begin, mem_size);
+
   _init_elf_parser();
+
+  // Begin portable HAL initialization
+  __machine->init();
 
   // Initialize system calls
   _init_syscalls();
 
+  // TODO: we should probably actually initialize libc too...
+  kernel::state().libc_initialized = true;
   // Initialize OS including devices
   kernel::start(temp_cmdline);
   kernel::post_start();
