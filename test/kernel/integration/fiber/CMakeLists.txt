@@ -31,3 +31,5 @@ endif()
 os_add_executable(kernel_fiber "GRUB boot test" ${SOURCES})
 os_add_stdout(kernel_fiber default_stdout)
 os_add_drivers(kernel_fiber boot_logger)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

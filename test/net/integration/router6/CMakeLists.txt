@@ -22,11 +22,4 @@ os_add_executable(net_router6 "Routing test ipv6" service.cpp)
 os_add_drivers(net_router6 virtionet)
 os_add_stdout(net_router6 default_stdout)
 
-#set(SERVICE_NAME "Routing test service")
-#set(BINARY       "test_router")
-#set(MAX_MEM 128)
-#set(SOURCES service.cpp)
-#set(DRIVERS virtionet) #vmxnet3
-
-# include service build script
-#include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

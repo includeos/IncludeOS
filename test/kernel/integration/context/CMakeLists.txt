@@ -23,3 +23,5 @@ set(SOURCES
 
 os_add_executable(kernel_context "Task switching test" ${SOURCES})
 os_add_stdout(kernel_context default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

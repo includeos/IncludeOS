@@ -18,13 +18,17 @@ list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
 #service
 project(service)
+
+set(coroutines ON)
+
 include(os)
 
 set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "C++ coroutines test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(stl_coroutines "C++ coroutines test" ${SOURCES})
+os_add_stdout(stl_coroutines default_stdout)
 
-os_compile_options(service PRIVATE "-fcoroutines-ts")
+os_compile_options(stl_coroutines PRIVATE "-fcoroutines-ts")
+configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

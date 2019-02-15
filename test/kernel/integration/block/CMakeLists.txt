@@ -23,3 +23,5 @@ set(SOURCES
 
 os_add_executable(kernel_block "Kernel blocking test" ${SOURCES})
 os_add_stdout(kernel_block default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

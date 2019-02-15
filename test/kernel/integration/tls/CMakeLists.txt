@@ -27,3 +27,5 @@ set(SOURCES
 os_add_executable(kernel_tls "TLS test" ${SOURCES})
 os_add_stdout(kernel_tls default_stdout)
 os_add_drivers(kernel_tls boot_logger)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

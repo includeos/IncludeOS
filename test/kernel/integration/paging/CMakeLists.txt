@@ -25,3 +25,5 @@ os_add_executable(kernel_paging "Page protection test" ${SOURCES})
 os_add_stdout(kernel_paging default_stdout)
 os_add_drivers(kernel_paging boot_logger)
 os_add_plugins(kernel_paging vfs)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

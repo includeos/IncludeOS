@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e #stop on first error
 ### FAT32 TEST DISK ###
 
 DISK=my.disk
@@ -10,11 +10,11 @@ if [ $# -eq 0 ]
 then
 
   # Remove disk if exists
-  rm -f $DISK
+  sudo rm -f $DISK
   # Preallocate space to a 4GB file
-  truncate -s 4G $DISK
+  sudo truncate -s 4G $DISK
   # Create FAT32 filesystem on "my.disk"
-  mkfs.fat $DISK
+  sudo mkfs.fat $DISK
 
   # Create mountdir and mount
   mkdir -p $MOUNTDIR
@@ -26,11 +26,11 @@ then
   sudo cp banana.txt $MOUNTDIR/dir1/dir2/dir3/dir4/dir5/dir6/
   sync # Mui Importante
   sudo umount $MOUNTDIR/
-  rmdir $MOUNTDIR
+  rm -rf $MOUNTDIR
 
 # If "clean" is supplied, clean up
 elif [ $1 = "clean" ]
 then
   echo "> Cleaning up FAT32 TEST DISK: $DISK"
-  rm -f $DISK
+  sudo rm -f $DISK
 fi

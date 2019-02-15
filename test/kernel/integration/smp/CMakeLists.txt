@@ -25,3 +25,5 @@ os_add_executable(kernel_smp "SMP test" ${SOURCES})
 os_add_stdout(kernel_smp default_stdout)
 os_add_drivers(kernel_smp boot_logger)
 #os_add_plugins(service vfs)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

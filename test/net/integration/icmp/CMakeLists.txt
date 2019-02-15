@@ -25,3 +25,5 @@ os_add_executable(net_icmp "ICMP test" ${SOURCES})
 
 os_add_drivers(net_icmp virtionet)
 os_add_stdout(net_icmp default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

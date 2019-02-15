@@ -40,13 +40,16 @@ void Service::start()
   printf("Service IPv4 address: %s, IPv6 address: %s\n",
           inet.ip_addr().str().c_str(), inet.ip6_addr().str().c_str());
 
+  const int wait = 10;
+
   // ping gateway
   inet.icmp6().ping(gateway, [](ICMP6_view pckt) {
+    //something is off with the fwd ?
     if (pckt)
       printf("Received packet from gateway\n%s\n", pckt.to_string().c_str());
     else
       printf("No reply received from gateway\n");
-  });
+  },wait);
 
 #if 0
   const int wait = 10;

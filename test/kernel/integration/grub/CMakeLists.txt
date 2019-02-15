@@ -23,3 +23,7 @@ set(SOURCES
 
 os_add_executable(kernel_grub "GRUB boot test" ${SOURCES})
 os_add_stdout(kernel_grub default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(grubiso.sh ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(grub.cfg ${CMAKE_CURRENT_BINARY_DIR})

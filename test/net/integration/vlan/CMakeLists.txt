@@ -28,3 +28,5 @@ os_add_executable(net_vlan "VLAN test" ${SOURCES})
 os_add_plugins(net_vlan autoconf)
 os_add_drivers(net_vlan virtionet e1000 vmxnet3)
 os_add_stdout(net_vlan default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

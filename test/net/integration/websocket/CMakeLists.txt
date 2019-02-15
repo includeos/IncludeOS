@@ -25,3 +25,5 @@ os_add_executable(net_websocket "Websocket test" ${SOURCES})
 
 os_add_drivers(net_websocket virtionet)
 os_add_stdout(net_websocket default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -7,4 +7,10 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
-vmrunner.vms[0].cmake().boot(40).clean()
+vm=vmrunner.vms[0]
+
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    #the corutines is set in the CMakelists.
+    vm.cmake().boot(40,image_name='stl_stl').clean()

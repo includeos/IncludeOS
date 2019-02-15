@@ -1,4 +1,6 @@
 #! /bin/bash
+set -e #abort on first command returning a failure
+
 source_net=10.0.0.0/24
 source_bridge=bridge43
 
@@ -56,8 +58,8 @@ setup() {
 
 undo(){
   echo ">>> Deleting veth devices"
-  ip link delete veth_src
-  ip link delete veth_src
+  sudo ip link delete veth_src
+  sudo ip link delete veth_dest
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
   sudo brctl delbr $dest_bridge

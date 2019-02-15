@@ -21,7 +21,9 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "C++ STL test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(stl_stl "C++ STL test" ${SOURCES})
+os_add_stdout(stl_stl default_stdout)
+os_add_conan_package(stl_stl "lest/1.33.5@includeos/test")
 
-os_add_plugins(service vfs)
+os_add_plugins(stl_stl vfs)
+configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

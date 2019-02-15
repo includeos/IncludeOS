@@ -25,3 +25,5 @@ os_add_executable(kernel_term "Terminal test" ${SOURCES})
 os_add_stdout(kernel_term default_stdout)
 os_add_drivers(kernel_term virtionet)
 #os_add_plugins(service vfs)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

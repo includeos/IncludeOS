@@ -31,3 +31,5 @@ set(DRIVERS
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

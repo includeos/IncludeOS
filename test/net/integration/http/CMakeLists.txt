@@ -25,3 +25,5 @@ os_add_executable(net_http "HTTP test" ${SOURCES})
 
 os_add_drivers(net_http virtionet)
 os_add_stdout(net_http default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

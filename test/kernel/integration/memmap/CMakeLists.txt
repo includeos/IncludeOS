@@ -23,3 +23,7 @@ set(SOURCES
 
 os_add_executable(kernel_memmap "Memmap test" ${SOURCES})
 os_add_stdout(kernel_memmap default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(vm1.json ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(vm2.json ${CMAKE_CURRENT_BINARY_DIR})

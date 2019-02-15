@@ -21,3 +21,5 @@ os_add_executable(net_slaac "IncludeOS Slaac test" service.cpp)
 
 os_add_drivers(net_slaac virtionet)
 os_add_stdout(net_slaac default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

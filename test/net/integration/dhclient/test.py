@@ -42,4 +42,7 @@ def DHCP_test(trigger_line):
 vm.on_output("Got IP from DHCP", DHCP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vmrunner.vms[0].cmake().boot(thread_timeout,image_name='net_dhclient').clean()

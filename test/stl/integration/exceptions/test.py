@@ -35,4 +35,8 @@ vm.on_panic(expected_panic, False)
 vm.on_output("Uncaught exception expecting panic", test_ok)
 vm.on_output("long_mode", test_fail)
 
-vm.cmake().boot(30).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    #the corutines is set in the CMakelists.
+    vm.cmake().boot(30,image_name='stl_exceptions').clean()

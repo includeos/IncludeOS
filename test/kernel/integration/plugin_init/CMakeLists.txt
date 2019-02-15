@@ -24,3 +24,5 @@ set(SOURCES
 os_add_executable(kernel_plugin_init "Page protection test" ${SOURCES})
 os_add_stdout(kernel_plugin_init default_stdout)
 os_add_plugins(kernel_plugin_init example)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
