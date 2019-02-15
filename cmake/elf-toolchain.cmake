@@ -15,7 +15,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(CMAKE_SYSTEM_NAME "Generic")
+set(CMAKE_SYSTEM_NAME "Linux")
 set(CMAKE_SYSTEM_PROCESSOR ${ARCH})
 
 # Bin directory

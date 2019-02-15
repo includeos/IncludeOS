@@ -48,7 +48,7 @@ if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
  if (DEFINED ENV{INCLUDEOS_PREFIX})
    set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
  else()
-   set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos)
+   set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos CACHE PATH "..." FORCE)
    message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
  endif()
 endif()
@@ -323,9 +323,11 @@ if(NOT CONAN_EXPORTED)
   install(CODE
     "execute_process(COMMAND conan install nacl/v0.2.0@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
   )
-  install(CODE
-    "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
-  )
+  if (${ARCH} STREQUAL "x86_64")
+    install(CODE
+      "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
+    )
+  endif()
   if (NOT CORE_OS)
     install(CODE
       "execute_process(COMMAND conan install mana/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"

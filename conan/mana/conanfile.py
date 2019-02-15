@@ -14,7 +14,7 @@ class ManaConan(ConanFile):
     def build_requirements(self):
         #TODO at some point put includeos as a dep for mana
         #removing everything below
-        self.build_requires("libcxx/7.0@{}/{}".format(self.user,self.channel))
+        self.build_requires("libcxx/7.0.1@{}/{}".format(self.user,self.channel))
         self.build_requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 

@@ -195,9 +195,10 @@ else()
   add_library(libpthread STATIC IMPORTED)
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
-
+  
   #allways use the provided libcompiler.a
   set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
+
 
   add_library(libgcc STATIC IMPORTED)
   set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
@@ -355,7 +356,7 @@ function(os_add_executable TARGET NAME)
   if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(STRIP_LV )
   else()
-    set(STRIP_LV strip --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
+    set(STRIP_LV ${CMAKE_STRIP} --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
   endif()
   FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binary.txt
     "${TARGET}"

@@ -1,4 +1,4 @@
-
+cmake_minimum_required(VERSION 3.10)
 
 #to avoid parameters getting mixed between different tests ?
 #or does the new "OS cmake fix this.. so we can build many ?"
@@ -11,16 +11,15 @@
 #TODO create a "single" list of tests ?
 
 #TODO enable pulling everything from conan..
-if(NOT DEFINED INCLUDEOS_PREFIX)
+
+if (NOT DEFINED INCLUDEOS_PREFIX)
   if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-    message(FATAL_ERROR "IncludeOS prefix is required")
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
   else()
-    add_custom_target(IncludeOS)
     set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
   endif()
 endif()
 
-cmake_minimum_required(VERSION 3.12)
 
 option(STRESS "Enable includeos stress test" OFF)
 project(IntegrationTests)
