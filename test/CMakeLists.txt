@@ -92,14 +92,9 @@ if (UPDATE)
  set(CONAN_UPDATE UPDATE)
 endif()
 conan_cmake_run(
-  REQUIRES
-    uzlib/v2.1.1@includeos/test
-    http-parser/2.8.1@includeos/test
-    rapidjson/1.1.0@includeos/test
-    GSL/2.0.0@includeos/test
-    lest/1.33.5@includeos/test
-    BASIC_SETUP
-    ${CONAN_UPDATE}
+  CONANFILE conanfile.txt
+  BASIC_SETUP
+  ${CONAN_UPDATE}
 )
 
 include_directories(
