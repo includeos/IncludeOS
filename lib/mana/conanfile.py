@@ -47,6 +47,8 @@ class ManaConan(ConanFile):
         self.cpp_info.libs=['mana']
 
     def deploy(self):
+        #the first is for the editable version
+        self.copy("*.a",dst="lib",src="build/lib")
         #TODO fix this in mana cmake..
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*",dst="include",src="include")

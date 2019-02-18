@@ -15,9 +15,12 @@ if(CONAN_EXPORTED) # in conan local cache
   #TODO GET ARCH FROM CONAN ?
 
 else()
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+  
   include_directories(${INCLUDEOS_ROOT}/api/posix)
   include_directories(${INCLUDEOS_ROOT}/src/include)
-  include_directories(${INCLUDEOS_ROOT}/api)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
 
   #dependencies
   include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
