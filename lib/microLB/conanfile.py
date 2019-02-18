@@ -66,7 +66,8 @@ class MicroLBConan(ConanFile):
     def deploy(self):
         #for editable we need the 2 first
         self.copy("*.a",dst="lib",src="build/lib")
-        self.copy("*.hpp",dst="include",src="micro_lb")
+        self.copy("microLB",dst="include",src=".")
+        self.copy("*.hpp",dst="include/micro_lb",src="micro_lb")
 
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*",dst="include",src="include")
