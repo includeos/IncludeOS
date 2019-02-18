@@ -10,6 +10,11 @@ class LiveupdateConan(ConanFile):
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
+    default_user="includeos"
+    default_channel="test"
+
+    def requirements(self):
+        self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
 
     def build_requirements(self):
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))

@@ -8,6 +8,10 @@ pipeline {
     INCLUDEOS_PREFIX = "${env.WORKSPACE}/install"
     CC = 'clang-6.0'
     CXX = 'clang++-6.0'
+    USER = 'includeos'
+    CHAN = 'test'
+    MOD_VER= '0.13.0'
+
   }
 
   stages {
@@ -25,6 +29,20 @@ pipeline {
         sh 'cd unittests; ctest'
       }
     }
+
+    
+    stage('liveupdate x86_64') {
+    
+	sh '''
+	mkdir rm -rf build_liveupdate || : && mkdir build_liveupdate
+	cd build_liveupdate
+	conan link ../lib/LiveUpdate liveupdate/$MOD_VER@$USER/$CHAN --layout=../lib/LiveUpdate/layout.txt
+	conan install .. -pr $PROFILE_x86_64
+	cmake ../lib/LiveUpdate 
+	cmake --build . --config Release
+	'''
+    }
+    
     stage('Build 64 bit') {
       steps {
         sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
