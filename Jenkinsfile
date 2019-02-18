@@ -1,3 +1,17 @@
+
+def build_lib(String location, String name) {
+  sh '''
+    cd $location
+    rm -rf build || :&& mkdir build
+    cd build
+    conan link .. $name/$MOD_VER@$USER/$CHAN --layout=../layout.txt
+    conan install .. -pr $PROFILE_x86_64
+    cmake -DARCH=x86_64 ..
+    cmake --build . --config Release
+  '''
+}
+
+
 pipeline {
   agent { label 'vaskemaskin' }
 
@@ -32,16 +46,8 @@ pipeline {
 
      
     stage('liveupdate x86_64') {
-    
       steps {
-	sh '''
-	mkdir rm -rf build_liveupdate || : && mkdir build_liveupdate
-	cd build_liveupdate
-	conan link ../lib/LiveUpdate liveupdate/$MOD_VER@$USER/$CHAN --layout=../lib/LiveUpdate/layout.txt
-	conan install ../lib/LiveUpdate -pr $PROFILE_x86_64
-	cmake ../lib/LiveUpdate 
-	cmake --build . --config Release
-	'''
+      	build_lib(lib/LiveUpdate,liveupdate)
       }
     }
     
