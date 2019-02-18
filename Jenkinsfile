@@ -103,7 +103,7 @@ def build_lib(String location, String name) {
     rm -rf build || :&& mkdir build
     cd build
     conan link .. $name/$MOD_VER@$USER/$CHAN --layout=../layout.txt
-    conan install .. -pr $PROFILE_x86_64
+    conan install .. -pr $PROFILE_x86_64 -u
     cmake -DARCH=x86_64 ..
     cmake --build . --config Release
   """
