@@ -135,7 +135,6 @@ namespace os::detail {
 
       Part p {part, storage, t_idx};
       vec.push_back(p);
-      Ensures(vec.size() > 0);
 
       // Mark type as "Device" if needed
       if constexpr(std::is_base_of<hw::Device,T>::value)
