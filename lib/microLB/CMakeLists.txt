@@ -18,7 +18,7 @@ add_definitions(-DARCH="${ARCH}")
 set(LIBRARY_SRCS
   micro_lb/autoconf.cpp
   micro_lb/balancer.cpp
-
+  micro_lb/defaults.cpp
 )
 
 if (TLS)
