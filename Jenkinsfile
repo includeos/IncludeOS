@@ -30,7 +30,7 @@ pipeline {
       }
     }
 
-    
+     
     stage('liveupdate x86_64') {
     
       steps {
@@ -38,7 +38,7 @@ pipeline {
 	mkdir rm -rf build_liveupdate || : && mkdir build_liveupdate
 	cd build_liveupdate
 	conan link ../lib/LiveUpdate liveupdate/$MOD_VER@$USER/$CHAN --layout=../lib/LiveUpdate/layout.txt
-	conan install .. -pr $PROFILE_x86_64
+	conan install ../lib/LiveUpdate -pr $PROFILE_x86_64
 	cmake ../lib/LiveUpdate 
 	cmake --build . --config Release
 	'''
