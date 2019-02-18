@@ -10,6 +10,8 @@ class ManaConan(ConanFile):
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
+    default_user="includeos"
+    default_channel="test"
 
     def build_requirements(self):
         #TODO at some point put includeos as a dep for mana

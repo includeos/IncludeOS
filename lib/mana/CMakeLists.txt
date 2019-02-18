@@ -19,6 +19,8 @@ if(CONAN_EXPORTED) # in conan local cache
   #TODO get this from includeos package.. and not here!!
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
 else(CONAN_EXPORTED)
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
   #TODO get from conan the right include path
   #include_directories()
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)

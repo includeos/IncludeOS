@@ -39,6 +39,28 @@ pipeline {
       	build_lib('lib/LiveUpdate','liveupdate')
       }
     }
+    stage('mana x86_64') {
+      steps {
+      	build_lib('lib/mana','mana')
+      }
+    }
+    stage('mender x86_64') {
+      steps {
+      	build_lib('lib/mender','mender')
+      }
+    }
+    
+    stage('mender x86_64') {
+      steps {
+      	build_lib('lib/uplink','uplink')
+      }
+    }
+    
+    stage('microLB x86_64') {
+      steps {
+      	build_lib('lib/microLB','microlb')
+      }
+    }
     
     stage('Build 64 bit') {
       steps {
