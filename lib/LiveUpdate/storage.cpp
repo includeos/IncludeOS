@@ -115,14 +115,14 @@ void storage_header::add_end()
 #if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
   // test against heap max
   const auto storage_end = os::mem::virt_to_phys((uintptr_t) ent.vla);
-  if (storage_end > kernel::heap_max())
+  if (storage_end <= kernel::heap_max())
   {
     printf("ERROR:\n"
-          "Storage end outside memory: %#lx > %#lx by %ld bytes\n",
+          "Storage end inside heap: %#lx > %#lx by %ld bytes\n",
 	        storage_end,
 	        kernel::heap_max()+1,
           storage_end - (kernel::heap_max()+1));
-    throw std::runtime_error("LiveUpdate storage end outside memory");
+    throw std::runtime_error("LiveUpdate storage inside heap");
   }
 #endif
   // verify memory is writable at the current end

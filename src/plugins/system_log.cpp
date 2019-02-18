@@ -20,6 +20,7 @@ struct Log_buffer {
 static FixedRingBuffer<16384> temp_mrb;
 #define MRB_AREA_SIZE (65536) // 64kb
 #define MRB_LOG_SIZE  (MRB_AREA_SIZE - sizeof(MemoryRingBuffer) - sizeof(Log_buffer))
+#define VIRTUAL_MOVE
 static MemoryRingBuffer* mrb = nullptr;
 static inline RingBuffer* get_mrb()
 {
@@ -29,7 +30,7 @@ static inline RingBuffer* get_mrb()
 
 inline static char* get_system_log_loc()
 {
-#ifdef ARCH_x86_64
+#if defined(ARCH_x86_64) && defined(VIRTUAL_MOVE)
   return (char*) ((1ull << 45) - MRB_AREA_SIZE);
 #else
   return (char*) kernel::liveupdate_storage_area() - MRB_AREA_SIZE;
@@ -78,7 +79,7 @@ void SystemLog::initialize()
 {
   INFO("SystemLog", "Initializing System Log");
 
-#ifdef ARCH_x86_64
+#if defined(ARCH_x86_64) && defined(VIRTUAL_MOVE)
   using namespace util::bitops;
   const uintptr_t syslog_area = (uintptr_t) get_system_log_loc();
   const uintptr_t lu_phys = os::mem::virt_to_phys((uintptr_t) kernel::liveupdate_storage_area());

@@ -32,8 +32,8 @@
 #include <kernel/memory.hpp>
 #include <hw/nic.hpp> // for flushing
 
-//#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
-#define LPRINT(x, ...) /** x **/
+#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
+//#define LPRINT(x, ...) /** x **/
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
@@ -133,11 +133,12 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area_phys >= kernel::heap_max()) {
     throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
-  if (storage_area_phys >= kernel::heap_max() - 0x10000) {
+  /*
+  if (storage_area_phys >= kernel::memory_end() - 0x10000) {
     printf("Storage area is at %p / %p\n",
            (void*) storage_area_phys, (void*) kernel::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
-  }
+  }*/
 #endif
 
   // search for ELF header

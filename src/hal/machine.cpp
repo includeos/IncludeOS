@@ -90,13 +90,16 @@ namespace os::detail {
     auto main_mem = memory().allocate_largest();
     MINFO("Main memory detected as %zu b\n", main_mem.size);
 
-    const auto percent = (main_mem.size / 100) * reserve_pct_max;
+    const auto percent = main_mem.size / (100 / reserve_pct_max);
     const auto reserve = std::min(reserve_mem, percent);
     main_mem.size -= reserve;
     auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve;
     memory().deallocate((void*)back, reserve_mem);
     MINFO("Reserving %zu b for machine use \n", reserve);
 
+    const auto liu_steal = main_mem.size / (100 / 25);
+    main_mem.size -= liu_steal;
+    main_mem.size &= ~(uintptr_t) 0xFFF;
     kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
   }
 
