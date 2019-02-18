@@ -3,6 +3,7 @@
     openssl/init.cpp
     openssl/client.cpp
     openssl/server.cpp
+    openssl/tls_stream.cpp
     https/openssl_server.cpp
     http/client.cpp
     https/s2n_server.cpp
