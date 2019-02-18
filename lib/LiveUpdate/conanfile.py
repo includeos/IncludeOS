@@ -47,6 +47,11 @@ class LiveupdateConan(ConanFile):
         self.cpp_info.libs=['liveupdate']
 
     def deploy(self):
+        #the first is for the editable version
+        self.copy("*.a",dst="lib",src="build/lib")
+        self.copy("liveupdate",dst="include",src=".")
+        self.copy("*.hpp",dst="include",src=".")
+
         #TODO fix this in CMakelists.txt
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*",dst="include",src="include")

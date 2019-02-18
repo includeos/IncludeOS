@@ -3,32 +3,23 @@ import shutil
 
 from conans import ConanFile,tools,CMake
 
-class UplinkConan(ConanFile):
+class MenderConan(ConanFile):
     settings= "os","arch","build_type","compiler"
-    name = "uplink"
+    name = "mender"
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
-
-    options={
-        "liveupdate":[True,False],
-        "tls": [True,False]
-    }
-    default_options={
-        "liveupdate":False,
-        "tls":False
-    }
+    default_user="includeos"
+    default_channel="test"
 
     def requirements(self):
-        if (self.options.liveupdate):
-            self.requires("liveupdate/{}@{}/{}".format(self.version,self.user,self.channel))
-        if (self.options.tls):
-            #this will put a dependency requirement on openssl
-            self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
-
+        self.requires("botan/2.8.0@{}/{}".format(self.user,self.channel))
+        self.requires("uzlib/v2.1.1@{}/{}".format(self.user,self.channel))
+        self.requires("liveupdate/0.13.0@{}/{}".format(self.user,self.channel))
+        #eventually
+        #self.build_requires("includeos/%s@%s/%s"%(self.version,self.user,self.channel))
     def build_requirements(self):
-        #these are header only so we dont need them down the value chain
         self.build_requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 
@@ -44,9 +35,7 @@ class UplinkConan(ConanFile):
     def _cmake_configure(self):
         cmake = CMake(self)
         cmake.definitions['ARCH']=self._arch()
-        cmake.definitions['LIVEUPDATE']=self.options.liveupdate
-        cmake.definitions['TLS']=self.options.tls
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/uplink")
+        cmake.configure(source_folder=self.source_folder+"/includeos/lib/mender")
         return cmake
 
     def build(self):
@@ -58,13 +47,10 @@ class UplinkConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.libdirs = [
-            'drivers',
-            'plugins'
-        ]
-        self.cpp_info.libs=['uplink','uplink_log']
+        self.cpp_info.libs=['mender']
 
     def deploy(self):
-        self.copy("*.a",dst="drivers",src="drivers")
-        self.copy("*.a",dst="plugins",src="plugins")
+        #the first is for the editable version
+        self.copy("*.a",dst="lib",src="build/lib")
+        self.copy("*.a",dst="lib",src="lib")
         self.copy("*",dst="include",src="include")

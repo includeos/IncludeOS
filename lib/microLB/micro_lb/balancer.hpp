@@ -39,12 +39,9 @@ namespace microLB
   struct Session {
     Session(Nodes&, int idx, net::Stream_ptr in, net::Stream_ptr out);
     bool is_alive() const;
-<<<<<<< HEAD
     void handle_timeout();
     void timeout(Nodes&);
 #if defined(LIVEUPDATE)
-=======
->>>>>>> ps3
     void serialize(liu::Storage&);
 #endif
     Nodes&     parent;
@@ -114,7 +111,7 @@ namespace microLB
     void     close_all_sessions();
 #if defined(LIVEUPDATE)
     void serialize(liu::Storage&);
-    void deserialize(netstack_t& in, netstack_t& out, liu::Restore&);
+    void deserialize(liu::Restore&, DeserializationHelper&);
 #endif
     // make the microLB more testable
     delegate<void(int idx, int current, int total)> on_session_close = nullptr;
@@ -147,14 +144,15 @@ namespace microLB
     static node_connect_function_t connect_with_tcp(netstack_t& interface, net::Socket);
     // Setup and automatic resume (if applicable)
     // NOTE: Be sure to have configured it properly BEFORE calling this
-    void init_liveupdate();
 
     int  wait_queue() const;
     int  connect_throws() const;
     // add a client stream to the load balancer
     // NOTE: the stream must be connected prior to calling this function
     void incoming(net::Stream_ptr);
+
 #if defined(LIVEUPDATE)
+    void init_liveupdate();
     void serialize(liu::Storage&, const liu::buffer_t*);
     void resume_callback(liu::Restore&);
 #endif
@@ -167,8 +165,7 @@ namespace microLB
     void handle_connections();
     void handle_queue();
 #if defined(LIVEUPDATE)
-    void init_liveupdate();
-    void deserialize(liu::Restore&);
+     void deserialize(liu::Restore&);
 #endif
     std::vector<net::Socket> parse_node_confg();
 

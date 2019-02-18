@@ -50,7 +50,7 @@ pipeline {
       }
     }
     
-    stage('mender x86_64') {
+    stage('uplink x86_64') {
       steps {
       	build_lib('lib/uplink','uplink')
       }

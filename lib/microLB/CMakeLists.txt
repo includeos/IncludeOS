@@ -7,12 +7,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(LIVEUPDATE "Enable liveupdate" ON)
 option(TLS "Enable secure connections" ON)
 
-if(CONAN_EXPORTED) # in conan local cache
   # standard conan installation, deps will be defined in conanfile.py
   # and not necessary to call conan again, conan is already running
-  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  conan_basic_setup()
-endif()
+include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")

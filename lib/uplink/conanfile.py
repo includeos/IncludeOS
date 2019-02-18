@@ -3,22 +3,26 @@ import shutil
 
 from conans import ConanFile,tools,CMake
 
-class MicroLBConan(ConanFile):
+class UplinkConan(ConanFile):
     settings= "os","arch","build_type","compiler"
-    name = "microlb"
+    name = "uplink"
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
+    version='0.13.0'
+    default_user="includeos"
+    default_channel="test"
 
     options={
         "liveupdate":[True,False],
         "tls": [True,False]
     }
     default_options={
-        "liveupdate":False,
-        "tls":False
+        "liveupdate":True,
+        "tls":True
     }
+
     def requirements(self):
         if (self.options.liveupdate):
             self.requires("liveupdate/{}@{}/{}".format(self.version,self.user,self.channel))
@@ -45,7 +49,7 @@ class MicroLBConan(ConanFile):
         cmake.definitions['ARCH']=self._arch()
         cmake.definitions['LIVEUPDATE']=self.options.liveupdate
         cmake.definitions['TLS']=self.options.tls
-        cmake.configure(source_folder=self.source_folder+"/includeos/lib/microLB")
+        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/uplink")
         return cmake
 
     def build(self):
@@ -57,8 +61,13 @@ class MicroLBConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.libs=['microlb']
+        self.cpp_info.libdirs = [
+            'drivers',
+            'plugins'
+        ]
+        self.cpp_info.libs=['uplink','uplink_log']
 
     def deploy(self):
-        self.copy("*.a",dst="lib",src="lib")
+        self.copy("*.a",dst="drivers",src="drivers")
+        self.copy("*.a",dst="plugins",src="plugins")
         self.copy("*",dst="include",src="include")
