@@ -76,7 +76,7 @@ pipeline {
 }
 
 def build_lib(String location, String name) {
-  sh '''
+  sh """
     cd $location
     rm -rf build || :&& mkdir build
     cd build
@@ -84,6 +84,6 @@ def build_lib(String location, String name) {
     conan install .. -pr $PROFILE_x86_64
     cmake -DARCH=x86_64 ..
     cmake --build . --config Release
-  '''
+  """
 }
 
