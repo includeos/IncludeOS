@@ -13,7 +13,7 @@ trap fail ERR
 function fail {
   echo "[ FAIL ]"
   cat $tmpfile
-  exit 1
+  return 1
 }
 
 function getScriptAbsoluteDir {
@@ -55,16 +55,25 @@ function build_service() {
 }
 
 export -f build_service
+failed=0
+total=0
 
 for dir in `ls -d $script_absolute_dir/../../../examples/* $script_absolute_dir/../../../lib/uplink/starbase`
 do
   if [[ $dir == *"$skip_tests"* ]]; then
 	  continue
   fi
-  # build_service "$dir"
-  # parallel build_service ::: "$dir"
-  # build_service "$dir" | xargs -n 8
-  build_service "$dir" | xargs
+  ((total+=1))
+  build_service "$dir" | xargs -0
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    ((failed+=1))
+  fi
 done
 
-echo "Done"
+# Exit with correct status
+if [ $failed -gt 0 ]; then
+  echo "$failed/$total failed"
+  exit 1
+else
+  echo "[ PASS ]"
+fi
