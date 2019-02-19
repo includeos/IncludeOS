@@ -70,13 +70,13 @@ pipeline {
         sh 'cd build_x86; make install'
       }
     }
-    stage('build chainloader 32bit')
+    stage('build chainloader 32bit') {
       steps {
   	sh """
-          cd $location
+          cd src/chainload
     	  rm -rf build || :&& mkdir build
     	  cd build
-    	  conan link .. $name/$MOD_VER@$USER/$CHAN --layout=../layout.txt
+    	  conan link .. chainloader/$MOD_VER@$USER/$CHAN --layout=../layout.txt
      	  conan install .. -pr $PROFILE_x86 -u
     	  cmake --build . --config Release
   	"""
