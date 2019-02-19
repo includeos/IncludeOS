@@ -21,8 +21,9 @@ os_add_config(net_microLB "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
 os_add_executable(net_microLB "Configure test" service.cpp)
 
-#os_add_plugins(service autoconf)
+os_add_plugins(net_microLB autoconf vfs)
 os_add_drivers(net_microLB virtionet)
+
 os_add_stdout(net_microLB default_stdout)
 
 os_add_os_library(net_microLB microlb)

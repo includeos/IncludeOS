@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp # ...add more here
 )
 os_add_executable(kernel_timers "Timers Test Service" service.cpp timers.cpp)
-
+os_add_stdout(kernel_timers default_stdout)
 configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
