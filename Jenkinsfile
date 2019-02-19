@@ -70,6 +70,7 @@ pipeline {
         sh 'cd build_x86; make install'
       }
     }
+    /* TODO 
     stage('build chainloader 32bit') {
       steps {
   	sh """
@@ -82,6 +83,7 @@ pipeline {
   	"""
       }
     }
+    */
     stage('Build 64 bit') {
       steps {
         sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
