@@ -33,3 +33,5 @@ os_add_stdout(posix_stat default_stdout)
 
 # Create memdisk from folder
 os_diskbuilder(posix_stat disk)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
