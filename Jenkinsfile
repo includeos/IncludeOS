@@ -70,7 +70,7 @@ pipeline {
         sh 'cd build_x86; make install'
       }
     }
-    stage('build chainloader 32bit')
+    stage('build chainloader 32bit') {
       steps {
   	sh """
           cd $location
