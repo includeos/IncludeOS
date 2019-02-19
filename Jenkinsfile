@@ -104,7 +104,7 @@ pipeline {
     stage('Integration tests') {
       steps {
         sh 'rm -rf integration || : && mkdir integration'
-        sh 'cd integration; cmake ../test/integration'
+        sh 'cd integration; cmake ../test/integration -DCMAKE_BUILD_TYPE=Debug'
         sh "cd integration; make -j $CPUS"
         sh 'cd integration; ctest'
       }

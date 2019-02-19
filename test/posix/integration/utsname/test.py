@@ -9,7 +9,6 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
-vm.cmake()
 
 # Boot the VM, taking a timeout as parameter
 if len(sys.argv) > 1:
