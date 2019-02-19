@@ -325,7 +325,7 @@ if(NOT CONAN_EXPORTED)
   )
   if (${ARCH} STREQUAL "x86_64")
     install(CODE
-      "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
+      "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -pr ${CONAN_PROFILE} -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
     )
   endif()
   if (NOT CORE_OS)
