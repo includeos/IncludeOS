@@ -17,7 +17,9 @@ class ChainloaderConan(ConanFile):
         "includeos:basic":"ON"
     }
     no_copy_source=True
-    #keep_imports=True
+    default_user="includeos"
+    default_channel="test"
+
     def configure(self):
         if (self.settings.arch != "x86"):
             raise Exception(
@@ -25,17 +27,12 @@ class ChainloaderConan(ConanFile):
             "not: {}".format(self.settings.arch))
         del self.settings.compiler.libcxx
         #self.
-    #hmm inst this a build requirements
-    #def requirements(self):
+    
     def build_requirements(self):
         self.build_requires("includeos/{}@{}/{}".format(self.version,self.user,self.channel))
         self.build_requires("libgcc/1.0@includeos/test")
         self.build_requires("vmbuild/{}@{}/{}".format(self.version,self.user,self.channel))
-        #self.requires/"botan"
-        #self.requires("vmbuild/0.13.0")
-        #    def imports(self): #deploys everything to local directory..
-        #        self.copy("*")
-    #def build_requirements(self):
+    
     def source(self):
         #shutil.copytree("/home/kristian/git/IncludeOS","includeos")
         repo = tools.Git(folder="includeos")
@@ -43,8 +40,6 @@ class ChainloaderConan(ConanFile):
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        #glad True and False also goes but not recursily
-        #hmm do i need this in env..
         cmake.definitions['INCLUDEOS_PREFIX']=self.build_folder
         cmake.configure(source_folder=self.source_folder+"/includeos/src/chainload")
         return cmake;
@@ -60,15 +55,8 @@ class ChainloaderConan(ConanFile):
     def package(self):
         cmake=self._configure_cmake()
         cmake.install()
-        #self.copy("chainloader",dst="bin")
-    #    cmake=self._configure_cmake()
-        #we are doing something wrong this "shouldnt" trigger a new build
-    #    cmake.install()
-        #at this point we can copy things implace..
-        #or we can use the "building with conan flag to deply things
-        #in the right place"
-
-        #arch include and arch lib is causing issues
 
     def deploy(self):
+        #for editable packages
+        self.copy("chainloader",dst="bin",src="build")
         self.copy("chainloader",dst="bin",src="bin")
