@@ -22,10 +22,10 @@ pipeline {
     }
     stage('Unit tests') {
       steps {
-        sh 'mkdir -p unittests'
-        sh 'cd unittests; env CC=gcc CXX=g++ cmake ../test'
-        sh "cd unittests; make -j $CPUS"
-        sh 'cd unittests; ctest'
+        sh script: "mkdir -p unittests", label: "Setup"
+        sh script: "cd unittests; env CC=gcc CXX=g++ cmake ../test", label: "Cmake"
+        sh script: "cd unittests; make -j $CPUS", label: "Make"
+        sh script: "cd unittests; ctest", label: "Ctest"
       }
     }
     stage('liveupdate x86_64') {
@@ -55,10 +55,10 @@ pipeline {
     }
     stage('Build 32 bit') {
       steps {
-        sh 'mkdir -p build_x86'
-        sh "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano .."
-        sh "cd build_x86; make -j $CPUS"
-        sh 'cd build_x86; make install'
+        sh script: "mkdir -p build_x86", label: "Setup"
+        sh script: "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano ..", label: "Cmake"
+        sh script: "cd build_x86; make -j $CPUS", label: "Make"
+        sh script: 'cd build_x86; make install', label: "Make install"
       }
     }
     /* TODO
@@ -77,27 +77,27 @@ pipeline {
     */
     stage('Build 64 bit') {
       steps {
-        sh 'mkdir -p build_x86_64'
-        sh "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 .."
-        sh "cd build_x86_64; make -j $CPUS"
-        sh 'cd build_x86_64; make install'
+        sh script: "mkdir -p build_x86_64", label: "Setup"
+        sh script: "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 ..", label: "Cmake"
+        sh script: "cd build_x86_64; make -j $CPUS", label: "Make"
+        sh script: "cd build_x86_64; make install", label: "Make install"
       }
     }
     stage('Code coverage') {
       steps {
-        sh 'mkdir -p coverage'
-        sh 'cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test'
-        sh "cd coverage; make -j $CPUS"
-        sh 'cd coverage; make coverage'
+        sh script: "mkdir -p coverage", label: "Setup"
+        sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test", label: "Cmake"
+        sh script: "cd coverage; make -j $CPUS", label: "Make"
+        sh script: "cd coverage; make coverage", label: "Make coverage"
       }
     }
     stage('Integration tests') {
       steps {
-        sh 'mkdir -p integration'
-        sh 'cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug'
-        sh "cd integration; make -j $CPUS"
-        sh 'cd integration; ctest -E stress --output-on-failure'
-        sh 'cd integration; ctest -R stress -E integration --output-on-failure'
+        sh script: "mkdir -p integration", label: "Setup"
+        sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
+        sh script: "cd integration; make -j $CPUS", label: "Make"
+        sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
+        sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
       }
     }
   }
