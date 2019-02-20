@@ -40,5 +40,5 @@ os::Span_mods os::modules()
       reinterpret_cast<os::Module*>(bootinfo_->mods_addr),
         static_cast<int>(bootinfo_->mods_count) };
   }
-  return nullptr;
+  return {};
 }

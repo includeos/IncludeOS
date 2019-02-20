@@ -22,7 +22,6 @@ set(SRCS
   version.cpp
 )
 set(LIBRARIES
-    fuzz
     kernel
     util
     net
