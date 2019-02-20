@@ -28,3 +28,5 @@ os_add_executable(posix_main "POSIX main test" ${SOURCES})
 
 os_add_plugins(posix_main vfs)
 os_add_stdout(posix_main default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

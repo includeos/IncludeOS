@@ -1,3 +1,6 @@
+
+
+
 pipeline {
   agent { label 'vaskemaskin' }
 
@@ -8,6 +11,10 @@ pipeline {
     INCLUDEOS_PREFIX = "${env.WORKSPACE}/install"
     CC = 'clang-6.0'
     CXX = 'clang++-6.0'
+    USER = 'includeos'
+    CHAN = 'test'
+    MOD_VER= '0.13.0'
+
   }
 
   stages {
@@ -25,14 +32,36 @@ pipeline {
         sh 'cd unittests; ctest'
       }
     }
-    stage('Build 64 bit') {
+
+     
+    stage('liveupdate x86_64') {
       steps {
-        sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
-        sh "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 .."
-        sh "cd build_x86_64; make -j $CPUS"
-        sh 'cd build_x86_64; make install'
+      	build_editable('lib/LiveUpdate','liveupdate')
       }
     }
+    stage('mana x86_64') {
+      steps {
+      	build_editable('lib/mana','mana')
+      }
+    }
+    stage('mender x86_64') {
+      steps {
+      	build_editable('lib/mender','mender')
+      }
+    }
+    
+    stage('uplink x86_64') {
+      steps {
+      	build_editable('lib/uplink','uplink')
+      }
+    }
+    
+    stage('microLB x86_64') {
+      steps {
+      	build_editable('lib/microLB','microlb')
+      }
+    }
+    
     stage('Build 32 bit') {
       steps {
         sh 'rm -rf build_x86 || : && mkdir build_x86'
@@ -41,6 +70,29 @@ pipeline {
         sh 'cd build_x86; make install'
       }
     }
+    /* TODO 
+    stage('build chainloader 32bit') {
+      steps {
+  	sh """
+          cd src/chainload
+    	  rm -rf build || :&& mkdir build
+    	  cd build
+    	  conan link .. chainloader/$MOD_VER@$USER/$CHAN --layout=../layout.txt
+     	  conan install .. -pr $PROFILE_x86 -u
+    	  cmake --build . --config Release
+  	"""
+      }
+    }
+    */
+    stage('Build 64 bit') {
+      steps {
+        sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
+        sh "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 .."
+        sh "cd build_x86_64; make -j $CPUS"
+        sh 'cd build_x86_64; make install'
+      }
+    }
+    
     stage('Code coverage') {
       steps {
         sh 'rm -rf coverage || : && mkdir coverage'
@@ -52,10 +104,24 @@ pipeline {
     stage('Integration tests') {
       steps {
         sh 'rm -rf integration || : && mkdir integration'
-        sh 'cd integration; cmake ../test/integration'
+        sh 'cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug'
         sh "cd integration; make -j $CPUS"
-        sh 'cd integration; ctest'
+        sh 'cd integration; ctest -E stress --output-on-failure'
+        sh 'cd integration; ctest -R stress -E integration --output-on-failure'
       }
     }
   }
 }
+
+def build_editable(String location, String name) {
+  sh """
+    cd $location
+    rm -rf build || :&& mkdir build
+    cd build
+    conan link .. $name/$MOD_VER@$USER/$CHAN --layout=../layout.txt
+    conan install .. -pr $PROFILE_x86_64 -u
+    cmake -DARCH=x86_64 ..
+    cmake --build . --config Release
+  """
+}
+

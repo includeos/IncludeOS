@@ -20,7 +20,7 @@
 
 #include <posix/unix_fd_impl.hpp>
 #include <net/inet>
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 
 class Syslog_UDP_socket : public Unix_FD_impl {
 public:
@@ -36,7 +36,7 @@ public:
 
 private:
   net::Inet&  stack;
-  net::UDPSocket*       udp;
+  net::udp::Socket*     udp;
   const net::ip4::Addr  addr;
   const uint16_t        port;
 };

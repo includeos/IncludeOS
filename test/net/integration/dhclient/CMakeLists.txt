@@ -1,24 +1,26 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_dhcp)
+#service
+project (service)
+include(os)
 
-MESSAGE(STATUS "IncludeOS prefix: " $ENV{INCLUDEOS_PREFIX})
+os_add_executable(net_dhclient "IncludeOS DHCP test"  service.cpp)
 
-set(SERVICE_NAME "IncludeOS DHCP test")
-set(BINARY       "test_dhcp")
-set(MAX_MEM 128)
-set(SOURCES
-    service.cpp
-    )
+os_add_plugins(net_dhclient autoconf)
+os_add_drivers(net_dhclient virtionet)
+os_add_stdout(net_dhclient default_stdout)
 
-# Enable virtionet driver
-set(DRIVERS virtionet)
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -23,7 +23,6 @@ include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 set(SRCS
   version.cpp
 )
-
 set(LIBRARIES
     fuzz
     kernel

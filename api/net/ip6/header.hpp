@@ -20,12 +20,10 @@
 #define NET_IP6_HEADER_HPP
 
 #include <net/ip6/addr.hpp>
-#include <net/inet_common.hpp>
 #define  IP6_HEADER_LEN 40
 #define  IP6_ADDR_BYTES 16
 
-namespace net {
-namespace ip6 {
+namespace net::ip6 {
 
 /**
  * This type is used to represent the standard IPv6 header
@@ -42,30 +40,10 @@ struct Header {
   uint8_t  hop_limit   = 0;
   Addr     saddr;
   Addr     daddr;
-}; //< struct Header
+} __attribute__((packed)); //< struct Header
 
+static_assert(sizeof(Header) == 40, "IPv6 Header is of constant size (40 bytes)");
 
-struct ExtensionHeader
-{
-  uint8_t  next_header;
-  uint8_t  hdr_ext_len;
-  uint16_t opt_1;
-  uint32_t opt_2;
+} //< namespace net::ip6
 
-  Protocol next() const
-  {
-    return static_cast<Protocol>(next_header);
-  }
-  uint8_t size() const
-  {
-    return sizeof(ExtensionHeader) + hdr_ext_len;
-  }
-  uint8_t extended() const
-  {
-    return hdr_ext_len;
-  }
-};
-
-} //< namespace ip6
-} //< namespace net
 #endif //< NET_IP6_HEADER_HPP

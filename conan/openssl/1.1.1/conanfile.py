@@ -11,11 +11,20 @@ class OpenSSLConan(ConanFile):
     name = "openssl"
     version = "1.1.1" ##if we remove this line we can specify it from outside this script!! ps ps
 
-    options = {"threads":[True, False],"shared":[True,False]}
+    options = {
+        "threads":[True, False],
+        "shared":[True,False],
+        "ubsan" : [True,False],
+        "async" : [True,False]
+        }
 
-    default_options = {"threads": True,"shared":False}
-    #options = {"shared":False}
-    #branch = "version"+version
+    default_options = {
+        "threads": True,
+        "shared": False,
+        "ubsan" : False,
+        "async" : False
+        }
+
     license = 'Apache 2.0'
     description = 'A language-neutral, platform-neutral extensible mechanism for serializing structured data.'
     url = "https://www.openssl.org"
@@ -35,12 +44,15 @@ class OpenSSLConan(ConanFile):
         #TODO handle arch target and optimalizations
         #TODO use our own includes!
         #TODO TODO
-        options=["no-ssl3","enable-ubsan"]
-        if (not self.options.threads):
+        options=["no-ssl3"]
+        if self.options.ubsan:
+            options+=['enable-ubsan']
+        if not self.options.threads:
             options+=['no-threads']
-        if (not self.options.shared):
+        if not self.options.shared:
             options+=['no-shared']
-
+        if not self.options.async:
+            options+=['no-async']
         if str(self.settings.arch) == "x86":
             options+=['386']
 
@@ -57,6 +69,8 @@ class OpenSSLConan(ConanFile):
         #print("TODO")
         #todo extract to includeos/include!!
         #self.copy("*",dst="include/rapidjson",src="rapidjson/include/rapidjson")
+    def package_info(self):
+        self.cpp_info.libs=['crypto','openssl']
 
     def deploy(self):
         self.copy("*.h",dst="include/openssl",src="openssl/include/openssl")

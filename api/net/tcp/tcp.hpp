@@ -31,6 +31,7 @@
 #include <net/socket.hpp>
 #include <net/ip4/ip4.hpp>
 #include <util/bitops.hpp>
+#include <util/alloc_pmr.hpp>
 
 namespace net {
 
@@ -180,7 +181,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A network packet
      */
-    void receive(net::Packet_ptr);
+    void receive4(net::Packet_ptr);
 
     /**
      * @brief      Receive a Packet from the network layer (IP6)
@@ -196,8 +197,8 @@ namespace net {
      *
      * @param[in]  del   A downstream delegate
      */
-    void set_network_out(downstream del)
-    { network_layer_out_ = del; }
+    void set_network_out4(downstream del)
+    { network_layer_out4_ = del; }
 
     void set_network_out6(downstream del)
     { network_layer_out6_ = del; }
@@ -371,6 +372,22 @@ namespace net {
     { return max_syn_backlog_; }
 
     /**
+     * @brief      Set the maximum allowed memory
+     *             to be used by this TCP.
+     *
+     * @param[in]  size  The limit in bytes
+     */
+    void set_total_bufsize(const size_t size)
+    {
+      total_bufsize_ = size;
+      mempool_.set_total_capacity(total_bufsize_);
+    }
+
+    const os::mem::Pmr_pool& mempool() {
+      return mempool_;
+    }
+
+    /**
      * @brief      Sets the minimum buffer size.
      *
      * @param[in]  size  The size
@@ -523,9 +540,15 @@ namespace net {
     Listeners     listeners_;
     Connections   connections_;
 
+    size_t total_bufsize_;
+    os::mem::Pmr_pool mempool_;
+
+    size_t min_bufsize_;
+    size_t max_bufsize_;
+
     Port_utils& ports_;
 
-    downstream  network_layer_out_;
+    downstream  network_layer_out4_;
     downstream  network_layer_out6_;
 
     /** Internal writeq - connections gets queued in the wait for packets and recvs offer */
@@ -547,9 +570,6 @@ namespace net {
     std::chrono::milliseconds dack_timeout_;
     /** Maximum SYN queue backlog */
     uint16_t                  max_syn_backlog_;
-
-    size_t min_bufsize_       {tcp::default_min_bufsize};
-    size_t max_bufsize_       {tcp::default_max_bufsize};
 
     /** Stats */
     uint64_t* bytes_rx_ = nullptr;
@@ -688,8 +708,10 @@ namespace net {
      * @brief      Adds a connection.
      *
      * @param[in]  <unnamed>  A ptr to the Connection
+     *
+     * @return     True if the connection was added, false if rejected
      */
-    void add_connection(tcp::Connection_ptr);
+    bool add_connection(tcp::Connection_ptr);
 
     /**
      * @brief      Creates a connection.
@@ -709,7 +731,7 @@ namespace net {
      *
      * @param[in]  conn  A ptr to a Connection
      */
-    void close_connection(tcp::Connection_ptr conn)
+    void close_connection(const tcp::Connection* conn)
     {
       unbind(conn->local());
       connections_.erase(conn->tuple());

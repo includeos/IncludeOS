@@ -35,3 +35,5 @@ else()
     virtionet
   )
 endif()
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

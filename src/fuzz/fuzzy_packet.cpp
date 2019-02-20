@@ -35,13 +35,13 @@ namespace fuzzy
   add_udp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
                 const uint16_t dport)
   {
-    auto* hdr = new (data) net::UDP::header();
+    auto* hdr = new (data) net::udp::Header();
     hdr->sport = htons(fuzzer.steal16());
     hdr->dport = htons(dport);
     hdr->length = htons(fuzzer.size);
     hdr->checksum = 0;
-    fuzzer.increment_data(sizeof(net::UDP::header));
-    return &data[sizeof(net::UDP::header)];
+    fuzzer.increment_data(sizeof(net::udp::Header));
+    return &data[sizeof(net::udp::Header)];
   }
   uint8_t*
   add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,

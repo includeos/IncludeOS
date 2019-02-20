@@ -48,5 +48,5 @@ void Service::start()
     }
   });
 
-  INFO("UDP test", "Listening on port %d\n", port);
+  INFO("UDP test service", "Listening on port %d\n", port);
 }

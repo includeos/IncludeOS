@@ -27,3 +27,5 @@ os_add_executable(posix_udp "POSIX UDP test" ${SOURCES})
 
 os_add_drivers(posix_udp virtionet)
 os_add_stdout(posix_udp default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

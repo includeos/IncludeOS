@@ -28,3 +28,5 @@ os_add_executable(net_configure "Configure test" ${SOURCES})
 os_add_plugins(net_configure autoconf)
 os_add_drivers(net_configure virtionet)
 os_add_stdout(net_configure default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -65,3 +65,8 @@ CASE("Addr v4/v6")
   EXPECT(addr.to_string() == std::string("fe80:0:0:0:e823:fcff:fef4:85bd"));
 
 }
+
+CASE("v6 Linklocal/Solicit/Mcast")
+{
+  // Test me
+}

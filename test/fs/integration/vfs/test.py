@@ -24,7 +24,7 @@ def cleanup():
 # Create all data disk images from folder names
 for disk in disks:
   subprocess32.check_call(["./create_disk.sh", disk, disk])
-vm = vmruner.vms[0]
+vm = vmrunner.vms[0]
 
 vm.on_exit_success(cleanup)
 

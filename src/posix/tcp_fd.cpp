@@ -210,33 +210,10 @@ int TCP_FD::shutdown(int mode)
   return cd->shutdown(mode);
 }
 
-/// socket default handler getters
-
-TCP_FD::on_read_func TCP_FD::get_default_read_func()
-{
-  if (cd) {
-    return {cd.get(), &TCP_FD_Conn::recv_to_ringbuffer};
-  }
-  if (ld) {
-    return
-    [/*this*/] (net::tcp::buffer_t) {
-      // what to do here?
-    };
-  }
-  throw std::runtime_error("Invalid socket");
-}
-TCP_FD::on_write_func TCP_FD::get_default_write_func()
-{
-  return [] {};
-}
-TCP_FD::on_except_func TCP_FD::get_default_except_func()
-{
-  return [] {};
-}
-
 /// socket as connection
 TCP_FD_Conn::TCP_FD_Conn(net::tcp::Connection_ptr c)
-  : conn{std::move(c)}
+  : conn{std::move(c)},
+    buffer{nullptr}, buf_offset{0}
 {
   assert(conn != nullptr);
   set_default_read();
@@ -251,23 +228,9 @@ TCP_FD_Conn::TCP_FD_Conn(net::tcp::Connection_ptr c)
       self->close();
   });
 }
-
-void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
-{
-  if (readq.free_space() < (ssize_t) buffer->size()) {
-    // make room for data
-    int needed = buffer->size() - readq.free_space();
-    int discarded = readq.discard(needed);
-    assert(discarded == needed);
-  }
-  // add data to ringbuffer
-  int written = readq.write(buffer->data(), buffer->size());
-  assert(written == (ssize_t) buffer->size());
-}
 void TCP_FD_Conn::set_default_read()
 {
-  // readq buffering (16kb at a time)
-  conn->on_read(16438, {this, &TCP_FD_Conn::recv_to_ringbuffer});
+  conn->on_data({this, &TCP_FD_Conn::retrieve_buffer});
 }
 ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
 {
@@ -289,36 +252,43 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   conn->on_write(nullptr); // temp
   return len;
 }
+
+void TCP_FD_Conn::retrieve_buffer()
+{
+  if(buffer == nullptr and conn->next_size() > 0)
+  {
+    buffer = conn->read_next();
+    buf_offset = 0;
+  }
+}
 ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
 {
-  // read some bytes from readq
-  int bytes = readq.read((char*) dest, len);
-  if (bytes) return bytes;
+  if(buffer == nullptr)
+    retrieve_buffer();
 
-  if(this->recv_disc)
-    return 0;
-
-  bool done = false;
-  bytes = 0;
-
-  // block and wait for more
-  conn->on_read(len,
-  [&done, &bytes, dest] (auto buffer) {
-    // copy the data itself
-    if (buffer->size() > 0)
-        memcpy(dest, buffer->data(), buffer->size());
-    // we are done
-    done  = true;
-    bytes = buffer->size();
-  });
-
-  // BLOCK HERE
-  while (!done || !conn->is_readable()) {
+  // BLOCK HERE:
+  // If we havent read the data we asked for or if we're not yet closed/want to close
+  while (buffer == nullptr and !conn->is_closed() and !recv_disc) {
     OS::block();
   }
-  // restore
-  this->set_default_read();
-  return bytes;
+
+  // means block exited by conn closing
+  if(buffer == nullptr)
+    return 0;
+
+  // make sure to not read past current buffer
+  auto count = std::min(buffer->size() - buf_offset, len);
+  Expects(count > 0);
+  std::memcpy(dest, buffer->data() + buf_offset, count);
+  // increase the offset with how much we read
+  buf_offset += count;
+  Ensures(buf_offset <= buffer->size());
+
+  // null out the buffer if everything is read from it
+  if(buf_offset == buffer->size())
+    buffer = nullptr;
+
+  return count;
 }
 int TCP_FD_Conn::close()
 {

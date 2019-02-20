@@ -11,6 +11,7 @@ cmake_minimum_required(VERSION 3.10)
 #TODO create a "single" list of tests ?
 
 #TODO enable pulling everything from conan..
+
 if (NOT DEFINED INCLUDEOS_PREFIX)
   if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
     set(INCLUDEOS_PREFIX /usr/local/includeos)
@@ -19,20 +20,6 @@ if (NOT DEFINED INCLUDEOS_PREFIX)
   endif()
 endif()
 
-set(FS_TESTS
-  fat16   20
-  fat32   20
-  ide     20
-  ide_write 20
-  memdisk 20
-  vfs 20
-  virtio_block 30
-)
-set(HW_TESTS
-  serial 20
-  vga 20
-  virtio_queue 20
-)
 
 option(STRESS "Enable includeos stress test" OFF)
 project(IntegrationTests)
@@ -42,7 +29,7 @@ project(IntegrationTests)
 #TODO check these and notify if any is missing
 find_program(HPING3 hping3)
 find_program(NODEJS nodejs) #if not found look for node
-
+#TODO ADD ws4py to deps
 enable_testing()
 
 SET(TEST_PARAMS 3)
@@ -58,8 +45,9 @@ set(TEST_LIST
   #FS test
   "fat16"     "20" "fs"
   "fat32"     "30" "fs"
-  "ide"       "30" "fs"
-  "ide_write" "20" "fs"
+#TODO REMOVE IDE
+# "ide"       "30" "fs"
+#  "ide_write" "20" "fs"
   "memdisk"   "20" "fs"
   "vfs"       "20" "fs"
   "virtio_block"  "30" "fs"
@@ -69,7 +57,7 @@ set(TEST_LIST
   #"virtio_queue" "20" "hw"
 
   #mod needs lest
-  #"gsl" "20" "mod"
+  "gsl" "20" "mod"
 
   #plugin
   "unik" "20" "plugin"
@@ -90,6 +78,14 @@ set(TEST_LIST
 
   "utsname" "20" "posix"
 
+  "exceptions" "20" "stl"
+  "crt" "20" "stl"
+  "stl" "20" "stl"
+  "coroutines" "20" "stl"
+
+  "tar_gz" "20" "util"
+  "tar" "20" "util"
+
   #NET tests
   "bufstore"  "30"    "net"
   "configure" "30"    "net"
@@ -98,35 +94,39 @@ set(TEST_LIST
   "http"      "20"    "net"
   "icmp"      "50"    "net"
   "icmp6"     "50"    "net"
+  "microLB"   "50"    "net"
   "nat"       "30"    "net"
-  "router"    "30"    "net"
+  #disabled for now..
+#  "router"    "30"    "net"
+#  "router6"   "30"     "net"
+  "slaac"     "30"    "net"
   "tcp"       "120"    "net"
   "udp"       "30"    "net"
   "vlan"      "20"    "net"
   "websocket" "20"    "net"
-  #microLB #gonzo how to fix ubsan.
-  #"microLB" "20" "net"
+
   #TODO add a cmake variable to exclude these ?
-  #dhclient
-  #dhcpd
+  "dhclient" "20" "net"
+  "dhcpd" "20" "net"
   #dhcpd_dhclient_linux
 
   "block"     "40" "kernel"
-  "context"   "20" "kernel"
+  ##TODO check if context test is old and should be removed!!
+  #"context"   "20" "kernel"
   "exception" "20" "kernel"
   "fiber"     "20" "kernel"
-  #grub litt magic igjen for å få tak i riktig iso image..
+  "grub"  "20" "kernel"
   "kprint"    "10" "kernel"
-  #LiveUpdate #gonzo ?
+  "LiveUpdate" "10" "kernel"
   "memmap"    "20" "kernel"
-  #modules GSL path bug with mod2.. fixit actually wrong in os.cmake!!
+  #This failes on jenkins but not locally trying to disable it to verify that tests run
   #"modules" "20" "kernel"
   "paging"    "20" "kernel"
   "plugin_init" "60" "kernel"
   "rng"       "20" "kernel"
   "smp"       "20" "kernel"
   "term"      "40" "kernel"
-  #timers
+  "timers"    "60" "kernel"
   "tls"       "20" "kernel"
 )
 
@@ -148,11 +148,17 @@ function(add_integration_tests TESTS)
 
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}  ${TYPE}/${T})
 
-    add_test(NAME integration_${TYPE}_${T}
-      COMMAND python2 test.py ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
-      WORKING_DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}
-    )
-    set_tests_properties(integration_${TYPE}_${T} PROPERTIES TIMEOUT ${TIMEOUT})
+    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}/test.py)
+      add_test(NAME integration_${TYPE}_${T}
+        #TODO make cmake find python version .. and update vmrunner
+        COMMAND python2 -u test.py ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
+        WORKING_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}
+      )
+      set_tests_properties(integration_${TYPE}_${T} PROPERTIES TIMEOUT ${TIMEOUT})
+      set_tests_properties(integration_${TYPE}_${T} PROPERTIES ENVIRONMENT INCLUDEOS_SRC=${CMAKE_CURRENT_SOURCE_DIR}/../../)
+    else()
+      message(WARNING "No test.py present in ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}")
+    endif()
   endforeach()
 endfunction()
 

@@ -20,7 +20,7 @@
 
 using namespace net;
 
-void print_error(const std::string& hostname, IP4::addr server, const Error& err) {
+void print_error(const std::string& hostname, net::Addr server, const Error& err) {
   printf("Error occurred when resolving IP address of %s with DNS server %s: %s\n", hostname.c_str(),
         server.to_string().c_str(), err.what());
 
@@ -35,9 +35,13 @@ void print_not_resolved(const std::string& hostname) {
   printf("%s couldn't be resolved\n", hostname.c_str());
 }
 
-void print_success(const std::string& hostname, IP4::addr server, IP4::addr res) {
-  printf("Resolved IP address of %s with DNS server %s: %s\n", hostname.c_str(),
-          server.to_string().c_str(), res.to_string().c_str());
+void print_success(const std::string& hostname, net::Addr server, dns::Response_ptr res) {
+  assert(res != nullptr);
+  if(res->has_addr())
+    printf("Resolved IP address of %s with DNS server %s: %s\n", hostname.c_str(),
+          server.to_string().c_str(), res->get_first_ipv4().to_string().c_str());
+  else
+    print_not_resolved(hostname);
 }
 
 struct Name_request
@@ -59,14 +63,14 @@ static void do_test(net::Inet& inet, std::vector<Name_request>& reqs)
       req.server = inet.dns_addr();
 
     inet.resolve(req.name, req.server,
-      [name = req.name, server = req.server] (ip4::Addr res, const Error& err)
+      [name = req.name, server = req.server] (auto res, const Error& err)
     {
       if (err) {
         print_error(name, server, err);
       }
       else {
-        if (res != 0)
-          print_success(name, server, res);
+        if (res)
+          print_success(name, server, std::move(res));
         else
           print_not_resolved(name);
       }

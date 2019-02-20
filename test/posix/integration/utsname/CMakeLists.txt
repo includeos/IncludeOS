@@ -26,3 +26,5 @@ set(SOURCES
 os_add_executable(posix_utsname "POSIX utsname test" ${SOURCES})
 
 os_add_stdout(posix_utsname default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

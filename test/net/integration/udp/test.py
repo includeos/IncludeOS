@@ -10,11 +10,8 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 import socket
-if len(sys.argv) > 1:
-    vm = vmrunner.vm(config=str(sys.argv[1]))
-else:
-    # Get an auto-created VM from the vmrunner
-    vm = vmrunner.vms[0]
+# Get an auto-created VM from the vmrunner
+vm = vmrunner.vms[0]
 
 def UDP_test(trigger_line):
   print "<Test.py> Performing UDP tests"

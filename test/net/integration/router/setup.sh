@@ -1,4 +1,6 @@
 #! /bin/bash
+set -e #abort on first command returning a failure
+
 source_net=10.0.0.0/24
 source_bridge=bridge43
 
@@ -6,6 +8,8 @@ dest_net=10.42.42.0/24
 dest_bridge=bridge44
 dest_gateway=10.42.42.2
 
+if1=tap0
+if2=tap1
 
 export NSNAME="server1"
 shopt -s expand_aliases
@@ -17,7 +21,7 @@ setup() {
   #sudo apt-get -qqq install -y iperf3
 
   # Make sure the default bridge exists
-  $INCLUDEOS_PREFIX/includeos/scripts/create_bridge.sh
+  $INCLUDEOS_PREFIX/scripts/create_bridge.sh
 
   # Create veth link
   sudo ip link add veth_src type veth peer name veth_dest
@@ -51,7 +55,11 @@ setup() {
 
 }
 
+
 undo(){
+  echo ">>> Deleting veth devices"
+  sudo ip link delete veth_src
+  sudo ip link delete veth_dest
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
   sudo brctl delbr $dest_bridge
@@ -59,12 +67,24 @@ undo(){
   sudo ip netns del $NSNAME
   echo ">>> Deleting route to namespace"
   sudo ip route del $dest_net dev $source_bridge
+
 }
 
+vmsetup(){
+  echo ">>> Moving VM iface $if2 to $dest_bridge"
+  sudo brctl delif $source_bridge $if2
+  sudo brctl addif $dest_bridge $if2
+  sudo ifconfig $if2 up
+  echo ">>> Done."
+
+}
 
 if [ "$1" == "--clean" ]
 then
   undo
+elif [ "$1" == "--vmsetup" ]
+then
+  vmsetup
 else
   setup
 fi

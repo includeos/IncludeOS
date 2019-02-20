@@ -1,8 +1,12 @@
 var http = require('http');
+var url = require('url')
 
-var dataString = function() {
-  var len = 1024 * 50;
+var dataString = function(len) {
   return '#'.repeat(len);
+}
+
+function randomData(len) {
+  return Array.from({length:len}, () => Math.floor(Math.random() * 40));
 }
 
 var stringToColour = function(str) {
@@ -18,11 +22,54 @@ var stringToColour = function(str) {
   return colour;
 }
 
-//We need a function which handles requests and send response
-function handleRequest(request, response){
+function handleDigest(path, request, response) {
   response.setTimeout(500);
   var addr = request.connection.localPort;
   response.end(addr.toString() + dataString());
+}
+
+function handleFile(path,request, response) {
+  response.setTimeout(500);
+  var addr = request.connection.localPort;
+  var size = parseInt(path.replace("/",""),10);
+
+  if (size == 0) { 
+    size=1024*64;
+  }
+  response.end(addr.toString() + dataString(size));
+}
+
+function defaultHandler(path,request,response) {
+  response.setTimeout(500);
+  var addr = request.connection.localPort;
+  response.end(addr.toString() + dataString(1024*1024*50));
+}
+
+var routes = new Map([
+    ['/digest' , handleDigest],
+    ['/file' , handleFile]
+  ]);
+
+function findHandler(path)
+{
+  for (const [key,value] of routes.entries()) {
+    if (path.startsWith(key))
+    {
+      return { pattern: key, func: value};
+    }
+  }
+  return { pattern :'',func : defaultHandler};
+}
+
+function handleRequest(request, response){
+  var parts = url.parse(request.url);
+
+  var route = findHandler(parts.pathname);
+  if (route.func)
+  {
+    var path = parts.pathname.replace(route.pattern,'');
+    route.func(path,request,response);
+  }
 }
 
 http.createServer(handleRequest).listen(6001, '10.0.0.1');

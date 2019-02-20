@@ -22,12 +22,10 @@
 #define PRINT(fmt, ...) /* fmt */
 #endif
 #include <net/ip6/icmp6.hpp>
-#include <net/ip6/ndp.hpp>
+
 #include <net/inet>
 
 #include <iostream>
-#include <net/ip6/ip6.hpp>
-#include <alloca.h>
 #include <assert.h>
 
 namespace net
@@ -52,7 +50,7 @@ namespace net
       "Type: " + icmp6::get_type_string(type_) + "\n" +
       "Code: " + icmp6::get_code_string(type_, code_) + "\n" +
       "Checksum: " + std::to_string(checksum_) + "\n" +
-      "Data: " + payload_;
+      "Data: " + payload_+"\n";
   }
 
   // ------------------------------ ICMPv6 ------------------------------
@@ -60,8 +58,7 @@ namespace net
   int ICMPv6::request_id_ = 0;
 
   ICMPv6::ICMPv6(Stack& inet) :
-    inet_{inet}, ndp_(inet)
-  {}
+    inet_{inet} {}
 
   void ICMPv6::receive(Packet_ptr pckt) {
     if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
@@ -95,7 +92,10 @@ namespace net
     case (ICMP_type::MULTICAST_LISTENER_QUERY):
     case (ICMP_type::MULTICAST_LISTENER_REPORT):
     case (ICMP_type::MULTICAST_LISTENER_DONE):
-      PRINT("<ICMP6> ICMP multicast message from %s\n", req.ip().ip_src().str().c_str());
+    case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
+      PRINT("<ICMP6> ICMP MLD from %s\n",
+          req.ip().ip_src().str().c_str());
+      mld_upstream_(req.release());
       break;
     case (ICMP_type::ND_ROUTER_SOL):
     case (ICMP_type::ND_ROUTER_ADV):
@@ -103,7 +103,7 @@ namespace net
     case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
       PRINT("<ICMP6> NDP message from %s\n", req.ip().ip_src().str().c_str());
-      ndp().receive(req);
+      ndp_upstream_(req.release());
       break;
     case (ICMP_type::ROUTER_RENUMBERING):
       PRINT("<ICMP6> ICMP Router re-numbering message from %s\n", req.ip().ip_src().str().c_str());
@@ -119,10 +119,12 @@ namespace net
   void ICMPv6::forward_to_transport_layer(icmp6::Packet& req) {
     ICMP6_error err{req.type(), req.code()};
 
+    // store index before releasing the packet
+    const int payload_index = req.payload_index();
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in an error
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(req.payload_index());
+    packet_ptr->increment_layer_begin(payload_index);
 
     // inet forwards to transport layer (UDP or TCP)
     inet_.error_report(err, std::move(packet_ptr));
@@ -133,13 +135,41 @@ namespace net
     // the sequence number in an ECHO message f.ex.
     ICMP6_error err{req.type(), req.code(), req.sequence()};
 
+    // store index before releasing the packet
+    const int payload_index = req.payload_index();
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in the Fragmentation Needed
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(req.payload_index());
+    packet_ptr->increment_layer_begin(payload_index);
 
     // Inet updates the corresponding Path MTU value in IP and notifies the transport/packetization layer
     inet_.error_report(err, std::move(packet_ptr));
+  }
+
+   void ICMPv6::execute_ping_callback(icmp6::Packet& ping_response)
+   {
+    // Find callback matching the reply
+    const auto& id_se = ping_response.view_payload_as<icmp6::Packet::IdSe>();
+    auto it = ping_callbacks_.find(std::make_pair(id_se.id(), id_se.seq()));
+
+    if (it != ping_callbacks_.end()) {
+      it->second.callback(ICMP6_view{ping_response});
+      Timers::stop(it->second.timer_id);
+      ping_callbacks_.erase(it);
+    }
+  }
+
+  /** Remove ICMP_callback from ping_callbacks_ map when its timer timeouts */
+  void ICMPv6::remove_ping_callback(Tuple key)
+  {
+    auto it = ping_callbacks_.find(key);
+
+    if (it != ping_callbacks_.end()) {
+      // Data back to user if no response found
+      it->second.callback(ICMP6_view{});
+      Timers::stop(it->second.timer_id);
+      ping_callbacks_.erase(it);
+    }
   }
 
   void ICMPv6::destination_unreachable(Packet_ptr pckt, icmp6::code::Dest_unreachable code) {
@@ -177,15 +207,15 @@ namespace net
     send_response(pckt_icmp6, ICMP_type::PARAMETER_PROBLEM, 0, error_pointer);
   }
 
-  void ICMPv6::ping(IP6::addr ip)
+  void ICMPv6::ping(ip6::Addr ip)
   { send_request(ip, ICMP_type::ECHO, 0); }
 
-  void ICMPv6::ping(IP6::addr ip, icmp_func callback, int sec_wait)
+  void ICMPv6::ping(ip6::Addr ip, icmp_func callback, int sec_wait)
   { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
 
   void ICMPv6::ping(const std::string& hostname) {
 #if 0
-    inet_.resolve(hostname, [this] (IP6::addr a, Error err) {
+    inet_.resolve(hostname, [this] (ip6::Addr a, Error err) {
       if (!err and a != IP6::ADDR_ANY)
         ping(a);
     });
@@ -194,18 +224,19 @@ namespace net
 
   void ICMPv6::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
 #if 0
-    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (IP6::addr a, Error err) {
+    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (ip6::Addr a, Error err) {
       if (!err and a != IP6::ADDR_ANY)
         ping(a, callback, sec_wait);
     }));
 #endif
   }
 
-  void ICMPv6::send_request(IP6::addr dest_ip, ICMP_type type, ICMP_code code,
+  void ICMPv6::send_request(ip6::Addr dest_ip, ICMP_type type, ICMP_code code,
     icmp_func callback, int sec_wait, uint16_t sequence) {
 
     // Check if inet is configured with ipv6
-    if (!inet_.is_configured_v6()) {
+    auto src = inet_.ip6_src(dest_ip);
+    if (src == ip6::Addr::addr_any) {
       PRINT("<ICMP6> inet is not configured to send ipv6 packets\n");
       return;
     }
@@ -213,15 +244,17 @@ namespace net
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     // Populate request IP header
-    req.ip().set_ip_src(inet_.ip6_addr());
+    req.ip().set_ip_src(src);
     req.ip().set_ip_dst(dest_ip);
 
-    uint16_t temp_id = request_id_;
+    uint16_t temp_id = request_id_++;
     // Populate request ICMP header
     req.set_type(type);
     req.set_code(code);
-    req.set_id(request_id_++);
-    req.set_sequence(sequence);
+
+    auto& id_se = req.emplace<icmp6::Packet::IdSe>();
+    id_se.set_id(temp_id);
+    id_se.set_seq(sequence);
 
     if (callback) {
       ping_callbacks_.emplace(std::piecewise_construct,
@@ -292,22 +325,29 @@ namespace net
       return;
     }
 
+    auto dest = req.ip().ip_src();
     // Populate response IP header
-    res.ip().set_ip_src(inet_.ip6_addr());
-    res.ip().set_ip_dst(req.ip().ip_src());
+    res.ip().set_ip_src(inet_.ip6_src(dest));
+    res.ip().set_ip_dst(dest);
 
     // Populate response ICMP header
     res.set_type(ICMP_type::ECHO_REPLY);
     res.set_code(0);
+
+    const auto& ping = req.view_payload_as<icmp6::Packet::IdSe>();
     // Incl. id and sequence number
-    res.set_id(req.id());
-    res.set_sequence(req.sequence());
+    auto& id_se = res.emplace<icmp6::Packet::IdSe>();
+    id_se.set_id(ping.id());
+    id_se.set_seq(ping.seq());
 
     PRINT("<ICMP6> Transmitting answer to %s\n",
           res.ip().ip_dst().str().c_str());
 
     // Payload
-    res.add_payload(req.payload().data(), req.payload().size());
+    // TODO: since id and seq is part of the payload
+    // we need to make some offset stuff here...
+    res.add_payload(req.payload().data() + sizeof(icmp6::Packet::IdSe),
+      req.payload().size() - sizeof(icmp6::Packet::IdSe));
 
     // Add checksum
     res.set_checksum();

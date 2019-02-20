@@ -21,5 +21,7 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "C++ exceptions test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(stl_exceptions "C++ exceptions test" ${SOURCES})
+os_add_stdout(stl_exceptions default_stdout)
+os_add_conan_package(stl_exceptions "lest/1.33.5@includeos/test")
+configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

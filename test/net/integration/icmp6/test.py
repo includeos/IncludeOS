@@ -43,7 +43,7 @@ def start_icmp_test(trigger_line):
     print color.INFO("<Test.py>"), "Ping test succeeded"
   else:
     print color.FAIL("<Test.py>"), "Ping test FAILED"
-    vm.exit(1, 666)
+    vm.exit(1, "Ping test failed")
 
   if num_successes == 1:
     vm.exit(0, "<Test.py> All ICMP tests succeeded. Process returned 0 exit status")

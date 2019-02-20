@@ -81,7 +81,7 @@ struct Testing
     this->read_buffer.clear();
     printf("[%d] Test stage: %d / %d\n",
            this->index, this->test_stage, NUM_STAGES);
-    
+
     // serialize and deserialize TLS after connected
     do_test_serializing_tls(this->index);
 
@@ -155,12 +155,12 @@ void do_test_serializing_tls(int index)
   s2n_fuzz_ptr = server_side.get();
   auto client_side = create_stream(&s2n_fuzz_ptr);
   ossl_fuzz_ptr = client_side.get();
-  
+
   // 2.2: deserialize TLS config/context
   s2n::serial_free_config();
   do_trash_memory();
   s2n::serial_create_config();
-  
+
   // 2.3: deserialize TLS streams
   // 2.3.1:
   auto dstream = s2n::TLS_stream::deserialize_from(
@@ -214,27 +214,33 @@ void Service::start()
   printf("*** Loaded certificates and keys\n");
 
   // initialize S2N and store the certificate/key pair
+  printf("*** Initializing S2N\n");
   s2n::serial_test(ca_cert.to_string(), ca_key.to_string());
+  printf("*** Create S2N configuration\n");
   s2n::serial_create_config();
 
+  printf("*** Create fuzzy S2N streams\n");
   // server fuzzy stream
   auto server_side = create_stream(&ossl_fuzz_ptr);
   s2n_fuzz_ptr = server_side.get();
+  printf("*** - 1. server-side created\n");
   // client fuzzy stream
   auto client_side = create_stream(&s2n_fuzz_ptr);
   ossl_fuzz_ptr = client_side.get();
-  
+  printf("*** - 2. client-side created\n");
+
   server_test.index = 0;
   server_test.stream =
     new s2n::TLS_stream(s2n::serial_get_config(), std::move(server_side), false);
   client_test.index = 1;
   client_test.stream =
     new s2n::TLS_stream(s2n::serial_get_config(), std::move(client_side), true);
-  
+
   server_test.setup_callbacks();
   client_test.setup_callbacks();
   printf("* TLS streams created!\n");
-  
+
   // try serializing and deserializing just after creation
+  printf("*** Starting test...\n");
   do_test_serializing_tls(0);
 }

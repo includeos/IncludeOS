@@ -20,7 +20,7 @@
 #define INCLUDE_UDP_FD_HPP
 
 #include "sockfd.hpp"
-#include <net/inet>
+#include <net/udp/socket.hpp>
 #include <gsl/span>
 #include <deque>
 #include <netinet/in.h>
@@ -74,12 +74,12 @@ private:
   std::deque<Message> buffer_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
   struct sockaddr_in  peer_;
-  net::UDPSocket*     sock;
+  net::udp::Socket*   sock;
   bool                non_blocking_;
   int                 broadcast_;
   int                 rcvbuf_;
 
-  void recv_to_buffer(net::UDPSocket::addr_t, net::UDPSocket::port_t, const char*, size_t);
+  void recv_to_buffer(net::udp::addr_t, net::udp::port_t, const char*, size_t);
   void set_default_recv();
   int read_from_buffer(void*, size_t, int, struct sockaddr*, socklen_t*);
 

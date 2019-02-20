@@ -25,3 +25,5 @@ os_add_executable(net_router "Routing test" ${SOURCES})
 
 os_add_drivers(net_router virtionet)
 os_add_stdout(net_router default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

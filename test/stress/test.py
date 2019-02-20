@@ -124,7 +124,7 @@ def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 # Fire a single burst of ARP requests
 def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Arping requires sudo, and we expect the bridge 'bridge43' to be present
-  command = ["sudo", "arping", "-q","-w", str(100), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
+  command = ["sudo", "arping", "-q","-W", str(0.0001), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
   print color.DATA(" ".join(command))
   time.sleep(0.5)
   res = subprocess32.check_call(command, timeout=thread_timeout);

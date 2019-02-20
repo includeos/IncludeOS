@@ -98,7 +98,7 @@ struct workq_item
   workq_item(uint8_t id, block_t blk, uint32_t cnt, on_read_func call)
     : drive_id(id), read(true), sector(blk), total(cnt), readcall(std::move(call))
   {
-    buffer = std::make_shared<std::vector<uint8_t>> (total * IDE::SECTOR_SIZE);
+    buffer = std::make_shared<os::mem::buffer> (total * IDE::SECTOR_SIZE);
   }
 #endif
 #ifdef IDE_ENABLE_WRITE

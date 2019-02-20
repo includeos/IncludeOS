@@ -213,6 +213,11 @@ public:
     write(text.c_str(), text.size(), op_code::TEXT);
   }
 
+  void write(const std::shared_ptr<std::vector<unsigned char>> data)
+  {
+    write((char *)data->data(),data->size());
+  }
+
   bool ping(const char* buffer, size_t len, Timer::duration_t timeout)
   {
     ping_timer.start(timeout);

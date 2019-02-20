@@ -1,27 +1,24 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
 if (NOT DEFINED INCLUDEOS_PREFIX)
-  if  (NOT DEFINED $ENV{INCLUDEOS_PREFIX})
-    message(info "Setting default includeos path")
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
     set(INCLUDEOS_PREFIX /usr/local/includeos)
   else()
     set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
   endif()
 endif()
 
-project(chainloader)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
+project(chainloader)
 
 #TODO cleanup ARCH in os.cmake and just add set platform?
 set(ARCH i686)
 set(PLATFORM x86_nano)
 
-#TODO decide
-#A includeos install could install os.cmake to a known location
-#B alternative is to provide it via conan..
-list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
-
-#yea baby
 include(os)
 
 option(default_stdout "" OFF)

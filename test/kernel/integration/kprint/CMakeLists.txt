@@ -23,3 +23,5 @@ set(SOURCES
 
 os_add_executable(kernel_kprint "kprint() test" ${SOURCES})
 os_add_stdout(kernel_kprint default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

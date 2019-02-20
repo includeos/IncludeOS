@@ -23,3 +23,5 @@ set(SOURCES
 
 os_add_executable(kernel_exception "CPU exception test" ${SOURCES})
 os_add_stdout(kernel_exception default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

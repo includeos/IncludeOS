@@ -17,5 +17,17 @@ namespace fuzzy
                 const uint16_t dport);
   extern uint8_t*
   add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
-                const uint16_t dport);
+                const uint16_t sport, const uint16_t dport,
+                uint32_t seq, uint32_t ack);
+
+  extern uint8_t*
+  add_ip6_layer(uint8_t* data, FuzzyIterator& fuzzer,
+                const net::ip6::Addr src_addr,
+                const net::ip6::Addr dst_addr,
+                const uint8_t protocol);
+  extern uint8_t*
+  add_icmp6_layer(uint8_t* data, FuzzyIterator& fuzzer);
+
+  extern uint8_t*
+  add_dns4_layer(uint8_t* data, FuzzyIterator& fuzzer, uint32_t xid);
 }

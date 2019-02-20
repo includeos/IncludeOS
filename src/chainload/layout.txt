@@ -1,0 +1,7 @@
+[includedirs]
+include
+
+[libdirs]
+build/lib
+[bindirs]
+build

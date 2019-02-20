@@ -89,6 +89,9 @@ int main()
   CHECKSERT(res == 0, "No data received (closing)");
 
   res = shutdown(cfd, SHUT_RDWR);
+  CHECKSERT(res < 0, "Shutdown on closed socket fails");
+  res = close(cfd);
+  CHECKSERT(res == 0, "Close socket");
 
   // We cant see if the buffer now is empty without blocking the test
 
@@ -112,6 +115,9 @@ int main()
   const char *my_message = "Only hipsters uses POSIX";
   res = send(cfd, my_message, strlen(my_message), 0);
   CHECKSERT(res > 0, "Send works when connected (verified by script)");
+
+  res = close(cfd);
+  CHECKSERT(res == 0, "Closed client connection");
 
   return 0;
 }
