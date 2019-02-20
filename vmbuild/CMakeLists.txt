@@ -18,11 +18,19 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O2 -g")
 
+
+if(CONAN_EXPORTED) # in conan local cache
+  # standard conan installation, deps will be defined in conanfile.py
+  # and not necessary to call conan again, conan is already running
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+endif(CONAN_EXPORTED)
+#TODO pull vmbuild conanfile.py inn when not building with conan to get deps
 # TODO: write scripts that automatically find include directories
 include_directories(
   .
   ${INCLUDE_PATH}/include
-  ./../mod/GSL/
+  #./../mod/GSL/
   ../api)
 
 add_executable(vmbuild ${SOURCES})
@@ -34,4 +42,4 @@ target_link_libraries(elf_syms stdc++)
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
-install(TARGETS vmbuild elf_syms DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(TARGETS vmbuild elf_syms DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

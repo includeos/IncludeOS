@@ -1,21 +1,24 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (256_color_vga)
 
-# Human-readable name of your service
-set(SERVICE_NAME "256 Color VGA Example Service")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Name of your service binary
-set(BINARY       "vga_gfx")
+#service
+project (service)
+include(os)
 
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp
-  )
+    service.cpp # ...add more here
+)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_executable(service "Mode 13h Example Service" ${SOURCES})

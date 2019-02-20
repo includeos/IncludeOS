@@ -2,7 +2,6 @@
 #include <net/inet>
 #include <rtc>
 #include <vector>
-#include <liveupdate>
 
 #include "common.hpp"
 #include "client.hpp"
@@ -22,7 +21,9 @@
 namespace liu {
   struct Storage;
   struct Restore;
+  using buffer_t=std::vector<char>;
 }
+
 struct RemoteServer {
   std::string    sname;
   std::string    spass;

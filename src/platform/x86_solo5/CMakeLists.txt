@@ -9,7 +9,6 @@ set(PLATFORM_OBJECTS
   )
 
 add_library(x86_solo5 STATIC ${PLATFORM_OBJECTS})
-add_dependencies(x86_solo5 PrecompiledLibraries)
 set_target_properties(x86_solo5 PROPERTIES LINKER_LANGUAGE CXX)
 
 #
@@ -17,4 +16,4 @@ set_target_properties(x86_solo5 PROPERTIES LINKER_LANGUAGE CXX)
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
-install(TARGETS x86_solo5 DESTINATION includeos/${ARCH}/platform)
+install(TARGETS x86_solo5 DESTINATION ${ARCH}/platform)

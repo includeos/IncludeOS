@@ -49,7 +49,7 @@ public:
       return std::make_shared<std::vector<uint8_t>> (std::move(data_));
     }
 
-    std::string as_text() const
+    std::string to_string() const
     { return std::string(data(), size()); }
 
     size_t size() const noexcept
@@ -211,6 +211,11 @@ public:
   void write(const std::string& text)
   {
     write(text.c_str(), text.size(), op_code::TEXT);
+  }
+
+  void write(const std::shared_ptr<std::vector<unsigned char>> data)
+  {
+    write((char *)data->data(),data->size());
   }
 
   bool ping(const char* buffer, size_t len, Timer::duration_t timeout)

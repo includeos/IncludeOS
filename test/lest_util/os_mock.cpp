@@ -90,13 +90,6 @@ void os::event_loop() {}
 void os::block() noexcept {}
 void os::halt() noexcept {}
 void os::reboot() noexcept {}
-//void os::print_backtrace() noexcept {}
-//void os::print_backtrace(void(*)(const char*, size_t)) noexcept {}
-
-//void os::resume_softreset(intptr_t) {}
-/*bool OS::is_softreset_magic(uint32_t) {
-  return true;
-  }*/
 
 void __x86_init_paging(void*){};
 namespace x86 {

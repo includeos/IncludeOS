@@ -37,7 +37,6 @@ DHCPD::DHCPD(UDP& udp, ip4::Addr pool_start, ip4::Addr pool_end,
     throw DHCP_exception{"Invalid pool"};
 
   init_pool();
-  listen();
 }
 
 bool DHCPD::record_exists(const Record::byte_seq& client_id) const noexcept {
@@ -94,9 +93,10 @@ void DHCPD::update_pool(ip4::Addr ip, Status new_status) {
 }
 
 void DHCPD::listen() {
-  socket_.on_read([&] (net::Addr, UDP::port_t port,
-    const char* data, size_t len) {
-
+  socket_.on_read(
+  [this] (net::Addr, UDP::port_t port,
+          const char* data, size_t len)
+  {
     if (port == DHCP_CLIENT_PORT) {
       if (len < sizeof(Message))
         return;

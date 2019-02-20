@@ -41,6 +41,5 @@ add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
 add_definitions(-DPLATFORM_${PLATFORM})
 
-
-# include toolchain for arch
-include($ENV{INCLUDEOS_PREFIX}/includeos/elf-toolchain.cmake)
+# include toolchain for arch only for macaroni
+include($ENV{INCLUDEOS_PREFIX}/cmake/elf-toolchain.cmake)

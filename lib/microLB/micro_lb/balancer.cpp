@@ -124,6 +124,11 @@ namespace microLB
     } // estimate
   } // handle_connections()
 
+#if !defined(LIVEUPDATE)
+  //if we dont support liveupdate then do nothing
+  void init_liveupdate() {}
+#endif
+
   Waiting::Waiting(net::Stream_ptr incoming)
     : conn(std::move(incoming)), total(0)
   {

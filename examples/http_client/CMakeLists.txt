@@ -1,35 +1,44 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (http_client)
 
-# Human-readable name of your service
-set(SERVICE_NAME "IncludeOS HTTP Client example")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Name of your service binary
-set(BINARY       "http_client")
+#service
+project (service)
+include(os)
 
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
-  )
+)
 
-set(DRIVERS
-    virtionet
+os_add_executable(http_demo "IncludeOS Demo Service" ${SOURCES})
+
+# DRIVERS / PLUGINS:
+
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  os_add_drivers(http_demo solo5net)
+else()
+  os_add_drivers(http_demo
+    virtionet     # Virtio networking
     vmxnet3
-    e1000
-    #boot_logger
+    boot_logger   # Display boot information
+    # Use "boot --drivers ." to see other drivers
+    # virtioblk # Virtio block device
+    # ... Others from src/drivers
   )
+endif()
 
-set(PLUGINS
-    #vfs
-  )
+# os_add_plugins( ... )
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-install_certificates(disk/certs)
-diskbuilder(disk)
+install_certificates(http_demo disk/certs)
+diskbuilder(http_demo disk)

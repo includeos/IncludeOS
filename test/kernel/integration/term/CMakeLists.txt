@@ -1,30 +1,29 @@
-cmake_minimum_required(VERSION 2.8.9)
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (service)
 
-# Human-readable name of your service
-set(SERVICE_NAME "Terminal integration test")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Name of your service binary
-set(BINARY       "service")
+# Service
+project (term)
+include(os)
 
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp
-  )
+    service.cpp # ...add more here
+)
 
-# DRIVERS / PLUGINS:
-set(DRIVERS
-  virtionet
-  )
+os_add_executable(kernel_term "Terminal test" ${SOURCES})
+os_add_stdout(kernel_term default_stdout)
+os_add_drivers(kernel_term virtionet)
+#os_add_plugins(service vfs)
 
-set(PLUGINS )
-
-# STATIC LIBRARIES:
-set(LIBRARIES )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

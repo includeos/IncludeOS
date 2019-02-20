@@ -1,5 +1,4 @@
 {
-  "image": "test_memdisk.img",
   "mem": 256, 
   "intrusive" : "True"
 }

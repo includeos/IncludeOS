@@ -45,18 +45,6 @@ namespace fs {
     Expects(image_start_ <= image_end_);
   }
 
-  MemDisk::buffer_t MemDisk::read_sync(block_t blk)
-  {
-    stat_read++;
-
-    auto sector_loc = image_start_ + blk * block_size();
-    // Disallow reading memory past disk image
-    if (UNLIKELY(sector_loc >= image_end_))
-        return nullptr;
-
-    return fs::construct_buffer(sector_loc, sector_loc + block_size());
-  }
-
   MemDisk::buffer_t MemDisk::read_sync(block_t blk, size_t cnt)
   {
     stat_read++;

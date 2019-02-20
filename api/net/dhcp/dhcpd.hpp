@@ -45,6 +45,9 @@ namespace dhcp {
       socket_.close();
     }
 
+    // open on DHCP client port
+    void listen();
+
     void add_record(const Record& record)
     { records_.push_back(record); }
 
@@ -133,8 +136,6 @@ namespace dhcp {
     bool valid_pool(ip4::Addr start, ip4::Addr end) const;
     void init_pool();
     void update_pool(ip4::Addr ip, Status new_status);
-
-    void listen();
 
     void resolve(const Message* msg);
     void handle_request(const Message* msg);

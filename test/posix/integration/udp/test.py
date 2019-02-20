@@ -79,4 +79,7 @@ vm.on_output("sendto() called", verify_recv)
 vm.on_output("reading from buffer", UDP_send_much)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(10).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(10,image_name='posix_udp').clean()

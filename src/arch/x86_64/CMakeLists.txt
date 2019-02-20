@@ -16,8 +16,7 @@ set(ARCH_OBJECTS
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})
-add_dependencies(arch PrecompiledLibraries)
 set_target_properties(arch PROPERTIES LINKER_LANGUAGE CXX)
 
-install(TARGETS arch DESTINATION includeos/${ARCH}/lib)
-install(FILES linker.ld DESTINATION includeos/${ARCH})
+install(TARGETS arch DESTINATION ${ARCH}/lib)
+install(FILES linker.ld DESTINATION ${ARCH})

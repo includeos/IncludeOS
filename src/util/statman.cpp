@@ -88,7 +88,7 @@ Stat& Statman::create(const Stat::Stat_type type, const std::string& name)
 
   // note: we have to create this early in case it throws
   auto& stat = *new (&m_stats[idx]) Stat(type, name);
-  m_stats[0].get_uint32()--; // decrease unused stats
+  unused_stats()--; // decrease unused stats
   return stat;
 }
 
@@ -129,7 +129,7 @@ void Statman::free(void* addr)
 #endif
   // delete entry
   new (&stat) Stat(Stat::FLOAT, "");
-  m_stats[0].get_uint32()++; // increase unused stats
+  unused_stats()++; // increase unused stats
 }
 
 ssize_t Statman::find_free_stat() const noexcept
@@ -142,4 +142,11 @@ ssize_t Statman::find_free_stat() const noexcept
     if (m_stats[i].unused()) return i;
   }
   return -1;
+}
+
+void Statman::clear()
+{
+  if (size() <= 1) return;
+  m_stats.clear();
+  this->create(Stat::UINT32, "statman.unused_stats");
 }

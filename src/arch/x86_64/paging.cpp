@@ -92,8 +92,13 @@ void __arch_init_paging() {
   INFO2("* Adding 512 1GiB entries @ 0x0 -> 0x%llx", 512_GiB);
   auto* pml3_0 =  __pml4->create_page_dir(0, 0, default_fl);
 
+  Expects(pml3_0 != nullptr);
+  Expects(pml3_0->has_flag(0,Flags::present));
+
   Expects(__pml4->has_flag(0, Flags::present));
+  /*FIXME TODO this test is not sane when we do not control the heap in unittests
   Expects(__pml4->has_flag((uintptr_t)pml3_0, Flags::present));
+  */
 
   if (not os::mem::supported_page_size(1_GiB)) {
     auto first_range = __pml4->map_r({0,0,default_fl, 16_GiB});

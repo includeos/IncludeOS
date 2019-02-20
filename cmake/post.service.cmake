@@ -4,10 +4,10 @@
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+  set(ENV{INCLUDEOS_PREFIX} /usr/local/includeos)
 endif()
 
-set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
+set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX})
 
 message(STATUS "Target triple ${TRIPLE}")
 
@@ -52,7 +52,7 @@ endif()
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -D__includeos__ -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -D__includeos__ -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # Compiler optimization
@@ -258,7 +258,7 @@ endforeach()
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
+include_directories(${INSTALL_LOC}/${ARCH}/include/c++/v1)
 include_directories(${INSTALL_LOC}/${ARCH}/include/musl)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libunwind)
 if ("${PLATFORM}" STREQUAL "x86_solo5")
@@ -266,7 +266,7 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 include_directories(${INSTALL_LOC}/${ARCH}/include)
-include_directories(${INSTALL_LOC}/api)
+include_directories(${INSTALL_LOC}/include/os)
 include_directories(${INSTALL_LOC}/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
@@ -316,11 +316,11 @@ add_library(libplatform STATIC IMPORTED)
 set_target_properties(libplatform PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libplatform PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/platform/lib${PLATFORM}.a)
 
-add_library(libbotan STATIC IMPORTED)
-set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
-
 if(${ARCH} STREQUAL "x86_64")
+  add_library(libbotan STATIC IMPORTED)
+  set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
+
   add_library(libs2n STATIC IMPORTED)
   set_target_properties(libs2n PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libs2n PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libs2n.a)
@@ -337,9 +337,16 @@ if(${ARCH} STREQUAL "x86_64")
   include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
 
-add_library(libosdeps STATIC IMPORTED)
-set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
+if (NOT ${PLATFORM} STREQUAL x86_nano )
+  add_library(http_parser STATIC IMPORTED)
+  set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/http_parser.o)
+
+  add_library(uzlib STATIC IMPORTED)
+  set_target_properties(uzlib PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(uzlib PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libtinf.a)
+
+endif()
 
 add_library(musl_syscalls STATIC IMPORTED)
 set_target_properties(musl_syscalls PROPERTIES LINKER_LANGUAGE CXX)
@@ -489,34 +496,58 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 # all the OS and C/C++ libraries + crt end
-target_link_libraries(service
-  libos
-  libplatform
-  libarch
 
-  ${LIBR_CMAKE_NAMES}
-  libos
-  libbotan
-  ${OPENSSL_LIBS}
-  libosdeps
+IF (${PLATFORM} STREQUAL x86_nano)
+  target_link_libraries(service
+    --start-group
+    libos
+    libplatform
+    libarch
+    musl_syscalls
 
-  libplatform
-  libarch
+#    cxxabi buildt into libcxx
+    libc
+    libcxx
+    libunwind
+    libpthread
 
-  musl_syscalls
-  libos
-  libcxx
-  cxxabi
-  libunwind
-  libpthread
-  libc
-
-  musl_syscalls
-  libos
-  libc
-  libgcc
-  ${CRTN}
+    libgcc
+    --end-group
+    ${LIBR_CMAKE_NAMES}
+    ${CRTN}
   )
+
+else()
+  target_link_libraries(service
+    libos
+    libplatform
+    libarch
+
+    ${LIBR_CMAKE_NAMES}
+    libos
+    libbotan
+    ${OPENSSL_LIBS}
+
+
+    libplatform
+    libarch
+
+    musl_syscalls
+    libos
+    libcxx
+    cxxabi
+    libunwind
+    libpthread
+    libc
+
+    musl_syscalls
+    libos
+    libc
+    libgcc
+    ${CRTN}
+  )
+
+endif()
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 

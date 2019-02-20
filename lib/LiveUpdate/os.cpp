@@ -1,7 +1,6 @@
 #include <kernel.hpp>
 #include <os.hpp>
 #include <kernel/memory.hpp>
-#include <kprint>
 
 #define HIGHMEM_LOCATION  (1ull << 45)
 #define LIVEUPDATE_AREA_SIZE 25
@@ -10,7 +9,7 @@ static_assert(LIVEUPDATE_AREA_SIZE > 0 && LIVEUPDATE_AREA_SIZE < 50,
 
 //#define LIU_DEBUG 1
 #ifdef LIU_DEBUG
-#define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define PRATTLE(fmt, ...) vfprintf(stderr,fmt, ##__VA_ARGS__)
 #else
 #define PRATTLE(fmt, ...) /* fmt */
 #endif

@@ -20,20 +20,15 @@
 #include <cmath>
 
 extern "C" uintptr_t get_cpu_esp();
-extern "C" uintptr_t heap_begin;
-extern "C" uintptr_t heap_end;
 
 constexpr auto STACK_SIZE = 0x20000;
+static const double float1 = 0.987;
+static const double float2 = 0.654;
+static const double float3 = 0.321;
 
-
-double much_float(double d) {
+static double much_float(double d) {
   return sqrt(2) * d;
 }
-
-auto constexpr float1 = 0.987;
-auto constexpr float2 = 0.654;
-auto constexpr float3 = 0.321;
-
 
 void Service::start(const std::string&)
 {
@@ -48,24 +43,24 @@ void Service::start(const std::string&)
   Context::create(STACK_SIZE,
   [res1, res2] ()
   {
-    auto esp1 = get_cpu_esp();
-    printf("Context 1, stack at 0x%x \n", esp1);
-    Expects(esp1 >= heap_begin and esp1 <= heap_end);
+    const auto esp1 = get_cpu_esp();
+    printf("Context 1, stack at %p\n", (void*) esp1);
+    Expects(esp1 >= OS::heap_begin() and esp1 <= OS::heap_end());
 
-    auto my_float = much_float(float1);
+    const volatile double my_float = much_float(float1);
 
-    Context::create(STACK_SIZE, 
+    Context::create(STACK_SIZE,
     [esp1, res2] ()
     {
-      auto esp2 = get_cpu_esp();
+      const auto esp2 = get_cpu_esp();
 
-      Expects(esp2 >= heap_begin and esp2 <= heap_end);
+      Expects(esp2 >= OS::heap_begin() and esp2 <= OS::heap_end());
       Expects(std::abs(long(esp2 - esp1)) >= STACK_SIZE);
 
       auto my_float = much_float(float2);
       Expects(my_float == res2);
 
-      printf("Context 2, stack at 0x%x \n", esp2);
+      printf("Context 2, stack at %p\n", (void*) esp2);
     });
 
     Expects(my_float == res1);
@@ -79,5 +74,4 @@ void Service::start(const std::string&)
   Expects(my_float == res3);
 
   INFO("Context","SUCCESS");
-
 }

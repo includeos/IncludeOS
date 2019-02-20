@@ -40,7 +40,6 @@ public:
           this->driver_receive(std::move(queue.front()));
           queue.pop_front();
         }
-        this->m_nic.signal_tqa();
       });
   }
 

@@ -149,7 +149,7 @@ set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
     ${IOS}/lib/mana/include
     ${IOS}/mod/rapidjson/include
-    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
+    #$ENV{INCLUDEOS_PREFIX}/x86_64/include
   )
 set_source_files_properties("${IOS}/src/version.cpp" PROPERTIES COMPILE_DEFINITIONS OS_VERSION="4")
 

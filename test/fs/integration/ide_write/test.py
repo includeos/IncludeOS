@@ -26,4 +26,7 @@ subprocess32.call(["./fat32_disk.sh"], shell=True, timeout = thread_timeout)
 vm.on_exit(cleanup)
 
 # Boot the VM
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vm.boot(thread_timeout,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout,image_name='fs_ide_write').clean()

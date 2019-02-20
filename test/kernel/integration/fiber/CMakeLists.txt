@@ -1,36 +1,35 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 if (DEFINED ENV{INCLUDEOS_THREADING})
   option(threading "" ENV{INCLUDEOS_THREADING})
 endif()
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-include_directories($ENV{INCLUDEOS_SRC}/src/include)
+#service
+project (service)
+include(os)
 
-project (test_fiber)
-
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
-
-set(SERVICE_NAME "Fibers test")
-set(BINARY       "test_fiber")
-set(MAX_MEM 128)
 set(SOURCES
-  service.cpp
-  )
-
+    service.cpp
+)
 if (threading)
-  set(SOURCES ${SOURCES} fiber_smp.cpp)
+  list(APPEND SOURCES fiber_smp.cpp)
 endif()
 
-set(DRIVERS
-  boot_logger
-  )
-#set(LOCAL_INCLUDES ".")
+os_add_executable(kernel_fiber "GRUB boot test" ${SOURCES})
+os_add_stdout(kernel_fiber default_stdout)
+os_add_drivers(kernel_fiber boot_logger)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
