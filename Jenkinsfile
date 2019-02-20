@@ -1,10 +1,6 @@
 pipeline {
   agent { label 'vaskemaskin' }
 
-  options {
-    timestamps()
-  }
-
   environment {
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
