@@ -1,6 +1,10 @@
 pipeline {
   agent { label 'vaskemaskin' }
 
+  options {
+    timestamps()
+  }
+
   environment {
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
@@ -93,6 +97,11 @@ pipeline {
             sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
             sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
           }
+          post {
+            cleanup {
+              sh script: "sudo pkill qemu-system", label: "Kill all qemu processes"
+            }
+          }
         }
       }
     }
@@ -104,7 +113,6 @@ pipeline {
         sh script: "cd coverage; make coverage", label: "Make coverage"
       }
     }
-
   }
 }
 
