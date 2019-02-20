@@ -104,9 +104,10 @@ pipeline {
     stage('Integration tests') {
       steps {
         sh 'rm -rf integration || : && mkdir integration'
-        sh 'cd integration; cmake ../test/integration -DCMAKE_BUILD_TYPE=Debug'
+        sh 'cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug'
         sh "cd integration; make -j $CPUS"
-        sh 'cd integration; ctest'
+        sh 'cd integration; ctest -E stress --output-on-failure'
+        sh 'cd integration; ctest -R stress -E integration --output-on-failure'
       }
     }
   }
