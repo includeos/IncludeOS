@@ -127,17 +127,16 @@ if (ENABLE_S2N)
   find_package(OpenSSL REQUIRED)
   include(ExternalProject)
   ExternalProject_add(libs2n
-      URL https://github.com/fwsGonzo/s2n_bundle/releases/download/v1.4/libs2n.a
+      URL https://github.com/fwsGonzo/s2n_bundle/releases/download/v1.4/s2n.tar
       CONFIGURE_COMMAND ""
       BUILD_COMMAND     ""
       INSTALL_COMMAND   ""
       DOWNLOAD_NAME libs2n.a
-      DOWNLOAD_NO_EXTRACT 1
   )
 
   add_library(s2n STATIC IMPORTED)
   set_target_properties(s2n PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(s2n PROPERTIES IMPORTED_LOCATION libs2n-prefix/src/libs2n.a)
+  set_target_properties(s2n PROPERTIES IMPORTED_LOCATION libs2n-prefix/src/libs2n/lib/libs2n.a)
   add_library(crypto STATIC IMPORTED)
   set_target_properties(crypto PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(crypto PROPERTIES IMPORTED_LOCATION libcrypto.a)
@@ -147,6 +146,8 @@ if (ENABLE_S2N)
 
   set(S2N_LIBS s2n OpenSSL::SSL)
   target_link_libraries(service ${S2N_LIBS} -ldl -pthread)
+  target_include_directories(includeos PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/libs2n-prefix/src/libs2n/api)
+  target_include_directories(microlb PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/libs2n-prefix/src/libs2n/api)
 endif()
 target_link_libraries(service ${PLUGINS_LIST})
 target_link_libraries(service includeos linuxrt microlb liveupdate

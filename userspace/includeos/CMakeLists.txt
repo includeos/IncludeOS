@@ -62,10 +62,6 @@ set(NET_SOURCES
   ${IOS}/src/net/http/server.cpp
   ${IOS}/src/net/http/response_writer.cpp
 
-  ${IOS}/src/net/https/botan_server.cpp
-  ${IOS}/src/net/https/openssl_server.cpp
-  ${IOS}/src/net/https/s2n_server.cpp
-
   ${IOS}/src/net/ws/websocket.cpp
 
   ${IOS}/src/net/openssl/init.cpp
@@ -74,8 +70,15 @@ set(NET_SOURCES
 
 )
 if (CUSTOM_BOTAN)
+  #${IOS}/src/net/https/botan_server.cpp
   set(NET_SOURCES ${NET_SOURCES}
       "${IOS}/src/net/https/botan_server.cpp")
+endif()
+if (ENABLE_S2N)
+  set(NET_SOURCES ${NET_SOURCES}
+      ${IOS}/src/net/https/openssl_server.cpp
+      ${IOS}/src/net/https/s2n_server.cpp
+    )
 endif()
 
 set(OS_SOURCES
@@ -140,9 +143,12 @@ set(MICROLB_SOURCES
     ${IOS}/lib/microLB/micro_lb/balancer.cpp
     ${IOS}/lib/microLB/micro_lb/defaults.cpp
     ${IOS}/lib/microLB/micro_lb/openssl.cpp
-    ${IOS}/lib/microLB/micro_lb/s2n.cpp
-    ${IOS}/lib/microLB/micro_lb/serialize.cpp
   )
+if (ENABLE_S2N)
+  set(MICROLB_SOURCES ${MICROLB_SOURCES}
+      ${IOS}/lib/microLB/micro_lb/s2n.cpp
+    )
+endif()
 
 add_library(includeos STATIC ${NET_SOURCES} ${OS_SOURCES} ${MOD_SOURCES})
 set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)

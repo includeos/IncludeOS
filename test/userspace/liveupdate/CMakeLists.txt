@@ -18,4 +18,4 @@ set(SOURCES
     service.cpp
   )
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/linux.service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/cmake/linux.service.cmake)

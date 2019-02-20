@@ -28,10 +28,6 @@ MemDisk::block_t MemDisk::size() const noexcept
   return (image_end_ - image_start_) / SECTOR_SIZE;
 }
 
-buffer_t MemDisk::read_sync(block_t blk)
-{
-  return read_sync(blk, 1);
-}
 buffer_t MemDisk::read_sync(block_t blk, size_t cnt)
 {
   //printf("MemDisk::read %zu -> %zu / %zu\n", blk, blk + cnt, size() / SECTOR_SIZE);

@@ -18,4 +18,4 @@ option(ENABLE_LTO "" OFF) # disable LTO because so much issues with LLD
 option(STATIC_BUILD "" OFF) # asan doesnt support static builds
 option(STRIP_BINARY "" OFF) # we need to see symbol names
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/linux.service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/cmake/linux.service.cmake)

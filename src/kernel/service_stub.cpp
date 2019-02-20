@@ -38,10 +38,14 @@ void Service::start()
   Service::start(args);
 }
 
+#ifndef USERSPACE_KERNEL
 extern "C" {
   __attribute__((weak))
   int main(int, const char*[]) {}
 }
+#else
+extern int main(int, const char*[]);
+#endif
 
 __attribute__((weak))
 void Service::start(const std::string& cmd)

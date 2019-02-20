@@ -15,6 +15,8 @@ extern "C"
 int userspace_main(int, char** args)
 {
   m4chine = os::Machine::create(machine_pool.data(), sizeof(machine_pool));
+  // TODO: init machine
+  //m4chine->init();
 
   // initialize Linux platform
   kernel::start(args[0]);

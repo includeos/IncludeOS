@@ -199,6 +199,7 @@ void do_test_completed()
 
 void Service::start()
 {
+  printf("Service::start()\n");
   fs::memdisk().init_fs(
   [] (fs::error_t err, fs::File_system&) {
     assert(!err);

@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <os.hpp>
-#ifndef USERSPACE_PLATFORM
+#ifndef USERSPACE_KERNEL
 #include <version.h>
 #endif
 
