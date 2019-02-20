@@ -53,14 +53,6 @@ pipeline {
       	build_editable('lib/microLB','microlb')
       }
     }
-    stage('Build 32 bit') {
-      steps {
-        sh script: "mkdir -p build_x86", label: "Setup"
-        sh script: "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano ..", label: "Cmake"
-        sh script: "cd build_x86; make -j $CPUS", label: "Make"
-        sh script: 'cd build_x86; make install', label: "Make install"
-      }
-    }
     /* TODO
     stage('build chainloader 32bit') {
       steps {
@@ -75,12 +67,33 @@ pipeline {
       }
     }
     */
-    stage('Build 64 bit') {
-      steps {
-        sh script: "mkdir -p build_x86_64", label: "Setup"
-        sh script: "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 ..", label: "Cmake"
-        sh script: "cd build_x86_64; make -j $CPUS", label: "Make"
-        sh script: "cd build_x86_64; make install", label: "Make install"
+    stage('Build & Integration tests') {
+      stages {
+        stage('Build 32 bit') {
+          steps {
+            sh script: "mkdir -p build_x86", label: "Setup"
+            sh script: "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano ..", label: "Cmake"
+            sh script: "cd build_x86; make -j $CPUS", label: "Make"
+            sh script: 'cd build_x86; make install', label: "Make install"
+          }
+        }
+        stage('Build 64 bit') {
+          steps {
+            sh script: "mkdir -p build_x86_64", label: "Setup"
+            sh script: "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 ..", label: "Cmake"
+            sh script: "cd build_x86_64; make -j $CPUS", label: "Make"
+            sh script: "cd build_x86_64; make install", label: "Make install"
+          }
+        }
+        stage('Integration tests') {
+          steps {
+            sh script: "mkdir -p integration", label: "Setup"
+            sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
+            sh script: "cd integration; make -j $CPUS", label: "Make"
+            sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
+            sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
+          }
+        }
       }
     }
     stage('Code coverage') {
@@ -91,15 +104,7 @@ pipeline {
         sh script: "cd coverage; make coverage", label: "Make coverage"
       }
     }
-    stage('Integration tests') {
-      steps {
-        sh script: "mkdir -p integration", label: "Setup"
-        sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
-        sh script: "cd integration; make -j $CPUS", label: "Make"
-        sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
-        sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
-      }
-    }
+
   }
 }
 
