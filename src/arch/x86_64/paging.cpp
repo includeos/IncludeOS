@@ -43,10 +43,15 @@ static void allow_executable();
 static void protect_pagetables_once();
 
 // must be public symbols because of a unittest
+#ifndef PLATFORM_UNITTEST
 extern char _TEXT_START_;
 extern char _EXEC_END_;
 uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
 uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
+#else
+extern uintptr_t __exec_begin;
+extern uintptr_t __exec_end;
+#endif
 
 /**
     IncludeOS default paging setup

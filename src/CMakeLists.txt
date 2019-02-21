@@ -22,6 +22,7 @@ set(SRCS
   version.cpp
 )
 set(LIBRARIES
+    hal
     kernel
     util
     net

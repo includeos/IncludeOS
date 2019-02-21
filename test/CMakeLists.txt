@@ -100,6 +100,7 @@ conan_cmake_run(
 include_directories(
   ${TEST}/lest_util
   ${CMAKE_CURRENT_SOURCE_DIR}/../api
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src/include
   #TODO move to the right place
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/LiveUpdate
   ${INCLUDEOS_ROOT}/lib/LiveUpdate
@@ -194,7 +195,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
-  #${TEST}/util/unit/buddy_alloc_test.cpp
+  ${TEST}/util/unit/buddy_alloc_test.cpp
   ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 if (COVERAGE)
@@ -256,7 +257,7 @@ foreach(T ${TEST_SOURCES})
   #get the filename witout extension
   get_filename_component(NAME ${T} NAME_WE)
   add_executable(${NAME} ${T})
-  target_link_libraries(${NAME} liveupdate os lest_util  m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
+  target_link_libraries(${NAME} liveupdate os lest_util os m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
   add_test(${NAME} bin/${NAME})
   #add to list of tests for dependencies
   list(APPEND TEST_BINARIES ${NAME})

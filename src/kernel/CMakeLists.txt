@@ -1,31 +1,31 @@
 ﻿set(SRCS
-    multiboot.cpp
-    syscalls.cpp
-    os.cpp
-    cpuid.cpp
     block.cpp
-    events.cpp
-    memmap.cpp
-    pci_manager.cpp
-    service_stub.cpp
+    cpuid.cpp
     elf.cpp
-    vga.cpp
-    context.cpp
-    context_asm.asm
+    events.cpp
     fiber.cpp
-    tls.cpp
+    memmap.cpp
+    multiboot.cpp
+    pci_manager.cpp
+    os.cpp
     profile.cpp
+    syscalls.cpp
+    service_stub.cpp
     scoped_profiler.cpp
+    system_log.cpp
     terminal.cpp
     timers.cpp
     rng.cpp
-    system_log.cpp
-    solo5_manager.cpp
+    tls.cpp
+    vga.cpp
+
+    context.cpp context_asm.asm
     )
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND SRCS
-    rdrand.cpp
     heap.cpp
+    kernel.cpp
+    rdrand.cpp
     rtc.cpp
   )
 endif()

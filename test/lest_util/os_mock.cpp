@@ -97,14 +97,6 @@ namespace paging {
   void invalidate(void* pageaddr){};
 }}
 
-__attribute__((constructor))
-void paging_test_init(){
-  extern uintptr_t __exec_begin;
-  extern uintptr_t __exec_end;
-  __exec_begin = 0xa00000;
-  __exec_end = 0xb0000b;
-}
-
 //void OS::multiboot(unsigned) {}
 
 #include <system_log>
@@ -220,35 +212,33 @@ bool rdrand32(uint32_t* result) {
   return true;
 }
 
-os::Machine& os::machine() noexcept {
-  static os::Machine* m = nullptr;
-  static const size_t memsize = 0x1000000;
-  if (UNLIKELY(m == nullptr)) {
-    void* memory = aligned_alloc(4096, memsize);
-    assert(memory != nullptr);
-    m = os::Machine::create(memory, memsize);
+namespace os {
+  Machine& machine() noexcept {
+    static Machine* m = nullptr;
+    static const size_t memsize = 0x1000000;
+    if (UNLIKELY(m == nullptr)) {
+      void* memory = aligned_alloc(4096, memsize);
+      assert(memory != nullptr);
+      m = Machine::create(memory, memsize);
+    }
+    return *m;
   }
-  return *m;
+
+  const char* cmdline_args() noexcept {
+    return "unittests";
+  }
+
+  void print(const char* ptr, const size_t len) {
+    // print?
+  }
+
+  size_t total_memuse() noexcept {
+    return 0xff00ff00;
+  }
 }
 
-static os::on_panic_func __on_panic = nullptr;
-
-void os::panic(const char* reason) noexcept {
-  printf("PANIC: %s \n", reason);
-  __on_panic(reason);
-  exit(-1);
-}
-
-void os::on_panic(os::on_panic_func f){
-  __on_panic = f;
-}
-
-const char* os::cmdline_args() noexcept {
-  return "unittests";
-}
-
-/// heap ///
-//uintptr_t __brk_max = 0;
+uintptr_t __exec_begin = 0xa00000;
+uintptr_t __exec_end   = 0xb0000b;
 
 namespace kernel {
   uintptr_t heap_begin() noexcept {
@@ -263,6 +253,10 @@ namespace kernel {
     return -1;
   }
 
+  size_t heap_usage() noexcept {
+    return 0xff00ff00;
+  }
+
   size_t total_memuse() noexcept {
     return heap_end();
   }
@@ -273,23 +267,11 @@ namespace kernel {
 
   struct State {};
 
-  multiboot_info_t* bootinfo() {
-    return nullptr;
-  }
-
 
   State& state() {
     static State s{};
     return s;
   }
-
-
 }
-
-/*size_t OS::heap_usage() noexcept {
-  return OS::heap_end();
-  }*/
-
-
 
 #endif
