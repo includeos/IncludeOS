@@ -21,7 +21,13 @@ list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 #service
 project (liuircd)
 include(os)
-add_subdirectory(ircd)
+
+if(TARGET ircd)
+  message(STATUS "ircd is already defined")
+else()
+  add_subdirectory(../IRCd/ircd ircd)
+endif()
+
 
 set(DRIVERS
     vmxnet3
@@ -31,10 +37,10 @@ set(STDOUT
   default_stdout
 )
 
-os_add_executable(service "IRC service"  service.cpp)
-os_link_libraries(service ircd)
-os_add_drivers(service ${DRIVERS})
-os_add_stdout(service ${STDOUT})
+os_add_executable(LiveUpdate "IRC service"  service.cpp)
+os_link_libraries(LiveUpdate ircd)
+os_add_drivers(LiveUpdate ${DRIVERS})
+os_add_stdout(LiveUpdate ${STDOUT})
 
 add_custom_command(
   OUTPUT motd.h
@@ -43,8 +49,8 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 add_custom_target(motd DEPENDS motd.h)
-add_dependencies(service motd)
+add_dependencies(LiveUpdate motd)
 
 if (LIVEUPDATE)
-  os_add_os_library(service liveupdate)
+  os_add_os_library(LiveUpdate liveupdate)
 endif()

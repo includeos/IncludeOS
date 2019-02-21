@@ -21,14 +21,14 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "WebSocket example" ${SOURCES})
+os_add_executable(websocket_service "WebSocket example" ${SOURCES})
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service
+  os_add_drivers(websocket_service
       solo5net
     )
 else()
-  os_add_drivers(service
+  os_add_drivers(websocket_service
     virtionet
     vmxnet3
     e1000
@@ -36,7 +36,7 @@ else()
   )
 endif()
 
-os_add_stdout(service default_stdout)
-os_add_plugins(service autoconf)
+os_add_stdout(websocket_service default_stdout)
+os_add_plugins(websocket_service autoconf)
 
-os_diskbuilder(service disk)
+os_diskbuilder(websocket_service disk)

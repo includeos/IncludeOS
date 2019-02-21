@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 option(REAL_HW "Run on real hardware" OFF)
-option(LIVEUPDATE "Enable liveupdate" OFF)
+option(LIVEUPDATE "Enable liveupdate" ON)
 
 # IncludeOS install location
 if (NOT DEFINED INCLUDEOS_PREFIX)
@@ -23,22 +23,13 @@ project (ircd)
 
 include(os)
 
-add_subdirectory(ircd)
+add_subdirectory(ircd ircd2)
 
-set(DRIVERS
-    vmxnet3
-  )
-
-set(STDOUT
-  default_stdout
-)
-
-os_add_executable(service "IRC service"  service.cpp autoconf.cpp)
-os_link_libraries(service ircd)
-os_add_drivers(service ${DRIVERS})
-os_add_stdout(service ${STDOUT})
+os_add_executable(ircd_example "IRC service"  service.cpp autoconf.cpp)
+os_add_drivers(ircd_example vmxnet3)
+os_add_stdout(ircd_example default_stdout)
 
 if (LIVEUPDATE)
-  os_add_os_library(service liveupdate)
+  os_add_os_library(ircd_example liveupdate)
 endif()
-
+os_link_libraries(ircd_example ircd)

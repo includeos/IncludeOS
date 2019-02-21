@@ -40,5 +40,5 @@ endif()
 
 # os_add_plugins( ... )
 
-install_certificates(http_demo disk/certs)
-diskbuilder(http_demo disk)
+os_install_certificates(http_demo ${CMAKE_CURRENT_BINARY_DIR}/disk/certs)
+os_diskbuilder(http_demo ${CMAKE_CURRENT_BINARY_DIR}/disk)
