@@ -110,6 +110,13 @@ pipeline {
         sh 'cd integration; ctest -R stress -E integration --output-on-failure'
       }
     }
+    stage('Build examples') {
+      steps {
+      	sh "mkdir -p build_examples"
+	sh "cd build_examples; cmake ../examples"
+	sh "cd build_examples; make -j $CPUS"
+      }
+    }
   }
 }
 
