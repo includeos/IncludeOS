@@ -81,6 +81,7 @@ namespace uplink {
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
+#if defined(LIVEUPDATE)
     if(liu::LiveUpdate::is_resumable() && kernel::is_live_updated())
     {
       MYINFO("Found resumable state, try restoring...");
@@ -99,6 +100,7 @@ namespace uplink {
     if(config_.reboot)
       os::set_panic_action(os::Panic_action::reboot);
 
+#if defined(LIVEUPDATE)
     CHECK(config_.serialize_ct, "Serialize Conntrack");
     if(config_.serialize_ct)
       liu::LiveUpdate::register_partition("conntrack", {this, &WS_uplink::store_conntrack});
