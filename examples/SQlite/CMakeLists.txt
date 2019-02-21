@@ -21,11 +21,11 @@ set(SOURCES
   service.cpp sqlite3_amalgamation/sqlite3.c
 )
 
-os_add_executable(service "SQlite Service" ${SOURCES})
+os_add_executable(sqlite_service "SQlite Service" ${SOURCES})
 
 #os_add_drivers(demo ...)
 #os_add_plugins( ... )
-os_add_stdout(service default_stdout)
+os_add_stdout(sqlite_service default_stdout)
 
 set(SL3_SOURCES
     libsl3/src/sl3/columns.cpp
@@ -50,4 +50,4 @@ target_compile_definitions(sl3 PUBLIC SQLITE_THREADSAFE=0)
 target_compile_definitions(sl3 PUBLIC SQLITE_OMIT_LOAD_EXTENSION)
 target_compile_definitions(sl3 PUBLIC SQLITE_OMIT_WAL)
 
-os_link_libraries(service sl3)
+os_link_libraries(sqlite_service sl3)
