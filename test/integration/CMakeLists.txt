@@ -168,7 +168,7 @@ if (STRESS)
     COMMAND python2 test.py 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../stress
   )
-  set_tests_properties(stress PROPERTIES TIMEOUT 200)
+  set_tests_properties(stress PROPERTIES TIMEOUT 300)
 endif()
 
 
