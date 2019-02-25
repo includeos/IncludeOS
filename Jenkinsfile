@@ -101,6 +101,13 @@ pipeline {
         sh 'cd coverage; make coverage'
       }
     }
+    stage('Build examples') {
+      steps {
+      	sh "mkdir -p build_examples"
+        sh "cd build_examples; cmake ../examples"
+        sh "cd build_examples; make -j $CPUS"
+      }
+    }
     stage('Integration tests') {
       steps {
         sh 'rm -rf integration || : && mkdir integration'
@@ -108,13 +115,6 @@ pipeline {
         sh "cd integration; make -j $CPUS"
         sh 'cd integration; ctest -E stress --output-on-failure'
         sh 'cd integration; ctest -R stress -E integration --output-on-failure'
-      }
-    }
-    stage('Build examples') {
-      steps {
-      	sh "mkdir -p build_examples"
-        sh "cd build_examples; cmake ../examples"
-        sh "cd build_examples; make -j $CPUS"
       }
     }
   }
