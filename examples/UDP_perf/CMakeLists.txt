@@ -21,15 +21,15 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "UDP benchmark" ${SOURCES})
+os_add_executable(udp_service "UDP benchmark" ${SOURCES})
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service
+  os_add_drivers(udp_service
       ip4_reassembly
       solo5net
     )
 else()
-  os_add_drivers(service
+  os_add_drivers(udp_service
     ip4_reassembly
     virtionet
     vmxnet3
@@ -38,5 +38,5 @@ else()
   )
 endif()
 
-os_add_stdout(service default_stdout)
-os_add_plugins(service autoconf)
+os_add_stdout(udp_service default_stdout)
+os_add_plugins(udp_service autoconf)

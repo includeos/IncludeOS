@@ -21,15 +21,15 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "TCP benchmarking" ${SOURCES})
+os_add_executable(tcp_perf_service "TCP benchmarking" ${SOURCES})
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service
+  os_add_drivers(tcp_perf_service
       solo5net
       #solo5blk
     )
 else()
-  os_add_drivers(service
+  os_add_drivers(tcp_perf_service
     virtionet
     vmxnet3
     e1000
@@ -37,5 +37,5 @@ else()
   )
 endif()
 
-os_add_stdout(service default_stdout)
-os_add_plugins(service autoconf)
+os_add_stdout(tcp_perf_service default_stdout)
+os_add_plugins(tcp_perf_service autoconf)

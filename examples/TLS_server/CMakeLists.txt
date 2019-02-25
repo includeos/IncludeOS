@@ -14,29 +14,28 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
 #service
-project (service)
+project (tls_server)
 include(os)
 
 set(SOURCES
   service.cpp http.cpp
 )
 
-os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "TLS server" ${SOURCES})
+os_add_executable(tls_service "TLS server" ${SOURCES})
 
 # DRIVERS / PLUGINS:
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service solo5net)
+  os_add_drivers(tls_service solo5net)
 else()
-  os_add_drivers(service
+  os_add_drivers(tls_service
     virtionet     # Virtio networking
     vmxnet3
   )
 endif()
-os_add_plugins(service autoconf vfs)
-os_add_stdout(service default_stdout)
+os_add_plugins(tls_service autoconf vfs)
+os_add_stdout(tls_service default_stdout)
 
 # Build memdisk content
-os_diskbuilder(service drive)
+os_diskbuilder(tls_service drive)

@@ -21,11 +21,11 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "Syslog plugin example" ${SOURCES})
+os_add_executable(syslog_service "Syslog plugin example" ${SOURCES})
 
-os_add_drivers(service
+os_add_drivers(syslog_service
   virtionet
 )
 
-os_add_stdout(service default_stdout)
-os_add_plugins(service syslogd)
+os_add_stdout(syslog_service default_stdout)
+os_add_plugins(syslog_service syslogd)

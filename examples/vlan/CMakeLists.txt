@@ -21,14 +21,14 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "VLAN example" ${SOURCES})
+os_add_executable(vlan_service "VLAN example" ${SOURCES})
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service
+  os_add_drivers(vlan_service
       solo5net
     )
 else()
-  os_add_drivers(service
+  os_add_drivers(vlan_service
     virtionet
     vmxnet3
     e1000
@@ -36,5 +36,5 @@ else()
   )
 endif()
 
-os_add_stdout(service default_stdout)
-os_add_plugins(service autoconf)
+os_add_stdout(vlan_service default_stdout)
+os_add_plugins(vlan_service autoconf)

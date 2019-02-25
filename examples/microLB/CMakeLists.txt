@@ -21,14 +21,14 @@ set(SOURCES
   service.cpp
 )
 
-os_add_executable(demo "microLB Service" ${SOURCES})
+os_add_executable(microlb "microLB Service" ${SOURCES})
 
 # DRIVERS / PLUGINS:
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(demo solo5net)
+  os_add_drivers(microlb solo5net)
 else()
-  os_add_drivers(demo
+  os_add_drivers(microlb
     virtionet     # Virtio networking
     vmxnet3
     boot_logger   # Display boot information
@@ -38,6 +38,7 @@ else()
   )
 endif()
 
-os_add_stdout(demo default_stdout)
-
+os_add_stdout(microlb default_stdout)
+os_add_os_library(microlb liveupdate)
+os_add_os_library(microlb microlb)
 # os_add_plugins( ... )

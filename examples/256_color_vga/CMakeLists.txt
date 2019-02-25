@@ -21,4 +21,4 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "Mode 13h Example Service" ${SOURCES})
+os_add_executable(256_color_vga "Mode 13h Example Service" ${SOURCES})

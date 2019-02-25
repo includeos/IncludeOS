@@ -85,6 +85,13 @@ pipeline {
             sh script: "cd build_x86_64; make install", label: "Make install"
           }
         }
+        stage('Build examples') {
+          steps {
+      	    sh script: "mkdir -p build_examples", label: "Setup"
+            sh script: "cd build_examples; cmake ../examples", label: "Cmake"
+            sh script: "cd build_examples; make -j $CPUS", label: "Make"
+          }
+         }
         stage('Integration tests') {
           steps {
             sh script: "mkdir -p integration", label: "Setup"
