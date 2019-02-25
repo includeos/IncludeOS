@@ -19,7 +19,8 @@ set(EXAMPLES
   router
   scoped_profiler
   snake
-  SQlite
+  # TODO make a conan package instead of git-subdirectory
+  #SQlite
   starlight
   STREAM
   syslog
