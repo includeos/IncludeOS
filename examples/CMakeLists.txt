@@ -14,8 +14,8 @@ set(EXAMPLES
 # unknown wrong libc ?
 #  mender
   microLB
-  #conan dependency issue
-  protobuf
+  #conan dependency issue wrong include path
+  #protobuf
   router
   scoped_profiler
   snake
