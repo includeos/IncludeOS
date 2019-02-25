@@ -87,7 +87,6 @@ printf("%s", str);
 //void OS::start(unsigned, unsigned) {}
 //void os::default_stdout(const char*, size_t) {}
 void os::event_loop() {}
-void os::block() noexcept {}
 void os::halt() noexcept {}
 void os::reboot() noexcept {}
 

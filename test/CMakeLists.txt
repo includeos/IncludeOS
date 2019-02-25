@@ -121,16 +121,21 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/unit_fat.cpp
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
+  ${TEST}/hw/unit/usernet.cpp
+  ${TEST}/hw/unit/virtio_queue.cpp
+  ${TEST}/kernel/unit/arch.cpp
+  ${TEST}/kernel/unit/block.cpp
+  ${TEST}/kernel/unit/cpuid.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
-  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/rng.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
-  ${TEST}/kernel/unit/unit_events.cpp
-  ${TEST}/kernel/unit/unit_timers.cpp
-  ${TEST}/kernel/unit/unit_liveupdate.cpp
   ${TEST}/kernel/unit/test_hal.cpp
+  ${TEST}/kernel/unit/unit_events.cpp
+  ${TEST}/kernel/unit/unit_liveupdate.cpp
+  ${TEST}/kernel/unit/unit_timers.cpp
+  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
@@ -160,19 +165,20 @@ set(TEST_SOURCES
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
+  ${TEST}/net/unit/router_test.cpp
   ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_benchmark.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
-  ${TEST}/net/unit/router_test.cpp
   ${TEST}/net/unit/websocket.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/posix/unit/unit_fd.cpp
   ${TEST}/util/unit/base64.cpp
-  ${TEST}/util/unit/sha1.cpp
+  ${TEST}/util/unit/bitops.cpp
+  ${TEST}/util/unit/buddy_alloc_test.cpp
   ${TEST}/util/unit/config.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
@@ -186,17 +192,16 @@ set(TEST_SOURCES
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
   ${TEST}/util/unit/percent_encoding_test.cpp
+  ${TEST}/util/unit/pmr_alloc_test.cpp
   ${TEST}/util/unit/ringbuffer.cpp
+  ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
-  ${TEST}/util/unit/bitops.cpp
   ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
-  ${TEST}/util/unit/buddy_alloc_test.cpp
-  ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 if (COVERAGE)
   list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)

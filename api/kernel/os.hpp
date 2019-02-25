@@ -228,8 +228,8 @@ public:
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
   **/
-  static Memory_map& memory_map() {
-    static  Memory_map memmap {};
+  static os::mem::Memory_map& memory_map() {
+    static os::mem::Memory_map memmap {};
     return memmap;
   }
 
