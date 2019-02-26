@@ -67,8 +67,11 @@ parser.add_argument('vm_location', action="store", type = str, default=".",
 parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                     help="Start hypervisor in debug mode if available")
 
-parser.add_argument("--with-solo5", dest="solo5", action="store_true",
+parser.add_argument("--with-solo5-hvt", dest="solo5_hvt", action="store_true",
                     help="Run includeOS on solo5 kernel with hvt tender as monitor")
+
+parser.add_argument("--with-solo5-spt", dest="solo5_spt", action="store_true",
+                    help="Run includeOS on solo5 kernel with spt tender as monitor")
 
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 
@@ -157,12 +160,20 @@ if args.config:
     if VERB: print INFO, "Using config file", config
 
 hyper_name = "qemu"
-if args.solo5:
-    hyper_name = "solo5"
+if args.solo5_hvt:
+    hyper_name = "solo5-hvt"
     os.environ['PLATFORM'] = "x86_solo5"
     solo5_hvt = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/solo5-hvt"
 
     subprocess.call(['chmod', '+x', solo5_hvt])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
+
+elif args.solo5_spt:
+    hyper_name = "solo5-spt"
+    os.environ['PLATFORM'] = "x86_solo5"
+    solo5_spt = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/solo5-spt"
+
+    subprocess.call(['chmod', '+x', solo5_spt])
     subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
 
 vm = vmrunner.vm(config = config, hyper_name = hyper_name)

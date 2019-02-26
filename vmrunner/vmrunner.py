@@ -194,8 +194,7 @@ class hypervisor(object):
 
         return self._proc
 
-
-# Solo5-hvt Hypervisor interface
+# Solo5 Hypervisor interface
 class solo5(hypervisor):
 
     def __init__(self, config):
@@ -210,7 +209,7 @@ class solo5(hypervisor):
         self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
 
     def name(self):
-        return "Solo5-hvt"
+        raise NotImplementedError()
 
     def image_name(self):
         return self._image_name
@@ -229,10 +228,8 @@ class solo5(hypervisor):
     def get_final_output(self):
         return self._proc.communicate()
 
-    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
+    def boot(self, solo5_bin, multiboot, debug, kernel_args, image_name):
         self._stopped = False
-
-        qkvm_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/solo5-hvt"
 
         # Use provided image name if set, otherwise raise an execption
         if not image_name:
@@ -240,7 +237,7 @@ class solo5(hypervisor):
 
         self._image_name = image_name
 
-        command = ["sudo", qkvm_bin]
+        command = ["sudo", solo5_bin]
 
         if not "drives" in self._config:
             command += self.drive_arg(self._image_name)
@@ -327,6 +324,28 @@ class solo5(hypervisor):
 
     def poll(self):
         return self._proc.poll()
+
+class solo5_hvt(solo5):
+    def __init__(self, config):
+        super(solo5_hvt, self).__init__(config)
+
+    def name(self):
+        return "Solo5-hvt"
+
+    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
+        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/solo5-hvt"
+        super(solo5_hvt, self).boot(solo5_bin, multiboot, debug, kernel_args, image_name)
+
+class solo5_spt(solo5):
+    def __init__(self, config):
+        super(solo5_spt, self).__init__(config)
+
+    def name(self):
+        return "Solo5-spt"
+
+    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
+        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/solo5-spt"
+        super(solo5_spt, self).boot(solo5_bin, multiboot, debug, kernel_args, image_name)
 
 # Qemu Hypervisor interface
 class qemu(hypervisor):
@@ -655,8 +674,10 @@ class vm:
             panic_signature : self._on_panic,
             "SUCCESS" : self._on_success }
 
-        if hyper_name == "solo5":
-            hyper = solo5
+        if hyper_name == "solo5-hvt":
+            hyper = solo5_hvt
+        elif hyper_name == "solo5-spt":
+            hyper = solo5_spt
         else:
             hyper = qemu
 
