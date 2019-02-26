@@ -17,6 +17,7 @@
 
 #include <os.hpp>
 #include <kernel.hpp>
+#include <kernel/cpuid.hpp>
 #include <kernel/rng.hpp>
 #include <service>
 #include <cstdio>
@@ -53,8 +54,6 @@ kernel::State& kernel::state() noexcept {
 util::KHz os::cpu_freq() {
   return kernel::cpu_freq();
 }
-
-const uintptr_t elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
 using Print_vec = Fixed_vector<os::print_func, 8>;
@@ -161,11 +160,20 @@ void kernel::post_start()
          static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
-#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(DISABLE_INET_CHECKSUMS)
-  printf(" +--> WARNiNG: Environment unsafe for production\n");
-  FILLINE('~');
-#endif
 
+  // if we have disabled important checks, its unsafe for production
+#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(DISABLE_INET_CHECKSUMS)
+  const bool unsafe = true;
+#else
+  // if we dont have a good random source, its unsafe for production
+  const bool unsafe = CPUID::has_feature(CPUID::Feature::RDRAND);
+#endif
+  if (unsafe) {
+    printf(" +--> WARNiNG: Environment unsafe for production\n");
+    FILLINE('~');
+  }
+
+  // service program start
   Service::start();
 }
 

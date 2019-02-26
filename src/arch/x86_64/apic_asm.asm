@@ -61,3 +61,15 @@ reset_idtr:
 __amd64_load_tr:
     ltr di
     ret
+
+GLOBAL intel_rdrand:function
+intel_rdrand:
+  mov eax, 0x1
+retry:
+  rdrand rcx
+  mov QWORD [rdi], rcx
+  cmovb ecx, eax
+  jae retry
+  cmp ecx, 0x1
+  sete al
+  ret

@@ -16,17 +16,16 @@
 
 #include <kernel.hpp>
 #include <os.hpp>
-#include <kernel/cpuid.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
 #include <debug>
 #include <util/elf_binary.hpp>
 #include <arch/x86/cpu.hpp>
 #include <kernel/auxvec.h>
+#include <kernel/cpuid.hpp>
 #include <kernel/service.hpp>
 
-#include <kernel.hpp>
-
+#include <version.h>
 #include "idt.hpp"
 
 #undef Expects
@@ -198,7 +197,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
 #endif
 
   // Build AUX-vector for C-runtime
-  auxv_t aux[38];
+  std::array<auxv_t, 38> aux;
   PRATTLE("* Initializing aux-vector @ %p\n", aux);
 
   int i = 0;
@@ -223,6 +222,14 @@ void kernel_start(uint32_t magic, uint32_t addr)
 
   const char* plat = "x86_64";
   aux[i++].set_ptr(AT_PLATFORM, plat);
+
+  const unsigned long canary = STACK_PROTECTOR_VALUE; // ^ __arch_rand32();
+  aux[i++].set_long(AT_RANDOM, canary);
+  kprintf("Found RDRAND, result: %#llx\n", canary);
+
+  const size_t canary_slot = i-1;
+  aux[i++].set_ptr(AT_RANDOM, 0);
+  const size_t entropy_slot = i-1;
   aux[i++].set_long(AT_NULL, 0);
 
   std::array<char*, 6 + 38> argv;
@@ -238,7 +245,11 @@ void kernel_start(uint32_t magic, uint32_t addr)
   argv[4] = strdup("USER=root");
   argv[5] = 0x0;
 
-  memcpy(&argv[6], aux, sizeof(auxv_t) * 38);
+  memcpy(&argv[6], aux.data(), sizeof(aux));
+
+  auxv_t* auxp = (auxv_t*) &argv[6];
+  void* canary_addr = &auxp[canary_slot].a_un.a_val;
+  auxp[entropy_slot].set_ptr(AT_RANDOM, canary_addr);
 
 #if defined(__x86_64__)
   PRATTLE("* Initialize syscall MSR (64-bit)\n");

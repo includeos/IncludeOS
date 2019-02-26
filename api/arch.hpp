@@ -40,6 +40,7 @@ inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
 extern uint64_t __arch_system_time() noexcept;
 extern timespec __arch_wall_clock() noexcept;
+extern uint32_t __arch_rand32();
 
 inline void __arch_hw_barrier() noexcept {
   __sync_synchronize();

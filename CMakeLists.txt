@@ -62,6 +62,7 @@ set(CPP_VERSION c++17)
 FIND_PACKAGE(Git REQUIRED)
 FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.h.in
 "#define OS_VERSION \"@VERSION@\"\n"
+"#define STACK_PROTECTOR_VALUE 0x@STKPROTV@\n"
 )
 
 FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
@@ -73,6 +74,8 @@ FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
      OUTPUT_STRIP_TRAILING_WHITESPACE
      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
  )
+ # create random hex string as stack protector canary
+ string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STKPROTV)
  CONFIGURE_FILE(\${SRC} \${DST} @ONLY)
 ")
 
@@ -107,10 +110,7 @@ option (undefined_san "Enable undefined-behavior sanitizer" OFF)
 option (thin_lto "Enable the Thin LTO plugin" OFF)
 option (full_lto "Enable full LTO (compatibility)" OFF)
 
-# create random hex string as stack protector canary
-string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
-
-set(CAPABS "${CAPABS} -g -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+set(CAPABS "${CAPABS} -g -fstack-protector-strong")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro

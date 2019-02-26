@@ -16,6 +16,7 @@ set(X86_PC_OBJECTS
   pic.cpp
   pit.cpp
   platform.cpp
+  rand.cpp
   sanity_checks.cpp
   serial1.cpp
   smbios.cpp
