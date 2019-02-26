@@ -50,7 +50,7 @@ namespace net
       "Type: " + icmp6::get_type_string(type_) + "\n" +
       "Code: " + icmp6::get_code_string(type_, code_) + "\n" +
       "Checksum: " + std::to_string(checksum_) + "\n" +
-      "Data: " + payload_;
+      "Data: " + payload_+"\n";
   }
 
   // ------------------------------ ICMPv6 ------------------------------

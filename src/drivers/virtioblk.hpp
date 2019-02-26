@@ -53,24 +53,13 @@ public:
     return config.capacity;
   }
 
-  // read @blk from disk, call func with buffer when done
-  void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
   void read(block_t blk, size_t cnt, on_read_func cb) override;
 
   // unsupported sync reads
-  buffer_t read_sync(block_t) override {
-    return buffer_t();
-  }
   buffer_t read_sync(block_t, size_t) override {
     return buffer_t();
   }
-
-  // not supported
-  void write(block_t, buffer_t, on_write_func callback) override {
-    callback(true);
-  }
-  bool write_sync(block_t, buffer_t) override { return true; };
 
   void deactivate() override;
 

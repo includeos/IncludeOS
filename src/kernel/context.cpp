@@ -19,8 +19,16 @@
 #include <cstdint>
 #include <memory>
 
+#if !defined(__GNUC__)
+    #define FASTCALL __fastcall
+    #define GCCFASTCALL
+#else
+    #define FASTCALL
+    #define GCCFASTCALL __attribute__((fastcall))
+#endif
+
 #ifdef ARCH_i686
-extern "C" void __fastcall __context_switch(uintptr_t stack, Context::context_func& func);
+extern "C" void FASTCALL __context_switch(uintptr_t stack, Context::context_func& func) GCCFASTCALL;
 #else
 extern "C" void __context_switch(uintptr_t stack, Context::context_func& func);
 #endif

@@ -8,4 +8,8 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
-vmrunner.vms[0].cmake().boot(20).clean()
+#TODO move timeout to ctest..
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vmrunner.vms[0].cmake().boot(30,image_name='net_nat').clean()

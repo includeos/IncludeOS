@@ -38,7 +38,7 @@ void Service::start(const std::string&)
 
   // auto-init filesystem
   disk->init_fs(
-  [] (fs::error_t err, auto& fs)
+  [] (fs::error_t err, fs::File_system& fs)
   {
     if (err) {
       printf("Init error: %s\n", err.to_string().c_str());
@@ -58,7 +58,7 @@ void Service::start(const std::string&)
   });
   // re-init on MBR (sigh)
   disk->init_fs(disk->MBR,
-  [] (fs::error_t err, auto& fs)
+  [] (fs::error_t err, fs::File_system& fs)
   {
     CHECKSERT(!err, "Filesystem initialized on VBR1");
 
@@ -69,7 +69,7 @@ void Service::start(const std::string&)
     CHECKSERT(!ent.is_dir(), "Entity is not directory");
     CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
 
-    printf("Original banana (%ld bytes):\n%s\n",
+    printf("Original banana (%zu bytes):\n%s\n",
             internal_banana.size(), internal_banana.c_str());
 
     // try reading banana-file
@@ -77,7 +77,7 @@ void Service::start(const std::string&)
     CHECKSERT(!buf.error(), "No error reading file");
 
     auto banana = buf.to_string();
-    printf("New banana (%ld bytes):\n%s\n", banana.size(), banana.c_str());
+    printf("New banana (%zu bytes):\n%s\n", banana.size(), banana.c_str());
 
     CHECKSERT(banana == internal_banana, "Correct banana #1");
 
@@ -93,7 +93,7 @@ void Service::start(const std::string&)
       // verify that it matches the same location in test-string
       test = ((char) buf.data()[0] == internal_banana[i]);
       if (!test) {
-        printf("!! Random access read test failed on i = %u\n", i);
+        printf("!! Random access read test failed on i = %zu\n", i);
         break;
       }
     }

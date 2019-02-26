@@ -1,47 +1,43 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (demo_service)
 
-# Human-readable name of your service
-set(SERVICE_NAME "IncludeOS minimal example")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Name of your service binary
-set(BINARY       "IncludeOS_example")
+#service
+project (service)
+include(os)
 
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
-  )
+  service.cpp
+)
 
-# To add your own include paths:
-# set(LOCAL_INCLUDES ".")
+os_add_executable(demo "IncludeOS Demo Service" ${SOURCES})
 
 # DRIVERS / PLUGINS:
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  set(DRIVERS
-      solo5net
-    )
+  os_add_drivers(demo solo5net)
 else()
-  set(DRIVERS
-      virtionet     # Virtio networking
-      vmxnet3
-      boot_logger   # Display boot information
-
+  os_add_drivers(demo
+    virtionet     # Virtio networking
+    vmxnet3
+    boot_logger   # Display boot information
     # Use "boot --drivers ." to see other drivers
     # virtioblk # Virtio block device
     # ... Others from src/drivers
-    )
+  )
 endif()
 
-set(PLUGINS
-    # Use "boot --plugins ." to see other plugins
-  )
+os_add_stdout(demo default_stdout)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+# os_add_plugins( ... )

@@ -1,18 +1,25 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_udp)
+#service
+project (service)
+include(os)
 
-set(SERVICE_NAME "UDP test service")
-set(BINARY       "test_udp")
-set(SOURCES service.cpp)
-set(DRIVERS virtionet ip4_reassembly)
+os_add_executable(net_udp "UDP test" service.cpp)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_drivers(net_udp virtionet ip4_reassembly)
+os_add_stdout(net_udp default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -1,21 +1,32 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_plugin_unik)
+#service
+project (service)
+include(os)
 
-set(SERVICE_NAME "UNIK plugin test")
-set(BINARY       "test_plugin_unik")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp
   )
 
-set(PLUGINS unik)
-set(DRIVERS virtionet)
+#os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_executable(plugin_unik "UNIK plugin test" ${SOURCES})
+
+os_add_drivers(plugin_unik virtionet)
+os_add_plugins(plugin_unik unik)
+os_add_stdout(plugin_unik default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

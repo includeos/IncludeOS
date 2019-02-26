@@ -1,23 +1,28 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_plugin_init)
+# Service
+project (pageprot)
+include(os)
 
-set(SERVICE_NAME "Plugin initialization test")
-set(BINARY       "test_plugin_init")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp plugin1.cpp plugin2.cpp plugin3.cpp
   )
-#set(LOCAL_INCLUDES ".")
 
-set(PLUGINS example)
+os_add_executable(kernel_plugin_init "Page protection test" ${SOURCES})
+os_add_stdout(kernel_plugin_init default_stdout)
+os_add_plugins(kernel_plugin_init example)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

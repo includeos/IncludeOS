@@ -1,4 +1,4 @@
 {
-  "image" : "test_memmap.img",
+  "image" : "service.img",
   "mem" : 2000
 }

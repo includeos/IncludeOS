@@ -284,8 +284,10 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 }
 void LiveUpdate::restore_environment()
 {
+#if defined(ARCH_x86) && !defined(PLATFORM_UNITTEST)
   // enable interrupts again
   asm volatile("sti");
+#endif
 }
 buffer_t LiveUpdate::store()
 {

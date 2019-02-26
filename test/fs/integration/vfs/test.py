@@ -24,7 +24,11 @@ def cleanup():
 # Create all data disk images from folder names
 for disk in disks:
   subprocess32.check_call(["./create_disk.sh", disk, disk])
+vm = vmrunner.vms[0]
 
-vmrunner.vms[0].on_exit_success(cleanup)
+vm.on_exit_success(cleanup)
 
-vmrunner.vms[0].cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vm.boot(thread_timeout,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout,image_name='fs_vfs').clean()

@@ -38,6 +38,11 @@ public:
       rng_extract(&output[0], length);
     }
 
+    bool accepts_input() const override
+    {
+      return false;
+    }
+
     void add_entropy(const uint8_t input[], size_t length) override
     {
       rng_absorb(&input[0], length);

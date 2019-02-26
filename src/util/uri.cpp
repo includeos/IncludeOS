@@ -24,7 +24,7 @@
 #include <vector>
 #include <array>
 
-#include "../../mod/http-parser/http_parser.h"
+#include <http-parser/http_parser.h>
 
 namespace uri {
 

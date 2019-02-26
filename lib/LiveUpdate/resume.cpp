@@ -108,13 +108,29 @@ bool Restore::is_end() const noexcept
 {
   return get_type() == TYPE_END;
 }
+bool Restore::is_marker() const noexcept
+{
+  return get_type() == TYPE_MARKER;
+}
 bool Restore::is_int() const noexcept
 {
   return get_type() == TYPE_INTEGER;
 }
-bool Restore::is_marker() const noexcept
+bool Restore::is_string() const noexcept
 {
-  return get_type() == TYPE_MARKER;
+  return get_type() == TYPE_STRING;
+}
+bool Restore::is_buffer() const noexcept
+{
+  return get_type() == TYPE_BUFFER;
+}
+bool Restore::is_vector() const noexcept
+{
+  return get_type() == TYPE_VECTOR;
+}
+bool Restore::is_string_vector() const noexcept
+{
+  return get_type() == TYPE_STR_VECTOR;
 }
 bool Restore::is_stream() const noexcept
 {

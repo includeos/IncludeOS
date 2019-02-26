@@ -85,4 +85,7 @@ vm.on_output("2 READ protection PASSED", other)
 vm.on_output("3 EXECUTE protection 1/2 PASSED", other)
 vm.on_output("4 EXECUTE protection 2/2 PASSED", done)
 
-vm.cmake().boot(20).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='kernel_paging').clean()

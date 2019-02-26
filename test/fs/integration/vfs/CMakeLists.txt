@@ -1,22 +1,32 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_vfs)
+#service
+project(service)
+include(os)
 
-set(SERVICE_NAME "VFS test")
-set(BINARY       "test_vfs")
-set(MAX_MEM 128)
-set(SOURCES
-  service.cpp
-  )
+os_add_executable(fs_vfs "VFS filesystem test" service.cpp)
+os_add_stdout(fs_vfs default_stdout)
+os_add_drivers(fs_vfs virtioblk)
+os_diskbuilder(fs_vfs memdisk)
 
-set(DRIVERS virtioblk)
+#do this code in cmake instead ?
+file(COPY memdisk DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY virtio1 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY virtio2 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY create_disk.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-diskbuilder(memdisk)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(vm.json ${CMAKE_CURRENT_BINARY_DIR})

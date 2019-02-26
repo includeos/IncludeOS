@@ -9,8 +9,8 @@ void Statman::store(uint32_t id, liu::Storage& store)
 }
 void Statman::restore(liu::Restore& store)
 {
-  if (store.get_type() != TYPE_VECTOR) {
-    assert(store.get_type() == TYPE_BUFFER);
+  if (!store.is_vector()) {
+    assert(store.is_buffer());
     // discard old stats that was stored as buffer
     return;
   }

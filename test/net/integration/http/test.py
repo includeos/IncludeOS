@@ -49,5 +49,8 @@ vm = vmrunner.vms[0]
 # Add custom event for testing server
 vm.on_output("Listening on port 8080", Server_test)
 
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(20,image_name='net_http').clean()

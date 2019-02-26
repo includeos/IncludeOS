@@ -1,21 +1,36 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(CONAN_EXPORTED) # in conan local cache
+  # standard conan installation, deps will be defined in conanfile.py
+  # and not necessary to call conan again, conan is already running
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
+
+  #TODO GET ARCH FROM CONAN ?
+
+else()
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+  
+  include_directories(${INCLUDEOS_ROOT}/api/posix)
+  include_directories(${INCLUDEOS_ROOT}/src/include)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
+
+  #dependencies
+  include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+  set(INCLUDE_PREFIX "includeos/")
+  set(LIB_PREFIX "includeos/${ARCH}/")
+endif()
+
+
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-
-include_directories(${INCLUDEOS_ROOT}/api/posix)
-include_directories(${LIBCXX_INCLUDE_DIR})
-include_directories(${MUSL_INCLUDE_DIR})
-include_directories(${INCLUDEOS_ROOT}/src/include)
-include_directories(${INCLUDEOS_ROOT}/api)
-include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
-
-#dependencies
-include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
-include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
-include_directories(${BOTAN_DIR}) # ..
-include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # .....
-
 #this is me
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -30,12 +45,9 @@ set(SOURCES
   )
 
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
-add_dependencies(${LIBRARY_NAME} botan) # we need to wait for botan
-add_dependencies(${LIBRARY_NAME} osdeps) # wait for uzlib
-add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
 
 # verbose mender or not
 target_compile_definitions(${LIBRARY_NAME} PRIVATE VERBOSE_MENDER=1)
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION includeos/${ARCH}/lib)
-install(DIRECTORY include/mender DESTINATION includeos/include)
+install(TARGETS ${LIBRARY_NAME} DESTINATION ${LIB_PREFIX}lib)
+install(DIRECTORY include/mender DESTINATION ${INCLUDE_PREFIX}include)

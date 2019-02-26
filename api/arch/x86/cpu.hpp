@@ -40,7 +40,16 @@ namespace x86
     static uint64_t
     read_msr(uint32_t addr)
     {
-#if defined(ARCH_x86)
+#if defined(__x86_64__)
+        uint32_t low, high;
+        asm volatile (
+          "rdmsr"
+          : "=a"(low), "=d"(high)
+          : "c"(addr)
+        );
+        return ((uint64_t)high << 32) | low;
+
+#elif defined(__i386__)
       uint64_t v;
       asm volatile("rdmsr" : "=A" (v) : "c" (addr));
       return v;
@@ -52,7 +61,7 @@ namespace x86
     static void
     write_msr(uint32_t addr, uint32_t eax, uint32_t edx)
     {
-#if defined(ARCH_x86)
+#if defined(__x86_64__) || defined(__i386__)
       asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
 #else
 #error "write_msr() not implemented for selected arch"
@@ -62,22 +71,22 @@ namespace x86
     static void
     write_msr(uint32_t addr, uint64_t value)
     {
-#if defined(ARCH_x86_64)
+#if defined(__x86_64__)
       const uint32_t eax = value & 0xffffffff;
       const uint32_t edx = value >> 32;
       asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
-#elif defined(ARCH_x86)
+#elif defined(__i386__)
       asm volatile("wrmsr" : : "A" (value), "c" (addr));
 #else
 #error "write_msr() not implemented for selected arch"
 #endif
     }
 
-#if defined(ARCH_x86_64)
-    static inline void set_fs(void* entry) noexcept {
+#if defined(__x86_64__)
+    static void set_fs(void* entry) noexcept {
       write_msr(IA32_FS_BASE, (uintptr_t) entry);
     }
-    static inline void set_gs(void* entry) noexcept {
+    static void set_gs(void* entry) noexcept {
       write_msr(IA32_GS_BASE, (uintptr_t) entry);
     }
 #endif

@@ -12,7 +12,7 @@ vm = vmrunner.vms[0]
 
 
 def begin_test(line):
-    f = open('./service','rb')
+    f = open('./kernel_LiveUpdate','rb')
 
     s = socket.socket()
     s.connect(("10.0.0.59", 666))
@@ -20,4 +20,7 @@ def begin_test(line):
     s.close()
 
 vm.on_output("Ready to receive binary blob", begin_test)
-vm.cmake().boot(40).clean()
+if len(sys.argv) > 1:
+    vm.boot(40,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(40,image_name='kernel_LiveUpdate').clean()

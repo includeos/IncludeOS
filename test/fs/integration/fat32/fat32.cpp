@@ -42,12 +42,12 @@ void test2()
   CHECKSERT(disk->dev().size() == SIZE / 512, "Disk size is %llu bytes", SIZE);
 
   disk->init_fs(disk->MBR,
-  [] (fs::error_t err, auto& fs)
+  [] (fs::error_t err, fs::File_system& fs)
   {
     CHECKSERT(not err, "Filesystem mounted on VBR1");
 
     fs.stat(shallow_banana,
-    [] (auto err, const auto& ent) {
+    [] (fs::error_t err, const fs::Dirent& ent) {
       INFO("FAT32", "Shallow banana");
 
       CHECKSERT(not err, "Stat %s", shallow_banana.c_str());
@@ -71,7 +71,7 @@ void test2()
     });
 
     fs.stat(deep_banana,
-    [] (auto err, const auto& ent) {
+    [] (fs::error_t err, const fs::Dirent& ent) {
       INFO("FAT32", "Deep banana");
       auto& fs = disk->fs();
       CHECKSERT(not err, "Stat %s", deep_banana.c_str());
@@ -112,7 +112,7 @@ void Service::start()
 
   // auto-mount filesystem
   disk->init_fs(
-  [] (fs::error_t err, auto& fs)
+  [] (fs::error_t err, fs::File_system& fs)
   {
     CHECKSERT(!err, "Filesystem auto-initializedd");
 

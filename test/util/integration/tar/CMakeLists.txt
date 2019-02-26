@@ -1,51 +1,50 @@
-cmake_minimum_required(VERSION 2.8.9)
+#set(CREATE_TAR ${CMAKE_SOURCE_DIR}/tar_example)
+#set(TARFILE tar_example.tar)
 
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project(tar_service)
+#service
+project (tar_service)
+include(os)
 
-# Human-readable name of your service
-set(SERVICE_NAME "Tar Test Service")
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tar
+  COMMENT "Creating tar file"
+  COMMAND tar cfv ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tar -C ${CMAKE_CURRENT_SOURCE_DIR} tar_example
+  BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tar
+)
 
-# Name of your service binary
-set(BINARY       "test_tar")
 
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
+os_add_executable(util_tar "Tar Test Service" service.cpp)
+os_add_binary_blob(util_tar ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tar input.bin binary)
+os_add_stdout(util_tar default_stdout)
+os_add_drivers(util_tar virtionet)
 
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES
-  service.cpp
-  )
+#add_custom_target(tarfile ALL COMMAND
+#    ${CMAKE_COMMAND} -E tar "cfvz" "executables.tgz" "${EXECUTABLE_OUTPUT_PATH}")
+#add_dependencies(create_tar foo)
 
-set(CREATE_TAR ${CMAKE_SOURCE_DIR}/tar_example)
-set(TARFILE tar_example.tar)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
 
-#
-# Service CMake options
-# (uncomment to enable)
-#
-
-# MISC:
-
-# To add your own include paths:
-# set(LOCAL_INCLUDES ".")
-
-# Adding memdisk (expects my.disk to exist in current dir):
-# set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
-
-# DRIVERS:
-
-set(DRIVERS
-  virtionet   # Virtio networking
-  # virtioblock # Virtio block device
-  # ... Others from IncludeOS/src/drivers
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+#COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
+#COMMAND cp ${TAR_RELPATH} input.bin
+#COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
+#COMMAND rm input.bin
+#)
+#elseif(CREATE_TAR_GZ)
+#et_filename_component(TAR_BASE_NAME "${CREATE_TAR_GZ}" NAME)
+#add_custom_command(
+#OUTPUT tarfile.o
+#COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}

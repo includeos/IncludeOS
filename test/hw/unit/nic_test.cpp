@@ -16,9 +16,27 @@
 // limitations under the License.
 
 #include <common.cxx>
+#include <hw/devices.hpp>
 #include <hw/nic.hpp>
+#include <nic_mock.hpp>
 
-CASE("NICs can return their device type as a string")
+CASE("Register network device")
+{
+  EXPECT(hw::Devices::device_next_index<hw::Nic> () == 0);
+  EXPECT_THROWS(hw::Devices::get<hw::Nic> (0));
+  hw::Devices::register_device<hw::Nic> (std::make_unique<Nic_mock>());
+  
+  EXPECT(hw::Devices::nic(0).driver_name() == std::string("Mock driver"));
+  // flush all devices
+  hw::Devices::flush_all();
+  // deactivate all devices
+  hw::Devices::deactivate_all();
+}
+
+CASE("NIC interface")
 {
   EXPECT(hw::Nic::device_type() == "NIC");
+  Nic_mock nic;
+  // add vlan?
+  nic.add_vlan(0);
 }

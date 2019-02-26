@@ -1,25 +1,33 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_fat32)
+#service
+project(service)
+include(os)
 
-set(SERVICE_NAME "FAT32 test")
-set(BINARY       "test_fat32")
-set(MAX_MEM 128)
-set(SOURCES
-    fat32.cpp
-  )
-#set(LOCAL_INCLUDES ".")
+os_add_executable(fs_fat32 "FAT32 filesystem test" fat32.cpp)
+os_add_stdout(fs_fat32 default_stdout)
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  set(DRIVERS solo5blk)
+  os_add_drivers(fs_fat32 solo5blk)
 else()
-  set(DRIVERS virtioblk)
+  os_add_drivers(fs_fat32 virtioblk)
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+#do this code in cmake instead ?
+configure_file(fat32_disk.sh ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(banana.txt ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(vm.json ${CMAKE_CURRENT_BINARY_DIR})

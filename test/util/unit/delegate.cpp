@@ -249,11 +249,11 @@ CASE("A delegate can be const")
 {
 	using del_t = const delegate<int()>;
 
-	int default_val = 7;
-	auto const_test = [lest_env, default_val](del_t del)
+  int default_val = 7;
+  auto const_test = [lest_env, default_val](del_t del) mutable
 	{
 		int ret = del();
-		EXPECT(ret == default_val);
+    EXPECT(ret == default_val);
 	};
 
 	const_test([]() { return 7; });
@@ -269,7 +269,7 @@ CASE("The delegate operator() uses correct argument type forwarding")
 {
 	using del_t = delegate<count_ctor(count_ctor)>;
 
-	auto test_arg_fwd = [lest_env](del_t del)
+  auto test_arg_fwd = [lest_env](del_t del) mutable
 	{
 		auto cc_a = del(count_ctor{});
 		EXPECT(cc_a.copy_count == 0);
@@ -288,8 +288,8 @@ CASE("The delegate operator() uses correct argument type forwarding")
 
 	int val = 3;
 	test_arg_fwd(del_t{ [](count_ctor arg) { return arg; } });
-	test_arg_fwd(del_t{ [val](count_ctor arg) { return arg; } });
-	test_arg_fwd(del_t{ [&val](count_ctor arg) { return arg; } });
+  test_arg_fwd(del_t{ [val](count_ctor arg) { return arg; } });
+  test_arg_fwd(del_t{ [&val](count_ctor arg) { return arg; } });
 
 	count_ctor_wrap ccw{};
 	test_arg_fwd(del_t{ ccw, &count_ctor_wrap::foo });
@@ -319,7 +319,7 @@ CASE("A delegate can be constructed with any valid closure type")
 
 	int default_val = 3;
 	int inc_val = 4;
-	auto test_closure = [lest_env, default_val, inc_val](del_t del)
+  auto test_closure = [lest_env, default_val, inc_val](del_t del) mutable
 	{
 		int val = default_val;
 		int ret = del(val);

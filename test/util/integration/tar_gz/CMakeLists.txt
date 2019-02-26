@@ -1,51 +1,31 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project(tar_service)
+project (tar_service)
+include(os)
 
-# Human-readable name of your service
-set(SERVICE_NAME "Tar.gz Test Service")
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz
+  COMMENT "Creating tar file"
+  COMMAND tar cfvz ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz -C ${CMAKE_CURRENT_SOURCE_DIR} tar_example
+  BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz
+)
 
-# Name of your service binary
-set(BINARY       "test_tar_gz")
+os_add_executable(util_tar_gz "Tar.gz Test Service" service.cpp)
 
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
+os_add_binary_blob(util_tar_gz ${CMAKE_CURRENT_BINARY_DIR}/tar_example.tgz input.bin binary)
+os_add_stdout(util_tar_gz default_stdout)
+os_add_drivers(util_tar_gz virtionet)
 
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES
-  service.cpp
-  )
-
-set(CREATE_TAR_GZ ${CMAKE_SOURCE_DIR}/tar_example)
-set(TARFILE tar_example.tar.gz)
-
-#
-# Service CMake options
-# (uncomment to enable)
-#
-
-# MISC:
-
-# To add your own include paths:
-# set(LOCAL_INCLUDES ".")
-
-# Adding memdisk (expects my.disk to exist in current dir):
-# set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
-
-# DRIVERS:
-
-set(DRIVERS
-  virtionet   # Virtio networking
-  # virtioblock # Virtio block device
-  # ... Others from IncludeOS/src/drivers
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

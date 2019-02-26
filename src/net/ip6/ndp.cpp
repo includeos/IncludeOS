@@ -139,7 +139,7 @@ namespace net
     auto payload    = req.payload();
     auto* data      = payload.data();
     // Parse the options
-    adv.parse_options(data + payload.length(), [&](const auto* opt)
+    adv.parse_options(data + payload.size(), [&](const auto* opt)
     {
       using namespace ndp::option;
       switch(opt->type)
@@ -247,7 +247,7 @@ namespace net
 
     MAC::Addr lladdr;
     // Parse the options
-    sol.parse_options(data + payload.length(), [&](const auto* opt)
+    sol.parse_options(data + payload.size(), [&](const auto* opt)
     {
       using namespace ndp::option;
       switch(opt->type)
@@ -472,7 +472,7 @@ namespace net
     }
 
     // Parse the options
-    adv.parse_options(data + payload.length(), [&](const auto* opt)
+    adv.parse_options(data + payload.size(), [&](const auto* opt)
     {
       using namespace ndp::option;
       switch(opt->type)

@@ -12,17 +12,23 @@ from vmrunner import vmrunner
 
 vm = vmrunner.vms[0];
 
-# Build, run and clean
-vm.cmake()
+if len(sys.argv) == 1:
+    # Build, run and clean
+    vm.cmake()
 
-# Cmake changes to build dir
-os.chdir("..")
+    # Cmake changes to build dir
+    os.chdir("..")
 
 # Use grubify-script
 grubify = "grubiso.sh"
 
-# Create the GRUB image
-subprocess.check_call(["bash",grubify,"build/test_grub"])
 
+#TODO MOVE to cmake ?
 # Boot the image
+if len(sys.argv) > 1:
+    # Create the GRUB image
+    subprocess.check_call(["bash",grubify,str(sys.argv[1])])
+else:
+    # Create the GRUB image
+    subprocess.check_call(["bash",grubify,"build/service"])
 vm.boot(multiboot = False)
