@@ -21,7 +21,7 @@
 #include "addr.hpp"
 #include "header.hpp"
 #include "packet_ip6.hpp"
-#include "stateful_addr.hpp"
+#include "addr_list.hpp"
 
 #include <common>
 #include <net/netfilter.hpp>
