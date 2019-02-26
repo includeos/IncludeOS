@@ -36,100 +36,87 @@ CASE( "Creating Statman objects" )
 
 CASE( "Creating and running through three Stats using Statman iterators begin and last_used" )
 {
-  GIVEN( "A fixed range of memory and its start position" )
+  Statman statman_;
+  EXPECT(not statman_.empty());
+  EXPECT(statman_.size() == 1);
+
+  // create single stat
+  Stat& stat = statman_.create(Stat::UINT32, "net.tcp.dropped");
+  EXPECT(stat.get_uint32() == 0);
+
+  // verify container
+  EXPECT_NOT(statman_.empty());
+  EXPECT(statman_.size() == 2);
+  EXPECT_THROWS(stat.get_uint64());
+  EXPECT_THROWS(stat.get_float());
+  EXPECT(stat.get_uint32() == 0);
+
+  // increment stat
+  ++stat;
+  EXPECT(stat.get_uint32() == 1);
+  stat.get_uint32()++;
+  EXPECT(stat.get_uint32() == 2);
+
+  // interpret wrongly throws
+  EXPECT_THROWS(stat.get_uint64());
+  EXPECT_THROWS(stat.get_float());
+
+  // create more stats
+  Stat& stat2 = statman_.create(Stat::UINT64, "net.tcp.bytes_transmitted");
+  Stat& stat3 = statman_.create(Stat::FLOAT, "net.tcp.average");
+  ++stat3;
+  stat3.get_float()++;
+
+  EXPECT_NOT(statman_.empty());
+  EXPECT(statman_.size() == 4);
+
+  // test stat iteration
+  int i = 0;
+  for (auto it = statman_.begin(); it != statman_.end(); ++it)
   {
-    WHEN( "Creating Statman" )
+    const Stat& s = *it;
+
+    if (i == 1)
     {
-      Statman statman_;
-      EXPECT(not statman_.empty());
-      EXPECT(statman_.size() == 1);
-
-      THEN( "A Stat can be created" )
-      {
-        Stat& stat = statman_.create(Stat::UINT32, "net.tcp.dropped");
-        EXPECT(stat.get_uint32() == 0);
-
-        EXPECT_NOT(statman_.empty());
-        EXPECT(statman_.size() == 2);
-        EXPECT_THROWS(stat.get_uint64());
-        EXPECT_THROWS(stat.get_float());
-        EXPECT(stat.get_uint32() == 0);
-
-        AND_THEN( "The Stat can be incremented in two ways" )
-        {
-          ++stat;
-          EXPECT(stat.get_uint32() == 1);
-          stat.get_uint32()++;
-          EXPECT(stat.get_uint32() == 2);
-
-          EXPECT_THROWS(stat.get_uint64());
-          EXPECT_THROWS(stat.get_float());
-
-          AND_THEN( "Another two Stats can be created" )
-          {
-            Stat& stat2 = statman_.create(Stat::UINT64, "net.tcp.bytes_transmitted");
-            Stat& stat3 = statman_.create(Stat::FLOAT, "net.tcp.average");
-            ++stat3;
-            stat3.get_float()++;
-
-            EXPECT_NOT(statman_.empty());
-            EXPECT(statman_.size() == 4);
-
-            AND_THEN( "The registered Stats can be iterated through and displayed" )
-            {
-              int i = 0;
-
-              for (auto it = statman_.begin(); it != statman_.end(); ++it)
-              {
-                const Stat& s = *it;
-
-                if (i == 1)
-                {
-                  EXPECT(s.name() == "net.tcp.dropped"s);
-                  EXPECT(s.get_uint32() == 2);
-                  EXPECT_THROWS(s.get_uint64());
-                  EXPECT_THROWS(s.get_float());
-                }
-                else if (i == 2)
-                {
-                  EXPECT(s.name() == "net.tcp.bytes_transmitted"s);
-                  EXPECT(s.get_uint64() == 0);
-                  EXPECT_THROWS(s.get_float());
-                }
-                else if (i == 3)
-                {
-                  EXPECT(s.name() == "net.tcp.average"s);
-                  EXPECT(s.get_float() == 2.0f);
-                  EXPECT_THROWS(s.get_uint32());
-                  EXPECT_THROWS(s.get_uint64());
-                }
-                else {
-                  EXPECT(i == 0);
-                }
-
-                i++;
-              }
-
-              EXPECT(i == 4);
-
-              // note: if you move this, it might try to delete
-              // the stats before running the above
-              AND_THEN("Delete the stats")
-              {
-                EXPECT(statman_.size() == 4);
-                statman_.free(&statman_[1]);
-                EXPECT(statman_.size() == 3);
-                statman_.free(&statman_[2]);
-                EXPECT(statman_.size() == 2);
-                statman_.free(&statman_[3]);
-                EXPECT(statman_.size() == 1);
-              }
-            }
-          }
-        }
-      }
+      EXPECT(s.name() == "net.tcp.dropped"s);
+      EXPECT(s.get_uint32() == 2);
+      EXPECT_THROWS(s.get_uint64());
+      EXPECT_THROWS(s.get_float());
     }
+    else if (i == 2)
+    {
+      EXPECT(s.name() == "net.tcp.bytes_transmitted"s);
+      EXPECT(s.get_uint64() == 0);
+      EXPECT_THROWS(s.get_float());
+    }
+    else if (i == 3)
+    {
+      EXPECT(s.name() == "net.tcp.average"s);
+      EXPECT(s.get_float() == 2.0f);
+      EXPECT_THROWS(s.get_uint32());
+      EXPECT_THROWS(s.get_uint64());
+    }
+    else {
+      EXPECT(i == 0);
+    }
+
+    i++;
   }
+  EXPECT(i == 4);
+
+  // free 3 stats we just created (leaving 1)
+  EXPECT(statman_.size() == 4);
+  statman_.free(&statman_[1]);
+  EXPECT(statman_.size() == 3);
+  statman_.free(&statman_[2]);
+  EXPECT(statman_.size() == 2);
+  statman_.free(&statman_[3]);
+  EXPECT(statman_.size() == 1);
+
+  // clear out the whole container (not a good idea!)
+  EXPECT(!statman_.empty());
+  statman_.clear();
+  EXPECT(statman_.size() == 1);
 }
 
 CASE( "Filling Statman with Stats and running through Statman using iterators begin and end" )
@@ -254,4 +241,19 @@ CASE("get(addr) returns reference to stat, throws if not present")
 
   // Can't create stats with empty name
   EXPECT_THROWS_AS(statman_.create(Stat::UINT32, ""), Stats_exception);
+}
+
+CASE("Various stat to_string()")
+{
+  Statman statman_;
+  Stat& stat1 = statman_.create(Stat::UINT32, "some.important.stat");
+  Stat& stat2 = statman_.create(Stat::UINT64, "other.important.stat");
+  Stat& stat3 = statman_.create(Stat::FLOAT, "very.important.stat");
+  ++stat1;
+  ++stat2;
+  ++stat3;
+  
+  EXPECT(stat1.to_string() == std::to_string(1u));
+  EXPECT(stat2.to_string() == std::to_string(1ul));
+  EXPECT(stat3.to_string() == std::to_string(1.0f));
 }

@@ -80,7 +80,7 @@ add_definitions(-DSERVICE=\"\\\"${BINARY}\\\"\")
 add_definitions(-DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\")
 add_definitions(-DUSERSPACE_LINUX)
 
-set(IOSPATH $ENV{INCLUDEOS_PREFIX}/includeos)
+set(IOSPATH $ENV{INCLUDEOS_PREFIX})
 set(IOSLIBS ${IOSPATH}/${ARCH}/lib)
 
 # includes

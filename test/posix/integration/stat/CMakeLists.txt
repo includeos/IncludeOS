@@ -1,15 +1,21 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project(test_posix_stat)
-
-set(SERVICE_NAME "Stat test")
-set(BINARY       "test_posix_stat")
+#service
+project (service)
+include(os)
 
 set(SOURCES
     test_stat_ftw.cpp
@@ -17,15 +23,15 @@ set(SOURCES
     stat_tests.cpp
   )
 
-set(DRIVERS
-  boot_logger
-)
+#os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-set(PLUGINS
-  vfs
-)
+os_add_executable(posix_stat "POSIX file descriptor test" ${SOURCES})
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_drivers(posix_stat boot_logger)
+os_add_plugins(posix_stat vfs)
+os_add_stdout(posix_stat default_stdout)
 
-diskbuilder(disk)
+# Create memdisk from folder
+os_diskbuilder(posix_stat disk)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

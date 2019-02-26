@@ -99,6 +99,7 @@ def test5(trigger):
     print INFO, trigger.rstrip(),  "triggered by VM"
     listen(TEST5)
 
+
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
@@ -109,6 +110,8 @@ vm.on_output("TEST3", test3)
 vm.on_output("TEST4", test4)
 vm.on_output("TEST5", test5)
 
-
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(120).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(120,image_name='net_tcp').clean()

@@ -65,9 +65,9 @@ namespace fs {
       hw::Block_device::on_read_func::make_packed(
       [this, func] (hw::Block_device::buffer_t data)
       {
-        if (!data) {
+        if (UNLIKELY(!data)) {
           // TODO: error-case for unable to read MBR
-          func({ error_t::E_IO, "Unable to read MBR"}, fs());
+          func({ error_t::E_IO, "Unable to read MBR"}, *filesys);
           return;
         }
 
@@ -134,9 +134,9 @@ namespace fs {
         hw::Block_device::on_read_func::make_packed(
         [this, part, func] (hw::Block_device::buffer_t data)
         {
-          if (!data) {
+          if (UNLIKELY(!data)) {
             // TODO: error-case for unable to read MBR
-            func({ error_t::E_IO, "Could not read MBR" }, fs());
+            func({ error_t::E_IO, "Could not read MBR" }, *filesys);
             return;
           }
 

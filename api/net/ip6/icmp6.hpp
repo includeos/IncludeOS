@@ -48,7 +48,7 @@ namespace net
       type_{pckt.type()},
       code_{pckt.code()},
       checksum_{pckt.checksum()},
-      payload_{(const char*) pckt.payload().data(), (size_t) pckt.payload().size()}
+      payload_{(const char*) pckt.payload().data() +sizeof(icmp6::Packet::IdSe), (size_t) pckt.payload().size()-sizeof(icmp6::Packet::IdSe)}
     {}
 
     uint16_t id() const noexcept

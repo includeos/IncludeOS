@@ -33,5 +33,8 @@ def verify_chainload():
 vm.on_output("IncludeOS was just chainloaded", chainload_ok);
 vm.on_exit(verify_chainload)
 
-# Build, run and clean
-vm.cmake().boot().clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Build, run and clean
+    vm.cmake().boot(image_name='kernel_modules').clean()

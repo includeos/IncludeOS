@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <os>
-#include <lest/lest.hpp>
 #include <plugins/unik.hpp>
 #include <net/interfaces>
 

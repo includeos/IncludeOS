@@ -1,27 +1,30 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
+
+project(chainloader)
+
+#TODO cleanup ARCH in os.cmake and just add set platform?
 set(ARCH i686)
 set(PLATFORM x86_nano)
 
+include(os)
+
 option(default_stdout "" OFF)
-
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
-project (chainloader)
-
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
-
-set(SERVICE_NAME "IncludeOS chainloader")
-set(BINARY       "chainloader")
 set(SOURCES
     service.cpp hotswap.cpp
   )
-#set(LOCAL_INCLUDES ".")
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY} DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos)
+os_add_executable(chainloader "IncludeOS chainloader" ${SOURCES})
+os_install(TARGETS chainloader DESTINATION bin)

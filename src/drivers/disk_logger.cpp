@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <hw/block_device.hpp>
+#include <hw/writable_blkdev.hpp>
 #include <fs/common.hpp>
 #include <rtc>
 
@@ -33,7 +33,7 @@ extern "C" void __serial_print(const char*, size_t);
 static void write_all()
 {
   try {
-    auto& device = hw::Devices::drive(DISK_NO);
+    auto& device = (hw::Writable_Block_device&) hw::Devices::drive(DISK_NO);
     const auto sector = disklogger_start_sector(device);
     const bool error = device.write_sync(sector, logbuffer);
     if (error) {

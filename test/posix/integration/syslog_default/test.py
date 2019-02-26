@@ -68,46 +68,50 @@ vm.on_output("Open after close prepended mess: " +
 # ---------- IncludeOS syslogd ----------
 
 # Count 1. vm.on_output("<11> " + ERR_C + "<USER.ERR> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslog: Unknown priority -1. Message: Syslogd Invalid -1", increment)
+vm.on_output(" Syslog: Unknown priority -1. Message: Syslogd Invalid -1", increment)
 
 # Count 1. vm.on_output("<11> " + ERR_C + "<USER.ERR> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslog: Unknown priority 10. Message: Syslogd Invalid 10", increment)
+vm.on_output(" Syslog: Unknown priority 10. Message: Syslogd Invalid 10", increment)
 
 # Count 1. vm.on_output("<11> " + ERR_C + "<USER.ERR> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslog: Unknown priority 55. Message: Syslogd Invalid 55", increment)
+vm.on_output(" Syslog: Unknown priority 55. Message: Syslogd Invalid 55", increment)
 
 # Count 1. vm.on_output("<14> " + INFO_C + "<USER.INFO> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslogd No open has been called prior to this", increment)
+vm.on_output(" Syslogd No open has been called prior to this", increment)
 
 # Count 1. vm.on_output("<13> " + NOTICE_C + "<USER.NOTICE> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslogd Program created with two arguments: one and two", increment)
+vm.on_output(" Syslogd Program created with two arguments: one and two", increment)
 
 # Count 1. vm.on_output("<19> " + ERR_C + "<MAIL.ERR> " + END_C, increment)
-vm.on_output(" test_syslog_default Prepended message: Syslogd Log after prepended message with one argument: 44", increment)
+vm.on_output(" Prepended message: Syslogd Log after prepended message with one argument: 44", increment)
 
 # Count 1. vm.on_output("<20> " + WARNING_C  + "<MAIL.WARNING> " + END_C, increment)
-vm.on_output(" test_syslog_default Prepended message: Syslogd Log number two after openlog set prepended message", increment)
+vm.on_output(" Prepended message: Syslogd Log number two after openlog set prepended message", increment)
 
 # Count 1. vm.on_output("<12> " + WARNING_C  + "<USER.WARNING> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslogd Log after closelog with three arguments. " +
+vm.on_output(" Syslogd Log after closelog with three arguments. " +
   "One is 33, another is this, a third is 4011", increment)
 
 # Count 1. vm.on_output("<8> " + EMERG_C + "<USER.EMERG> " + END_C, increment)
-vm.on_output(" test_syslog_default Second prepended message\\[1\\]: Syslogd Emergency log after openlog and new facility: user", increment)
+vm.on_output(" Second prepended message\\[1\\]: Syslogd Emergency log after openlog and new facility: user", increment)
 
 # Count 1. vm.on_output("<9> "  + ALERT_C + "<USER.ALERT> " + END_C, increment)
-vm.on_output(" test_syslog_default Second prepended message\\[1\\]: Syslogd Alert log with the m argument: Success", increment)
+vm.on_output(" Second prepended message\\[1\\]: Syslogd Alert log with the m argument: Success", increment)
 
 # Count 1. vm.on_output("<10> " + CRIT_C + "<USER.CRIT> " + END_C, increment)
-vm.on_output(" test_syslog_default: Syslogd Critical after cleared prepended message", increment)
+vm.on_output(" Syslogd Critical after cleared prepended message", increment)
 
 # Count 2. Also has logopt LOG_PERROR (so will also be written to std::cerr)
 # Count 1. vm.on_output("<6> " + INFO_C + "<KERN.INFO> " + END_C, increment)
-vm.on_output(" test_syslog_default Open after close prepended message: " +
+vm.on_output(" Open after close prepended message: " +
   "Syslogd Info after openlog with both m: No error information and two hex arguments: 0x64 and 0x32", increment)
 
 vm.on_output("<191> " + DEBUG_C + "<LOCAL7.DEBUG> " + END_C, increment)
-vm.on_output(" test_syslog_default Exiting test: Something special to close with", check_num_outputs)
+vm.on_output(" Exiting test: Something special to close with", check_num_outputs)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+# Boot the VM, taking a timeout as parameter
+if len(sys.argv) > 1:
+    vm.boot(20,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='posix_syslog_default').clean()

@@ -1,4 +1,6 @@
 #! /bin/bash
+set -e #abort on first command returning a failure
+
 source_net=10.0.0.0/24
 source_bridge=bridge43
 
@@ -16,10 +18,10 @@ alias server1="sudo ip netns exec $NSNAME"
 setup() {
 
   # TODO: it's probably not nice to install test deps here
-  sudo apt-get -qqq install -y iperf3
+  #sudo apt-get -qqq install -y iperf3
 
   # Make sure the default bridge exists
-  $INCLUDEOS_PREFIX/includeos/scripts/create_bridge.sh
+  $INCLUDEOS_PREFIX/scripts/create_bridge.sh
 
   # Create veth link
   sudo ip link add veth_src type veth peer name veth_dest
@@ -55,6 +57,9 @@ setup() {
 
 
 undo(){
+  echo ">>> Deleting veth devices"
+  sudo ip link delete veth_src
+  sudo ip link delete veth_dest
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
   sudo brctl delbr $dest_bridge
@@ -62,6 +67,7 @@ undo(){
   sudo ip netns del $NSNAME
   echo ">>> Deleting route to namespace"
   sudo ip route del $dest_net dev $source_bridge
+
 }
 
 vmsetup(){

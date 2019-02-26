@@ -68,4 +68,7 @@ vm.on_output("accept()", TCP_connect_thread)
 vm.on_output("Trigger TCP_recv", TCP_recv)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='posix_tcp').clean()

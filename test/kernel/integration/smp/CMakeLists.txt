@@ -1,31 +1,29 @@
-cmake_minimum_required(VERSION 2.8.9)
-#option(smp "" ON)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (service)
 
-# Human-readable name of your service
-set(SERVICE_NAME "SMP Test")
-# Name of your service binary
-set(BINARY       "smp")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Source files to be linked with OS library parts to form bootable image
+# Service
+project (smp_test)
+include(os)
+
 set(SOURCES
-  service.cpp # ...add more here
-  )
+    service.cpp # ...add more here
+)
 
-set(DRIVERS
-    boot_logger
-  )
+os_add_executable(kernel_smp "SMP test" ${SOURCES})
+os_add_stdout(kernel_smp default_stdout)
+os_add_drivers(kernel_smp boot_logger)
+#os_add_plugins(service vfs)
 
-set(PLUGINS
-  # syslogd    # Syslog over UDP
-  # ...others
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

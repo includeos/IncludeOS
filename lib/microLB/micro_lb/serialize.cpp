@@ -1,5 +1,6 @@
 #include "balancer.hpp"
 #include <stdexcept>
+#include <liveupdate>
 #include <net/inet>
 #include <net/tcp/stream.hpp>
 #include <net/s2n/stream.hpp>

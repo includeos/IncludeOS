@@ -1,36 +1,32 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-project (test_net_configure)
+#service
+project (service)
+include(os)
 
-# Human-readable name of your service
-set(SERVICE_NAME "Network Configure Test Service")
-
-# Name of your service binary
-set(BINARY       "test_net_configure")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
+    service.cpp
   )
 
-# DRIVERS / PLUGINS:
+os_add_config(net_configure "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-set(DRIVERS
-  virtionet   # Virtio networking
-  # virtioblock # Virtio block device
-  # ... Others from IncludeOS/src/drivers
-  )
+os_add_executable(net_configure "Configure test" ${SOURCES})
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_plugins(net_configure autoconf)
+os_add_drivers(net_configure virtionet)
+os_add_stdout(net_configure default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

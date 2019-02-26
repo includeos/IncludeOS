@@ -16,5 +16,4 @@ set(MOD_OBJECTS
 
 add_library(osdeps STATIC ${MOD_OBJECTS})
 
-install(TARGETS osdeps DESTINATION includeos/${ARCH}/lib)
-add_dependencies(osdeps PrecompiledLibraries)
+install(TARGETS osdeps DESTINATION ${ARCH}/lib)

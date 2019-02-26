@@ -36,4 +36,8 @@ def exit2(line):
     return check_exit(line, "0")
 
 vm.on_output("returned with status", exit1)
-vm.cmake().boot(30).cmake(["-DNORMAL=OFF"]).on_output("returned with status", exit2).boot().clean()
+
+if len(sys.argv) > 1:
+    vm.boot(30,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(30).cmake(["-DNORMAL=OFF"]).on_output("returned with status", exit2).boot(image_name='posix_main').clean()
