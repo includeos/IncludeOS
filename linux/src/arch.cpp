@@ -30,6 +30,15 @@ timespec __arch_wall_clock() noexcept
   return tv;
 }
 
+#include <random>
+uint32_t __arch_rand32()
+{
+  static std::random_device rd;
+  static std::mt19937_64 gen(rd());
+  static std::uniform_int_distribution<uint32_t> dis;
+  return dis(gen);
+}
+
 void __arch_reboot()
 {
   exit(0);

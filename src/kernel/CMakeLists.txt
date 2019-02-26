@@ -24,7 +24,6 @@
     )
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND SRCS
-    rdrand.cpp
     heap.cpp
     rtc.cpp
   )
