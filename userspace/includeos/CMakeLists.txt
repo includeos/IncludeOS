@@ -97,7 +97,6 @@ set(OS_SOURCES
     ${IOS}/src/kernel/events.cpp
     ${IOS}/src/kernel/kernel.cpp
     ${IOS}/src/kernel/os.cpp
-    ${IOS}/src/kernel/rdrand.cpp
     ${IOS}/src/kernel/rng.cpp
     ${IOS}/src/kernel/service_stub.cpp
     ${IOS}/src/kernel/timers.cpp

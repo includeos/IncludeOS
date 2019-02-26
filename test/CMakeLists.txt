@@ -210,7 +210,6 @@ endif()
 if(EXTRA_TESTS)
   set(GENERATE_SUPPORT_FILES ON)
   message(STATUS "Adding some extra tests")
-  list(APPEND TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
   list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
 endif()
 
@@ -281,7 +280,6 @@ endif()
 
 if(TRAVIS)
   message(STATUS "Travis")
-  list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
 endif()
 
 if ("${ARCH}" STREQUAL "ARCH_ARMv7")
@@ -290,7 +288,6 @@ if ("${ARCH}" STREQUAL "ARCH_ARMv7")
   list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/serial.cpp)
   list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/cpuid.cpp)
   list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/irq_manager.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/rdrand.cpp)
   list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/terminal.cpp)
 endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 
