@@ -24,10 +24,8 @@ extern "C" {
   #include <libfdt.h>
 }
 
-extern "C" {
-  //nasty..
-  #include "../../arch/aarch64/cpu.h"
-}
+
+#include <cpu.h>
 
 extern "C" {
   void __init_sanity_checks();
@@ -137,7 +135,10 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   const struct fdt_property *prop;
   int addr_cells = 0, size_cells = 0;
   int proplen;
-  char *fdt=(char*)0x40000000;
+  //TODO find this somewhere.. although it is at memory 0x00
+  uint64_t fdt_addr=0x40000000;
+  char *fdt=(char*)fdt_addr;
+
 
   //OK so these get overidden in the for loop which should return a map of memory and not just a single one
   uint64_t addr = 0;
@@ -147,8 +148,10 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   if ( fdt_check_header(fdt) != 0 )
   {
     kprint("FDT Header check failed\r\n");
+    return;
   }
-  kprint("FDT is ok\r\n");
+  kprintf("FDT OK totalsize %d\n",fdt_totalsize(fdt));
+
   size_cells = fdt_size_cells(fdt,0);
   print_le_named32("size_cells :",(char *)&size_cells);
   addr_cells = fdt_address_cells(fdt, 0);//fdt32_ld((const fdt32_t *)prop->data);
@@ -190,8 +193,13 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   uint64_t free_mem_begin=addr;
   uint64_t mem_end=addr+size;
 
+  //Something tells me this messes with things
+
   // Preserve symbols from the ELF binary
   //free_mem_begin = ?
+    //keep the fdt for now
+  free_mem_begin+=fdt_totalsize(fdt);
+    //ok now its sane
   free_mem_begin += _move_symbols(free_mem_begin);
 
   // Initialize .bss
@@ -204,14 +212,15 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   // Initialize system calls
   _init_syscalls();
 
-  //enable exceptions
-  cpu_serror_enable();
-  cpu_debug_enable();
   // Initialize stdout handlers
   if (os_default_stdout)
     OS::add_stdout(&OS::default_stdout);
 
-  OS::start(magic, addr);
+
+  const int intc_offset = fdt_path_offset(fdt, "/pcie");
+
+  kprintf("OS start intc %d\r\n",intc_offset);
+  OS::start(fdt_addr);
 
   // Start the service
   Service::start();

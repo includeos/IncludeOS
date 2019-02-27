@@ -70,6 +70,11 @@ void cpu_disable_all_exceptions()
   asm volatile("msr DAIFSet,%0" :: "i"(DAIF_FIQ_BIT|DAIF_IRQ_BIT|DAIF_ABT_BIT|DAIF_DBG_BIT) : "memory");
 }
 
+void cpu_wfi()
+{
+  asm volatile("wfi" : : : "memory");
+}
+
 void cpu_disable_exceptions(uint32_t irq)
 {
   //seting mask to 0 enables the irq

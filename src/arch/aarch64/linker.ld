@@ -18,6 +18,9 @@
 **/
 ENTRY(_start)
 
+/*
+ * TODO sort out memory location. which is platform specific..
+**/
 SECTIONS
 {
   PROVIDE ( _ELF_START_ = . + 0x200000 + 0x40000000);

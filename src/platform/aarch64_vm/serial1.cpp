@@ -20,23 +20,9 @@ static inline void init_if_needed()
   asm volatile("mov	w5, #0xc300");
   asm volatile("orr	w5, w5, #0x0001");
   asm volatile("str	w5, [x4, #0x30]");*/
-  //unsure if this becomes sane or not. look at asm ?
+  //unsure if this becomes sane or not. look at asm but should be exactly the same as the above comment
   *((volatile unsigned int *) UART_BASE+0x24) = 0x10;
   *((volatile unsigned int *) UART_BASE+0x30) = 0xC301;
-
-
-/*mov	w5, #0x10		// IBRD
-str	w5, [x4, #0x24]
-mov	w5, #0xc300
-orr	w5, w5, #0x0001		// CR
-str	w5, [x4, #0x30]
-  // properly initialize serial port
-  hw::outb(port + 1, 0x00);    // Disable all interrupts
-  hw::outb(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-  hw::outb(port + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-  hw::outb(port + 1, 0x00);    //                  (hi byte)
-  hw::outb(port + 3, 0x03);    // 8 bits, no parity, one stop bit
-  hw::outb(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold*/
 }
 
 extern "C"

@@ -32,13 +32,17 @@
 //;; @param: ebx - multiboot bootinfo addr
 .align 8
 __arch_start:
+    //store any boot magic if present ?
+    ldr x8,__boot_magic
+    ldr x0,[x8]
+    //
+    mrs x0, s3_1_c15_c3_0
   //  ;; Create stack frame for backtrace
 
     ldr x30, =__stack_top
     mov sp, x30
 
-    ldr x8,__boot_magic
-    ldr x0,[x8]
+
   /*  ldr w0,[x9]
     ldr w1,[x9,#0x8]
 */

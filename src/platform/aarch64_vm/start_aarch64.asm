@@ -1,3 +1,5 @@
+#include <macros.h>
+
 .globl __boot_magic
 
 .data
@@ -23,29 +25,11 @@ reset:
   ldr x8 , __boot_magic
   str x0, [x8]
 
-        /*
-         * Could be EL3/EL2/EL1, Initial State:
-         * Little Endian, MMU Disabled, i/dCache Disabled
-         */
-        //switch_el x1, 3f, 2f, 1f u boot uses a macro do switch based on exception  level..
-          /*
-           * Branch according to exception level
-           */
-        /*
-        *  .macro  switch_el, xreg, el3_label, el2_label, el1_label
-        *          mrs     \xreg, CurrentEL
-        *          cmp     \xreg, 0xc
-        *          b.eq    \el3_label
-        *          cmp     \xreg, 0x8
-        *          b.eq    \el2_label
-        *          cmp     \xreg, 0x4
-        *          b.eq    \el1_label
-        *  .endm
-        */
 
         //load the exception vector to x0
         //different tables for different EL's but thats a given..
         adr     x0, exception_vector
+        msr     daifset, #0xF //disable all exceptions
 
         //do we need this switch?
         mrs     x1, CurrentEL //load current execution level

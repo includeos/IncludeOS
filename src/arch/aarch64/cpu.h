@@ -20,6 +20,9 @@ enum class cpu_irq_flag_t: uint32_t
   IRQ_FLAG_D = 1<<9 //Endianess in AARCH32 and Debug exception mask in aarch64
 };// cpu_irq_flag_t;
 */
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 
 void cpu_fiq_enable();
@@ -40,10 +43,17 @@ void cpu_debug_disable();
 
 void cpu_disable_all_exceptions();
 
+void cpu_wfi();
+
 void cpu_disable_exceptions(uint32_t irq);
 void cpu_enable_exceptions(uint32_t irq);
 
 uint32_t cpu_get_current_el();
 void cpu_print_current_el();
+
+#if defined(__cplusplus)
+}
+#endif
+
 
 #endif //CPU_H
