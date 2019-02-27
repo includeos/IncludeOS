@@ -57,12 +57,13 @@ endif()
 set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
+set(FIXED_STKPROT "0" CACHE STRING "Fixed stack sentinel value")
 
 ##extract version header only ONCE avoiding endless rebuild loop ?
 FIND_PACKAGE(Git REQUIRED)
 FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.h.in
 "#define OS_VERSION \"@VERSION@\"\n"
-"#define STACK_PROTECTOR_VALUE 0x@STKPROTV@\n"
+"#define STACK_PROTECTOR_VALUE 0x@FIXED_STKPROT@\n"
 )
 
 FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
@@ -75,7 +76,7 @@ FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
  )
  # create random hex string as stack protector canary
- string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STKPROTV)
+ set(FIXED_STKPROT ${FIXED_STKPROT})
  CONFIGURE_FILE(\${SRC} \${DST} @ONLY)
 ")
 

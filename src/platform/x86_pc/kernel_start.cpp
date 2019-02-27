@@ -223,9 +223,15 @@ void kernel_start(uint32_t magic, uint32_t addr)
   const char* plat = "x86_64";
   aux[i++].set_ptr(AT_PLATFORM, plat);
 
-  const unsigned long canary = STACK_PROTECTOR_VALUE; // ^ __arch_rand32();
-  aux[i++].set_long(AT_RANDOM, canary);
-  kprintf("Found RDRAND, result: %#llx\n", canary);
+  if (STACK_PROTECTOR_VALUE == 0) {
+    const unsigned long canary = __arch_rand32() | ((uint64_t) __arch_rand32() << 32);
+    aux[i++].set_long(AT_RANDOM, canary);
+    kprintf("* Stack protector value (random): %#lx\n", canary);
+  }
+  else {
+    aux[i++].set_long(AT_RANDOM, STACK_PROTECTOR_VALUE);
+    kprintf("* Stack protector value (fixed): %#lx\n", STACK_PROTECTOR_VALUE);
+  }
 
   const size_t canary_slot = i-1;
   aux[i++].set_ptr(AT_RANDOM, 0);
