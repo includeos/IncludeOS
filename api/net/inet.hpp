@@ -332,7 +332,8 @@ namespace net {
                         ip6::Addr gateway6 = IP6::ADDR_ANY);
 
     void add_addr(const ip6::Addr& addr, uint8_t prefix = 64,
-                  uint32_t pref_lifetime = 0, uint32_t valid_lifetime = 0);
+                  uint32_t pref_lifetime  = ip6::Stateful_addr::infinite_lifetime,
+                  uint32_t valid_lifetime = ip6::Stateful_addr::infinite_lifetime);
 
     ip6::Addr linklocal_addr() const noexcept
     { return this->addr6_config().get_first_linklocal(); }
