@@ -22,7 +22,7 @@ all: $(target)
 
 $(target): $(objects)
 	$(RM) $@
-	ar -frsv $@ $^
+	ar -rsv $@ $^
 	ranlib $@
 
 %.o : %.c

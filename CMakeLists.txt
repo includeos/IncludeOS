@@ -25,8 +25,6 @@ if(APPLE)
   set(BORNED_AS_AN_APPLE FRUITSALAD)
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
-
 project (includeos C CXX)
 
 include(ExternalProject)
