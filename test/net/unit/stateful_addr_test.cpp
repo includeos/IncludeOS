@@ -123,3 +123,16 @@ CASE("Stateful_addr infinite lifetime")
   EXPECT(not addr.always_valid());
   EXPECT(addr.valid_ts() == my_time);
 }
+
+CASE("Stateful_addr matches")
+{
+  const Stateful_addr addr1{{"fe80::1337:0:0:1337"}, 64};
+  const Stateful_addr addr2{{"fe80::1337:0:42:1337"}, 64};
+  const Stateful_addr router1{{"fe80::1337:1337:0:0:1"}, 48};
+  const Stateful_addr router2{{"fe80::1337:0:0:1"}, 112};
+
+  EXPECT(router1.match(addr1.addr()));
+  EXPECT(router1.match(addr2.addr()));
+  EXPECT(router2.match(addr1.addr()));
+  EXPECT(not router2.match(addr2.addr()));
+}
