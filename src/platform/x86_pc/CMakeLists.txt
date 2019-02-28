@@ -10,6 +10,7 @@ set(X86_PC_OBJECTS
   cpu_freq_sampling.cpp
   gdt.cpp
   idt.cpp
+  init_libc.cpp
   ioapic.cpp
   kernel_start.cpp
   os.cpp
