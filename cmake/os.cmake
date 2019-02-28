@@ -195,7 +195,7 @@ else()
   add_library(libpthread STATIC IMPORTED)
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
-  
+
   #allways use the provided libcompiler.a
   set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
 
@@ -243,6 +243,9 @@ else()
       libgcc
       libcxx_experimental
     )
+  endif()
+  if ("${PLATFORM}" STREQUAL "x86_solo5")
+    set(LIBRARIES ${LIBRARIES} solo5)
   endif()
 
   set(ELF_SYMS ${INCLUDEOS_PREFIX}/bin/elf_syms)

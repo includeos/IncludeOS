@@ -34,7 +34,7 @@ include(CMakeDependentOption)
 
 #if not apple and x86_64 enable with solo5.. this option results in a different arch in conan.. should be handled like that as well
 cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
-"NOT APPLE;${ARCH} STREQUAL \"x86_64\"" OFF)
+"NOT APPLE" OFF)
 
 if(NOT BORNED_AS_AN_APPLE)
   include(CheckCXXCompilerFlag)

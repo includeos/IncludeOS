@@ -39,26 +39,6 @@ extern kernel::ctor_t __driver_ctors_end;
 #define PROFILE(name) /* name */
 #endif
 
-void solo5_poweroff()
-{
-  __asm__ __volatile__("cli; hlt");
-  for(;;);
-}
-
-// returns wall clock time in nanoseconds since the UNIX epoch
-uint64_t __arch_system_time() noexcept
-{
-  return solo5_clock_wall();
-}
-timespec __arch_wall_clock() noexcept
-{
-  const uint64_t stamp = solo5_clock_wall();
-  timespec result;
-  result.tv_sec = stamp / 1000000000ul;
-  result.tv_nsec = stamp % 1000000000ul;
-  return result;
-}
-
 // actually uses nanoseconds (but its just a number)
 uint64_t os::cycles_asleep() noexcept {
   return os_cycles_hlt;
@@ -195,7 +175,7 @@ void os::event_loop()
   Service::stop();
 
   MYINFO("Powering off");
-  solo5_poweroff();
+  __arch_poweroff();
 }
 
 __attribute__((noinline))

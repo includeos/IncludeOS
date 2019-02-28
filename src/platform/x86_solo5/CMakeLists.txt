@@ -6,6 +6,7 @@ set(PLATFORM_OBJECTS
   platform.cpp
   kernel_start.cpp
   sanity_checks.cpp
+  solo5_manager.cpp
   )
 
 add_library(x86_solo5 STATIC ${PLATFORM_OBJECTS})
