@@ -102,7 +102,7 @@ pipeline {
           }
           post {
             cleanup {
-              sh script: "sudo pkill qemu-system", label: "Kill all qemu processes"
+              sh script: "sudo pkill qemu-system || :", label: "Kill all qemu processes"
             }
           }
         }
