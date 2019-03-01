@@ -276,6 +276,6 @@ print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
 if len(sys.argv) > 4:
-    vm.boot(image_name=str(sys.argv[4]))
+    vm.boot(timeout=thread_timeout, image_name=str(sys.argv[4]))
 else:
     vm.cmake().boot(thread_timeout).clean()

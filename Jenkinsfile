@@ -100,11 +100,6 @@ pipeline {
             sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
             sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
           }
-          post {
-            cleanup {
-              sh script: "sudo pkill qemu-system", label: "Kill all qemu processes"
-            }
-          }
         }
       }
     }

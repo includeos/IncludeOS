@@ -36,6 +36,7 @@ SET(TEST_PARAMS 3)
 SET(NAME_PARAM_INDEX    0)
 SET(TIMEOUT_PARAM_INDEX 1)
 SET(TYPE_PARAM_INDEX    2)
+SET(FALLBACK_TIMEOUT  400)
 
 #you get the idea ..
 #testname = FOLDER + EXECUTABLE
@@ -151,11 +152,12 @@ function(add_integration_tests TESTS)
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}/test.py)
       add_test(NAME integration_${TYPE}_${T}
         #TODO make cmake find python version .. and update vmrunner
-        COMMAND python2 -u test.py ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TIMEOUT} ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
         WORKING_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}
       )
-      set_tests_properties(integration_${TYPE}_${T} PROPERTIES TIMEOUT ${TIMEOUT})
-      set_tests_properties(integration_${TYPE}_${T} PROPERTIES ENVIRONMENT INCLUDEOS_SRC=${CMAKE_CURRENT_SOURCE_DIR}/../../)
+      set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT_AFTER_MATCH "0.1" "Test timed out")
+      set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
+      set_property(TEST integration_${TYPE}_${T} PROPERTY ENVIRONMENT INCLUDEOS_SRC=${CMAKE_CURRENT_SOURCE_DIR}/../../)
     else()
       message(WARNING "No test.py present in ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}")
     endif()
@@ -165,10 +167,10 @@ endfunction()
 if (STRESS)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../stress stress)
   add_test(NAME stress
-    COMMAND python2 test.py 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh 300 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../stress
   )
-  set_tests_properties(stress PROPERTIES TIMEOUT 300)
+  set_property(TEST stress PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
 endif()
 
 

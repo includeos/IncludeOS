@@ -1039,10 +1039,14 @@ def program_exit(status, msg):
     sys.exit(status)
 
 
+# Call this to add a new vm to the vms list as well. This ensures proper termination
+def add_vm(**kwargs):
+    new_vm = vm(**kwargs)
+    vms.append(new_vm)
+    return new_vm
 
-# Handler for SIGINT
+# Handler for signals
 def handler(signum, frame):
-    print
     print color.WARNING("Process interrupted - stopping vms")
     for vm in vms:
         try:
@@ -1055,4 +1059,5 @@ def handler(signum, frame):
 # One unconfigured vm is created by default, which will try to load a config if booted
 vms.append(vm())
 
+signal.signal(signal.SIGTERM, handler)
 signal.signal(signal.SIGINT, handler)
