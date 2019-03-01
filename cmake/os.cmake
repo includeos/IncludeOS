@@ -41,39 +41,14 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
-#TODO also support conanfile.py ?
-if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt)
-  SET(CONANFILE_TXT ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt)
-endif()
 
-if (CONANFILE_TXT OR CONAN_EXPORTED)
-  #TODO move this into sub scripts conan.cmake and oldscool.cmake
-  if (CONANFILE_TXT)
-    #TODO VERIFY are we only testing release  version of includeos
-    set(CMAKE_BUILD_TYPE Release)
-    if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-      message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-      file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
-                        "${CMAKE_BINARY_DIR}/conan.cmake")
-    endif()
-      #TODO se if this goes all wack
-    include(${CMAKE_BINARY_DIR}/conan.cmake)
-      #should we specify a directory.. can we run it multiple times ?
-    conan_cmake_run(
-      CONANFILE conanfile.txt
-        BASIC_SETUP
-        CMAKE_TARGETS
-      )
-    #include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  else()
 
+if (CONAN_EXPORTED)
   # standard conan installation, deps will be defined in conanfile.py
   # and not necessary to call conan again, conan is already running
-    include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
 
-    conan_basic_setup()
-
-  endif()
 
   #TODO use these
   #CONAN_SETTINGS_ARCH Provides arch type
@@ -195,7 +170,7 @@ else()
   add_library(libpthread STATIC IMPORTED)
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
-  
+
   #allways use the provided libcompiler.a
   set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
 
@@ -421,6 +396,7 @@ endfunction()
 
 function (os_add_drivers TARGET)
   foreach(DRIVER ${ARGN})
+    #if in conan expect it to be in order ?
     os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers")
   endforeach()
 endfunction()
