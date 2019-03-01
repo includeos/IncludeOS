@@ -9,7 +9,7 @@
 #include <version.h>
 #include <kprint>
 
-#define KERN_DEBUG 1
+//#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
 #define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #else
@@ -42,7 +42,14 @@ int kernel_main(int, char * *, char * *)
   PRATTLE("<kernel_main> OS start \n");
 
   // Initialize early OS, platform and devices
+#if defined(PLATFORM_x86_pc)
   kernel::start(grub_magic, grub_addr);
+#elif defined(PLATFORM_x86_solo5)
+  //kernel::start((const char*) (uintptr_t) grub_magic);
+  kernel::start("Testing");
+#else
+  LL_ASSERT(0 && "Implement call to kernel start for this platform");
+#endif
 
   // verify certain read-only sections in memory
   // NOTE: because of page protection we can choose to stop checking here

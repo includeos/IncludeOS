@@ -67,8 +67,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
-  PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n",
-          __grub_magic, __grub_addr);
+  PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n", magic, addr);
 
   // Determine where free memory starts
   extern char _end;
@@ -90,9 +89,6 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
   PRATTLE("* Free mem moved to: %p \n", (void*) free_mem_begin);
-
-  PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n",
-          __grub_magic, __grub_addr);
 
   PRATTLE("* Init .bss\n");
   _init_bss();

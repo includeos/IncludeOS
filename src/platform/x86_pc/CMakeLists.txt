@@ -1,3 +1,5 @@
+add_definitions(-DPLATFORM_x86_pc)
+
 ### x86 PC specific ###
 set(X86_PC_OBJECTS
   acpi.cpp

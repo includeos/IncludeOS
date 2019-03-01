@@ -24,7 +24,7 @@ die_error ()
 }
 trap deactivate 0 INT TERM
 
-SOLO5_TENDER=`whereis solo5-hvt`
+SOLO5_TENDER=solo5-hvt
 
 die_error ()
 {
