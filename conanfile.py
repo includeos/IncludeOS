@@ -1,4 +1,3 @@
-#README to build botan 2.8.0 use conan create (botan/2.8.0@user/channel) path to this file
 import shutil
 
 from conans import ConanFile,tools,CMake
@@ -79,6 +78,9 @@ class IncludeOSConan(ConanFile):
 
     def package_info(self):
         #this is messy but unless we rethink things its the way to go
+        # this puts os.cmake in the path
+        self.cpp_info.builddirs = ["cmake"]
+        # this ensures that API is searchable
         self.cpp_info.includedirs=['include/os']
         platform='platform'
         #TODO se if this holds up for other arch's
