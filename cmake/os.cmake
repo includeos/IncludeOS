@@ -41,13 +41,18 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
-
-
-if (CONAN_EXPORTED)
+if (CONAN_EXPORTED OR CONAN_LIBS)
   # standard conan installation, deps will be defined in conanfile.py
   # and not necessary to call conan again, conan is already running
-  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  conan_basic_setup()
+  if (CONAN_EXPORTED)
+    include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup()
+    #hack for editable package
+    set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
+  else()
+    #hack for editable package
+    set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT}/install)
+  endif()
 
 
   #TODO use these
@@ -72,11 +77,12 @@ if (CONAN_EXPORTED)
   set(TRIPLE "${ARCH}-pc-linux-elf")
   set(LIBRARIES ${CONAN_LIBS})
   set(ELF_SYMS elf_syms)
-  set(LINK_SCRIPT ${CONAN_INCLUDEOS_ROOT}/${ARCH}/linker.ld)
+  set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
   #includeos package can provide this!
   include_directories(
-    ${CONAN_INCLUDEOS_ROOT}/include/os
+    ${INCLUDEOS_PREFIX}/include/os
   )
+
 
 else()
   #TODO initialise self
@@ -89,6 +95,7 @@ else()
       set(ARCH x86_64)
     endif()
   endif()
+
   set(TRIPLE "${ARCH}-pc-linux-elf")
   include_directories(
     ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1
@@ -224,6 +231,13 @@ else()
   set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
 endif()
 
+#TODO get the TARGET executable from diskimagebuild
+if (CONAN_TARGETS)
+  #find_package(diskimagebuild)
+  set(DISKBUILDER diskbuilder)
+else()
+  set(DISKBUILDER ${INCLUDEOS_PREFIX}/bin/diskbuilder)
+endif()
 # arch and platform defines
 #message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
@@ -461,10 +475,10 @@ function(os_build_memdisk TARGET FOLD)
 
   add_custom_command(
       OUTPUT  memdisk.fat
-      COMMAND ${INCLUDEOS_PREFIX}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
+      COMMAND ${DISKBUILDER} -o memdisk.fat ${REL_PATH}
       COMMENT "Creating memdisk"
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt ${TARGET}_disccontent
-      )
+  )
   add_custom_target(${TARGET}_diskbuilder DEPENDS memdisk.fat)
   os_add_dependencies(${TARGET} ${TARGET}_diskbuilder)
   os_add_memdisk(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/memdisk.fat")
