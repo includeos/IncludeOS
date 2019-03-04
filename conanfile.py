@@ -4,11 +4,17 @@ from conans import ConanFile,tools,CMake
 
 def get_version():
     git = tools.Git()
-    branch = git.get_branch()
-    prev_tag = git.run("describe --abbrev=0")
-    commits_behind = git.run("rev-list %s.." % (prev_tag))
     try:
-        return "%s_%s_%d" % (branch, prev_tag, len(commits_behind))
+        branch = git.get_branch()
+        prev_tag = git.run("describe --abbrev=0")
+        commits_behind = git.run("rev-list --count %s..HEAD" % (prev_tag))
+        checksum = git.run("rev-parse --short HEAD")
+        if prev_tag.startswith("v"):
+            prev_tag = prev_tag[1:]
+        prev_tag_split = prev_tag.split(".")
+        prev_tag_split[-1] = str(int(prev_tag_split[-1]) + 1)
+        print(prev_tag_split)
+        return "%s-%s.%s+%s" % (".".join(prev_tag_split), branch, commits_behind, checksum)
     except:
         return None
 
@@ -19,14 +25,13 @@ class IncludeOSConan(ConanFile):
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
-    version = get_version()
-
     scm = {
         "type": "git",
         "url": "auto",
         "subfolder": ".",
         "revision": "auto"
     }
+    version = get_version()
 
     options = {
         "apple":['',True],
@@ -62,7 +67,6 @@ class IncludeOSConan(ConanFile):
         del self.settings.compiler.libcxx
     def imports(self):
         self.copy("*")
-
 
     def _target_arch(self):
         return {
