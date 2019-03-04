@@ -2,6 +2,16 @@ import shutil
 
 from conans import ConanFile,tools,CMake
 
+def get_version():
+    git = tools.Git()
+    branch = git.get_branch()
+    prev_tag = git.run("describe --abbrev=0")
+    commits_behind = git.run("rev-list %s.." % (prev_tag))
+    try:
+        return "%s_%s_%d" % (branch, prev_tag, len(commits_behind))
+    except:
+        return None
+
 class IncludeOSConan(ConanFile):
     settings= "os","arch","build_type","compiler"
     name = "includeos"
@@ -9,6 +19,14 @@ class IncludeOSConan(ConanFile):
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
+    version = get_version()
+
+    scm = {
+        "type": "git",
+        "url": "auto",
+        "subfolder": ".",
+        "revision": "auto"
+    }
 
     options = {
         "apple":['',True],
@@ -45,9 +63,6 @@ class IncludeOSConan(ConanFile):
     def imports(self):
         self.copy("*")
 
-    def source(self):
-        repo = tools.Git(folder="includeos")
-        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
 
     def _target_arch(self):
         return {
@@ -64,7 +79,7 @@ class IncludeOSConan(ConanFile):
         if (self.options.basic):
             cmake.definitions['CORE_OS']=True
         cmake.definitions['WITH_SOLO5']=self.options.solo5
-        cmake.configure(source_folder=self.source_folder+"/includeos")
+        cmake.configure(source_folder=self.source_folder)
         return cmake;
 
     def build(self):
