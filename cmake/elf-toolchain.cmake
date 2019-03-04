@@ -19,7 +19,7 @@ set(CMAKE_SYSTEM_NAME "Linux")
 set(CMAKE_SYSTEM_PROCESSOR ${ARCH})
 
 # Bin directory
-set(INCLUDEOS_BIN $ENV{INCLUDEOS_PREFIX}/includeos/bin)
+set(INCLUDEOS_BIN $ENV{INCLUDEOS_PREFIX}/bin)
 
 # Set compiler to the one in includeos/bin (clang)
 set(CMAKE_C_COMPILER ${INCLUDEOS_BIN}/gcc)

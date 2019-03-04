@@ -57,10 +57,11 @@ if (COVERAGE)
   endif()
 endif()
 
+# Neccesary apple stuff because native bundle is old/bad
 if (APPLE)
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     message(STATUS "Including brew bundled libc++")
-    execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
+    execute_process(COMMAND brew "--prefix" "llvm@6" OUTPUT_VARIABLE BREW_LLVM)
     string(STRIP ${BREW_LLVM} BREW_LLVM)
     set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
     message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
@@ -159,6 +160,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_packet_test.cpp
   ${TEST}/net/unit/ip6.cpp
   ${TEST}/net/unit/ip6_addr.cpp
+  ${TEST}/net/unit/ip6_addr_list_test.cpp
   ${TEST}/net/unit/ip6_packet_test.cpp
   ${TEST}/net/unit/nat_test.cpp
   ${TEST}/net/unit/napt_test.cpp
@@ -166,6 +168,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
+  ${TEST}/net/unit/stateful_addr_test.cpp
   ${TEST}/net/unit/tcp_benchmark.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
@@ -203,6 +206,14 @@ set(TEST_SOURCES
   ${TEST}/util/unit/buddy_alloc_test.cpp
   ${TEST}/util/unit/pmr_alloc_test.cpp
 )
+
+# Disable (don't build) currently non-working tests on macOS
+if (APPLE)
+  list(REMOVE_ITEM TEST_SOURCES
+    ${TEST}/net/unit/websocket.cpp
+    )
+endif()
+
 if (COVERAGE)
   list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
 endif()
