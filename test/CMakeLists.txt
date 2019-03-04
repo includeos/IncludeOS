@@ -160,6 +160,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_packet_test.cpp
   ${TEST}/net/unit/ip6.cpp
   ${TEST}/net/unit/ip6_addr.cpp
+  ${TEST}/net/unit/ip6_addr_list_test.cpp
   ${TEST}/net/unit/ip6_packet_test.cpp
   ${TEST}/net/unit/nat_test.cpp
   ${TEST}/net/unit/napt_test.cpp
