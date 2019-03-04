@@ -8,7 +8,7 @@ class ChainloaderConan(ConanFile):
     name = "chainloader"
     license = 'Apache-2.0'
     description = 'IncludeOS 32->64 bit chainloader for x86'
-    generators = 'cmake'
+    generators = ['cmake','virtualenv']
     url = "http://www.includeos.org/"
 
     default_options={
@@ -21,16 +21,11 @@ class ChainloaderConan(ConanFile):
     default_channel="test"
 
     def configure(self):
-        if (self.settings.arch != "x86"):
-            raise Exception(
-            "Chainloader is only for x86 target architecture "
-            "not: {}".format(self.settings.arch))
         del self.settings.compiler.libcxx
         del self.settings.compiler.version
         del self.settings.compiler
         del self.settings.arch
         del self.settings.os
-        #self.
 
     def build_requirements(self):
         self.build_requires("includeos/0.13.0@{}/{}".format(self.user,self.channel))
@@ -53,9 +48,10 @@ class ChainloaderConan(ConanFile):
         cmake.build()
 
 
-    def package_info(self):
-        if self.settings.arch in ["x86","x86_64"]:
-            self.settings.arch="x86_64"
+    #def package_info(self):
+    #    if self.settings.arch in ["x86","x86_64"]:
+    #        self.settings.arch="x86_64"
+    
     def package(self):
         cmake=self._configure_cmake()
         cmake.install()
