@@ -182,7 +182,7 @@ uint64_t __arch_system_time() noexcept {
 }
 #include <sys/time.h>
 timespec __arch_wall_clock() noexcept {
-  return timespec{0, 0};
+  return timespec{static_cast<long>(systime_override()), 0};
 }
 #include <random>
 uint32_t __arch_rand32()

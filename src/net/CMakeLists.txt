@@ -1,4 +1,4 @@
-﻿if(${ARCH} STREQUAL "x86_64")
+if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES
     openssl/init.cpp
     openssl/client.cpp
@@ -37,6 +37,7 @@ SET(IP4_SRCS
 
 SET(IP6_SRCS
   ip6/addr.cpp
+  ip6/addr_list.cpp
   ip6/ip6.cpp
   ip6/icmp6.cpp
   ip6/ndp.cpp

@@ -165,7 +165,7 @@ if args.solo5:
     subprocess.call(['chmod', '+x', solo5_hvt])
     subprocess.call(['sudo', INCLUDEOS_PREFIX + "/scripts/solo5-ifup.sh" ])
 
-vm = vmrunner.vm(config = config, hyper_name = hyper_name)
+vm = vmrunner.add_vm(config = config, hyper_name = hyper_name)
 
 # Don't listen to events needed by testrunner
 vm.on_success(lambda(x): None, do_exit = False)

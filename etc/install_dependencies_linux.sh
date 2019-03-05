@@ -160,7 +160,7 @@ case $SYSTEM in
             "fedora")
                 # Removes g++-multilib from dependencies
                 DEPENDENCIES=${DEPENDENCIES%g++-multilib}
-                DEPENDENCIES="$DEPENDENCIES clang glibc-devel.i686"
+                DEPENDENCIES="$DEPENDENCIES clang glibc-devel.i686 python2-devel redhat-rpm-config libstdc++.i686"
                 sudo dnf install $DEPENDENCIES || exit 1
                 ;;
             "arch")

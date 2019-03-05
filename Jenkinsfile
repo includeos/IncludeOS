@@ -1,6 +1,3 @@
-
-
-
 pipeline {
   agent { label 'vaskemaskin' }
 
@@ -14,26 +11,23 @@ pipeline {
     USER = 'includeos'
     CHAN = 'test'
     MOD_VER= '0.13.0'
-
   }
 
   stages {
     stage('Setup') {
       steps {
-        sh 'rm -rf install || : && mkdir install'
+        sh 'mkdir -p install'
         sh 'cp conan/profiles/* ~/.conan/profiles/'
       }
     }
     stage('Unit tests') {
       steps {
-        sh 'rm -rf unittests || : && mkdir unittests'
-        sh 'cd unittests; env CC=gcc CXX=g++ cmake ../test'
-        sh "cd unittests; make -j $CPUS"
-        sh 'cd unittests; ctest'
+        sh script: "mkdir -p unittests", label: "Setup"
+        sh script: "cd unittests; env CC=gcc CXX=g++ cmake ../test", label: "Cmake"
+        sh script: "cd unittests; make -j $CPUS", label: "Make"
+        sh script: "cd unittests; ctest", label: "Ctest"
       }
     }
-
-     
     stage('liveupdate x86_64') {
       steps {
       	build_editable('lib/LiveUpdate','liveupdate')
@@ -49,28 +43,17 @@ pipeline {
       	build_editable('lib/mender','mender')
       }
     }
-    
     stage('uplink x86_64') {
       steps {
       	build_editable('lib/uplink','uplink')
       }
     }
-    
     stage('microLB x86_64') {
       steps {
       	build_editable('lib/microLB','microlb')
       }
     }
-    
-    stage('Build 32 bit') {
-      steps {
-        sh 'rm -rf build_x86 || : && mkdir build_x86'
-        sh "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano .."
-        sh "cd build_x86; make -j $CPUS"
-        sh 'cd build_x86; make install'
-      }
-    }
-    /* TODO 
+    /* TODO
     stage('build chainloader 32bit') {
       steps {
   	sh """
@@ -84,37 +67,48 @@ pipeline {
       }
     }
     */
-    stage('Build 64 bit') {
-      steps {
-        sh 'rm -rf build_x86_64 || : && mkdir build_x86_64'
-        sh "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 .."
-        sh "cd build_x86_64; make -j $CPUS"
-        sh 'cd build_x86_64; make install'
+    stage('Build & Integration tests') {
+      stages {
+        stage('Build 32 bit') {
+          steps {
+            sh script: "mkdir -p build_x86", label: "Setup"
+            sh script: "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano ..", label: "Cmake"
+            sh script: "cd build_x86; make -j $CPUS", label: "Make"
+            sh script: 'cd build_x86; make install', label: "Make install"
+          }
+        }
+        stage('Build 64 bit') {
+          steps {
+            sh script: "mkdir -p build_x86_64", label: "Setup"
+            sh script: "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 ..", label: "Cmake"
+            sh script: "cd build_x86_64; make -j $CPUS", label: "Make"
+            sh script: "cd build_x86_64; make install", label: "Make install"
+          }
+        }
+        stage('Build examples') {
+          steps {
+      	    sh script: "mkdir -p build_examples", label: "Setup"
+            sh script: "cd build_examples; cmake ../examples", label: "Cmake"
+            sh script: "cd build_examples; make -j $CPUS", label: "Make"
+          }
+         }
+        stage('Integration tests') {
+          steps {
+            sh script: "mkdir -p integration", label: "Setup"
+            sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
+            sh script: "cd integration; make -j $CPUS", label: "Make"
+            sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
+            sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
+          }
+        }
       }
     }
-    
     stage('Code coverage') {
       steps {
-        sh 'rm -rf coverage || : && mkdir coverage'
-        sh 'cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test'
-        sh "cd coverage; make -j $CPUS"
-        sh 'cd coverage; make coverage'
-      }
-    }
-    stage('Integration tests') {
-      steps {
-        sh 'rm -rf integration || : && mkdir integration'
-        sh 'cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug'
-        sh "cd integration; make -j $CPUS"
-        sh 'cd integration; ctest -E stress --output-on-failure'
-        sh 'cd integration; ctest -R stress -E integration --output-on-failure'
-      }
-    }
-    stage('Build examples') {
-      steps {
-      	sh "mkdir -p build_examples"
-        sh "cd build_examples; cmake ../examples"
-        sh "cd build_examples; make -j $CPUS"
+        sh script: "mkdir -p coverage", label: "Setup"
+        sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test", label: "Cmake"
+        sh script: "cd coverage; make -j $CPUS", label: "Make"
+        sh script: "cd coverage; make coverage", label: "Make coverage"
       }
     }
   }
@@ -123,7 +117,7 @@ pipeline {
 def build_editable(String location, String name) {
   sh """
     cd $location
-    rm -rf build || :&& mkdir build
+    mkdir -p build
     cd build
     conan link .. $name/$MOD_VER@$USER/$CHAN --layout=../layout.txt
     conan install .. -pr $PROFILE_x86_64 -u
@@ -131,4 +125,3 @@ def build_editable(String location, String name) {
     cmake --build . --config Release
   """
 }
-
