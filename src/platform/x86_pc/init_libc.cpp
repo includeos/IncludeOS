@@ -20,6 +20,7 @@ extern char _ELF_START_;
 extern char _ELF_END_;
 extern char _INIT_START_;
 extern char _FINI_START_;
+extern char _SSP_INIT_;
 static uint32_t grub_magic;
 static uint32_t grub_addr;
 
@@ -94,8 +95,21 @@ namespace x86
   #endif
 
     // Build AUX-vector for C-runtime
-    std::array<auxv_t, 38> aux;
-    PRATTLE("* Initializing aux-vector @ %p\n", aux.data());
+    std::array<char*, 6 + 38> argv;
+    // Parameters to main
+    argv[0] = (char*) Service::name();
+    argv[1] = 0x0;
+    int argc = 1;
+
+    // Env vars
+    argv[2] = strdup("LC_CTYPE=C");
+    argv[3] = strdup("LC_ALL=C");
+    argv[4] = strdup("USER=root");
+    argv[5] = 0x0;
+
+    // auxiliary vector
+    auxv_t* aux = (auxv_t*) &argv[6];
+    PRATTLE("* Initializing aux-vector @ %p\n", aux);
 
     int i = 0;
     aux[i++].set_long(AT_PAGESZ, 4096);
@@ -120,40 +134,19 @@ namespace x86
     const char* plat = "x86_64";
     aux[i++].set_ptr(AT_PLATFORM, plat);
 
-    if (STACK_PROTECTOR_VALUE == 0) {
-      const unsigned long canary = __arch_rand32() | ((uint64_t) __arch_rand32() << 32);
-      aux[i++].set_long(AT_RANDOM, canary);
-      kprintf("* Stack protector value (random): %#lx\n", canary);
-    }
-    else {
-      aux[i++].set_long(AT_RANDOM, STACK_PROTECTOR_VALUE);
-      kprintf("* Stack protector value (fixed): %#lx\n", STACK_PROTECTOR_VALUE);
-    }
-
-    const size_t canary_slot = i-1;
-    aux[i++].set_ptr(AT_RANDOM, 0);
-    const size_t entropy_slot = i-1;
+    // outside random source
+    const auto ssp_init_value = (uintptr_t) &_SSP_INIT_;
+    // supplemental randomness
+    const long randomness = __arch_rand32() | ((uint64_t) __arch_rand32() << 32);
+    const long canary = ssp_init_value ^ randomness;
+    const long canary_idx = i;
+    aux[i++].set_long(AT_RANDOM, canary);
+    kprintf("* Stack protector value: %p -> %#lx\n", (void*) ssp_init_value, canary);
+    // entropy slot
+    aux[i++].set_ptr(AT_RANDOM, &aux[canary_idx].a_un.a_val);
     aux[i++].set_long(AT_NULL, 0);
 
-    std::array<char*, 6 + 38> argv;
-
-    // Parameters to main
-    argv[0] = (char*) Service::name();
-    argv[1] = 0x0;
-    int argc = 1;
-
-    // Env vars
-    argv[2] = strdup("LC_CTYPE=C");
-    argv[3] = strdup("LC_ALL=C");
-    argv[4] = strdup("USER=root");
-    argv[5] = 0x0;
-
-    memcpy(&argv[6], aux.data(), sizeof(aux));
-
-    auxv_t* auxp = (auxv_t*) &argv[6];
-    void* canary_addr = &auxp[canary_slot].a_un.a_val;
-    auxp[entropy_slot].set_ptr(AT_RANDOM, canary_addr);
-
+    // SYSCALL instruction
   #if defined(__x86_64__)
     PRATTLE("* Initialize syscall MSR (64-bit)\n");
     uint64_t star_kernel_cs = 8ull << 32;
