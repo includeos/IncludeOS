@@ -314,7 +314,7 @@ if(NOT CONAN_EXPORTED)
     "execute_process(COMMAND conan install diskimagebuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
   )
   install(CODE
-    "execute_process(COMMAND conan install nacl/v0.2.0@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
+    "execute_process(COMMAND conan install nacl/v0.2.1@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
   )
   if (${ARCH} STREQUAL "x86_64")
     install(CODE

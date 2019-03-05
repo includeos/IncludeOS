@@ -3,14 +3,14 @@ from conans import ConanFile,tools
 
 class NaClConan(ConanFile):
     name = 'nacl'
-    version="v0.2.0"
+    version="v0.2.1"
     license = 'Apache-2.0'
     description='NaCl is a configuration language for IncludeOS that you can use to add for example interfaces and firewall rules to your service.'
-    url='https://github.com/includeos/NaCl'
+    url='https://github.com/AndreasAakesson/NaCl.git'
 
     def source(self):
         repo = tools.Git()
-        repo.clone("https://github.com/includeos/NaCl.git",branch=self.version)
+        repo.clone("https://github.com/AndreasAakesson/NaCl.git",branch="HAL")
     def build(self):
         #you need antlr4 installed to do this
         self.run("antlr4 -Dlanguage=Python2 NaCl.g4 -visitor")
@@ -26,6 +26,6 @@ class NaClConan(ConanFile):
 
     def package_id(self):
         self.info.header_only()
-        
+
     def deploy(self):
         self.copy("*",dst="NaCl",src="NaCl")
