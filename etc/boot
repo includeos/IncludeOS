@@ -21,7 +21,7 @@ else:
     INCLUDEOS_PREFIX = os.environ['INCLUDEOS_PREFIX']
 
 if not os.path.isdir(INCLUDEOS_PREFIX):
-    print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
+    print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_prefix + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
     sys.exit(0)
 
 # Location of vmrunner
