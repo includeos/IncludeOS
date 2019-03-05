@@ -16,7 +16,7 @@ class VmbuildConan(ConanFile):
 
     def source(self):
         repo = tools.Git(folder="includeos")
-        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
+        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="dev")
         shutil.copy("elf.h", "includeos/vmbuild")
 
     def _configure_cmake(self):
