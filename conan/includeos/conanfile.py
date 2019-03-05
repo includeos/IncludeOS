@@ -27,6 +27,7 @@ class IncludeOSConan(ConanFile):
     def requirements(self):
         self.requires("libcxx/[>=5.0]@includeos/test")## do we need this or just headers
         self.requires("GSL/2.0.0@includeos/test")
+        self.requires("libgcc/1.0@includeos/test")
 
         if self.options.basic == 'OFF':
             self.requires("rapidjson/1.1.0@includeos/test")
@@ -38,7 +39,6 @@ class IncludeOSConan(ConanFile):
             self.requires("s2n/1.1.1@includeos/test")
 
         #if (self.options.apple):
-            self.requires("libgcc/1.0@includeos/test")
         if (self.options.solo5):
             self.requires("solo5/0.4.1@includeos/test")
     def configure(self):

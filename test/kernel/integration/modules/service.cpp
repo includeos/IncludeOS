@@ -17,8 +17,6 @@
 
 #include <os>
 #include <cstdint>
-#include <util/elf_binary.hpp>
-#include <util/sha1.hpp>
 
 bool verb = true;
 
@@ -36,20 +34,7 @@ void Service::start(const std::string& args)
           mod.mod_start, mod.mod_end, mod.mod_end - mod.mod_start);
   }
 
-  CHECKSERT(mods.size() == 2, "Found %zu modules", mods.size());
-
-  // Verify module cmdlines
-  CHECKSERT(std::string((char*) mods[0].params) == "../mod1.json", "First is mod1.json");
-  CHECKSERT(std::string((char*) mods[1].params) == "../mod3.json", "Second is mod3.json");
-
-  // verify content of text modules
-  CHECKSERT(std::string((char*) mods[0].mod_start)
-          == "{\"module1\" : \"JSON data\" }\n",
-          "First JSON has correct content");
-
-  CHECKSERT(std::string((char*) mods[1].mod_start)
-          == "{\"module3\" : \"More JSON data, for mod2 service\" }\n",
-          "Second JSON has correct content");
+  CHECKSERT(mods.size() == 1, "Found %zu modules", mods.size());
 
   printf("SUCCESS\n");
 }

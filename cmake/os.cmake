@@ -218,12 +218,13 @@ else()
       libplatform
       libarch
       musl_syscalls
-      libc
+      ${LIBR_CMAKE_NAMES}
+      libos
       libcxx
       libunwind
       libpthread
+      libc
       libgcc
-      ${LIBR_CMAKE_NAMES}
     )
 
   else()
@@ -238,12 +239,12 @@ else()
       libbotan
       ${OPENSSL_LIBS}
       musl_syscalls
+      libcxx_experimental
       libcxx
       libunwind
       libpthread
       libc
       libgcc
-      libcxx_experimental
     )
   endif()
   if ("${PLATFORM}" STREQUAL "x86_solo5")

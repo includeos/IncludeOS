@@ -16,6 +16,11 @@ void __arch_poweroff()
   __builtin_unreachable();
 }
 
+uint32_t __arch_rand32()
+{
+  return 4;
+}
+
 static void platform_init()
 {
   // setup CPU exception handlers
