@@ -5,22 +5,25 @@ from conans import ConanFile,tools,CMake
 def get_version():
     git = tools.Git()
     try:
-        branch = git.get_branch()
-        prev_tag = git.run("describe --abbrev=0")
-        commits_behind = git.run("rev-list --count %s..HEAD" % (prev_tag))
+        prev_tag = git.run("describe --tags --abbrev=0")
+        commits_behind = int(git.run("rev-list --count %s..HEAD" % (prev_tag)))
         checksum = git.run("rev-parse --short HEAD")
         if prev_tag.startswith("v"):
             prev_tag = prev_tag[1:]
-        prev_tag_split = prev_tag.split(".")
-        prev_tag_split[-1] = str(int(prev_tag_split[-1]) + 1)
-        print(prev_tag_split)
-        return "%s-%s.%s+%s" % (".".join(prev_tag_split), branch, commits_behind, checksum)
+        if commits_behind > 0:
+            prev_tag_split = prev_tag.split(".")
+            prev_tag_split[-1] = str(int(prev_tag_split[-1]) + 1)
+            output = "%s-%d+g%s" % (".".join(prev_tag_split), commits_behind, checksum)
+        else:
+            output = "%s" % (prev_tag)
+        return output
     except:
         return None
 
 class IncludeOSConan(ConanFile):
     settings= "os","arch","build_type","compiler"
     name = "includeos"
+    version = get_version()
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
@@ -31,7 +34,6 @@ class IncludeOSConan(ConanFile):
         "subfolder": ".",
         "revision": "auto"
     }
-    version = get_version()
 
     options = {
         "apple":['',True],
