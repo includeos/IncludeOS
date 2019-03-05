@@ -127,10 +127,15 @@ pipeline {
       }
       stages {
         stage('Build Conan package') {
-          echo "Building"
+          build_conan_package("$PROFILE_x86", "ON")
+          build_conan_package("$PROFILE_x86_64")
         }
         stage('Upload to bintray') {
-          echo "Uploading to bintray"
+          version = sh (
+            script: 'conan inspect -a version . | cut -d " " -f 2',
+            returnStdout: true
+          ).trim()
+          sh "conan upload includeos/${version}@$USER/$CHAN"
         }
 
       }
@@ -150,6 +155,6 @@ def build_editable(String location, String name) {
   """
 }
 
-def build_conan_package(String package_name, version, profile, basic="OFF") {
-  sh "conan create . ${package_name}/${version}@$USER/$CHAN -pr ${profile} -o basic=${basic}"
+def build_conan_package(String profile, basic="OFF") {
+  sh "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}"
 }
