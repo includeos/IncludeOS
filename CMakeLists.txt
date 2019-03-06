@@ -220,7 +220,7 @@ else() # in user space
   #include(conan.cmake)
   # Make sure to use conanfile.py to define dependencies, to stay consistent
   conan_cmake_run(
-    CONANFILE conan/includeos/conanfile.py
+    CONANFILE conanfile.py
     PROFILE ${CONAN_PROFILE}
     OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
