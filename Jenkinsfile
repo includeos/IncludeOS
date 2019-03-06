@@ -140,7 +140,7 @@ pipeline {
                 script: 'conan inspect -a version . | cut -d " " -f 2',
                 returnStdout: true
               ).trim()
-              sh "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN"
+              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload to bintray"
             }
           }
         }
@@ -162,5 +162,5 @@ def build_editable(String location, String name) {
 }
 
 def build_conan_package(String profile, basic="OFF") {
-  sh "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}"
+  sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
 }
