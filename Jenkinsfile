@@ -11,6 +11,7 @@ pipeline {
     USER = 'includeos'
     CHAN = 'test'
     MOD_VER= '0.13.0'
+    REMOTE = 'includeos-test'
   }
 
   stages {
@@ -127,17 +128,22 @@ pipeline {
       }
       stages {
         stage('Build Conan package') {
-          build_conan_package("$PROFILE_x86", "ON")
-          build_conan_package("$PROFILE_x86_64")
+          steps {
+            build_conan_package("$PROFILE_x86", "ON")
+            build_conan_package("$PROFILE_x86_64")
+          }
         }
         stage('Upload to bintray') {
-          version = sh (
-            script: 'conan inspect -a version . | cut -d " " -f 2',
-            returnStdout: true
-          ).trim()
-          sh "conan upload includeos/${version}@$USER/$CHAN"
+          steps {
+            script {
+              def version = sh (
+                script: 'conan inspect -a version . | cut -d " " -f 2',
+                returnStdout: true
+              ).trim()
+              sh "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN"
+            }
+          }
         }
-
       }
     }
   }
