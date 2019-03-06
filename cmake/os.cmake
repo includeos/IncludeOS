@@ -3,23 +3,8 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-# configure options
-option(default_stdout "Use the OS default stdout (serial)" ON)
-
-option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
-option(minimal "Build for minimal size" OFF)
-option(stripped "Strip symbols to further reduce size" OFF)
-
-option(smp "Enable SMP (multiprocessing)" OFF)
-option(undefined_san "Enable undefined-behavior sanitizer" OFF)
-option(thin_lto "Enable Thin LTO plugin" OFF)
-option(full_lto "Enable full LTO (also works on LD)" OFF)
-option(coroutines "Compile with coroutines TS support" OFF)
-
-
-
-set(CPP_VERSION c++17)
 set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (${CMAKE_VERSION} VERSION_LESS "3.12")
   find_program(Python2 python2.7)
@@ -76,7 +61,20 @@ if (CONAN_EXPORTED OR CONAN_LIBS)
 
   set(TRIPLE "${ARCH}-pc-linux-elf")
   set(LIBRARIES ${CONAN_LIBS})
-  set(ELF_SYMS elf_syms)
+  set(CONAN_LIBS "")
+
+  #set(ELF_SYMS elf_syms)
+
+  find_program(ELF_SYMS elf_syms)
+  if (ELF_SYMS-NOTFOUND)
+    message(FATAL_ERROR "elf_syms not found")
+  endif()
+
+  find_program(DISKBUILDER diskbuilder)
+  if (DISKBUILDER-NOTFOUND)
+    message(FATAL_ERROR "diskbuilder not found")
+  endif()
+
   set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
   #includeos package can provide this!
   include_directories(
@@ -228,16 +226,11 @@ else()
   endif()
 
   set(ELF_SYMS ${INCLUDEOS_PREFIX}/bin/elf_syms)
+  set(DISKBUILDER ${INCLUDEOS_PREFIX}/bin/diskbuilder)
   set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
 endif()
 
-#TODO get the TARGET executable from diskimagebuild
-if (CONAN_TARGETS)
-  #find_package(diskimagebuild)
-  set(DISKBUILDER diskbuilder)
-else()
-  set(DISKBUILDER ${INCLUDEOS_PREFIX}/bin/diskbuilder)
-endif()
+
 # arch and platform defines
 #message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
