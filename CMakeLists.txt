@@ -270,8 +270,6 @@ endif(tests)
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 # Install cmake files
-install(FILES cmake/pre.service.cmake DESTINATION cmake)
-install(FILES cmake/post.service.cmake DESTINATION cmake)
 install(FILES cmake/linux.service.cmake DESTINATION cmake)
 install(FILES cmake/library.cmake DESTINATION cmake)
 install(FILES cmake/os.cmake DESTINATION cmake)
