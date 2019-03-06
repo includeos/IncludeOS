@@ -21,7 +21,7 @@ class MuslConan(ConanFile):
 
     def source(self):
         git = tools.Git(folder="musl")
-        git.clone("https://github.com/fwsGonzo/musl.git",branch="set_thread")
+        git.clone("https://github.com/includeos/musl.git",branch="master")
 
         # Replace syscall API's
         os.unlink("musl/arch/x86_64/syscall_arch.h")
