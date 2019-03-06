@@ -294,9 +294,6 @@ int TCP_FD_Conn::close()
 {
   conn->close();
   // wait for connection to close completely
-  while (!conn->is_closed()) {
-    OS::block();
-  }
   return 0;
 }
 int TCP_FD_Conn::shutdown(int mode)
