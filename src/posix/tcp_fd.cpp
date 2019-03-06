@@ -293,10 +293,6 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
 int TCP_FD_Conn::close()
 {
   conn->close();
-  // wait for connection to close completely
-  while (!conn->is_closed()) {
-    os::block();
-  }
   return 0;
 }
 int TCP_FD_Conn::shutdown(int mode)

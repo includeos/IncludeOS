@@ -8,7 +8,7 @@ class ChainloaderConan(ConanFile):
     name = "chainloader"
     license = 'Apache-2.0'
     description = 'IncludeOS 32->64 bit chainloader for x86'
-    generators = 'cmake'
+    generators = ['cmake','virtualenv']
     url = "http://www.includeos.org/"
 
     default_options={
@@ -21,22 +21,21 @@ class ChainloaderConan(ConanFile):
     default_channel="test"
 
     def configure(self):
-        if (self.settings.arch != "x86"):
-            raise Exception(
-            "Chainloader is only for x86 target architecture "
-            "not: {}".format(self.settings.arch))
         del self.settings.compiler.libcxx
-        #self.
-    
+        del self.settings.compiler.version
+        del self.settings.compiler
+        del self.settings.arch
+        del self.settings.os
+
     def build_requirements(self):
-        self.build_requires("includeos/{}@{}/{}".format(self.version,self.user,self.channel))
+        self.build_requires("includeos/0.13.0@{}/{}".format(self.user,self.channel))
         self.build_requires("libgcc/1.0@includeos/test")
-        self.build_requires("vmbuild/{}@{}/{}".format(self.version,self.user,self.channel))
-    
+        self.build_requires("vmbuild/0.13.0@{}/{}".format(self.user,self.channel))
+
     def source(self):
         #shutil.copytree("/home/kristian/git/IncludeOS","includeos")
         repo = tools.Git(folder="includeos")
-        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
+        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="dev")
 
     def _configure_cmake(self):
         cmake = CMake(self)
@@ -49,9 +48,10 @@ class ChainloaderConan(ConanFile):
         cmake.build()
 
 
-    def package_info(self):
-        if self.settings.arch in ["x86","x86_64"]:
-            self.settings.arch="x86_64"
+    #def package_info(self):
+    #    if self.settings.arch in ["x86","x86_64"]:
+    #        self.settings.arch="x86_64"
+    
     def package(self):
         cmake=self._configure_cmake()
         cmake.install()

@@ -11,6 +11,7 @@ pipeline {
     USER = 'includeos'
     CHAN = 'test'
     MOD_VER= '0.13.0'
+    REMOTE = 'includeos-test'
   }
 
   stages {
@@ -20,95 +21,129 @@ pipeline {
         sh 'cp conan/profiles/* ~/.conan/profiles/'
       }
     }
-    stage('Unit tests') {
-      steps {
-        sh script: "mkdir -p unittests", label: "Setup"
-        sh script: "cd unittests; env CC=gcc CXX=g++ cmake ../test", label: "Cmake"
-        sh script: "cd unittests; make -j $CPUS", label: "Make"
-        sh script: "cd unittests; ctest", label: "Ctest"
-      }
-    }
-    stage('liveupdate x86_64') {
-      steps {
-      	build_editable('lib/LiveUpdate','liveupdate')
-      }
-    }
-    stage('mana x86_64') {
-      steps {
-      	build_editable('lib/mana','mana')
-      }
-    }
-    stage('mender x86_64') {
-      steps {
-      	build_editable('lib/mender','mender')
-      }
-    }
-    stage('uplink x86_64') {
-      steps {
-      	build_editable('lib/uplink','uplink')
-      }
-    }
-    stage('microLB x86_64') {
-      steps {
-      	build_editable('lib/microLB','microlb')
-      }
-    }
-    /* TODO
-    stage('build chainloader 32bit') {
-      steps {
-  	sh """
-          cd src/chainload
-    	  rm -rf build || :&& mkdir build
-    	  cd build
-    	  conan link .. chainloader/$MOD_VER@$USER/$CHAN --layout=../layout.txt
-     	  conan install .. -pr $PROFILE_x86 -u
-    	  cmake --build . --config Release
-  	"""
-      }
-    }
-    */
-    stage('Build & Integration tests') {
+
+    stage('Pull Request pipeline') {
+      when { changeRequest() }
       stages {
-        stage('Build 32 bit') {
+        stage('Unit tests') {
           steps {
-            sh script: "mkdir -p build_x86", label: "Setup"
-            sh script: "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano ..", label: "Cmake"
-            sh script: "cd build_x86; make -j $CPUS", label: "Make"
-            sh script: 'cd build_x86; make install', label: "Make install"
+            sh script: "mkdir -p unittests", label: "Setup"
+            sh script: "cd unittests; env CC=gcc CXX=g++ cmake ../test", label: "Cmake"
+            sh script: "cd unittests; make -j $CPUS", label: "Make"
+            sh script: "cd unittests; ctest", label: "Ctest"
           }
         }
-        stage('Build 64 bit') {
+        stage('liveupdate x86_64') {
           steps {
-            sh script: "mkdir -p build_x86_64", label: "Setup"
-            sh script: "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 ..", label: "Cmake"
-            sh script: "cd build_x86_64; make -j $CPUS", label: "Make"
-            sh script: "cd build_x86_64; make install", label: "Make install"
+          	build_editable('lib/LiveUpdate','liveupdate')
           }
         }
-        stage('Build examples') {
+        stage('mana x86_64') {
           steps {
-      	    sh script: "mkdir -p build_examples", label: "Setup"
-            sh script: "cd build_examples; cmake ../examples", label: "Cmake"
-            sh script: "cd build_examples; make -j $CPUS", label: "Make"
+          	build_editable('lib/mana','mana')
           }
-         }
-        stage('Integration tests') {
+        }
+        stage('mender x86_64') {
           steps {
-            sh script: "mkdir -p integration", label: "Setup"
-            sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
-            sh script: "cd integration; make -j $CPUS", label: "Make"
-            sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
-            sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
+          	build_editable('lib/mender','mender')
+          }
+        }
+        stage('uplink x86_64') {
+          steps {
+          	build_editable('lib/uplink','uplink')
+          }
+        }
+        stage('microLB x86_64') {
+          steps {
+          	build_editable('lib/microLB','microlb')
+          }
+        }
+        /* TODO
+        stage('build chainloader 32bit') {
+          steps {
+        sh """
+              cd src/chainload
+            rm -rf build || :&& mkdir build
+            cd build
+            conan link .. chainloader/$MOD_VER@$USER/$CHAN --layout=../layout.txt
+            conan install .. -pr $PROFILE_x86 -u
+            cmake --build . --config Release
+        """
+          }
+        }
+        */
+        stage('Build & Integration tests') {
+          stages {
+            stage('Build 32 bit') {
+              steps {
+                sh script: "mkdir -p build_x86", label: "Setup"
+                sh script: "cd build_x86; cmake -DCONAN_PROFILE=$PROFILE_x86 -DARCH=i686 -DPLATFORM=x86_nano ..", label: "Cmake"
+                sh script: "cd build_x86; make -j $CPUS", label: "Make"
+                sh script: 'cd build_x86; make install', label: "Make install"
+              }
+            }
+            stage('Build 64 bit') {
+              steps {
+                sh script: "mkdir -p build_x86_64", label: "Setup"
+                sh script: "cd build_x86_64; cmake -DCONAN_PROFILE=$PROFILE_x86_64 ..", label: "Cmake"
+                sh script: "cd build_x86_64; make -j $CPUS", label: "Make"
+                sh script: "cd build_x86_64; make install", label: "Make install"
+              }
+            }
+            stage('Build examples') {
+              steps {
+          	    sh script: "mkdir -p build_examples", label: "Setup"
+                sh script: "cd build_examples; cmake ../examples", label: "Cmake"
+                sh script: "cd build_examples; make -j $CPUS", label: "Make"
+              }
+             }
+            stage('Integration tests') {
+              steps {
+                sh script: "mkdir -p integration", label: "Setup"
+                sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
+                sh script: "cd integration; make -j $CPUS", label: "Make"
+                sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
+                sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
+              }
+            }
+          }
+        }
+        stage('Code coverage') {
+          steps {
+            sh script: "mkdir -p coverage", label: "Setup"
+            sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test", label: "Cmake"
+            sh script: "cd coverage; make -j $CPUS", label: "Make"
+            sh script: "cd coverage; make coverage", label: "Make coverage"
           }
         }
       }
     }
-    stage('Code coverage') {
-      steps {
-        sh script: "mkdir -p coverage", label: "Setup"
-        sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test", label: "Cmake"
-        sh script: "cd coverage; make -j $CPUS", label: "Make"
-        sh script: "cd coverage; make coverage", label: "Make coverage"
+
+    stage('Dev branch pipeline') {
+      when {
+        anyOf {
+          branch 'master'
+          branch 'dev'
+        }
+      }
+      stages {
+        stage('Build Conan package') {
+          steps {
+            build_conan_package("$PROFILE_x86", "ON")
+            build_conan_package("$PROFILE_x86_64")
+          }
+        }
+        stage('Upload to bintray') {
+          steps {
+            script {
+              def version = sh (
+                script: 'conan inspect -a version . | cut -d " " -f 2',
+                returnStdout: true
+              ).trim()
+              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload to bintray"
+            }
+          }
+        }
       }
     }
   }
@@ -124,4 +159,8 @@ def build_editable(String location, String name) {
     cmake -DARCH=x86_64 ..
     cmake --build . --config Release
   """
+}
+
+def build_conan_package(String profile, basic="OFF") {
+  sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
 }
