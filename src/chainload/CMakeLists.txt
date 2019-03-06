@@ -1,19 +1,14 @@
 cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED INCLUDEOS_PREFIX)
-  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-    set(INCLUDEOS_PREFIX /usr/local/includeos)
-  else()
-    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
-  endif()
-endif()
 
-if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
-  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
-endif()
-list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
+project(chainloader C CXX)
 
-project(chainloader)
+include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
+endif()
+conan_basic_setup()
+
 
 #TODO cleanup ARCH in os.cmake and just add set platform?
 set(ARCH i686)

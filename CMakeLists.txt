@@ -218,7 +218,7 @@ else() # in user space
   #include(conan.cmake)
   # Make sure to use conanfile.py to define dependencies, to stay consistent
   conan_cmake_run(
-    CONANFILE conan/includeos/conanfile.py
+    CONANFILE conanfile.py
     PROFILE ${CONAN_PROFILE}
     OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
@@ -309,7 +309,7 @@ install(PROGRAMS
 #this replicates the install of libraries from bundles using conan
 if(NOT CONAN_EXPORTED)
   install(CODE
-    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conan/includeos/conanfile.py)"
+    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py)"
   )
   #install tools TODO THIS IS A [BUILD_REQUIRES] dependency for the service so should probably go there but for now its here so that things are in the right place
   install(CODE
