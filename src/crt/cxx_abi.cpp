@@ -21,6 +21,7 @@
 #include <kernel/syscalls.hpp>
 #include <kernel/elf.hpp>
 #include <kprint>
+#include <cmath>
 
 /**
  * This header is for instantiating and implementing
@@ -30,6 +31,17 @@
 
 extern "C"
 {
+  
+  int __isnan(double val)
+  {
+    return std::isnan(val);
+  }
+
+  int __isnanf(float val)
+  {
+      return std::isnan(val);
+  }
+
   /// Linux standard base (locale)
   size_t __mbrlen (const char*, size_t, mbstate_t*)
   {
