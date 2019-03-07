@@ -16,12 +16,6 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 **Note:** *IncludeOS is under active development. The public API should not be considered stable.*
 
-## Build status
-
-| Master branch | Dev branch |
-|-------------------|-------------------|
-| [![Build Status](https://img.shields.io/jenkins/s/https/jenkins.includeos.org/shield_master_bundle.svg)](https://jenkins.includeos.org/job/shield_master_bundle/) | [![Build Status](https://img.shields.io/jenkins/s/https/jenkins.includeos.org/shield_dev_bundle.svg)](https://jenkins.includeos.org/job/shield_dev_bundle/)      |
-
 ### Key features
 
 * **Extreme memory footprint**: A minimal bootable 64-bit web server, including operating system components and a anything needed from the C/C++ standard libraries is currently 2.5 MB.
@@ -55,29 +49,108 @@ To do this we can edit `~/.bash_profile` (mac os) or `~/.bashrc` (linux), adding
 
 This will also crucially make the boot program visible globally, so that you can simply run ```boot <myservice>``` inside any service folder.
 
-### Install libraries
+### Getting started with IncludeOS development
 
-If you want to install IncludeOS on Mac OS you'll need a working installation of [brew] so the install script can install its dependencies.
+The [IncludeOS](https://www.includeos.org/) conan recipes are developed with [Conan version 1.8.4] (https://github.com/conan-io/conan/releases/tag/1.8.4) or newer.
 
-**NOTE:** The script will install packages.
+If you want to install IncludeOS on your Linux/Mac OS you will need the latest version of conan (Conan version 1.12.3). For Mac OS ensure that you have a working installation of [brew](https://brew.sh/) to be able to install all dependencies.
 
+
+##### Cloning the IncludeOS repository:
 ```
     $ git clone https://github.com/hioa-cs/IncludeOS
     $ cd IncludeOS
-    $ ./install.sh
 ```
 
-**The script will:**
+##### Dependencies
 
-* Install the required dependencies: `curl make clang-3.8 nasm bridge-utils qemu`.
-* Create a network bridge called `bridge43`, for tap-networking.
-* Build IncludeOS with CMake:
-  * Download the latest binary release bundle from github together with the required git submodules.
-  * Unzip the bundle to the current build directory.
-  * Build several tools used with IncludeOS, including vmbuilder, which turns your service into a bootable image.
-  * Install everything in `$INCLUDEOS_PREFIX/includeos` (defaults to `/usr/local`).
+```
+    $ apt install python3-pip conan
+    $ apt install cmake gcc-7 g++-multilib clang-6.0 libssl-dev lcov
+```
 
-Configuration of your IncludeOS installation can be done inside `build/` with `ccmake ..`.
+### Building IncludeOS with dependencies from conan
+
+Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html) to build packages. By default IncludeOS will build with `clang 6.0` if `CONAN_PROFILE` is not defined. Passing `-DCONAN_DISABLE_CHECK_COMPILER` during build disables this check.
+
+##### Profiles
+Profiles can be found in conan/profiles folder in the IncludeOS repository. The profile has to be placed in your `CONAN_USER_HOME` directory for the profiles to work. By default will be your `~/.conan/profiles` unless you have changed your `CONAN_USER_HOME`. Another way to install profiles is by using [conan config install](https://docs.conan.io/en/latest/reference/commands/consumer/config.html#conan-config-install)
+
+Below is a sample profile for building on x86_64 with clang-6.0,
+
+```
+    [build_requires]
+    binutils/2.31@includeos/toolchain
+    [settings]
+    os=Linux
+    os_build=Linux
+    arch=x86_64
+    arch_build=x86_64
+    compiler=clang
+    compiler.version=6.0
+    compiler.libcxx=libc++
+    cppstd=17
+    build_type=Release
+    [options]
+    [env]
+    CC=clang-6.0
+    CXX=clang++-6.0
+    CFLAGS=-msse3 -mfpmath=sse
+    CXXFLAGS=-msse3 -mfpmath=sse
+```
+
+The target profiles we have verified are the following:
+
+- [clang-6.0-linux-x86](profiles/clang-6.0-linux-x86)
+- [clang-6.0-linux-x86_64](profiles/clang-6.0-linux-x86_64)
+- [gcc-7.3.0-linux-x86_64](profiles/gcc-7.3.0-linux-x86_64)
+- [clang-6.0-macos-x86_64](profiles/clang-6.0-macos-x86_64)
+
+
+To ensure the profile has been installed do:
+
+```
+    $ conan profile list
+```
+
+Verify the content of oyur profile by:
+```
+    $ conan profile show <yourprofilename>
+```
+
+If your profile is on the list and contents are verified, you are set to use the profile for building.
+
+##### IncludeOS Artifactory Repo
+The artifactory repository is where all the packages used to build IncludeOS are uploaded. Adding the repo to your conan remotes will give you access to all our packages developed for IncludeOS.
+
+To add the IncludeOS-Develop conan Artifactory repository to your conan remotes:
+
+```
+conan remote add includeos-test https://api.bintray.com/conan/includeos/test-packages
+```
+
+##### Install IncludeOS
+
+Finally to install IncludeOS with profile named `clang-6.0-linux-x86_64` do:
+
+```
+    $ cmake -DCONAN_PROFILE=clang-6.0-linux-x86_64 <path to includeos repo>
+    $ make
+    $ make install
+```
+
+###### Searching Packages
+if you want to check if a package exists you can search for it:
+
+```
+    conan search help
+```
+
+### Getting started developing packages
+
+#### Building Dependencies
+
+Currently building works for clang-6 and gcc-7.3.0 compiler toolchain. It is expected that these are already installed in your system. However we hope to provide toolchains in the future.
 
 ### Testing the installation
 
