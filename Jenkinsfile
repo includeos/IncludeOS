@@ -12,6 +12,7 @@ pipeline {
     CHAN = 'test'
     MOD_VER= '0.13.0'
     REMOTE = 'includeos-test'
+    COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
   }
 
   stages {
@@ -110,8 +111,8 @@ pipeline {
         }
         stage('Code coverage') {
           steps {
-            sh script: "mkdir -p coverage", label: "Setup"
-            sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON ../test", label: "Cmake"
+            sh script: "mkdir -p coverage; rm -r $COVERAGE_DIR || :", label: "Setup"
+            sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR ../test", label: "Cmake"
             sh script: "cd coverage; make -j $CPUS", label: "Make"
             sh script: "cd coverage; make coverage", label: "Make coverage"
           }
