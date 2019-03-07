@@ -1,4 +1,5 @@
 from conans import ConanFile,tools
+import os
 
 class Solo5Conan(ConanFile):
     settings= "compiler","arch","build_type","os"
@@ -22,6 +23,9 @@ class Solo5Conan(ConanFile):
         self.copy("*.o", dst="lib", src=self.name + "/bindings/hvt/")
         self.copy("solo5-hvt", dst="bin", src= self.name + "/tenders/hvt")
         self.copy("solo5-hvt-configure", dst="bin", src= self.name + "/tenders/hvt")
+
+    def package_info(self):
+        self.env_info.path.append(os.path.join(self.package_folder, "bin"))
 
     def deploy(self):
         self.copy("*", dst="lib",src="lib")

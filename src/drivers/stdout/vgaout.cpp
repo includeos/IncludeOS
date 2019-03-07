@@ -21,5 +21,5 @@
 __attribute__((constructor))
 static void add_vga_output()
 {
-  OS::add_stdout(TextmodeVGA::get().get_print_handler());
+  os::add_stdout(TextmodeVGA::get().get_print_handler());
 }

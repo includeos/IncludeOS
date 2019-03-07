@@ -21,7 +21,6 @@
 #include <fs/disk.hpp>
 #include <fs/filesystem.hpp>
 #include <fs/path.hpp>
-#include <hw/devices.hpp>
 #include <algorithm>
 #include <map>
 #include <memory>

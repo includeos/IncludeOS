@@ -18,9 +18,10 @@
 #include <string>
 #include <cstdio>
 #include <stdexcept>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <kernel/elf.hpp>
 #include <kprint>
+#include <cmath>
 
 /**
  * This header is for instantiating and implementing
@@ -30,6 +31,17 @@
 
 extern "C"
 {
+  
+  int __isnan(double val)
+  {
+    return std::isnan(val);
+  }
+
+  int __isnanf(float val)
+  {
+      return std::isnan(val);
+  }
+
   /// Linux standard base (locale)
   size_t __mbrlen (const char*, size_t, mbstate_t*)
   {
@@ -93,7 +105,7 @@ extern "C"
   }
   void undefined_throw(const char* error) {
     kprintf("ubsan: %s", error);
-    print_backtrace();
+    os::print_backtrace();
     kprintf("\n");
   }
 
@@ -212,6 +224,6 @@ extern "C"
   void __ubsan_handle_builtin_unreachable(struct unreachable* data)
   {
     print_src_location(data->src);
-    panic("Unreachable code reached");
+    os::panic("Unreachable code reached");
   }
 }

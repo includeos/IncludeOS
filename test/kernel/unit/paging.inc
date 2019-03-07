@@ -27,7 +27,7 @@ public:
       __pml4->~Pml4();
       free(__pml4);
       __pml4 = nullptr;
-      OS::memory_map().clear();
+      os::mem::vmmap().clear();
     }
   }
 };

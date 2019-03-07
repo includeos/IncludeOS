@@ -16,10 +16,11 @@
 // limitations under the License.
 
 #include <common>
+#include <cstdint>
+
 #include <util/crc32.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/syscalls.hpp>
-#include <cstdint>
+
 #include <kprint>
 
 // Global constructors
@@ -40,11 +41,11 @@ void kernel_sanity_checks()
   // verify that Elf symbols were not overwritten
   bool symbols_verified = Elf::verify_symbols();
   if (!symbols_verified)
-    panic("Sanity checks: Consistency of Elf symbols and string areas");
+    os::panic("Sanity checks: Consistency of Elf symbols and string areas");
 
   // global constructor self-test
   if (gconstr_value != 1) {
     kprintf("Sanity checks: Global constructors not working (or modified during run-time)!\n");
-    panic("Sanity checks: Global constructors verification failed");
+    os::panic("Sanity checks: Global constructors verification failed");
   }
 }

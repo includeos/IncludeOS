@@ -20,7 +20,6 @@
 #include <common>
 #include <hw/pci.hpp>
 #include <hw/pci_device.hpp>
-#include <kernel/syscalls.hpp>
 #include <hw/msi.hpp>
 
 /* PCI Register Config Space */

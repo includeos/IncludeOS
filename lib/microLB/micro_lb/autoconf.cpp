@@ -75,7 +75,9 @@ namespace microLB
       balancer->nodes.add_node(socket, Balancer::connect_with_tcp(netout, socket));
     }
 
+#if defined(LIVEUPDATE)
     balancer->init_liveupdate();
+#endif
     return balancer;
   }
 }

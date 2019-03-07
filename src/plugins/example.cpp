@@ -36,7 +36,7 @@ void example_plugin(){
 // Run as global constructor
 __attribute__((constructor))
 void register_example_plugin(){
-  OS::register_plugin(example_plugin, "Example plugin");
+  os::register_plugin(example_plugin, "Example plugin");
   example_plugin_registered = true;
   // Note: printf might rely on global ctor and may not be ready at this point.
   INFO("Example", "plugin registered");

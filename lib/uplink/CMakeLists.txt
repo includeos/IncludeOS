@@ -22,11 +22,11 @@ if(CONAN_EXPORTED) # in conan local cache
 else()
   include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
   conan_basic_setup()
-  
+
   set(LIVEUPDATE True)
   #TODO depend on includeos and remove this
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
-  #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../src/include)
   #include_directories(${INCLUDEOS_ROOT}/api/posix)
   #include_directories(${INCLUDEOS_ROOT}/src/include)
   #include_directories(${INCLUDEOS_ROOT}/api)

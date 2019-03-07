@@ -157,9 +157,11 @@ void Service::ready()
 
   blob = net::tcp::construct_buffer(SIZE, '!');
 
-#ifdef USERSPACE_LINUX
+#ifdef USERSPACE_KERNEL
   extern void create_network_device(int N, const char* ip);
   create_network_device(0, "10.0.0.1/24");
+  auto& lxp_inet = net::Interfaces::get(0);
+  lxp_inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 #endif
 
   // Get the first IP stack configured from config.json

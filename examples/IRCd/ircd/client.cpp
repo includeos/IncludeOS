@@ -101,7 +101,7 @@ void Client::disable()
   this->readq.clear();
 }
 
-#include <kernel/syscalls.hpp>
+#include <kernel/crash_context.hpp>
 void Client::split_message(const std::string& msg)
 {
   // in case splitter is bad

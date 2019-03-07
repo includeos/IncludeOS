@@ -20,9 +20,8 @@
 #define ___API_OS_INCLUDEOS___
 
 // The service and os classes
-#include "hw/devices.hpp"
-#include "kernel/os.hpp"
-#include "kernel/syscalls.hpp"
+#include "info"
+#include "os.hpp"
 #include "service"
 
 #endif //< ___API_OS_INCLUDEOS___

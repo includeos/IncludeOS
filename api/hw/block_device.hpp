@@ -24,13 +24,14 @@
 #include <memory>
 #include <pmr>
 #include <vector>
+#include "device.hpp"
 
 namespace hw {
 
 /**
  * This class is an abstract interface for block devices
  */
-class Block_device {
+class Block_device : public Device {
 public:
   using block_t       = uint64_t;
   using buffer_t      = os::mem::buf_ptr;
@@ -42,15 +43,15 @@ public:
    *
    * @return The type of device as a C-String
    */
-  static const char* device_type() noexcept
-  { return "Block device"; }
+  Device::Type device_type() const noexcept override
+  { return Device::Type::Block; }
 
   /**
    * Method to get the name of the device
    *
    * @return The name of the device as a std::string
    */
-  virtual std::string device_name() const = 0;
+  virtual std::string device_name() const override = 0;
 
   /**
    * Method to get the device's identifier
@@ -140,7 +141,7 @@ public:
   /**
    * Method to deactivate the block device
    */
-  virtual void deactivate() = 0;
+  virtual void deactivate() override = 0;
 
   virtual ~Block_device() noexcept = default;
 protected:

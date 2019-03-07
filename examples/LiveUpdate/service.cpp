@@ -57,15 +57,14 @@ void print_heap_info()
 {
   static intptr_t last = 0;
   // show information on heap status, to discover leaks etc.
-  auto heap_begin = OS::heap_begin();
-  auto heap_end   = OS::heap_end();
-  auto heap_usage = OS::heap_usage();
-  intptr_t heap_size = heap_end - heap_begin;
-  last = heap_size - last;
-  printf("Heap begin  %#lx  size %lu Kb\n",     heap_begin, heap_size / 1024);
-  printf("Heap end    %#lx  diff %lu (%ld Kb)\n", heap_end,  last, last / 1024);
-  printf("Heap usage  %lu kB\n", heap_usage / 1024);
-  last = (int32_t) heap_size;
+  //auto heap_begin = os::heap_begin();
+  //auto heap_end   = os::heap_end();
+  //intptr_t heap_size = heap_end - heap_begin;
+  //last = heap_size - last;
+  //printf("Heap begin  %#lx  size %lu Kb\n",     heap_begin, heap_size / 1024);
+  //printf("Heap end    %#lx  diff %lu (%ld Kb)\n", heap_end,  last, last / 1024);
+  printf("Heap usage  %lu kB\n", os::total_memuse() / 1024);
+  //last = (int32_t) heap_size;
 }
 
 #include <kernel/elf.hpp>
@@ -90,7 +89,7 @@ void print_stats(int)
   cps /= M.size();
 
   printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
-      now().c_str(), cps, OS::heap_usage() / 1024.0);
+      now().c_str(), cps, os::total_memuse() / 1024.0);
   // client and channel stats
   auto& inet = net::Interfaces::get(0);
 
