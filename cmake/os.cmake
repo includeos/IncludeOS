@@ -35,12 +35,9 @@ if (CONAN_EXPORTED OR CONAN_LIBS)
   if (CONAN_EXPORTED)
     include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
     conan_basic_setup()
-    #hack for editable package
-    set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
-  else()
-    #hack for editable package
-    set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT}/install)
   endif()
+  
+  set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
 
 
   #TODO use these
