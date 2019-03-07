@@ -19,7 +19,8 @@
 #include <common>
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/os.hpp>
+//#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/rtc.hpp>
 #include <unordered_map>
 #include <cassert>
@@ -176,7 +177,7 @@ std::string ScopedProfiler::get_statistics(bool sorted)
       ss.width(10);
       ss << timst << " ms | ";
 
-      double micros = entry.cycles_average / OS::cpu_freq().count();
+      double micros = entry.cycles_average / os::cpu_freq().count();
       ss.width(10);
       ss << micros / 1000.0 << " ms | ";
 

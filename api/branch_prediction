@@ -1,0 +1,10 @@
+// -*- C++ -*-
+// remove me when c++20
+#pragma once
+#ifndef INCLUDEOS_BRANCH_PRED_HEADER
+#define INCLUDEOS_BRANCH_PRED_HEADER
+
+#define LIKELY(x)       __builtin_expect(!!(x), 1)
+#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+
+#endif

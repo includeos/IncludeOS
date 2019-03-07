@@ -17,6 +17,7 @@
 
 #define OS_TERMINATE_ON_CONTRACT_VIOLATION
 #include <os>
+#include <hal/machine.hpp>
 
 #include <fs/disk.hpp>
 std::shared_ptr<fs::Disk> disk;
@@ -28,7 +29,7 @@ void list_partitions(decltype(disk));
 void Service::start(const std::string&)
 {
   // instantiate memdisk with FAT filesystem
-  auto& device = hw::Devices::drive(0);
+  auto& device = os::machine().get<hw::Block_device>(0);
   disk = std::make_shared<fs::Disk> (device);
   // assert that we have a disk
   CHECKSERT(disk, "Disk created");
@@ -44,7 +45,7 @@ void Service::start(const std::string&)
   {
     if (err) {
       printf("Could not mount filesystem\n");
-      panic("init_fs() failed");
+      os::panic("init_fs() failed");
     }
     CHECKSERT (not err, "Was able to mount filesystem");
 
@@ -53,7 +54,7 @@ void Service::start(const std::string&)
     [] (fs::error_t err, auto ents) {
       if (err) {
         printf("Could not list '/' directory\n");
-        panic("ls() failed");
+        os::panic("ls() failed");
       }
 
       // go through directory entries
@@ -72,7 +73,7 @@ void Service::start(const std::string&)
             {
               if (err) {
                 printf("Failed to read %s!\n", e_name.c_str());
-                panic("read() failed");
+                os::panic("read() failed");
               }
 
               std::string contents((const char*) buffer->data(), buffer->size());

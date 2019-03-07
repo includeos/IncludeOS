@@ -184,7 +184,6 @@ void test_tcp_conntrack()
 
 #include <net/vlan_manager.hpp>
 #include <net/router.hpp>
-#include <kernel/os.hpp>
 void test_vlan()
 {
 
@@ -206,8 +205,8 @@ void test_vlan()
     auto& nic = Interfaces::get(idx).nic();
     auto& manager = VLAN_manager::get(idx);
     ip4::Addr netmask{255,255,255,0};
-    // 10.0.10.1 - 10.0.109.1
-    for(uint8_t id = id_start; id < id_end; id++)
+    // 10.0.11.1 - 10.0.109.1 - first one (.10) created in NaCl
+    for(uint8_t id = id_start+1; id < id_end; id++)
     {
       ip4::Addr addr{10,0,id,1};
       auto& vif = manager.add(nic, id);
@@ -219,6 +218,10 @@ void test_vlan()
       inet.set_forward_delg(router.forward_delg());
       table.push_back({{10,0,id,0}, netmask, 0, inet});
     }
+    // manually setup forwarding for the poor NaCl created one
+    auto& inet = Interfaces::get(idx, id_start);
+    inet.set_forward_delg(router.forward_delg());
+    table.push_back({{10,0,id_start,0}, netmask, 0, inet});
   }
 
   // host1
@@ -226,9 +229,9 @@ void test_vlan()
     const int idx = 2;
     auto& nic = Interfaces::get(idx).nic();
     auto& manager = VLAN_manager::get(idx);
-    // 10.0.10.10 - 10.0.109.10
+    // 10.0.11.10 - 10.0.109.10 - first one (.10) created in NaCl
     ip4::Addr netmask{255,255,255,0};
-    for(uint8_t id = id_start; id < id_end; id++)
+    for(uint8_t id = id_start+1; id < id_end; id++)
     {
       ip4::Addr addr{10,0,id,10};
       auto& vif = manager.add(nic, id);

@@ -19,7 +19,7 @@
 #include <net/ip6/ip6.hpp>
 #include <net/inet>
 #include <kernel/terminal.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <cstdio>
 #include <deque>
 

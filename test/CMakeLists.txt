@@ -101,6 +101,7 @@ conan_cmake_run(
 include_directories(
   ${TEST}/lest_util
   ${CMAKE_CURRENT_SOURCE_DIR}/../api
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src/include
   #TODO move to the right place
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/LiveUpdate
   ${INCLUDEOS_ROOT}/lib/LiveUpdate
@@ -114,7 +115,6 @@ set(LEST_UTIL
 )
 
 set(TEST_SOURCES
-  ${TEST}/fs/unit/block_device_test.cpp
   ${TEST}/fs/unit/memdisk_test.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
@@ -122,7 +122,6 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/unit_fat.cpp
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
-  ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/hw/unit/usernet.cpp
   ${TEST}/hw/unit/virtio_queue.cpp
   ${TEST}/kernel/unit/arch.cpp
@@ -130,13 +129,14 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/cpuid.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
-  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/rng.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/kernel/unit/test_hal.cpp
   ${TEST}/kernel/unit/unit_events.cpp
-  ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/kernel/unit/unit_liveupdate.cpp
+  ${TEST}/kernel/unit/unit_timers.cpp
+  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
@@ -167,6 +167,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
+  ${TEST}/net/unit/router_test.cpp
   ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/stateful_addr_test.cpp
   ${TEST}/net/unit/tcp_benchmark.cpp
@@ -174,13 +175,13 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
-  ${TEST}/net/unit/router_test.cpp
   ${TEST}/net/unit/websocket.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/posix/unit/unit_fd.cpp
   ${TEST}/util/unit/base64.cpp
-  ${TEST}/util/unit/sha1.cpp
+  ${TEST}/util/unit/bitops.cpp
+  ${TEST}/util/unit/buddy_alloc_test.cpp
   ${TEST}/util/unit/config.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
@@ -194,17 +195,16 @@ set(TEST_SOURCES
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
   ${TEST}/util/unit/percent_encoding_test.cpp
+  ${TEST}/util/unit/pmr_alloc_test.cpp
   ${TEST}/util/unit/ringbuffer.cpp
+  ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
-  ${TEST}/util/unit/bitops.cpp
   ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
-  ${TEST}/util/unit/buddy_alloc_test.cpp
-  ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 
 # Disable (don't build) currently non-working tests on macOS
@@ -221,7 +221,6 @@ endif()
 if(EXTRA_TESTS)
   set(GENERATE_SUPPORT_FILES ON)
   message(STATUS "Adding some extra tests")
-  list(APPEND TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
   list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
 endif()
 
@@ -273,7 +272,7 @@ foreach(T ${TEST_SOURCES})
   #get the filename witout extension
   get_filename_component(NAME ${T} NAME_WE)
   add_executable(${NAME} ${T})
-  target_link_libraries(${NAME} liveupdate os lest_util  m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
+  target_link_libraries(${NAME} liveupdate os lest_util os m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
   add_test(${NAME} bin/${NAME})
   #add to list of tests for dependencies
   list(APPEND TEST_BINARIES ${NAME})
@@ -292,7 +291,6 @@ endif()
 
 if(TRAVIS)
   message(STATUS "Travis")
-  list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
 endif()
 
 if ("${ARCH}" STREQUAL "ARCH_ARMv7")
@@ -301,7 +299,6 @@ if ("${ARCH}" STREQUAL "ARCH_ARMv7")
   list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/serial.cpp)
   list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/cpuid.cpp)
   list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/irq_manager.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/rdrand.cpp)
   list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/terminal.cpp)
 endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 

@@ -9,7 +9,7 @@ using namespace liu;
 #ifdef BOOT_TESTING
 static std::vector<double> timestamps;
 static buffer_t bloberino;
-#include <kernel/os.hpp>
+#include <os.hpp>
 #endif
 
 bool IrcServer::init_liveupdate()

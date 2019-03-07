@@ -32,7 +32,7 @@ include(CMakeDependentOption)
 
 #if not apple and x86_64 enable with solo5.. this option results in a different arch in conan.. should be handled like that as well
 cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
-"NOT APPLE;${ARCH} STREQUAL \"x86_64\"" OFF)
+"NOT APPLE;${ARCH} STREQUAL x86_64" OFF)
 
 if(NOT BORNED_AS_AN_APPLE)
   include(CheckCXXCompilerFlag)
@@ -53,8 +53,6 @@ endif()
 
 # C++ version
 set(CPP_VERSION c++17)
-
-# create OS version string from git describe (used in CXX flags)
 
 ##extract version header only ONCE avoiding endless rebuild loop ?
 FIND_PACKAGE(Git REQUIRED)
@@ -105,10 +103,7 @@ option (undefined_san "Enable undefined-behavior sanitizer" OFF)
 option (thin_lto "Enable the Thin LTO plugin" OFF)
 option (full_lto "Enable full LTO (compatibility)" OFF)
 
-# create random hex string as stack protector canary
-string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
-
-set(CAPABS "${CAPABS} -g -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+set(CAPABS "${CAPABS} -g -fstack-protector-strong")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -218,7 +213,7 @@ else() # in user space
   #include(conan.cmake)
   # Make sure to use conanfile.py to define dependencies, to stay consistent
   conan_cmake_run(
-    CONANFILE conan/includeos/conanfile.py
+    CONANFILE conanfile.py
     PROFILE ${CONAN_PROFILE}
     OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
@@ -309,7 +304,7 @@ install(PROGRAMS
 #this replicates the install of libraries from bundles using conan
 if(NOT CONAN_EXPORTED)
   install(CODE
-    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conan/includeos/conanfile.py)"
+    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py)"
   )
   #install tools TODO THIS IS A [BUILD_REQUIRES] dependency for the service so should probably go there but for now its here so that things are in the right place
   install(CODE
@@ -319,7 +314,7 @@ if(NOT CONAN_EXPORTED)
     "execute_process(COMMAND conan install diskimagebuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
   )
   install(CODE
-    "execute_process(COMMAND conan install nacl/v0.2.0@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
+    "execute_process(COMMAND conan install nacl/v0.2.1@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
   )
   if (${ARCH} STREQUAL "x86_64")
     install(CODE

@@ -16,29 +16,24 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <kernel/os.hpp>
+#include <os.hpp>
+#include <kernel/memory.hpp>
 
 CASE("version() returns string representation of OS version")
 {
-  EXPECT(OS::version() != nullptr);
-  EXPECT(std::string(OS::version()).size() > 0);
-  EXPECT(OS::version()[0] == 'v');
-  EXPECT(OS::arch() != nullptr);
-  EXPECT(std::string(OS::arch()).size() > 0);
+  EXPECT(os::version() != nullptr);
+  EXPECT(std::string(os::version()).size() > 0);
+  EXPECT(os::version()[0] == 'v');
+  EXPECT(os::arch() != nullptr);
+  EXPECT(std::string(os::arch()).size() > 0);
 }
 
 CASE("cycles_since_boot() returns clock cycles since boot")
 {
-  EXPECT(OS::cycles_since_boot() != 0ull);
+  EXPECT(os::cycles_since_boot() != 0ull);
 }
 
 CASE("page_size() returns page size")
 {
-  EXPECT(OS::page_size() == 4096u);
-}
-
-CASE("page_nr_from_addr() returns page number from address")
-{
-  EXPECT(OS::addr_to_page(512) == 0u);
-  EXPECT(OS::page_to_addr(1) > 0u);
+  EXPECT(os::mem::min_psize() == 4096u);
 }

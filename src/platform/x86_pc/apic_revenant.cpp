@@ -4,7 +4,8 @@
 #include "clocks.hpp"
 #include "idt.hpp"
 #include <kernel/events.hpp>
-#include <kernel/os.hpp>
+//#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
 
@@ -121,7 +122,7 @@ void revenant_main(int cpu)
   while (true)
   {
     Events::get().process_events();
-    OS::halt();
+    os::halt();
   }
   __builtin_unreachable();
 }

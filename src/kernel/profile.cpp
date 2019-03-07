@@ -17,9 +17,10 @@
 
 #include <profile>
 #include <common>
+#include <kernel.hpp>
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <util/fixed_vector.hpp>
 #include <unordered_map>
 #include <cassert>
@@ -202,9 +203,9 @@ std::string HeapDiag::to_string()
 {
   static intptr_t last = 0;
   // show information on heap status, to discover leaks etc.
-  auto heap_begin = OS::heap_begin();
-  auto heap_end   = OS::heap_end();
-  auto heap_usage = OS::heap_usage();
+  auto heap_begin = kernel::heap_begin();
+  auto heap_end   = kernel::heap_end();
+  auto heap_usage = kernel::heap_usage();
   intptr_t heap_size = heap_end - heap_begin;
   last = heap_size - last;
 

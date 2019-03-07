@@ -33,7 +33,7 @@ static void msleep(int micros)
   });
 
   while (ticked == false) {
-    OS::block();
+    os::block();
     Expects(os_get_blocking_level() == 0);
   }
 }

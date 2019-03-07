@@ -115,7 +115,7 @@ set(TEST_LIST
   ##TODO check if context test is old and should be removed!!
   #"context"   "20" "kernel"
   "exception" "20" "kernel"
-  "fiber"     "20" "kernel"
+  #"fiber"     "20" "kernel"
   "grub"  "20" "kernel"
   "kprint"    "10" "kernel"
   "LiveUpdate" "10" "kernel"

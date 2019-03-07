@@ -17,7 +17,8 @@
 
 #include <virtio/virtio.hpp>
 #include <kernel/events.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
+#include <kernel.hpp>
 #include <hw/pci.hpp>
 #include <smp>
 #include <arch.hpp>
@@ -174,7 +175,7 @@ uint32_t Virtio::queue_size(uint16_t index) {
 bool Virtio::assign_queue(uint16_t index, const void* queue_desc)
 {
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::addr_to_page((uintptr_t) queue_desc));
+  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, kernel::addr_to_page((uintptr_t) queue_desc));
 
   if (_pcidev.has_msix())
   {
@@ -185,7 +186,7 @@ bool Virtio::assign_queue(uint16_t index, const void* queue_desc)
     assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
   }
 
-  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::addr_to_page((uintptr_t) queue_desc);
+  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == kernel::addr_to_page((uintptr_t) queue_desc);
 }
 
 uint32_t Virtio::probe_features() {

@@ -23,10 +23,11 @@
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <util/alloc_buddy.hpp>
+#include <util/allocator.hpp>
 #include <sstream>
+#include <kernel/memmap.hpp>
 
-namespace os {
-namespace mem {
+namespace os::mem {
 
   /** POSIX mprotect compliant access bits **/
   enum class Access : uint8_t {
@@ -36,10 +37,17 @@ namespace mem {
     execute = 4
   };
 
-  /** Default system allocator **/
-  using Allocator = buddy::Alloc<false>;
+  using Raw_allocator = buddy::Alloc<false>;
 
-  Allocator& allocator();
+  /** Get default allocator for untyped allocations */
+  Raw_allocator& raw_allocator();
+
+  template <typename T>
+  using Typed_allocator = Allocator<T, Raw_allocator>;
+
+  /** Get default std::allocator for typed allocations */
+  template <typename T>
+  Typed_allocator<T> system_allocator() { return Typed_allocator<T>(raw_allocator()); }
 
   /** Get bitfield with bit set for each supported page size */
   uintptr_t supported_page_sizes();
@@ -155,7 +163,19 @@ namespace mem {
 
   void virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label);
 
-}} // os::mem
+  /** Virtual memory map **/
+  inline Memory_map& vmmap() {
+    // TODO Move to machine
+    static Memory_map memmap;
+    return memmap;
+  };
+
+  bool heap_ready();
+
+} // os::mem
+
+
+
 
 
 // Enable bitwise ops on access flags
@@ -170,8 +190,7 @@ inline namespace bitops {
 }
 
 
-namespace os {
-namespace mem {
+namespace os::mem {
 
   //
   // mem::Mapping implementation
@@ -320,6 +339,7 @@ namespace mem {
     // unpresent @src
     os::mem::protect(src, size, os::mem::Access::none);
   }
-}}
+}
+
 
 #endif

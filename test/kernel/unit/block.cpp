@@ -1,5 +1,5 @@
 #include <common.cxx>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/events.hpp>
 extern "C" uint32_t os_get_blocking_level();
 extern "C" uint32_t os_get_highest_blocking_level();
@@ -15,7 +15,7 @@ CASE("OS::block")
     });
   Events::get().trigger_event(ev);
   // block until event happens
-  OS::block();
+  os::block();
   // Done
   EXPECT(event_happened);
   EXPECT(os_get_blocking_level() == 0);

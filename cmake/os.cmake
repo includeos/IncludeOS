@@ -16,6 +16,8 @@ option(thin_lto "Enable Thin LTO plugin" OFF)
 option(full_lto "Enable full LTO (also works on LD)" OFF)
 option(coroutines "Compile with coroutines TS support" OFF)
 
+# create OS version string from git describe (used in CXX flags)
+set(SSP_VALUE "0x0" CACHE STRING "Fixed stack sentinel value")
 
 
 set(CPP_VERSION c++17)
@@ -41,39 +43,19 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
-#TODO also support conanfile.py ?
-if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt)
-  SET(CONANFILE_TXT ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt)
-endif()
-
-if (CONANFILE_TXT OR CONAN_EXPORTED)
-  #TODO move this into sub scripts conan.cmake and oldscool.cmake
-  if (CONANFILE_TXT)
-    #TODO VERIFY are we only testing release  version of includeos
-    set(CMAKE_BUILD_TYPE Release)
-    if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-      message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-      file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
-                        "${CMAKE_BINARY_DIR}/conan.cmake")
-    endif()
-      #TODO se if this goes all wack
-    include(${CMAKE_BINARY_DIR}/conan.cmake)
-      #should we specify a directory.. can we run it multiple times ?
-    conan_cmake_run(
-      CONANFILE conanfile.txt
-        BASIC_SETUP
-        CMAKE_TARGETS
-      )
-    #include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  else()
-
+if (CONAN_EXPORTED OR CONAN_LIBS)
   # standard conan installation, deps will be defined in conanfile.py
   # and not necessary to call conan again, conan is already running
+  if (CONAN_EXPORTED)
     include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-
     conan_basic_setup()
-
+    #hack for editable package
+    set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
+  else()
+    #hack for editable package
+    set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT}/install)
   endif()
+
 
   #TODO use these
   #CONAN_SETTINGS_ARCH Provides arch type
@@ -97,11 +79,12 @@ if (CONANFILE_TXT OR CONAN_EXPORTED)
   set(TRIPLE "${ARCH}-pc-linux-elf")
   set(LIBRARIES ${CONAN_LIBS})
   set(ELF_SYMS elf_syms)
-  set(LINK_SCRIPT ${CONAN_INCLUDEOS_ROOT}/${ARCH}/linker.ld)
+  set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
   #includeos package can provide this!
   include_directories(
-    ${CONAN_INCLUDEOS_ROOT}/include/os
+    ${INCLUDEOS_PREFIX}/include/os
   )
+
 
 else()
   #TODO initialise self
@@ -114,6 +97,7 @@ else()
       set(ARCH x86_64)
     endif()
   endif()
+
   set(TRIPLE "${ARCH}-pc-linux-elf")
   include_directories(
     ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1
@@ -216,12 +200,13 @@ else()
       libplatform
       libarch
       musl_syscalls
-      libc
+      ${LIBR_CMAKE_NAMES}
+      libos
       libcxx
       libunwind
       libpthread
+      libc
       libgcc
-      ${LIBR_CMAKE_NAMES}
     )
 
   else()
@@ -236,19 +221,29 @@ else()
       libbotan
       ${OPENSSL_LIBS}
       musl_syscalls
+      libcxx_experimental
       libcxx
       libunwind
       libpthread
       libc
       libgcc
-      libcxx_experimental
     )
+  endif()
+  if ("${PLATFORM}" STREQUAL "x86_solo5")
+    set(LIBRARIES ${LIBRARIES} solo5)
   endif()
 
   set(ELF_SYMS ${INCLUDEOS_PREFIX}/bin/elf_syms)
   set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
 endif()
 
+#TODO get the TARGET executable from diskimagebuild
+if (CONAN_TARGETS)
+  #find_package(diskimagebuild)
+  set(DISKBUILDER diskbuilder)
+else()
+  set(DISKBUILDER ${INCLUDEOS_PREFIX}/bin/diskbuilder)
+endif()
 # arch and platform defines
 #message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
@@ -299,7 +294,7 @@ set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 # TODO: find a more proper way to get the linker.ld script ?
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT}  ${PRE_BSS_SIZE}")
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE} ${PRE_BSS_SIZE}")
 
 
 set(ELF_POSTFIX .elf.bin)
@@ -421,6 +416,7 @@ endfunction()
 
 function (os_add_drivers TARGET)
   foreach(DRIVER ${ARGN})
+    #if in conan expect it to be in order ?
     os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers")
   endforeach()
 endfunction()
@@ -489,10 +485,10 @@ function(os_build_memdisk TARGET FOLD)
 
   add_custom_command(
       OUTPUT  memdisk.fat
-      COMMAND ${INCLUDEOS_PREFIX}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
+      COMMAND ${DISKBUILDER} -o memdisk.fat ${REL_PATH}
       COMMENT "Creating memdisk"
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt ${TARGET}_disccontent
-      )
+  )
   add_custom_target(${TARGET}_diskbuilder DEPENDS memdisk.fat)
   os_add_dependencies(${TARGET} ${TARGET}_diskbuilder)
   os_add_memdisk(${TARGET} "${CMAKE_CURRENT_BINARY_DIR}/memdisk.fat")

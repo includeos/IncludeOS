@@ -70,7 +70,7 @@ class OpenSSLConan(ConanFile):
         #todo extract to includeos/include!!
         #self.copy("*",dst="include/rapidjson",src="rapidjson/include/rapidjson")
     def package_info(self):
-        self.cpp_info.libs=['crypto','openssl']
+        self.cpp_info.libs=['crypto','ssl']
 
     def deploy(self):
         self.copy("*.h",dst="include/openssl",src="openssl/include/openssl")
