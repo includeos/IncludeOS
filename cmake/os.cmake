@@ -195,7 +195,7 @@ else()
   add_library(libpthread STATIC IMPORTED)
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
-  
+
   #allways use the provided libcompiler.a
   set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
 
@@ -475,8 +475,12 @@ endfunction()
 function(os_build_memdisk TARGET FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   #detect changes in disc folder and if and only if changed update the file that triggers rebuild
+  find_program(CHSUM NAMES md5sum md5)
+  if (CHSUM-NOTFOUND)
+    message(FATAL_ERROR md5sum not found)
+  endif()
   add_custom_target(${TARGET}_disccontent ALL
-    COMMAND find ${REL_PATH}/ -type f -exec md5sum "{}" + > /tmp/manifest.txt.new
+    COMMAND find ${REL_PATH}/ -type f -exec ${CHSUM} "{}" + > /tmp/manifest.txt.new
     COMMAND cmp --silent ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt /tmp/manifest.txt.new || cp /tmp/manifest.txt.new ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
     COMMENT "Checking disc content changes"
     BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
