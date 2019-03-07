@@ -3,12 +3,9 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-<<<<<<< HEAD
 # create OS version string from git describe (used in CXX flags)
 set(SSP_VALUE "0x0" CACHE STRING "Fixed stack sentinel value")
 
-=======
->>>>>>> cmake: os.cmake is now prepared to work with a conanfile.txt removed legacy pre and post.cmake
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
