@@ -24,6 +24,8 @@
 #include <net/http/request.hpp>
 #include <net/http/response.hpp>
 
+#include <hal/machine.hpp>
+
 using namespace std::chrono;
 
 std::string HTML_RESPONSE()
@@ -79,8 +81,25 @@ http::Response handle_request(const http::Request& req)
   return res;
 }
 
+struct my_device {
+  int i = 0;
+};
+
 void Service::start()
 {
+
+  printf("Service started\n");
+  my_device dev1{42};
+  auto dev = std::make_unique<my_device>(dev1);
+  auto* stored_addr = dev.get();
+
+  printf("Made device_ptr, adding to machine\n");
+  auto dev_i = os::machine().add<my_device>(std::move(dev));
+  auto& device = os::machine().get<my_device>(dev_i);
+  Expects(device.i == 42);
+  Expects(&device == stored_addr);
+  Expects(dev.get() == nullptr);
+
   // Get the first IP stack
   // It should have configuration from config.json
   auto& inet = net::Interfaces::get(0);

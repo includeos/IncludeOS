@@ -21,7 +21,7 @@
 
 #include "../component.hpp"
 
-#include <os>
+#include <kernel/memory.hpp>
 
 namespace mana {
 namespace dashboard {
@@ -45,7 +45,7 @@ public:
 
   void serialize(Writer& writer) override {
     writer.StartArray();
-    for (auto&& i : OS::memory_map())
+    for (auto&& i : os::mem::vmmap())
     {
       auto& entry = i.second;
       writer.StartObject();

@@ -18,7 +18,7 @@
 #include <string>
 #include <cstdio>
 #include <stdexcept>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <kernel/elf.hpp>
 #include <kprint>
 #include <cmath>
@@ -105,7 +105,7 @@ extern "C"
   }
   void undefined_throw(const char* error) {
     kprintf("ubsan: %s", error);
-    print_backtrace();
+    os::print_backtrace();
     kprintf("\n");
   }
 
@@ -224,6 +224,6 @@ extern "C"
   void __ubsan_handle_builtin_unreachable(struct unreachable* data)
   {
     print_src_location(data->src);
-    panic("Unreachable code reached");
+    os::panic("Unreachable code reached");
   }
 }

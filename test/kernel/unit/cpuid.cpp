@@ -1,5 +1,5 @@
 #include <common.cxx>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/cpuid.hpp>
 
 CASE("CPUID test")

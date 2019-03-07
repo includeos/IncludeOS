@@ -10,9 +10,21 @@ DISK_DEVICE=dummy.img
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 UNIKERNEL_SRC=${INCLUDEOS_SRC}/examples/demo_service
 UNIKERNEL_BUILD=${UNIKERNEL_SRC}/build_solo5-hvt
-UNIKERNEL_IMG=${UNIKERNEL_BUILD}/IncludeOS_example
+UNIKERNEL_IMG=${UNIKERNEL_BUILD}/demo
 ARCH=${ARCH:-x86_64}
-SOLO5_SRC=${INCLUDEOS_SRC}/build_${ARCH}/precompiled/src/solo5_repo
+
+mkdir -p build
+pushd build
+conan install .. -pr clang-6.0-linux-x86_64
+popd
+source build/activate.sh
+die_error ()
+{
+  source build/deactivate.sh
+}
+trap deactivate 0 INT TERM
+
+SOLO5_TENDER=solo5-hvt
 
 die_error ()
 {
@@ -62,12 +74,9 @@ setup()
     # The default solo5-hvt needs a disk, even if it's a dummy 0 byte one.
     # If you want solo5-hvt with just the net module, you need to re-build it.
     touch ${TMPDIR}/${DISK_DEVICE}
-    ${INCLUDEOS_SRC}/etc/scripts/create_bridge.sh || true
+    #${INCLUDEOS_SRC}/etc/scripts/create_bridge.sh || true
     # Create a tap100 device
-    ${INCLUDEOS_SRC}/etc/scripts/solo5-ifup.sh || true
-
-    # XXX: fix this during installation
-    chmod +x ${SOLO5_SRC}/tenders/hvt/solo5-hvt
+    #${INCLUDEOS_SRC}/etc/scripts/solo5-ifup.sh || true
 
     return 0
 )}
@@ -98,8 +107,7 @@ run_curl_test ()
     local PID_TENDER
 
     logto ${NAME}.log.1
-    TENDER=$SOLO5_SRC/tenders/hvt/solo5-hvt
-    TENDER="${TENDER} --disk=${TMPDIR}/${DISK_DEVICE} --net=${NET_DEVICE}"
+    TENDER="${SOLO5_TENDER} --disk=${TMPDIR}/${DISK_DEVICE} --net=${NET_DEVICE}"
 
     # If we can't run solo5-hvt, just return code 98 (skipped)
     [ -c /dev/kvm -a -w /dev/kvm ] || return 98

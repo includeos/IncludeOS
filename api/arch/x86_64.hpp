@@ -1,4 +1,4 @@
-﻿// -*-C++-*-
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2017 Oslo and Akershus University College of Applied Sciences
@@ -21,19 +21,35 @@
 
 #define ARCH_x86
 
-inline void __arch_read_memory_barrier() noexcept {
-  __asm volatile("lfence" ::: "memory");
-}
-inline void __arch_write_memory_barrier() noexcept {
-  __asm volatile("mfence" ::: "memory");
+namespace os {
+
+  // Concept / base class Arch
+  struct Arch {
+    static constexpr uintptr_t   max_canonical_addr = 0xffffffffffff;
+    static constexpr uint8_t     word_size          = sizeof(uintptr_t) * 8;
+    static constexpr uintptr_t   min_page_size      = 4096;
+    static constexpr const char* name               = "x86_64";
+
+    static inline uint64_t cpu_cycles() noexcept;
+    static inline void read_memory_barrier() noexcept;
+    static inline void write_memory_barrier() noexcept;
+  };
+
 }
 
-inline uint64_t __arch_cpu_cycles() noexcept {
+// Implementation
+uint64_t os::Arch::cpu_cycles() noexcept {
   uint32_t hi, lo;
   asm("rdtsc" : "=a"(lo), "=d"(hi));
   return ((uint64_t) lo) | ((uint64_t) hi) << 32;
 }
 
-constexpr uintptr_t __arch_max_canonical_addr = 0xffffffffffff;
+inline void os::Arch::read_memory_barrier() noexcept {
+  __asm volatile("lfence" ::: "memory");
+}
+
+inline void os::Arch::write_memory_barrier() noexcept {
+  __asm volatile("mfence" ::: "memory");
+}
 
 #endif

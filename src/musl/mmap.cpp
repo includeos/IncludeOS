@@ -5,20 +5,21 @@
 #include <util/alloc_buddy.hpp>
 #include <os>
 #include <kernel/memory.hpp>
+#include <kernel.hpp>
 #include <kprint>
 
-using Alloc = os::mem::Allocator;
+using Alloc = os::mem::Raw_allocator;
 static Alloc* alloc;
 
-Alloc& os::mem::allocator() {
+Alloc& os::mem::raw_allocator() {
   Expects(alloc);
   return *alloc;
 }
 
-uintptr_t __init_mmap(uintptr_t addr_begin)
+uintptr_t __init_mmap(uintptr_t addr_begin, size_t size)
 {
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
-  auto mem_end = OS::liveupdate_phys_loc(OS::heap_max());
+  auto mem_end = kernel::liveupdate_phys_loc(kernel::heap_max());
   int64_t len = (mem_end - aligned_begin) & ~int64_t(Alloc::align - 1);
 
   alloc = Alloc::create((void*)aligned_begin, len);
@@ -27,6 +28,7 @@ uintptr_t __init_mmap(uintptr_t addr_begin)
 
 extern "C" __attribute__((weak))
 void* kalloc(size_t size) {
+  Expects(kernel::heap_ready());
   return alloc->allocate(size);
 }
 

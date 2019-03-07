@@ -16,15 +16,20 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 set(CMAKE_SYSTEM_NAME "Linux")
-set(CMAKE_SYSTEM_PROCESSOR ${ARCH})
+set(CMAKE_SYSTEM_PROCESSOR "x86_64")
+
+set(TRIPLE "${CMAKE_SYSTEM_PROCESSOR}-pc-linux-elf")
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+
+message(STATUS "Target triple ${TRIPLE}")
 
 # Bin directory
-set(INCLUDEOS_BIN $ENV{INCLUDEOS_PREFIX}/includeos/bin)
+set(INCLUDEOS_BIN $ENV{INCLUDEOS_PREFIX}/bin)
 
 # Set compiler to the one in includeos/bin (clang)
 set(CMAKE_C_COMPILER ${INCLUDEOS_BIN}/gcc)
 set(CMAKE_CXX_COMPILER ${INCLUDEOS_BIN}/g++)
-
 
 # Tell cmake where to look for binutils
 set(CMAKE_FIND_ROOT_PATH ${INCLUDEOS_BIN})

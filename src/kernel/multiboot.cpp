@@ -17,6 +17,7 @@
 
 
 #include <os>
+#include <kernel.hpp>
 #include <kprint>
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
@@ -46,9 +47,9 @@ static inline multiboot_info_t* bootinfo(uint32_t addr)
   return (multiboot_info_t*) (uintptr_t) addr;
 }
 
-multiboot_info_t* OS::bootinfo()
+extern uint32_t __multiboot_addr;
+multiboot_info_t* kernel::bootinfo()
 {
-  extern uint32_t __multiboot_addr;
   return (multiboot_info_t*) (uintptr_t) __multiboot_addr;
 }
 
@@ -57,7 +58,7 @@ uintptr_t _multiboot_memory_end(uintptr_t boot_addr) {
   if (info->flags & MULTIBOOT_INFO_MEMORY) {
     return 0x100000 + (info->mem_upper * 1024);
   }
-  return __arch_max_canonical_addr;
+  return os::Arch::max_canonical_addr;
 }
 
 // Deterimine the end of multiboot provided data
@@ -107,7 +108,7 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
   return multi_end;
 }
 
-void OS::multiboot(uint32_t boot_addr)
+void kernel::multiboot(uint32_t boot_addr)
 {
   MYINFO("Booted with multiboot");
   auto* info = ::bootinfo(boot_addr);
@@ -135,7 +136,7 @@ void OS::multiboot(uint32_t boot_addr)
   if (info->flags & MULTIBOOT_INFO_CMDLINE) {
     const auto* cmdline = (const char*) (uintptr_t) info->cmdline;
     INFO2("* Booted with parameters @ %p: %s", cmdline, cmdline);
-    OS::cmdline = strdup(cmdline);
+    kernel::state().cmdline = strdup(cmdline);
   }
 
   if (info->flags & MULTIBOOT_INFO_MEM_MAP) {
@@ -164,7 +165,7 @@ void OS::multiboot(uint32_t boot_addr)
         }
 
         // For non-aligned addresses, assign
-        memory_map().assign_range({addr, addr + size - 1, "Reserved (Multiboot)"});
+        os::mem::vmmap().assign_range({addr, addr + size - 1, "Reserved (Multiboot)"});
       }
       else
       {
@@ -175,13 +176,13 @@ void OS::multiboot(uint32_t boot_addr)
     printf("\n");
   }
 
-  Span_mods mods = modules();
+  auto mods = os::modules();
 
   if (not mods.empty()) {
     MYINFO("OS loaded with %zu modules", mods.size());
     for (auto mod : mods) {
       INFO2("* %s @ 0x%x - 0x%x, size: %ib",
-            reinterpret_cast<char*>(mod.cmdline),
+            reinterpret_cast<char*>(mod.params),
             mod.mod_start, mod.mod_end, mod.mod_end - mod.mod_start);
     }
   }

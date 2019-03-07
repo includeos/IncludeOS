@@ -34,14 +34,18 @@ const char* Service::name() {
 __attribute__((weak))
 void Service::start()
 {
-  const std::string args(OS::cmdline_args());
+  const std::string args(os::cmdline_args());
   Service::start(args);
 }
 
+#ifndef USERSPACE_KERNEL
 extern "C" {
   __attribute__((weak))
   int main(int, const char*[]) {}
 }
+#else
+extern int main(int, const char*[]);
+#endif
 
 __attribute__((weak))
 void Service::start(const std::string& cmd)

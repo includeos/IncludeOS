@@ -95,8 +95,8 @@ void Client::send_stats(const std::string& stat)
   else if (stat == "m")
   {
     len = snprintf(buffer, sizeof(buffer),
-          ":%s %03u %s :Heap usage: %.3f mb\r\n",
-          server.name().c_str(), 244, nick().c_str(), OS::heap_usage() / 1024.f / 1024.f);
+          ":%s %03u %s :Mem usage: %.3f mb\r\n",
+          server.name().c_str(), 244, nick().c_str(), os::total_memuse() / 1024.f / 1024.f);
   }
   else {
     len = snprintf(buffer, sizeof(buffer),

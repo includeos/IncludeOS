@@ -1,21 +1,22 @@
 #include "common.hpp"
 #include <string.h>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <errno.h>
 #include <kprint>
 
 static uintptr_t brk_begin        = 0;
 static uintptr_t brk_end          = 0;
 static uintptr_t brk_initialized  = 0;
-extern ssize_t __brk_max;
+static ssize_t   brk_max          = 0;
 
 
-uintptr_t __init_brk(uintptr_t begin)
+uintptr_t __init_brk(uintptr_t begin, size_t size)
 {
   brk_begin = begin;
   brk_end   = begin;
+  brk_max   = begin + size;
   brk_initialized = brk_end;
-  return brk_begin + __brk_max;
+  return brk_begin + brk_max;
 }
 
 
@@ -24,13 +25,13 @@ size_t brk_bytes_used() {
 }
 
 size_t brk_bytes_free() {
-  return __brk_max - brk_bytes_used();
+  return brk_max - brk_bytes_used();
 }
 
 static uintptr_t sys_brk(void* addr)
 {
   if (addr == nullptr
-      or (uintptr_t)addr > brk_begin +  __brk_max
+      or (uintptr_t)addr > brk_begin +  brk_max
       or (uintptr_t)addr < brk_begin) {
     return brk_end;
   }

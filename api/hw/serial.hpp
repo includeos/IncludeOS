@@ -41,7 +41,7 @@ namespace hw {
       return s;
     }
 
-    OS::print_func get_print_handler() {
+    os::print_func get_print_handler() {
       return {this, &Serial::print_handler};
     }
 

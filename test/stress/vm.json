@@ -1,4 +1,5 @@
 {
+  "image" : "stress.img",
   "net" : [{"device" : "virtio", "mac" : "c0:01:0a:00:00:2a"}],
   "mem"   : 300
 }

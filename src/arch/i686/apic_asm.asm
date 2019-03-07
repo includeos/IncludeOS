@@ -22,6 +22,7 @@ global get_cpu_eip:function
 global get_cpu_esp:function
 global reboot_os:function
 
+section .text
 get_cpu_id:
     mov eax, [fs:0x0]
     ret

@@ -25,7 +25,8 @@
 #include <os>
 #include <iostream>
 #include <experimental/coroutine>
-
+#include <smp>
+#include <vector>
 
 using namespace std;
 template<typename T>

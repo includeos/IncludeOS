@@ -2,8 +2,8 @@
 #include <net/interfaces>
 #include <net/ws/connector.hpp>
 #include <http>
-#include <crash>
 #include <deque>
+#include <kernel/crash_context.hpp>
 
 struct alignas(SMP_ALIGN) HTTP_server
 {

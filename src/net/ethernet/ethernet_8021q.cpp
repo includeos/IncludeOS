@@ -67,12 +67,12 @@ void Ethernet_8021Q::receive(Packet_ptr pkt)
     break;
 
   default:
-    uint16_t type = net::ntohs(static_cast<uint16_t>(vlan.type));
+    uint16_t type = ntohs(static_cast<uint16_t>(vlan.type));
 
     // Trailer negotiation and encapsulation RFC 893 and 1122
-    if (UNLIKELY(type == net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
-      (type >= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_FIRST)) and
-        type <= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_LAST))))) {
+    if (UNLIKELY(type == ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
+      (type >= ntohs(static_cast<uint16_t>(Ethertype::TRAILER_FIRST)) and
+        type <= ntohs(static_cast<uint16_t>(Ethertype::TRAILER_LAST))))) {
       printf("Trailer packet\n");
       break;
     }
@@ -89,11 +89,11 @@ void Ethernet_8021Q::receive(Packet_ptr pkt)
 
 void Ethernet_8021Q::transmit(Packet_ptr pkt, addr dest, Ethertype type)
 {
-  uint16_t t = net::ntohs(static_cast<uint16_t>(type));
+  uint16_t t = ntohs(static_cast<uint16_t>(type));
   // Trailer negotiation and encapsulation RFC 893 and 1122
-  if (UNLIKELY(t == net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
-    (t >= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_FIRST)) and
-      t <= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_LAST))))) {
+  if (UNLIKELY(t == ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
+    (t >= ntohs(static_cast<uint16_t>(Ethertype::TRAILER_FIRST)) and
+      t <= ntohs(static_cast<uint16_t>(Ethertype::TRAILER_LAST))))) {
     PRINT("<802.1Q OUT> Ethernet type Trailer is not supported. Packet is not transmitted\n");
     return;
   }

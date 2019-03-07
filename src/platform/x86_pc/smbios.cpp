@@ -20,7 +20,8 @@
 #include <cstring>
 #include <cstdio>
 #include <info>
-#include <kernel/os.hpp>
+#include <os.hpp>
+#include <kernel.hpp>
 
 namespace x86
 {
@@ -149,7 +150,7 @@ namespace x86
 
     // salvage operation for when no memory array found
     if (sysinfo.physical_memory == 0) {
-      sysinfo.physical_memory = OS::memory_end()+1;
+      sysinfo.physical_memory = kernel::memory_end()+1;
     }
   }
 

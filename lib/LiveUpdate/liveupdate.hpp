@@ -102,6 +102,8 @@ struct LiveUpdate
   // performing a soft-reset to reduce downtime to a minimum
   // Never returns, and upon failure intentionally hard-resets the OS
   static void rollback_now(const char* reason);
+  // Returns if the state in the OS has been set to being "liveupdated"
+  static bool os_is_liveupdated() noexcept;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

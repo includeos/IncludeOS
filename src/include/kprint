@@ -39,8 +39,7 @@ extern void __serial_print(const char* str, size_t len);
  * The earliest possible print function (requires no heap, global ctors etc.)
  **/
 __attribute__ ((format (printf, 1, 2)))
-
-void kprintf(const char* format, ...);
+extern void kprintf(const char* format, ...);
 extern void kprint(const char*);
 
 #ifdef __cplusplus

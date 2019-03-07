@@ -35,10 +35,6 @@ add_library(ip4_reassembly STATIC "ip4_reassembly.cpp")
 
 add_library(heap_debugging STATIC heap_debugging.cpp)
 
-add_library(disk_logger STATIC "disk_logger.cpp")
-
-add_library(disklog_reader STATIC "disklog_reader.cpp")
-
 add_library(timestamps STATIC stdout/timestamps.cpp)
 
 add_library(vga_output STATIC stdout/vgaout.cpp)
@@ -64,7 +60,6 @@ install(TARGETS
     vmxnet3 e1000
     ip4_reassembly
     heap_debugging
-    disk_logger disklog_reader
     # stdout drivers that are simple enough to remain here
     boot_logger timestamps
   DESTINATION ${ARCH}/drivers)

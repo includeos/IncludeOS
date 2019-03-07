@@ -20,7 +20,7 @@
 #include <info>
 #include <net/interfaces>
 #include <kernel/terminal.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 static int counter = 0;
 static std::unordered_map<int, Terminal> terms;
 
@@ -98,5 +98,5 @@ static void spawn_terminal()
 
 __attribute__((constructor))
 static void feijfeifjeifjeijfei() {
-  OS::register_plugin(spawn_terminal, "Terminal plugin");
+  os::register_plugin(spawn_terminal, "Terminal plugin");
 }

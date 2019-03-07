@@ -27,19 +27,20 @@
 #include <unordered_map>
 #include <elf.h>
 #include "storage.hpp"
-#include <kernel/os.hpp>
+#include <kernel.hpp>
+#include <os.hpp>
 #include <kernel/memory.hpp>
-#include <hw/devices.hpp>
+#include <hw/nic.hpp> // for flushing
 
-//#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
-#define LPRINT(x, ...) /** x **/
+#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
+//#define LPRINT(x, ...) /** x **/
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 // hotswapping functions
 extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
-extern "C" void  hotswap(const char*, int, char*, uint32_t, void*);
+extern "C" void  hotswap(char*, const char*, int, void*, void*);
 extern "C" char  __hotswap_length;
 extern "C" void  hotswap64(char*, const char*, int, uint32_t, void*, void*);
 extern uint32_t  hotswap64_len;
@@ -62,7 +63,7 @@ static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbac
 
 void LiveUpdate::register_partition(std::string key, storage_func callback)
 {
-#if defined(USERSPACE_LINUX)
+#if defined(USERSPACE_KERNEL)
   // on linux we cant make the jump, so the tracking wont reset
   storage_callbacks[key] = std::move(callback);
 #else
@@ -96,7 +97,7 @@ void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
 
 void LiveUpdate::exec(const buffer_t& blob, void* location)
 {
-  if (location == nullptr) location = OS::liveupdate_storage_area();
+  if (location == nullptr) location = kernel::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
 #if defined(__includeos__)
   // 1. turn off interrupts
@@ -114,31 +115,30 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
       throw std::runtime_error("Buffer too small to be valid ELF");
   const char* update_area  = blob.data();
   char* storage_area = (char*) location;
-  const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
 
   // validate not overwriting heap, kernel area and other things
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
-#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
+  const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
   // NOTE: on linux the heap location is randomized,
   // so we could compare against that but: How to get the heap base address?
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-  if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
+  if (storage_area >= (char*) kernel::heap_begin() && storage_area < (char*) kernel::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
-  if (storage_area_phys >= OS::heap_max()) {
-    printf("Storage area is at %p / %p\n",
-           (void*) storage_area_phys, (void*) OS::heap_max());
+  if (storage_area_phys >= kernel::heap_max()) {
     throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
-  if (storage_area_phys >= OS::heap_max() - 0x10000) {
+  /*
+  if (storage_area_phys >= kernel::memory_end() - 0x10000) {
     printf("Storage area is at %p / %p\n",
-           (void*) storage_area_phys, (void*) OS::heap_max());
+           (void*) storage_area_phys, (void*) kernel::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
-  }
+  }*/
 #endif
 
   // search for ELF header
@@ -222,11 +222,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // save ourselves if function passed
   update_store_data(storage_area, &blob);
 
-  // 2. flush all devices with flush() interface
-  hw::Devices::flush_all();
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
+  // 2. flush all NICs
+  for(auto& nic : os::machine().get<hw::Nic>())
+    nic.get().flush();
   // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
-  hw::Devices::deactivate_all();
+  os::machine().deactivate_devices();
+#endif
   // turn off devices that affect memory
   __arch_system_deactivate();
 
@@ -256,8 +259,8 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   throw std::runtime_error("solo5_exec returned");
 # elif defined(PLATFORM_UNITTEST)
   throw liveupdate_exec_success();
-# elif defined(USERSPACE_LINUX)
-  hotswap(bin_data, bin_len, phys_base, start_offset, sr_data);
+# elif defined(USERSPACE_KERNEL)
+  hotswap(phys_base, bin_data, bin_len, (void*) (uintptr_t) start_offset, sr_data);
   throw liveupdate_exec_success();
 # elif defined(ARCH_x86_64)
     // change to simple pagetable
@@ -271,7 +274,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len,
                 start_offset,          /* binary entry point */
                 sr_data,               /* softreset location */
-                (void*) OS::heap_end() /* zero memory until this location */);
+                (void*) kernel::heap_end() /* zero memory until this location */);
   } else {
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, nullptr);
   }
@@ -280,7 +283,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
   /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
+  ((decltype(&hotswap)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, (void*) start_offset, sr_data);
 }
 void LiveUpdate::restore_environment()
 {
@@ -291,14 +294,14 @@ void LiveUpdate::restore_environment()
 }
 buffer_t LiveUpdate::store()
 {
-  char* location = (char*) OS::liveupdate_storage_area();
+  char* location = (char*) kernel::liveupdate_storage_area();
   size_t size = update_store_data(location, nullptr);
   return buffer_t(location, location + size);
 }
 
 size_t LiveUpdate::stored_data_length(const void* location)
 {
-  if (location == nullptr) location = OS::liveupdate_storage_area();
+  if (location == nullptr) location = kernel::liveupdate_storage_area();
   auto* storage = (storage_header*) location;
 
   if (storage->validate() == false)

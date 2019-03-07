@@ -26,12 +26,12 @@ void Service::start(const std::string&)
 {
   INFO("Memmap", "Testing the kernel memory map");
 
-  auto& map = OS::memory_map();
+  auto& map = os::mem::vmmap();
   Expects(map.size());
 
   // Verify that you can't create any overlapping ranges
   const auto s = map.size();
-  int failed = 0;
+  size_t failed = 0;
   auto i = 0;
   for (auto it : map) {
     try {
@@ -40,7 +40,7 @@ void Service::start(const std::string&)
       int offs   = rand() % m.size() + 1;
       uintptr_t begin = i++ % 2 ? m.addr_start() + offs : m.addr_start() - offs;
       uintptr_t end   = begin + offs * 2;
-      Fixed_memory_range rng {begin, end, "Can't work"};
+      os::mem::Fixed_memory_range rng {begin, end, "Can't work"};
       map.assign_range(std::move(rng));
     } catch (const std::exception& e) {
       failed++;
