@@ -18,7 +18,6 @@ pipeline {
     stage('Setup') {
       steps {
         sh 'mkdir -p install'
-        sh 'cp conan/profiles/* ~/.conan/profiles/'
       }
     }
 
