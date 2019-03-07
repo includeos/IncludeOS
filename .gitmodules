@@ -1,6 +1,0 @@
-[submodule "examples/SQlite/sqlite3_amalgamation"]
-	path = examples/SQlite/sqlite3_amalgamation
-	url = https://github.com/fwsGonzo/sqlite3_amalgamation.git
-[submodule "examples/SQlite/libsl3"]
-	path = examples/SQlite/libsl3
-	url = https://github.com/fwsGonzo/libsl3.git
