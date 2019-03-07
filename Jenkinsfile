@@ -116,6 +116,15 @@ pipeline {
             sh script: "cd coverage; make -j $CPUS", label: "Make"
             sh script: "cd coverage; make coverage", label: "Make coverage"
           }
+          post {
+            success {
+              script {
+                if (env.CHANGE_ID) {
+                  pullRequest.comment("Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}")
+                }
+              }
+            }
+          }
         }
       }
     }
