@@ -5,7 +5,7 @@
 #include <set>
 #include <timers>
 
-#include <kernel/syscalls.hpp>
+#include <kernel/crash_context.hpp>
 
 void IrcServer::init()
 {
@@ -153,7 +153,7 @@ void IrcServer::user_bcast(clindex_t idx, const std::string& from, uint16_t tk, 
 void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
 {
   // we might save some memory by trying to use a shared buffer
-  auto netbuff = std::make_shared<std::vector<uint8_t>> (buffer, buffer + len);
+  auto netbuff = net::tcp::construct_buffer (buffer, buffer + len);
 
   std::set<clindex_t> uset;
   // add user
@@ -181,7 +181,7 @@ void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16
 void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
 {
   // we might save some memory by trying to use a shared buffer
-  auto netbuff = std::make_shared<std::vector<uint8_t>> (buffer, buffer + len);
+  auto netbuff = net::tcp::construct_buffer (buffer, buffer + len);
 
   std::set<clindex_t> uset;
   // for each channel user is in

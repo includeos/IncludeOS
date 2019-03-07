@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cassert>
 #include <timers>
+#include <vector>
 
 using namespace std::chrono;
 

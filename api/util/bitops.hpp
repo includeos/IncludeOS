@@ -175,6 +175,9 @@ inline uintptr_t roundto(uintptr_t x)
 inline constexpr uintptr_t roundto(uintptr_t M, uintptr_t x)
 { return multip(M,x) * M; }
 
+inline constexpr uintptr_t align(uintptr_t M, uintptr_t x)
+{ return roundto(M, x); }
+
 // Determine if ptr is A-aligned
 template <uintptr_t A>
 bool is_aligned(uintptr_t ptr) noexcept

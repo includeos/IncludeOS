@@ -224,7 +224,7 @@ void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg
 
 void Channel::bcast(const char* buff, size_t len)
 {
-  auto sbuf = std::make_shared<std::vector<uint8_t>> (buff, buff + len);
+  auto sbuf = net::tcp::construct_buffer (buff, buff + len);
 
   // broadcast to all users in channel
   for (auto cl : clients()) {
@@ -233,7 +233,7 @@ void Channel::bcast(const char* buff, size_t len)
 }
 void Channel::bcast_butone(clindex_t src, const char* buff, size_t len)
 {
-  auto sbuf = std::make_shared<std::vector<uint8_t>> (buff, buff + len);
+  auto sbuf = net::tcp::construct_buffer (buff, buff + len);
 
   // broadcast to all users in channel except source
   for (auto cl : clients())

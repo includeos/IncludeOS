@@ -18,7 +18,7 @@
 //#define DEBUG
 #include "cpu_freq_sampling.hpp"
 #include "pit.hpp"
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <algorithm>
 #include <util/units.hpp>
 #include <vector>
@@ -46,12 +46,12 @@ namespace x86 {
   {
     // We expect the cpu_sampling_irq_handler to push in samples;
     while (sample_counter < CPU_FREQUENCY_SAMPLES)
-        OS::halt();
+        os::halt();
 
     // Subtract the time it takes to measure time :-)
-    auto t1 = OS::cycles_since_boot();
-    OS::cycles_since_boot();
-    auto t3 = OS::cycles_since_boot();
+    auto t1 = os::cycles_since_boot();
+    os::cycles_since_boot();
+    auto t3 = os::cycles_since_boot();
     auto overhead = (t3 - t1) * 2;
 
     std::vector<double> cpu_freq_samples;
@@ -73,7 +73,7 @@ namespace x86 {
 extern "C"
 void cpu_sampling_irq_handler()
 {
-  volatile uint64_t ts = OS::cycles_since_boot();
+  volatile uint64_t ts = os::cycles_since_boot();
   /// it's forbidden to use heap inside here
   if (x86::sample_counter < x86::CPU_FREQUENCY_SAMPLES) {
     x86::cpu_timestamps[x86::sample_counter++] = ts;

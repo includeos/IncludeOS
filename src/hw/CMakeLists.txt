@@ -6,7 +6,7 @@
     vga_gfx.cpp
     msi.cpp
     pci_msi.cpp
-    drivers/usernet.cpp
+    usernet.cpp
   )
 
 

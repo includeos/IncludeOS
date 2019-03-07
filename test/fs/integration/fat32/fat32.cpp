@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <cassert>
 
+#include <hal/machine.hpp>
 #include <fs/disk.hpp>
 
 // Includes std::string internal_banana
@@ -99,7 +100,7 @@ void test2()
 
 void Service::start()
 {
-  auto& device = hw::Devices::drive(0);
+  auto& device = os::machine().get<hw::Block_device>(0);
   disk = std::make_shared<fs::Disk> (device);
 
   INFO("FAT32", "Running tests for FAT32");

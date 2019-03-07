@@ -5,6 +5,8 @@
 #TODO restructure this in a different commit based on KJ/CMakeFixes branch
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM_${PLATFORM})
+add_definitions(-DPLATFORM="${PLATFORM}")
 
 if (smp)
   add_definitions(-DINCLUDEOS_SMP_ENABLE)
@@ -18,13 +20,11 @@ include_directories(
 #TODO move to util and check if needed / can be changed.. unwanted dependency?
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
-
-
 set(SRCS
   version.cpp
 )
 set(LIBRARIES
-    fuzz
+    hal
     kernel
     util
     net

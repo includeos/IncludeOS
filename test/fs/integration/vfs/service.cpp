@@ -18,6 +18,7 @@
 #define OS_TERMINATE_ON_CONTRACT_VIOLATION
 
 #include <os>
+#include <hal/machine.hpp>
 #include <fs/vfs.hpp>
 #include <memdisk>
 
@@ -62,7 +63,7 @@ fs::File_system& memdisk() {
   if (not disk->fs_ready())
   {
     disk->init_fs([](fs::error_t err, auto&) {
-        if (err) panic("ERROR MOUNTING DISK\n");
+        if (err) os::panic("ERROR MOUNTING DISK\n");
       });
   }
   return disk->fs();
@@ -295,9 +296,9 @@ void Service::start(const std::string&)
   /** Locate all disk drives **/
   INFO("VFS_test", "Mounting all disk drives: ");
 
-  for (auto& drv : hw::Devices::devices<hw::Block_device>()) {
-    INFO("VFS_test", "Drive name: %s \n", drv->device_name().c_str());
-    fs::mount({"dev", drv->device_name()}, *drv, drv->driver_name());
+  for (auto& drv : os::machine().get<hw::Block_device>()) {
+    INFO("VFS_test", "Drive name: %s \n", drv.get().device_name().c_str());
+    fs::mount({"dev", drv.get().device_name()}, drv.get(), drv.get().driver_name());
   }
 
   auto& disk0 = fs::get<fs::Disk_ptr>("/dev/vblk0");
@@ -348,7 +349,7 @@ void Service::start(const std::string&)
       fs::VFS::mount({"/overlord/pictures/"}, my_disk->device_id(), {"/pictures/"}, "Images of our lord commander", [my_disk](auto err){
 
           if (err)
-            panic ("Error mounting dirent from disk on VFS path");
+            os::panic("Error mounting dirent from disk on VFS path");
 
           INFO("VFS_test", "Reading content of newly mounted folder");
 
@@ -357,14 +358,14 @@ void Service::start(const std::string&)
           fs::stat("/overlord/pictures/profile.txt", [](auto err, auto dir){
 
               if (err)
-                panic("Error stating file \n");
+                os::panic("Error stating file \n");
 
               INFO("VFS_test", "File found. Reading \n");
 
               dir.read([](auto err, auto buf){
 
                   if (err)
-                    panic("Errror reading file contents \n");
+                    os::panic("Errror reading file contents \n");
 
                   std::string res((char*)buf->data(), buf->size());
 

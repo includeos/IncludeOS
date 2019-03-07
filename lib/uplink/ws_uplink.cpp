@@ -82,7 +82,7 @@ namespace uplink {
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
 #if defined(LIVEUPDATE)
-    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
+    if(liu::LiveUpdate::is_resumable() && kernel::is_live_updated())
     {
       MYINFO("Found resumable state, try restoring...");
       liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
@@ -98,7 +98,8 @@ namespace uplink {
 #endif
     CHECK(config_.reboot, "Reboot on panic");
     if(config_.reboot)
-      OS::set_panic_action(OS::Panic_action::reboot);
+      os::set_panic_action(os::Panic_action::reboot);
+
 #if defined(LIVEUPDATE)
     CHECK(config_.serialize_ct, "Serialize Conntrack");
     if(config_.serialize_ct)
@@ -145,7 +146,7 @@ namespace uplink {
     // BINARY HASH
     store.add_string(0, update_hash_);
     // nanos timestamp of when update begins
-    store.add<uint64_t> (1, OS::nanos_since_boot());
+    store.add<uint64_t> (1, os::nanos_since_boot());
     // statman
     auto& stm = Statman::get();
     // increment number of updates performed
@@ -169,7 +170,7 @@ namespace uplink {
 
     // calculate update cycles taken
     uint64_t prev_nanos = store.as_type<uint64_t> (); store.go_next();
-    this->update_time_taken = OS::nanos_since_boot() - prev_nanos;
+    this->update_time_taken = os::nanos_since_boot() - prev_nanos;
     // statman
     if (!store.is_end())
     {
@@ -473,7 +474,7 @@ namespace uplink {
     writer.String(sysinfo.uuid);
 
     writer.Key("version");
-    writer.String(OS::version());
+    writer.String(os::version());
 
     writer.Key("service");
     writer.String(Service::name());
@@ -497,7 +498,7 @@ namespace uplink {
     }
 
     writer.Key("arch");
-    writer.String(OS::arch());
+    writer.String(os::arch());
 
     writer.Key("physical_ram");
     writer.Uint64(sysinfo.physical_memory);

@@ -17,8 +17,8 @@
 
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
-#include <kernel/os.hpp>
-#include <kernel/rdrand.hpp>
+#include <os.hpp>
+#include <os.hpp>
 #include <algorithm>
 #include <cstring>
 #include <smp>
@@ -154,24 +154,9 @@ void rng_extract(void* output, size_t bytes)
 
 void RNG::init()
 {
-   // initialize random seed based on cycles since start
-   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
-     uint32_t rdrand_output[32];
-
-     for (size_t i = 0; i != 32; ++i) {
-       while (!rdrand32(&rdrand_output[i])) {}
-     }
-
-     rng_absorb(rdrand_output, sizeof(rdrand_output));
-   }
-   else {
-     // this is horrible, better solution needed here
-    for (size_t i = 0; i != 32; ++i) {
-       uint64_t clock = OS::cycles_since_boot();
-       // maybe additionally call something which will take
-       // variable time depending in some way on the processor
-       // state (clflush?) or a HAVEGE-like approach.
-       rng_absorb(&clock, sizeof(clock));
-     }
-   }
+  for (int i = 0; i < 32; i++) {
+    const uint32_t value = __arch_rand32();
+    //printf("RNG: i=%d value=%#x\n", i, value);
+    rng_absorb(&value, sizeof(value));
+  }
 }

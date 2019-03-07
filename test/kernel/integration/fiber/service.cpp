@@ -19,8 +19,6 @@
 #include <vector>
 #include <kernel/fiber.hpp>
 
-//extern void print_backtrace();
-
 void scheduler1();
 void scheduler2();
 void scheduler3();
@@ -78,7 +76,7 @@ void basic_test() {
   printf("\n **********  Basic_test %i  ********** \n", i);
   INFO("B1", "Main thread: %i", Fiber::main() ? Fiber::main()->id() : -1);
   INFO("B1", "test. backtrace: ");
-  print_backtrace();
+  os::print_backtrace();
   printf("_____________________________________ \n\n");
 
 }
@@ -107,7 +105,7 @@ void basic_yield() {
   Fiber::yield();
 
   INFO("Yielder", "RESUMED ");
-  print_backtrace();
+  os::print_backtrace();
   print_frame();
   INFO("Yielder", "EXIT ");
   printf("_____________________________________ \n\n");
@@ -265,7 +263,7 @@ void Service::start()
   print_frame();
 
   INFO("Service", "Param address %p, string: %s \n", posix_str, posix_str);
-  print_backtrace();
+  os::print_backtrace();
 
   Fiber basic{basic_test};
   INFO("Service", "Starting basic test. rsp @ %p, fiber %i \n", get_rsp(), basic.id());

@@ -21,7 +21,8 @@
 
 #include <util/fixed_vector.hpp>
 #include <kernel/events.hpp>
-#include <kernel/os.hpp>
+//#include <kernel/os.hpp>
+#include <kernel.hpp>
 #include <common>
 
 namespace uplink {
@@ -64,7 +65,7 @@ public:
 
       // if we havent already queued a flush, do it
       // note: OS need to be booted for Events to work
-      if(not queued and OS::is_booted())
+      if(not queued and kernel::is_booted())
         queue_flush();
     }
   }
@@ -142,4 +143,3 @@ private:
 }
 
 #endif
-

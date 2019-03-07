@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <net/ws/websocket.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <util/base64.hpp>
 #include <util/sha1.hpp>
 #include <cstdint>
@@ -345,7 +345,7 @@ static Stream::buffer_t create_wsmsg(size_t len, op_code code, bool client)
   hdr.set_payload(len);
   hdr.set_opcode(code);
   if (client) {
-    hdr.set_masked((OS::cycles_since_boot() ^ (uintptr_t) buffer.get()) & 0xffffffff);
+    hdr.set_masked((os::cycles_since_boot() ^ (uintptr_t) buffer.get()) & 0xffffffff);
   }
   assert(header_len == sizeof(ws_header) + hdr.data_offset());
   return buffer;

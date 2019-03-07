@@ -23,6 +23,6 @@
 static struct Autoreg_log {
   Autoreg_log() {
     auto& log = uplink::Log::get();
-    OS::add_stdout({log, &uplink::Log::log});
+    os::add_stdout({log, &uplink::Log::log});
   }
 } autoreg_log;

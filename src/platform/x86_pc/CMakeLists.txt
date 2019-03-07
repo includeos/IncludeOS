@@ -1,27 +1,31 @@
+add_definitions(-DPLATFORM_x86_pc)
+
 ### x86 PC specific ###
 set(X86_PC_OBJECTS
-  start.asm
-  kernel_start.cpp
-  platform.cpp
-  os.cpp
-  clocks.cpp
-  cmos.cpp
-  cmos_clock.cpp
-  gdt.cpp
   acpi.cpp
-  ioapic.cpp
   apic.cpp
   apic_timer.cpp
   apic_revenant.cpp
-  smp.cpp
-  pit.cpp
+  clocks.cpp
+  cmos.cpp
+  cmos_clock.cpp
   cpu_freq_sampling.cpp
-  serial1.cpp
-  pic.cpp
-  softreset.cpp
-  sanity_checks.cpp
-  smbios.cpp
+  gdt.cpp
   idt.cpp
+  init_libc.cpp
+  ioapic.cpp
+  kernel_start.cpp
+  os.cpp
+  pic.cpp
+  pit.cpp
+  platform.cpp
+  rand.cpp
+  sanity_checks.cpp
+  serial1.cpp
+  smbios.cpp
+  smp.cpp
+  softreset.cpp
+  start.asm
   ### KVM features ###
   ../kvm/kvmclock.cpp
   ../kvm/pv_eoi.cpp

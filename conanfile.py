@@ -67,7 +67,7 @@ class IncludeOSConan(ConanFile):
 
         if (self.options.solo5):
             self.requires("solo5/0.4.1@{}/{}".format(self.user,self.channel))
-            
+
     def configure(self):
         del self.settings.compiler.libcxx
     def imports(self):

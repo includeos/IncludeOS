@@ -7,7 +7,7 @@ __attribute__((noreturn))
 static long sys_exit(int status)
 {
   const std::string msg = "Service exited with status " + std::to_string(status) + "\n";
-  OS::print(msg.data(), msg.size());
+  os::print(msg.data(), msg.size());
   __arch_poweroff();
   __builtin_unreachable();
 }

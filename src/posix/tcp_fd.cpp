@@ -16,7 +16,7 @@
 
 #include <posix/tcp_fd.hpp>
 #include <posix/fd_map.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <errno.h>
 #include <netinet/in.h>
 #include <net/interfaces.hpp>
@@ -110,7 +110,7 @@ long TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
               outgoing->is_closed() or
               refused))
   {
-    OS::block();
+    os::block();
   }
   // set connection whether good or bad
   if (outgoing->is_connected()) {
@@ -246,7 +246,7 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   // sometimes we can just write and forget
   if (written) return len;
   while (!written) {
-    OS::block();
+    os::block();
   }
 
   conn->on_write(nullptr); // temp
@@ -269,7 +269,7 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
   // BLOCK HERE:
   // If we havent read the data we asked for or if we're not yet closed/want to close
   while (buffer == nullptr and !conn->is_closed() and !recv_disc) {
-    OS::block();
+    os::block();
   }
 
   // means block exited by conn closing
@@ -293,7 +293,6 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
 int TCP_FD_Conn::close()
 {
   conn->close();
-  // wait for connection to close completely
   return 0;
 }
 int TCP_FD_Conn::shutdown(int mode)
@@ -339,7 +338,7 @@ long TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__rest
 {
   // block until connection appears
   while (connq.empty()) {
-    OS::block();
+    os::block();
   }
   // retrieve connection from queue
   auto sock = std::move(connq.back());

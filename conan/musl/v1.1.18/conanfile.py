@@ -13,13 +13,6 @@ class MuslConan(ConanFile):
     description = 'musl - an implementation of the standard library for Linux-based systems'
     url = "https://www.musl-libc.org/"
 
-    exports_sources=[
-        '../../../etc*musl*musl.patch',
-        '../../../etc*musl*endian.patch',
-        '../../../api*syscalls.h',
-        '../../../etc*musl*syscall.h'
-    ]
-
     def imports(self):
         self.copy("*",dst=".",src=".")
 
@@ -28,13 +21,9 @@ class MuslConan(ConanFile):
 
     def source(self):
         git = tools.Git(folder="musl")
-        git.clone("git://git.musl-libc.org/musl/",branch=self.version)
+        git.clone("https://github.com/includeos/musl.git",branch="master")
 
         # Replace syscall API's
-        tools.patch(base_path="musl",patch_file="etc/musl/musl.patch")
-        tools.patch(base_path="musl",patch_file="etc/musl/endian.patch")
-        shutil.copy("api/syscalls.h","musl/src/internal/includeos_syscalls.h")
-        shutil.copy("etc/musl/syscall.h","musl/src/internal")
         os.unlink("musl/arch/x86_64/syscall_arch.h")
         os.unlink("musl/arch/i386/syscall_arch.h")
 
@@ -80,6 +69,7 @@ class MuslConan(ConanFile):
 
     def package(self):
         self.copy("*.h",dst="include",src="musl/include")
+        self.copy("includeos_syscalls.h",dst="include",src="musl/src/internal")
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*.o",dst="lib",src="lib")
 

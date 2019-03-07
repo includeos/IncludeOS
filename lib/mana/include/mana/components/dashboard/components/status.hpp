@@ -48,19 +48,19 @@ public:
     writer.StartObject();
 
     writer.Key("version");
-    writer.String(OS::version());
+    writer.String(os::version());
 
     writer.Key("service");
     writer.String(Service::name());
 
     writer.Key("heap_usage");
-    writer.Uint64(OS::heap_usage());
+    writer.Uint64(os::total_memuse());
 
     writer.Key("cpu_freq");
-    writer.Double(OS::cpu_freq().count());
+    writer.Double(os::cpu_freq().count());
 
     writer.Key("boot_time");
-    long hest = OS::boot_timestamp();
+    long hest = os::boot_timestamp();
     struct tm* tt =
       gmtime (&hest);
     char datebuf[32];

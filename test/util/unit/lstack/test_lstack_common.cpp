@@ -617,3 +617,16 @@ CASE("lstack::" STR(LSTACK_OPT) " random allocs") {
 
   EXPECT(heap.bytes_free() == pool.size);
 }
+
+CASE("lstack::" STR(LSTACK_OPT) " make_unique") {
+  using namespace util;
+  using Alloc = alloc::Lstack<alloc::Lstack_opt::LSTACK_OPT>;
+  test::pool<Alloc, 1_MiB> pool;
+  Alloc heap = pool.stack;
+  EXPECT(heap.bytes_free() == 1_MiB);
+  auto uptr = heap.make_unique<test::pool<Alloc, 2_MiB>>();
+  EXPECT(((uintptr_t)uptr.get() >= pool.begin() and (uintptr_t)uptr.get() < pool.end()));
+  EXPECT(heap.bytes_free() < 1_MiB);
+  uptr.reset();
+  EXPECT(heap.bytes_free() == 1_MiB);
+}

@@ -17,10 +17,10 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 
 void __default_quick_exit() {
-  panic(">>> Quick exit, default route");
+  os::panic(">>> Quick exit, default route");
 }
 
 // According to the standard this should probably be a list or vector.
@@ -42,7 +42,7 @@ void quick_exit (int status)
   printf("\n>>> EXIT_%s (%i) \n",status==0 ? "SUCCESS" : "FAILURE",status);
 
   // Well.
-  panic("Quick exit called. ");
+  os::panic("Quick exit called. ");
 
   // ...we could actually return to the OS. Like, if we want to stay responsive, answer ping etc.
   // How to clean up the stack? Do we even need to?
