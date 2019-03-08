@@ -10,7 +10,7 @@ The build system will:
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
-[![Pre-release](https://img.shields.io/badge/IncludeOS-v0.12.0-green.svg)](https://github.com/hioa-cs/IncludeOS/releases)
+[![Pre-release](https://img.shields.io/github/release-pre/hioa-cs/IncludeOS.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Join the chat](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://goo.gl/NXBVsc)
 
@@ -74,7 +74,7 @@ If you want to install IncludeOS on your Linux/Mac OS you will need the latest v
 Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html) to build packages. By default IncludeOS will build with `clang 6.0` if `CONAN_PROFILE` is not defined. Passing `-DCONAN_DISABLE_CHECK_COMPILER` during build disables this check.
 
 ##### Profiles
-Profiles can be found in conan/profiles folder in the IncludeOS repository. The profile has to be placed in your `CONAN_USER_HOME` directory for the profiles to work. By default will be your `~/.conan/profiles` unless you have changed your `CONAN_USER_HOME`. Another way to install profiles is by using [conan config install](https://docs.conan.io/en/latest/reference/commands/consumer/config.html#conan-config-install)
+Profiles can be found in conan/profiles folder in the IncludeOS repository. The profile has to be placed in your `CONAN_USER_HOME` directory for the profiles to work. By default this will be your `~/.conan/profiles` unless you have changed your `CONAN_USER_HOME`. Another way to install profiles is by using [conan config install](https://docs.conan.io/en/latest/reference/commands/consumer/config.html#conan-config-install) which we hope to use in the future.
 
 Below is a sample profile for building on x86_64 with clang-6.0,
 
@@ -100,11 +100,10 @@ Below is a sample profile for building on x86_64 with clang-6.0,
 ```
 
 The target profiles we have verified are the following:
-
-- [clang-6.0-linux-x86](profiles/clang-6.0-linux-x86)
-- [clang-6.0-linux-x86_64](profiles/clang-6.0-linux-x86_64)
-- [gcc-7.3.0-linux-x86_64](profiles/gcc-7.3.0-linux-x86_64)
-- [clang-6.0-macos-x86_64](profiles/clang-6.0-macos-x86_64)
+- [clang-6.0-linux-x86](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-linux-x86)
+- [clang-6.0-linux-x86_64](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-linux-x86_64)
+- [gcc-7.3.0-linux-x86_64](https://github.com/includeos/conan/tree/master/profiles/gcc-7.3.0-linux-x86_64)
+- [clang-6.0-macos-x86_64](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-macos-x86_64)
 
 
 To ensure the profile has been installed do:
@@ -121,6 +120,7 @@ Verify the content of oyur profile by:
 If your profile is on the list and contents are verified, you are set to use the profile for building.
 
 ##### IncludeOS Artifactory Repo
+
 The artifactory repository is where all the packages used to build IncludeOS are uploaded. Adding the repo to your conan remotes will give you access to all our packages developed for IncludeOS.
 
 To add the IncludeOS-Develop conan Artifactory repository to your conan remotes:
@@ -140,6 +140,7 @@ Finally to install IncludeOS with profile named `clang-6.0-linux-x86_64` do:
 ```
 
 ###### Searching Packages
+
 if you want to check if a package exists you can search for it:
 
 ```
@@ -148,11 +149,45 @@ if you want to check if a package exists you can search for it:
 
 ### Getting started developing packages
 
+Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchain. It is expected that these are already installed in your system. However we hope to provide toolchains in the future.
+
+##### Building Tools
+
+Binutils is a tool and not an actual part of the final binary by having it added in the profile the binaries are always executable inside the conan environment.
+
+The binutils tool must be built for the Host it's intended to run on. Therefore the binutils package is built using a special toolchain profile that doesn't have a requirement on binutils.
+
+To build `bintuils` using our [conan recipes](https://github.com/includeos/conan):
+
+- Clone the repository
+- Do `conan create` as follows:
+
+```
+conan create <binutils-conan-recipe-path>/binutils/2.31 -pr <yourprofilename>-toolchain includeos/test
+
+```
 #### Building Dependencies
 
-Currently building works for clang-6 and gcc-7.3.0 compiler toolchain. It is expected that these are already installed in your system. However we hope to provide toolchains in the future.
+To build our other dependencies you may use the conan recipes we have in the repository.
 
-### Testing the installation
+##### Building musl
+```
+conan create <conan-recipe-path>/musl/1.1.18 -pr <yourprofilename> includeos/test
+
+```
+
+##### Building llvm stdc++ stdc++abi and libunwind
+
+If these recipes do not have a fixed version in the conan recipe then you have to specify it alongside the `user/channel` as `package/version@user/channel` otherwise you can use the same format at musl above.
+
+```
+conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/7.0.1@includeos/test
+conan create <conan-recipe-path>/llvm/libcxxabi -pr <yourprofilename> libcxxabi/7.0.1@includeos/test
+conan create <conan-recipe-path>/llvm/libcxx -pr <yourprofilename> libcxx/7.0.1@includeos/test
+
+```
+
+### Testing the IncludeOS installation
 
 A successful setup enables you to build and run a virtual machine. There are a few demonstration services in the source folder. If you look in the `examples/` folder you see these. If you enter `demo_service` and type `boot --create-bridge .` this script will build the service and boot it using [qemu].
 
