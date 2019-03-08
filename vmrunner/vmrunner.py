@@ -232,7 +232,7 @@ class solo5(hypervisor):
     def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
         self._stopped = False
 
-        qkvm_bin = INCLUDEOS_HOME + "/x86_64/lib/solo5-hvt"
+        qkvm_bin = INCLUDEOS_HOME + "/x86_64/bin/solo5-hvt"
 
         # Use provided image name if set, otherwise raise an execption
         if not image_name:
