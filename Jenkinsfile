@@ -37,8 +37,7 @@ pipeline {
         stage('liveupdate x86_64') {
           steps {
             //This ordering is wrong and should come post building includeos package
-            build_conan_package("$PROFILE_x86_64","OFF","lib/LiveUpdate")
-          	//build_editable('lib/LiveUpdate','liveupdate')
+            build_liveupdate_package("$PROFILE_x86_64")
           }
         }
         stage('mana x86_64') {
@@ -143,7 +142,7 @@ pipeline {
           steps {
             build_conan_package("$PROFILE_x86", "ON")
             build_conan_package("$PROFILE_x86_64")
-            build_conan_package("$PROFILE_x86_64","OFF","lib/LiveUpdate")
+            build_liveupdate_package("$PROFILE_x86_64")
           }
         }
         stage('Upload to bintray') {
@@ -183,6 +182,10 @@ def build_editable(String location, String name) {
   """
 }
 
-def build_conan_package(String profile, basic="OFF",folder=".") {
-  sh script: "conan create ${folder} $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
+def build_conan_package(String profile, basic="OFF") {
+  sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
+}
+
+def build_liveupdate_package(String profile) {
+  sh script: "conan create lib/LiveUpdate $USER/$CHAN -pr ${profile}", label: "Build with profile: $profile"
 }
