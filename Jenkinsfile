@@ -141,6 +141,7 @@ pipeline {
           steps {
             build_conan_package("$PROFILE_x86", "ON")
             build_conan_package("$PROFILE_x86_64")
+            build_conan_package("$PROFILE_x86_64","OFF","lib/LiveUpdate")
           }
         }
         stage('Upload to bintray') {
@@ -150,7 +151,8 @@ pipeline {
                 script: 'conan inspect -a version . | cut -d " " -f 2',
                 returnStdout: true
               ).trim()
-              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload to bintray"
+              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload includeos to bintray"
+              sh script: "conan upload --all -r $REMOTE liveupdate/${version}@$USER/$CHAN", label: "Upload liveupdate to bintray"
             }
           }
         }
@@ -171,6 +173,6 @@ def build_editable(String location, String name) {
   """
 }
 
-def build_conan_package(String profile, basic="OFF") {
-  sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
+def build_conan_package(String profile, basic="OFF",folder=".") {
+  sh script: "conan create ${folder} $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
 }
