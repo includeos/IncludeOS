@@ -36,7 +36,9 @@ pipeline {
         }
         stage('liveupdate x86_64') {
           steps {
-          	build_editable('lib/LiveUpdate','liveupdate')
+            //This ordering is wrong and should come post building includeos package
+            build_conan_package("$PROFILE_x86_64","OFF","lib/LiveUpdate")
+          	//build_editable('lib/LiveUpdate','liveupdate')
           }
         }
         stage('mana x86_64') {
@@ -157,6 +159,14 @@ pipeline {
           }
         }
       }
+    }
+  }
+  post {
+    cleanup {
+      sh script: """
+        VERSION=\$(conan inspect -a version lib/LiveUpdate | cut -d " " -f 2)
+        conan remove liveupdate/\$VERSION@$USER/$CHAN -f || echo 'Could not remove. This does not fail the pipeline'
+      """, label: "Cleaning up and removing conan package"
     }
   }
 }
