@@ -333,7 +333,7 @@ class solo5_hvt(solo5):
         return "Solo5-hvt"
 
     def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
-        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/bin/solo5-hvt"
+        solo5_bin = INCLUDEOS_HOME + "x86_64/bin/solo5-hvt"
         super(solo5_hvt, self).boot(solo5_bin, multiboot, debug, kernel_args, image_name)
 
 class solo5_spt(solo5):
@@ -344,7 +344,7 @@ class solo5_spt(solo5):
         return "Solo5-spt"
 
     def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
-        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/bin/solo5-spt"
+        solo5_bin = INCLUDEOS_HOME + "x86_64/bin/solo5-spt"
         super(solo5_spt, self).boot(solo5_bin, multiboot, debug, kernel_args, image_name)
 
 # Qemu Hypervisor interface

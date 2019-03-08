@@ -163,7 +163,7 @@ hyper_name = "qemu"
 if args.solo5_hvt:
     hyper_name = "solo5-hvt"
     os.environ['PLATFORM'] = "x86_solo5"
-    solo5_hvt = INCLUDEOS_PREFIX + "/x86_64/lib/solo5-hvt"
+    solo5_hvt = INCLUDEOS_PREFIX + "/x86_64/bin/solo5-hvt"
 
     subprocess.call(['chmod', '+x', solo5_hvt])
     subprocess.call(['sudo', INCLUDEOS_PREFIX + "/scripts/solo5-ifup.sh" ])
@@ -171,7 +171,7 @@ if args.solo5_hvt:
 elif args.solo5_spt:
     hyper_name = "solo5-spt"
     os.environ['PLATFORM'] = "x86_solo5"
-    solo5_spt = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/solo5-spt"
+    solo5_spt = INCLUDEOS_PREFIX + "/x86_64/bin/solo5-spt"
 
     subprocess.call(['chmod', '+x', solo5_spt])
     subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])

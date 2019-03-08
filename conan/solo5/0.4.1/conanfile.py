@@ -11,7 +11,7 @@ class Solo5Conan(ConanFile):
 
     def source(self):
         repo = tools.Git(folder = self.name)
-        repo.clone(self.url + ".git",branch=master)
+        repo.clone(self.url + ".git",branch="master")
 
     def build(self):
         self.run("CC=gcc ./configure.sh", cwd=self.name)
@@ -21,6 +21,7 @@ class Solo5Conan(ConanFile):
         #grab evenrything just so its a reausable redistributable recipe
         self.copy("*.h", dst="include/solo5", src=self.name + "/include/solo5")
         self.copy("*.o", dst="lib", src=self.name + "/bindings/hvt/")
+        self.copy("*.o", dst="lib", src=self.name + "/bindings/spt/")
         self.copy("solo5-hvt", dst="bin", src= self.name + "/tenders/hvt")
         self.copy("solo5-hvt-configure", dst="bin", src= self.name + "/tenders/hvt")
         self.copy("solo5-spt", dst="bin", src= self.name + "/tenders/spt")
