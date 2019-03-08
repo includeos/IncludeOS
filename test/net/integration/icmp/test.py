@@ -35,8 +35,9 @@ def start_icmp_test(trigger_line):
   global num_successes
 
   # Installing hping3 on linux
-  subprocess.call(["sudo", "apt-get", "update"])
-  subprocess.call(["sudo", "apt-get", "-y", "install", "hping3"])
+  #TODO if not found ping3.. do fail and tell user to install !!!
+  #subprocess.call(["sudo", "apt-get", "update"])
+  #subprocess.call(["sudo", "apt-get", "-y", "install", "hping3"])
   # Installing hping3 on macOS
   # subprocess.call(["brew", "install", "hping"])
 
@@ -101,5 +102,8 @@ def start_icmp_test(trigger_line):
 
 vm.on_output("Service IP address is 10.0.0.45", start_icmp_test);
 
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(thread_timeout,image_name='net_icmp').clean()

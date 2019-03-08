@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "acpi.hpp"
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <hw/ioport.hpp>
 #include <debug>
 #include <info>
@@ -141,12 +141,12 @@ namespace x86 {
     // verify Root SDT
     if (rsdt->Length < sizeof(SDTHeader)) {
       printf("ACPI: SDT verification failed: len=%u\n", rsdt->Length);
-      panic("SDT had impossible length");
+      os::panic("SDT had impossible length");
     }
     if (checksum((char*) rsdt, rsdt->Length) != 0)
     {
       printf("ACPI: SDT verification failed!");
-      panic("SDT checksum failed");
+      os::panic("SDT checksum failed");
     }
 
     // walk through system description table headers
@@ -375,7 +375,7 @@ namespace x86 {
       addr += 16;
     }
 
-    panic("ACPI RDST-search failed\n");
+    os::panic("ACPI RDST-search failed\n");
   }
 
   void ACPI::reboot()

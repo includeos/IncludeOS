@@ -20,7 +20,7 @@
 #include <kprint>
 #include <util/crc32.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 
 //#define ENABLE_CRC_RO
 
@@ -61,19 +61,19 @@ void kernel_sanity_checks()
 
   if (crc_ro != new_ro) {
     kprintf("CRC mismatch %#x vs %#x\n", crc_ro, new_ro);
-    panic("Sanity checks: CRC of kernel read-only area failed");
+    os::panic("Sanity checks: CRC of kernel read-only area failed");
   }
 #endif
 
   // verify that Elf symbols were not overwritten
   bool symbols_verified = Elf::verify_symbols();
   if (!symbols_verified)
-    panic("Sanity checks: Consistency of Elf symbols and string areas");
+    os::panic("Sanity checks: Consistency of Elf symbols and string areas");
 
   // global constructor self-test
   if (gconstr_value != 1) {
     kprintf("Sanity checks: Global constructors not working (or modified during run-time)!\n");
-    panic("Sanity checks: Global constructors verification failed");
+    os::panic("Sanity checks: Global constructors verification failed");
   }
 
 }

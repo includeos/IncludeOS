@@ -47,4 +47,7 @@ vm.on_output("Client 2 got IP from IncludeOS DHCP server", DHCP_test)
 vm.on_output("Client 3 got IP from IncludeOS DHCP server", DHCP_test)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vmrunner.vms[0].cmake().boot(thread_timeout,image_name='net_dhcpd').clean()

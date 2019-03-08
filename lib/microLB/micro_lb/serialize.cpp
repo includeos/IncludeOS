@@ -1,5 +1,6 @@
 #include "balancer.hpp"
 #include <stdexcept>
+#include <liveupdate>
 #include <net/inet>
 #include <net/tcp/stream.hpp>
 #include <net/s2n/stream.hpp>
@@ -159,7 +160,7 @@ namespace microLB
 
   void Balancer::init_liveupdate()
   {
-#ifndef USERSPACE_LINUX
+#ifndef USERSPACE_KERNEL
     liu::LiveUpdate::register_partition("microlb", {this, &Balancer::serialize});
     if(liu::LiveUpdate::is_resumable())
     {

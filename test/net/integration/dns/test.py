@@ -13,8 +13,6 @@ sys.path.insert(0,includeos_src)
 from vmrunner import vmrunner
 from vmrunner.prettify import color
 
-# Install build dependencies, ip forwarding
-subprocess.call(["bash", "setup.sh"])
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
@@ -38,4 +36,9 @@ vm.on_output("Resolved IP address of github.com with DNS server 8.8.8.8", count)
 vm.on_output("some_address_that_doesnt_exist.com couldn't be resolved", count)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+#vm.cmake().boot(thread_timeout).clean()
+#if name is passed execute that do not clean and do not rebuild..
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout,image_name='net_dns').clean()

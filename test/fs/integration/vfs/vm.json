@@ -1,14 +1,13 @@
 {
-  "image" : "test_vfs.img",
   "drives"  : [
     {
-      "file" : "../virtio1.disk",
+      "file" : "virtio1.disk",
       "type" : "virtio",
       "format" : "raw",
       "media" : "disk"
     },
     {
-      "file" : "../virtio2.disk",
+      "file" : "virtio2.disk",
       "type" : "virtio",
       "format" : "raw",
       "media" : "disk"

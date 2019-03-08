@@ -25,20 +25,22 @@
 #include <unistd.h>
 #include <vector>
 #include <elf.h>
+#include <os.hpp>
 #include <arch.hpp>
 
-#if __LP64__
-typedef Elf64_Sym   ElfSym;
-typedef Elf64_Ehdr  ElfEhdr;
-typedef Elf64_Phdr  ElfPhdr;
-typedef Elf64_Shdr  ElfShdr;
-typedef Elf64_Addr  ElfAddr;
-#elif __ILP32__
-typedef Elf32_Sym   ElfSym;
-typedef Elf32_Ehdr  ElfEhdr;
-typedef Elf32_Phdr  ElfPhdr;
-typedef Elf32_Shdr  ElfShdr;
-typedef Elf32_Addr  ElfAddr;
+#include <stdint.h>
+#if UINTPTR_MAX == 0xffffffffffffffff
+  typedef Elf64_Sym   ElfSym;
+  typedef Elf64_Ehdr  ElfEhdr;
+  typedef Elf64_Phdr  ElfPhdr;
+  typedef Elf64_Shdr  ElfShdr;
+  typedef Elf64_Addr  ElfAddr;
+#elif UINTPTR_MAX == 0xffffffff
+  typedef Elf32_Sym   ElfSym;
+  typedef Elf32_Ehdr  ElfEhdr;
+  typedef Elf32_Phdr  ElfPhdr;
+  typedef Elf32_Shdr  ElfShdr;
+  typedef Elf32_Addr  ElfAddr;
 #else
   #error "Unknown data model"
 #endif
@@ -243,7 +245,7 @@ bool Elf::verify_symbols()
   return get_parser().verify_symbols();
 }
 
-void print_backtrace2(void(*stdout_function)(const char*, size_t))
+void os::print_backtrace(void(*stdout_function)(const char*, size_t)) noexcept
 {
   char _symbol_buffer[8192];
   char _btrace_buffer[8192];
@@ -254,7 +256,7 @@ void print_backtrace2(void(*stdout_function)(const char*, size_t))
     write(1, _btrace_buffer, len);
   }
 
-#if defined(__ILP32__)
+#if UINTPTR_MAX == 0xffffffff
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol(                     \
                 ra, _symbol_buffer, sizeof(_symbol_buffer));  \
@@ -262,7 +264,8 @@ void print_backtrace2(void(*stdout_function)(const char*, size_t))
             "[%d] 0x%08x + 0x%.3x: %s\n",         \
             N, symb.addr, symb.offset, symb.name);\
             stdout_function(_btrace_buffer, len);
-#elif defined(__LP64__)
+
+#elif UINTPTR_MAX == 0xffffffffffffffff
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol(                     \
                 ra, _symbol_buffer, sizeof(_symbol_buffer));  \
@@ -308,9 +311,9 @@ void print_backtrace2(void(*stdout_function)(const char*, size_t))
                                 PRINT_TRACE(14, ra);
   }}}}}}}}}}}}}}}
 }
-void print_backtrace()
+void os::print_backtrace() noexcept
 {
-  print_backtrace2([] (const char* text, size_t length) {
+  print_backtrace([] (const char* text, size_t length) {
     write(1, text, length);
   });
 }
@@ -469,17 +472,17 @@ void elf_check_symbols_ok()
 #ifdef ARCH_x86_64
 #include <kernel/memmap.hpp>
 #include <kernel/memory.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 void elf_protect_symbol_areas()
 {
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
-  if (size % OS::page_size()) size += OS::page_size() - (size & (OS::page_size()-1));
+  if (size % os::mem::min_psize()) size += os::mem::min_psize() - (size & (os::mem::min_psize()-1));
   if (size == 0) return;
   // create the ELF symbols & strings area
-  OS::memory_map().assign_range(
+  os::mem::vmmap().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
-  
+
   INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);
   os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
 }

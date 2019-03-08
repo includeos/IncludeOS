@@ -15,4 +15,7 @@ from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
 # Boot the VM
-vm.cmake().boot(30).clean()
+if len(sys.argv) > 1:
+    vm.boot(30,image_name='fs_fat16')
+else:
+    vm.cmake().boot(30,image_name='fs_fat16').clean()

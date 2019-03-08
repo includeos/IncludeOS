@@ -26,11 +26,11 @@ else:
 
 package_path = os.path.dirname(os.path.realpath(__file__))
 
-default_config = INCLUDEOS_HOME + "/includeos/vmrunner/vm.default.json"
+default_config = INCLUDEOS_HOME + "/tools/vmrunner/vm.default.json"
 
 default_json = "./vm.json"
 
-chainloader = INCLUDEOS_HOME + "/includeos/chainloader"
+chainloader = INCLUDEOS_HOME + "/bin/chainloader"
 
 # Provide a list of VM's with validated specs
 # (One default vm added at the end)
@@ -333,7 +333,7 @@ class solo5_hvt(solo5):
         return "Solo5-hvt"
 
     def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
-        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/solo5-hvt"
+        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/bin/solo5-hvt"
         super(solo5_hvt, self).boot(solo5_bin, multiboot, debug, kernel_args, image_name)
 
 class solo5_spt(solo5):
@@ -344,7 +344,7 @@ class solo5_spt(solo5):
         return "Solo5-spt"
 
     def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
-        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/solo5-spt"
+        solo5_bin = INCLUDEOS_HOME + "/includeos/x86_64/bin/solo5-spt"
         super(solo5_spt, self).boot(solo5_bin, multiboot, debug, kernel_args, image_name)
 
 # Qemu Hypervisor interface
@@ -402,8 +402,8 @@ class qemu(hypervisor):
             qemu_ifup = scripts + "qemu-ifup"
             qemu_ifdown = scripts + "qemu-ifdown"
         else:
-            qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
-            qemu_ifdown = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifdown"
+            qemu_ifup = INCLUDEOS_HOME + "/scripts/qemu-ifup"
+            qemu_ifdown = INCLUDEOS_HOME + "/scripts/qemu-ifdown"
 
         # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
@@ -821,7 +821,7 @@ class vm:
         if (not os.path.isfile("CMakeLists.txt") and os.path.isfile("service.cpp")):
             # No makefile present. Copy the one from seed, inform user and pray.
             # copyfile will throw errors if it encounters any.
-            copyfile(INCLUDEOS_HOME + "/includeos/seed/service/CMakeLists.txt", "CMakeLists.txt")
+            copyfile(INCLUDEOS_HOME + "/seed/service/CMakeLists.txt", "CMakeLists.txt")
             print INFO, "No CMakeList.txt present. File copied from seed. Please adapt to your needs."
 
         # create build directory
@@ -1060,10 +1060,14 @@ def program_exit(status, msg):
     sys.exit(status)
 
 
+# Call this to add a new vm to the vms list as well. This ensures proper termination
+def add_vm(**kwargs):
+    new_vm = vm(**kwargs)
+    vms.append(new_vm)
+    return new_vm
 
-# Handler for SIGINT
+# Handler for signals
 def handler(signum, frame):
-    print
     print color.WARNING("Process interrupted - stopping vms")
     for vm in vms:
         try:
@@ -1076,4 +1080,5 @@ def handler(signum, frame):
 # One unconfigured vm is created by default, which will try to load a config if booted
 vms.append(vm())
 
+signal.signal(signal.SIGTERM, handler)
 signal.signal(signal.SIGINT, handler)

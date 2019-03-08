@@ -25,6 +25,8 @@
 #include <map>
 #include <string>
 
+namespace os::mem {
+
 /**
  * This type is used to represent an error that occurred
  * from within the operations of class Fixed_memory_range
@@ -463,4 +465,5 @@ private:
   Map map_;
 }; //< class Memory_map
 
+} // ns os::mem
 #endif //< KERNEL_MEMMAP_HPP

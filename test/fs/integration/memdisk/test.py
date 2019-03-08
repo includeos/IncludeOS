@@ -12,5 +12,8 @@ from subprocess import call
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
-# Make default (nosector) and boot the VM
-vm.cmake().boot(20).clean()
+#boot the vm
+if len(sys.argv) > 1:
+    vm.boot(20,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='fs_memdisk').clean()

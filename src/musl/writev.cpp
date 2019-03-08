@@ -10,7 +10,7 @@ static long sys_writev(int fd, const struct iovec *iov, int iovcnt)
     {
       auto* text = (const char*)iov[i].iov_base;
       auto len = iov[i].iov_len;
-      OS::print(text, len);
+      os::print(text, len);
       res += len;
     }
     return res;

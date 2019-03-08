@@ -77,6 +77,10 @@ union Addr {
         return 0;
   }
 
+  Addr(const std::string& smac) noexcept
+    : Addr(smac.c_str())
+  {}
+
   Addr(const char *smac) noexcept
   {
     uint8_t macaddr[PARTS_LEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };

@@ -37,4 +37,7 @@ vm.on_output("All done!", check_num_outputs)
 vm.on_exit(cleanup)
 
 # Boot the VM, taking a timeout as parameter
-vm.boot(20)
+if len(sys.argv) > 1:
+    vm.boot(20,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='posix_file_fd').clean()

@@ -24,13 +24,14 @@
 #include <memory>
 #include <pmr>
 #include <vector>
+#include "device.hpp"
 
 namespace hw {
 
 /**
  * This class is an abstract interface for block devices
  */
-class Block_device {
+class Block_device : public Device {
 public:
   using block_t       = uint64_t;
   using buffer_t      = os::mem::buf_ptr;
@@ -42,15 +43,15 @@ public:
    *
    * @return The type of device as a C-String
    */
-  static const char* device_type() noexcept
-  { return "Block device"; }
+  Device::Type device_type() const noexcept override
+  { return Device::Type::Block; }
 
   /**
    * Method to get the name of the device
    *
    * @return The name of the device as a std::string
    */
-  virtual std::string device_name() const = 0;
+  virtual std::string device_name() const override = 0;
 
   /**
    * Method to get the device's identifier
@@ -98,7 +99,9 @@ public:
    *     error("Device failed to read sector");
    *   }
    */
-  virtual void read(block_t blk, on_read_func reader) = 0;
+  virtual void read(block_t blk, on_read_func reader) {
+    read(blk, 1, std::move(reader));
+  }
 
   /**
    * Read blocks of data asynchronously from the device
@@ -123,16 +126,6 @@ public:
   virtual void read(block_t blk, size_t count, on_read_func reader) = 0;
 
   /**
-   * Read a block of data synchronously from the device
-   *
-   * @param blk
-   *   The block of data to read from the device
-   *
-   * @return A buffer containing the data or nullptr if an error occurred
-   */
-  virtual buffer_t read_sync(block_t blk) = 0;
-
-  /**
    * Read blocks of data synchronously from the device
    *
    * @param blk
@@ -143,20 +136,12 @@ public:
    *
    * @return A buffer containing the data or nullptr if an error occurred
    */
-  virtual buffer_t read_sync(block_t blk, size_t count) = 0;
-
-  /**
-   * Write blocks of data to device, IF specially supported
-   * This functionality is not enabled by default, nor always supported
-  **/
-  virtual void write(block_t blk, buffer_t, on_write_func) = 0;
-
-  virtual bool write_sync(block_t blk, buffer_t) = 0;
+  virtual buffer_t read_sync(block_t blk, size_t count=1) = 0;
 
   /**
    * Method to deactivate the block device
    */
-  virtual void deactivate() = 0;
+  virtual void deactivate() override = 0;
 
   virtual ~Block_device() noexcept = default;
 protected:

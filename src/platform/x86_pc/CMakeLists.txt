@@ -1,27 +1,31 @@
+add_definitions(-DPLATFORM_x86_pc)
+
 ### x86 PC specific ###
 set(X86_PC_OBJECTS
-  start.asm
-  kernel_start.cpp
-  platform.cpp
-  os.cpp
-  clocks.cpp
-  cmos.cpp
-  cmos_clock.cpp
-  gdt.cpp
   acpi.cpp
-  ioapic.cpp
   apic.cpp
   apic_timer.cpp
   apic_revenant.cpp
-  smp.cpp
-  pit.cpp
+  clocks.cpp
+  cmos.cpp
+  cmos_clock.cpp
   cpu_freq_sampling.cpp
-  serial1.cpp
-  pic.cpp
-  softreset.cpp
-  sanity_checks.cpp
-  smbios.cpp
+  gdt.cpp
   idt.cpp
+  init_libc.cpp
+  ioapic.cpp
+  kernel_start.cpp
+  os.cpp
+  pic.cpp
+  pit.cpp
+  platform.cpp
+  rand.cpp
+  sanity_checks.cpp
+  serial1.cpp
+  smbios.cpp
+  smp.cpp
+  softreset.cpp
+  start.asm
   ### KVM features ###
   ../kvm/kvmclock.cpp
   ../kvm/pv_eoi.cpp
@@ -35,13 +39,9 @@ add_custom_command(
 )
 
 add_library(x86_pc STATIC ${X86_PC_OBJECTS} apic_boot.o)
-add_dependencies(x86_pc PrecompiledLibraries)
 
 # disable sanitizers on kernel_start and others
-#set_source_files_properties(kernel_start.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
-#set_source_files_properties(serial1.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
-#set_source_files_properties(smbios.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 
 add_subdirectory(boot)
 set_target_properties(x86_pc PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS x86_pc DESTINATION includeos/${ARCH}/platform/)
+install(TARGETS x86_pc DESTINATION ${ARCH}/platform/)

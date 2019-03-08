@@ -17,7 +17,7 @@
 
 #pragma once
 #include <kernel/events.hpp>
-#include <drivers/usernet.hpp>
+#include <hw/usernet.hpp>
 #include <deque>
 
 namespace hw

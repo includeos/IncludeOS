@@ -28,7 +28,7 @@ void Service::start(const std::string&)
   static auto& inet = Interfaces::get(0);
   inet.negotiate_dhcp(10.0, [](bool timeout) {
       if (timeout)
-        panic("DHCP timed out");
+        os::panic("DHCP timed out");
 
       INFO("DHCP test", "Got IP from DHCP");
       printf("%s\n", inet.ip_addr().str().c_str());

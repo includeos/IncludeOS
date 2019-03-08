@@ -102,6 +102,8 @@ struct LiveUpdate
   // performing a soft-reset to reduce downtime to a minimum
   // Never returns, and upon failure intentionally hard-resets the OS
   static void rollback_now(const char* reason);
+  // Returns if the state in the OS has been set to being "liveupdated"
+  static bool os_is_liveupdated() noexcept;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -175,9 +177,14 @@ struct Restore
   typedef net::tcp::Connection_ptr Connection_ptr;
 
   bool  is_end()    const noexcept;
-  bool  is_int()    const noexcept;
   bool  is_marker() const noexcept;
+  bool  is_int()    const noexcept;
+  bool  is_string() const noexcept;
+  bool  is_buffer() const noexcept;
+  bool  is_vector() const noexcept; // not for string-vector
+  bool  is_string_vector() const noexcept; // for string-vector
   bool  is_stream() const noexcept;
+
   int             as_int()    const;
   std::string     as_string() const;
   buffer_t        as_buffer() const;

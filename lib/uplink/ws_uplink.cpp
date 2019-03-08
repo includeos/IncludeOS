@@ -81,7 +81,8 @@ namespace uplink {
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
-    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
+#if defined(LIVEUPDATE)
+    if(liu::LiveUpdate::is_resumable() && kernel::is_live_updated())
     {
       MYINFO("Found resumable state, try restoring...");
       liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
@@ -89,18 +90,21 @@ namespace uplink {
       if(liu::LiveUpdate::partition_exists("conntrack"))
         liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
     }
-
+#endif
     Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
+#if defined(LIVEUPDATE)
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
-
+#endif
     CHECK(config_.reboot, "Reboot on panic");
     if(config_.reboot)
-      OS::set_panic_action(OS::Panic_action::reboot);
+      os::set_panic_action(os::Panic_action::reboot);
 
+#if defined(LIVEUPDATE)
     CHECK(config_.serialize_ct, "Serialize Conntrack");
     if(config_.serialize_ct)
       liu::LiveUpdate::register_partition("conntrack", {this, &WS_uplink::store_conntrack});
+#endif
 
     if(inet_.is_configured())
     {
@@ -136,13 +140,13 @@ namespace uplink {
 
     auth();
   }
-
+#if defined(LIVEUPDATE)
   void WS_uplink::store(liu::Storage& store, const liu::buffer_t*)
   {
     // BINARY HASH
     store.add_string(0, update_hash_);
     // nanos timestamp of when update begins
-    store.add<uint64_t> (1, OS::nanos_since_boot());
+    store.add<uint64_t> (1, os::nanos_since_boot());
     // statman
     auto& stm = Statman::get();
     // increment number of updates performed
@@ -166,7 +170,7 @@ namespace uplink {
 
     // calculate update cycles taken
     uint64_t prev_nanos = store.as_type<uint64_t> (); store.go_next();
-    this->update_time_taken = OS::nanos_since_boot() - prev_nanos;
+    this->update_time_taken = os::nanos_since_boot() - prev_nanos;
     // statman
     if (!store.is_end())
     {
@@ -177,7 +181,7 @@ namespace uplink {
 
     INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
-
+#endif
   std::string WS_uplink::auth_data() const
   {
     return "{ \"id\": \"" + id_ + "\", \"key\": \"" + config_.token + "\"}";
@@ -408,6 +412,7 @@ namespace uplink {
     // make sure both the log and the close is flushed before updating
     inet_.nic().flush();
 
+#if defined(LIVEUPDATE)
     // do the update
     try {
       liu::LiveUpdate::exec(std::move(buffer));
@@ -418,6 +423,7 @@ namespace uplink {
       // establish new connection
       this->auth();
     }
+#endif
   }
 
   template <typename Writer, typename Stack_ptr>
@@ -468,7 +474,7 @@ namespace uplink {
     writer.String(sysinfo.uuid);
 
     writer.Key("version");
-    writer.String(OS::version());
+    writer.String(os::version());
 
     writer.Key("service");
     writer.String(Service::name());
@@ -492,7 +498,7 @@ namespace uplink {
     }
 
     writer.Key("arch");
-    writer.String(OS::arch());
+    writer.String(os::arch());
 
     writer.Key("physical_ram");
     writer.Uint64(sysinfo.physical_memory);
@@ -639,7 +645,7 @@ namespace uplink {
     }
     return nullptr;
   }
-
+#if defined(LIVEUPDATE)
   void WS_uplink::store_conntrack(liu::Storage& store, const liu::buffer_t*)
   {
     // NOTE: Only support serializing one conntrack atm
@@ -662,5 +668,5 @@ namespace uplink {
     auto buf = store.as_buffer();
     ct->deserialize_from(buf.data());
   }
-
+#endif
 }

@@ -5,7 +5,7 @@
 #include <set>
 #include <timers>
 
-#include <kernel/syscalls.hpp>
+#include <kernel/crash_context.hpp>
 
 void IrcServer::init()
 {
@@ -33,7 +33,7 @@ IrcServer::IrcServer(
 
   // client listener (although IRC servers usually have many ports open)
   client_stack().tcp().listen(cl_port,
-  [this] (auto csock)
+  [this] (net::tcp::Connection_ptr csock)
   {
     // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
@@ -55,7 +55,7 @@ IrcServer::IrcServer(
 
   // server listener
   server_stack().tcp().listen(sv_port,
-  [this] (auto ssock)
+  [this] (net::tcp::Connection_ptr ssock)
   {
     // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
@@ -153,7 +153,7 @@ void IrcServer::user_bcast(clindex_t idx, const std::string& from, uint16_t tk, 
 void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
 {
   // we might save some memory by trying to use a shared buffer
-  auto netbuff = std::make_shared<std::vector<uint8_t>> (buffer, buffer + len);
+  auto netbuff = net::tcp::construct_buffer (buffer, buffer + len);
 
   std::set<clindex_t> uset;
   // add user
@@ -181,7 +181,7 @@ void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16
 void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
 {
   // we might save some memory by trying to use a shared buffer
-  auto netbuff = std::make_shared<std::vector<uint8_t>> (buffer, buffer + len);
+  auto netbuff = net::tcp::construct_buffer (buffer, buffer + len);
 
   std::set<clindex_t> uset;
   // for each channel user is in
@@ -319,3 +319,6 @@ void IrcServer::begin_netburst(Server& target)
   /// end of burst
   target.send("EB\r\n");
 }
+
+__attribute__((weak))
+bool IrcServer::init_liveupdate() { return false; }

@@ -50,24 +50,12 @@ public:
     return SECTOR_SIZE; // some multiple of sector size
   }
 
-  void read(block_t blk, on_read_func reader) override {
-    // solo5 doesn't support async blk IO at the moment
-    reader( read_sync(blk) );
-  }
-
   void read(block_t blk, size_t cnt, on_read_func reader) override {
     // solo5 doesn't support async blk IO at the moment
     reader( read_sync(blk, cnt) );
   }
 
-  buffer_t read_sync(block_t) override; // stays
-  buffer_t read_sync(block_t, size_t) override; // stays
-
-  // not supported
-  void write(block_t, buffer_t, on_write_func callback) override {
-    callback(true);
-  }
-  bool write_sync(block_t, buffer_t) override { return true; }
+  buffer_t read_sync(block_t, size_t) override;
 
   block_t size() const noexcept override;
 

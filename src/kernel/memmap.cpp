@@ -20,6 +20,8 @@
 #include <kernel/memmap.hpp>
 #include <util/units.hpp>
 
+using namespace os::mem;
+
 ///////////////////////////////////////////////////////////////////////////////
 Fixed_memory_range::Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
                                        In_use_delg in_use_operation)

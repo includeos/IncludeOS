@@ -25,8 +25,8 @@
 #include <arch/x86/gdt.hpp>
 #include <kernel/events.hpp>
 #include <kernel/pci_manager.hpp>
-#include <kernel/os.hpp>
-#include <hw/devices.hpp>
+#include <kernel.hpp>
+#include <os.hpp>
 #include <hw/pci_device.hpp>
 #include <info>
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
@@ -41,6 +41,8 @@ struct alignas(64) smp_table
   /** put more here **/
 };
 static SMP::Array<smp_table> cpu_tables;
+
+static util::KHz cpu_freq_{};
 
 namespace x86 {
   void initialize_cpu_tables_for_cpu(int cpu);
@@ -84,10 +86,10 @@ void __platform_init()
   MYINFO("Setting up kernel clock sources");
   x86::Clocks::init();
 
-  if (OS::cpu_freq().count() <= 0.0) {
-    OS::cpu_khz_ = x86::Clocks::get_khz();
+  if (os::cpu_freq().count() <= 0.0) {
+    kernel::state().cpu_khz = x86::Clocks::get_khz();
   }
-  INFO2("+--> %f MHz", OS::cpu_freq().count() / 1000.0);
+  INFO2("+--> %f MHz", os::cpu_freq().count() / 1000.0);
 
   // Note: CPU freq must be known before we can start timer system
   // Initialize APIC timers and timer systems
@@ -95,18 +97,17 @@ void __platform_init()
   x86::APIC_Timer::calibrate();
 
   INFO2("Initializing drivers");
-  extern OS::ctor_t __driver_ctors_start;
-  extern OS::ctor_t __driver_ctors_end;
-  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
+  extern kernel::ctor_t __driver_ctors_start;
+  extern kernel::ctor_t __driver_ctors_end;
+  kernel::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
   // Initialize storage devices
   PCI_manager::init(PCI::STORAGE);
-  OS::m_block_drivers_ready = true;
+  kernel::state().block_drivers_ready = true;
   // Initialize network devices
   PCI_manager::init(PCI::NIC);
-
   // Print registered devices
-  hw::Devices::print_devices();
+  os::machine().print_devices();
 }
 
 #ifdef ARCH_i686

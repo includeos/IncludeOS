@@ -12,7 +12,7 @@ import subprocess
 import re
 
 INCLUDEOS_PREFIX = None
-default_prefix = "/usr/local"
+default_prefix = "/usr/local/includeos"
 
 # Locate IncludeOS installation
 if "INCLUDEOS_PREFIX" not in os.environ:
@@ -20,12 +20,12 @@ if "INCLUDEOS_PREFIX" not in os.environ:
 else:
     INCLUDEOS_PREFIX = os.environ['INCLUDEOS_PREFIX']
 
-if not os.path.isdir(INCLUDEOS_PREFIX + "/includeos"):
-    print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
+if not os.path.isdir(INCLUDEOS_PREFIX):
+    print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_prefix + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
     sys.exit(0)
 
 # Location of vmrunner
-sys.path.append(INCLUDEOS_PREFIX + "/includeos")
+sys.path.append(INCLUDEOS_PREFIX+'/tools')
 
 from vmrunner.prettify import color
 
@@ -101,7 +101,7 @@ if (args.list_drivers):
         ARCH = "x86_64"
     else:
         ARCH = os.environ["ARCH"]
-    FLD = INCLUDEOS_PREFIX + "/includeos/" + ARCH + "/drivers"
+    FLD = INCLUDEOS_PREFIX + "/" + ARCH + "/drivers"
     print "Listing drivers from " + FLD + "..."
     for file in os.listdir(FLD):
         m = re.search('.*lib(.*)\.a', file)
@@ -115,7 +115,7 @@ if (args.list_plugins):
         ARCH = "x86_64"
     else:
         ARCH = os.environ["ARCH"]
-    FLD = INCLUDEOS_PREFIX + "/includeos/" + ARCH + "/plugins"
+    FLD = INCLUDEOS_PREFIX + "/" + ARCH + "/plugins"
     print "Listing plugins from " + FLD + "..."
     for file in os.listdir(FLD):
         m = re.search('.*lib(.*)\.a', file)
@@ -163,10 +163,10 @@ hyper_name = "qemu"
 if args.solo5_hvt:
     hyper_name = "solo5-hvt"
     os.environ['PLATFORM'] = "x86_solo5"
-    solo5_hvt = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/solo5-hvt"
+    solo5_hvt = INCLUDEOS_PREFIX + "/x86_64/lib/solo5-hvt"
 
     subprocess.call(['chmod', '+x', solo5_hvt])
-    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/scripts/solo5-ifup.sh" ])
 
 elif args.solo5_spt:
     hyper_name = "solo5-spt"
@@ -176,7 +176,7 @@ elif args.solo5_spt:
     subprocess.call(['chmod', '+x', solo5_spt])
     subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
 
-vm = vmrunner.vm(config = config, hyper_name = hyper_name)
+vm = vmrunner.add_vm(config = config, hyper_name = hyper_name)
 
 # Don't listen to events needed by testrunner
 vm.on_success(lambda(x): None, do_exit = False)
@@ -193,7 +193,7 @@ if (args.debug):
 
 if args.bridge:
     print INFO, "Creating bridge"
-    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/create_bridge.sh", shell=True)
+    subprocess.call(INCLUDEOS_PREFIX + "/scripts/create_bridge.sh", shell=True)
 
 # If the binary name is a folder, such as ".", build the service
 if os.path.isdir(image_name):
@@ -218,7 +218,7 @@ if (args.grub or args.grub_reuse):
     if args.grub_reuse:
         opts += "-u "
 
-    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + opts + image_name, shell=True)
+    subprocess.call(INCLUDEOS_PREFIX + "/scripts/grubify.sh " + opts + image_name, shell=True)
     image_name = image_name + ".grub.img"
     has_bootloader = True
 

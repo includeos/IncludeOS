@@ -1,6 +1,6 @@
 #include "balancer.hpp"
 #include <net/tcp/stream.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 
 #define MAX_OUTGOING_ATTEMPTS    100
 // checking if nodes are dead or not
@@ -123,6 +123,11 @@ namespace microLB
       }
     } // estimate
   } // handle_connections()
+
+#if !defined(LIVEUPDATE)
+  //if we dont support liveupdate then do nothing
+  void init_liveupdate() {}
+#endif
 
   Waiting::Waiting(net::Stream_ptr incoming)
     : conn(std::move(incoming)), total(0)

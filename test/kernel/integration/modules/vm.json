@@ -1,10 +1,8 @@
 {
   "net" : [{"device" : "virtio"}],
-  "image" : "test_mods.img",
+  "image" : "kernel_modules.img",
   "modules" : [
-    {"path" : "../mod1.json"},
-    {"path" : "seed", "args" : "loaded as module"},
-    {"path" : "../mod3.json"}
+    {"path" : "kernel_modules", "args" : "loaded as module"}
   ],
   "mem" : 128
 }

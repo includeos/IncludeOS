@@ -9,7 +9,7 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 
-vm = vmrunner.vms[0];
-
-# Build, run and clean
-vm.cmake().boot().clean()
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vmrunner.vms[0].cmake().boot(image_name='kernel_fiber').clean()

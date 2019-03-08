@@ -45,7 +45,7 @@ static void start_acorn(net::Inet& inet)
   logger_->flush();
   logger_->log("LUL\n");
 
-  OS::add_stdout(
+  os::add_stdout(
   [] (const char* data, size_t len) {
     // append timestamp
     auto entry = "[" + isotime::now() + "]" + std::string{data, len};
@@ -56,9 +56,9 @@ static void start_acorn(net::Inet& inet)
 
   // init the first legit partition/filesystem
   disk->init_fs(
-  [&inet] (fs::error_t err, auto& fs)
+  [&inet] (fs::error_t err, fs::File_system& fs)
   {
-      if (err) panic("Could not mount filesystem...\n");
+      if (err) os::panic("Could not mount filesystem...\n");
 
       // only works with synchronous disks (memdisk)
       list_static_content(fs);
