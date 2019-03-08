@@ -51,9 +51,9 @@ This will also crucially make the boot program visible globally, so that you can
 
 ### Getting started with IncludeOS development
 
-The [IncludeOS](https://www.includeos.org/) conan recipes are developed with [Conan version 1.8.4] (https://github.com/conan-io/conan/releases/tag/1.8.4) or newer.
+The [IncludeOS](https://www.includeos.org/) conan recipes are developed with [Conan version 1.12.3](https://github.com/conan-io/conan/releases/tag/1.12.3) or newer.
 
-If you want to install IncludeOS on your Linux/Mac OS you will need the latest version of conan (Conan version 1.12.3). For Mac OS ensure that you have a working installation of [brew](https://brew.sh/) to be able to install all dependencies.
+For Mac OS ensure that you have a working installation of [brew](https://brew.sh/) to be able to install all dependencies.
 
 
 ##### Cloning the IncludeOS repository:
@@ -64,40 +64,17 @@ If you want to install IncludeOS on your Linux/Mac OS you will need the latest v
 
 ##### Dependencies
 
-```
-    $ apt install python3-pip conan
-    $ apt install cmake gcc-7 g++-multilib clang-6.0 libssl-dev lcov
-```
+- Cmake
+- Clang version: `6.0`
+- GCC version: `gcc-7`
+- [Conan](https://github.com/conan-io/conan)
 
 ### Building IncludeOS with dependencies from conan
 
 Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html) to build packages. By default IncludeOS will build with `clang 6.0` if `CONAN_PROFILE` is not defined. Passing `-DCONAN_DISABLE_CHECK_COMPILER` during build disables this check.
 
 ##### Profiles
-Profiles can be found in conan/profiles folder in the IncludeOS repository. The profile has to be placed in your `CONAN_USER_HOME` directory for the profiles to work. By default this will be your `~/.conan/profiles` unless you have changed your `CONAN_USER_HOME`. Another way to install profiles is by using [conan config install](https://docs.conan.io/en/latest/reference/commands/consumer/config.html#conan-config-install) which we hope to use in the future.
-
-Below is a sample profile for building on x86_64 with clang-6.0,
-
-```
-    [build_requires]
-    binutils/2.31@includeos/toolchain
-    [settings]
-    os=Linux
-    os_build=Linux
-    arch=x86_64
-    arch_build=x86_64
-    compiler=clang
-    compiler.version=6.0
-    compiler.libcxx=libc++
-    cppstd=17
-    build_type=Release
-    [options]
-    [env]
-    CC=clang-6.0
-    CXX=clang++-6.0
-    CFLAGS=-msse3 -mfpmath=sse
-    CXXFLAGS=-msse3 -mfpmath=sse
-```
+Profiles we are developing with can be found in [includeos/conan ](https://github.com/includeos/conan) repository under `conan/profiles/`. To install the profile, copy it over to your user `./conan/profiles` folder.
 
 The target profiles we have verified are the following:
 - [clang-6.0-linux-x86](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-linux-x86)
@@ -157,23 +134,28 @@ Binutils is a tool and not an actual part of the final binary by having it added
 
 The binutils tool must be built for the Host it's intended to run on. Therefore the binutils package is built using a special toolchain profile that doesn't have a requirement on binutils.
 
-To build `bintuils` using our [conan recipes](https://github.com/includeos/conan):
+To build `bintuils` using our [includeos/conan](https://github.com/includeos/conan/tree/master/dependencies/gnu/binutils/2.31) recipes:
 
 - Clone the repository
 - Do `conan create` as follows:
 
 ```
 conan create <binutils-conan-recipe-path>/binutils/2.31 -pr <yourprofilename>-toolchain includeos/test
-
 ```
 #### Building Dependencies
 
 To build our other dependencies you may use the conan recipes we have in the repository.
 
+**Note:** If you plan to build dependencies you might need to ensure you have other missing libraries installed.
+
+##### Dependencies
+
+- GNU C++ compiler - `g++-multilib`
+- Secure Sockets Layer toolkit `libssl-dev`
+
 ##### Building musl
 ```
 conan create <conan-recipe-path>/musl/1.1.18 -pr <yourprofilename> includeos/test
-
 ```
 
 ##### Building llvm stdc++ stdc++abi and libunwind
@@ -184,7 +166,6 @@ If these recipes do not have a fixed version in the conan recipe then you have t
 conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/7.0.1@includeos/test
 conan create <conan-recipe-path>/llvm/libcxxabi -pr <yourprofilename> libcxxabi/7.0.1@includeos/test
 conan create <conan-recipe-path>/llvm/libcxx -pr <yourprofilename> libcxx/7.0.1@includeos/test
-
 ```
 
 ### Testing the IncludeOS installation
@@ -229,7 +210,6 @@ IncludeOS is being developed on GitHub. Create your own fork, send us a pull req
 ## C++ Guidelines
 
 We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/hioa-cs/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/hioa-cs/IncludeOS/pulls).
-
 
 [brew]: https://brew.sh/
 [qemu]: https://www.qemu.org/
