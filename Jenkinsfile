@@ -2,6 +2,7 @@ pipeline {
   agent { label 'vaskemaskin' }
 
   environment {
+    CONAN_USER_HOME = "${env.WORKSPACE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
     CPUS = """${sh(returnStdout: true, script: 'nproc')}"""
@@ -11,15 +12,14 @@ pipeline {
     USER = 'includeos'
     CHAN = 'test'
     MOD_VER= '0.13.0'
-    REMOTE = 'includeos-test'
+    REMOTE = "${env.CONAN_REMOTE}"
     COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
   }
 
   stages {
     stage('Setup') {
       steps {
-        sh 'mkdir -p install'
-        sh 'cp conan/profiles/* ~/.conan/profiles/'
+        sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
 
