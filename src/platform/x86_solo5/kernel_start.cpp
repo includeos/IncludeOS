@@ -30,6 +30,7 @@ os::Machine& os::machine() noexcept {
 static char temp_cmdline[1024];
 static uintptr_t mem_size = 0;
 static uintptr_t free_mem_begin;
+extern "C" void kernel_start();
 
 extern "C"
 int solo5_app_main(const struct solo5_start_info *si)
@@ -45,20 +46,34 @@ int solo5_app_main(const struct solo5_start_info *si)
   return 0;
 }
 
+#include <kprint>
 extern "C"
+__attribute__ ((__optimize__ ("-fno-stack-protector")))
 void kernel_start()
 {
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
+  static char buffer[1024];
+
   // Preserve symbols from the ELF binary
-  free_mem_begin += _move_symbols(free_mem_begin);
+  snprintf(buffer, sizeof(buffer),
+          "free_mem_begin = %p\n", free_mem_begin);
+  __serial_print1(buffer);
+  const size_t len = _move_symbols(free_mem_begin);
+  free_mem_begin += len;
+  mem_size -= len;
+  snprintf(buffer, sizeof(buffer),
+          "free_mem_begin = %p\n", free_mem_begin);
+  __serial_print1(buffer);
 
   // Initialize heap
   kernel::init_heap(free_mem_begin, mem_size);
 
   // Ze machine
+  kprintf("Test1\n");
   __machine = os::Machine::create((void*)free_mem_begin, mem_size);
+  kprintf("Test2\n");
 
   _init_elf_parser();
 

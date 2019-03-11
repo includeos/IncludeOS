@@ -20,7 +20,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0x200000);
+  PROVIDE ( _ELF_START_ = . + 0x100000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
   . = _ELF_START_ + SIZEOF_HEADERS;
@@ -197,9 +197,14 @@ SECTIONS
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
     _BSS_END_ = .;
+    
+    . = ALIGN(0x10);
+    _STACK_PHYS_START_ = .;
+    . += 0x100000;
+    _STACK_PHYS_END_ = .;
   }
-  . = ALIGN(0x8);
 
+  . = ALIGN(0x8);
   _end = .;
 
   PROVIDE (end = .);
