@@ -333,7 +333,7 @@ if(NOT CONAN_EXPORTED)
       "execute_process(COMMAND conan install microlb/0.13.0@includeos/test -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
     )
     install(CODE
-      "execute_process(COMMAND conan install liveupdate/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+      "execute_process(COMMAND conan install liveupdate/[>=0.14.0,include_prerelease=True]@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
     )
   endif()
 endif(NOT CONAN_EXPORTED)
