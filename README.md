@@ -71,34 +71,58 @@ For Mac OS ensure that you have a working installation of [brew](https://brew.sh
 
 ### Building IncludeOS with dependencies from conan
 
-Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html) to build packages. By default IncludeOS will build with `clang 6.0` if `CONAN_PROFILE` is not defined. Passing `-DCONAN_DISABLE_CHECK_COMPILER` during build disables this check.
+Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html)
+to build packages. By default IncludeOS will build with `clang 6.0` if
+`CONAN_PROFILE` is not defined. Passing `-DCONAN_DISABLE_CHECK_COMPILER`
+during build disables this check.
+
+##### Getting IncludeOS Conan Configs
+
+We have set up a repository ([includeos/conan_config](https://github.com/includeos/conan)) that helps IncludeOS users configure all the necessary
+conan settings. To configure using this repo just do:
+
+```
+  conan config install https://github.com/includeos/conan
+```
+
+This adds our remote artifactory in your conan remotes and also installs all the profiles we have in the repository for you.
 
 ##### Profiles
-Profiles we are developing with can be found in [includeos/conan ](https://github.com/includeos/conan) repository under `conan/profiles/`. To install the profile, copy it over to your user `./conan/profiles` folder.
+Profiles we are developing with can be found in [includeos/conan_config ](https://github.com/includeos/conan_config) repository under `conan_config/profiles/`.
+If you have not used the `conan config install` command above, then to install the profiles, copy them over to your user `./conan/profiles` folder.
 
 The target profiles we have verified are the following:
-- [clang-6.0-linux-x86](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-linux-x86)
-- [clang-6.0-linux-x86_64](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-linux-x86_64)
-- [gcc-7.3.0-linux-x86_64](https://github.com/includeos/conan/tree/master/profiles/gcc-7.3.0-linux-x86_64)
-- [clang-6.0-macos-x86_64](https://github.com/includeos/conan/tree/master/profiles/clang-6.0-macos-x86_64)
+- [clang-6.0-linux-x86](https://github.com/includeos/conan_config/tree/master/profiles/clang-6.0-linux-x86)
+- [clang-6.0-linux-x86_64](https://github.com/includeos/conan_config/tree/master/profiles/clang-6.0-linux-x86_64)
+- [gcc-7.3.0-linux-x86_64](https://github.com/includeos/conan_config/tree/master/profiles/gcc-7.3.0-linux-x86_64)
+- [clang-6.0-macos-x86_64](https://github.com/includeos/conan_config/tree/master/profiles/clang-6.0-macos-x86_64)
 
-
-To ensure the profile has been installed do:
+To ensure the profile/s has been installed do:
 
 ```
     $ conan profile list
 ```
 
-Verify the content of oyur profile by:
+Verify the content of your profile by:
 ```
     $ conan profile show <yourprofilename>
 ```
 
-If your profile is on the list and contents are verified, you are set to use the profile for building.
+If your profile is on the list and contents are verified, you are set to use the
+profile for building.
 
 ##### IncludeOS Artifactory Repo
 
-The artifactory repository is where all the packages used to build IncludeOS are uploaded. Adding the repo to your conan remotes will give you access to all our packages developed for IncludeOS.
+The artifactory repository is where all the packages used to build IncludeOS
+are uploaded. Adding the repo to your conan remotes will give you access to all
+our packages developed for IncludeOS.
+
+You check your repository remotes, do:
+
+```
+conan remote list
+```
+If the includeOS-Develop remote is not added do, you have to add it.
 
 To add the IncludeOS-Develop conan Artifactory repository to your conan remotes:
 
@@ -126,13 +150,19 @@ if you want to check if a package exists you can search for it:
 
 ### Getting started developing packages
 
-Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchain. It is expected that these are already installed in your system. However we hope to provide toolchains in the future.
+Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchain.
+It is expected that these are already installed in your system. However we
+hope to provide toolchains in the future.
 
 ##### Building Tools
 
-Binutils is a tool and not an actual part of the final binary by having it added in the profile the binaries are always executable inside the conan environment.
+Binutils is a tool and not an actual part of the final binary by having it
+added in the profile the binaries are always executable inside the conan
+environment.
 
-The binutils tool must be built for the Host it's intended to run on. Therefore the binutils package is built using a special toolchain profile that doesn't have a requirement on binutils.
+The binutils tool must be built for the Host it's intended to run on. Therefore
+the binutils package is built using a special toolchain profile that doesn't have
+a requirement on binutils.
 
 To build `bintuils` using our [includeos/conan](https://github.com/includeos/conan/tree/master/dependencies/gnu/binutils/2.31) recipes:
 
@@ -144,9 +174,11 @@ conan create <binutils-conan-recipe-path>/binutils/2.31 -pr <yourprofilename>-to
 ```
 #### Building Dependencies
 
-To build our other dependencies you may use the conan recipes we have in the repository.
+To build our other dependencies you may use the conan recipes we have in the
+repository.
 
-**Note:** If you plan to build dependencies you might need to ensure you have other missing libraries installed.
+**Note:** If you plan to build dependencies you might need to ensure you have
+other missing libraries installed.
 
 ##### Dependencies
 
@@ -160,7 +192,9 @@ conan create <conan-recipe-path>/musl/1.1.18 -pr <yourprofilename> includeos/tes
 
 ##### Building llvm stdc++ stdc++abi and libunwind
 
-If these recipes do not have a fixed version in the conan recipe then you have to specify it alongside the `user/channel` as `package/version@user/channel` otherwise you can use the same format at musl above.
+If these recipes do not have a fixed version in the conan recipe then you have
+to specify it alongside the `user/channel` as `package/version@user/channel`
+otherwise you can use the same format at musl above.
 
 ```
 conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/7.0.1@includeos/test
