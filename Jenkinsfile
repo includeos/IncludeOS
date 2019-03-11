@@ -119,11 +119,14 @@ pipeline {
           }
           post {
             success {
+              echo "Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}"
+              /*
               script {
                 if (env.CHANGE_ID) {
                   pullRequest.comment("Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}")
                 }
               }
+              */
             }
           }
         }
