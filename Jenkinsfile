@@ -14,6 +14,7 @@ pipeline {
     MOD_VER= '0.13.0'
     REMOTE = "${env.CONAN_REMOTE}"
     COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
+    BINTRAY_CREDS = credentials('devops-includeos-user-pass-bintray')
   }
 
   stages {
@@ -151,6 +152,7 @@ pipeline {
         stage('Upload to bintray') {
           steps {
             script {
+              sh script: "conan user -p $BINTRAY_CREDS_PSW -r $REMOTE $BINTRAY_CREDS_USR", label: "Login to bintray"
               def version = sh (
                 script: 'conan inspect -a version . | cut -d " " -f 2',
                 returnStdout: true
