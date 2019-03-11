@@ -36,7 +36,8 @@ pipeline {
         }
         stage('liveupdate x86_64') {
           steps {
-          	build_editable('lib/LiveUpdate','liveupdate')
+            //This ordering is wrong and should come post building includeos package
+            build_liveupdate_package("$PROFILE_x86_64")
           }
         }
         stage('mana x86_64') {
@@ -141,6 +142,7 @@ pipeline {
           steps {
             build_conan_package("$PROFILE_x86", "ON")
             build_conan_package("$PROFILE_x86_64")
+            build_liveupdate_package("$PROFILE_x86_64")
           }
         }
         stage('Upload to bintray') {
@@ -150,11 +152,20 @@ pipeline {
                 script: 'conan inspect -a version . | cut -d " " -f 2',
                 returnStdout: true
               ).trim()
-              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload to bintray"
+              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload includeos to bintray"
+              sh script: "conan upload --all -r $REMOTE liveupdate/${version}@$USER/$CHAN", label: "Upload liveupdate to bintray"
             }
           }
         }
       }
+    }
+  }
+  post {
+    cleanup {
+      sh script: """
+        VERSION=\$(conan inspect -a version lib/LiveUpdate | cut -d " " -f 2)
+        conan remove liveupdate/\$VERSION@$USER/$CHAN -f || echo 'Could not remove. This does not fail the pipeline'
+      """, label: "Cleaning up and removing conan package"
     }
   }
 }
@@ -173,4 +184,8 @@ def build_editable(String location, String name) {
 
 def build_conan_package(String profile, basic="OFF") {
   sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
+}
+
+def build_liveupdate_package(String profile) {
+  sh script: "conan create lib/LiveUpdate $USER/$CHAN -pr ${profile}", label: "Build with profile: $profile"
 }
