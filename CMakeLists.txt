@@ -226,37 +226,6 @@ endif()
 #
 add_subdirectory(src)
 
-option(examples "Build example unikernels in /examples" OFF)
-if(examples)
-  set(libprotobuf ON) # dependent
-  add_subdirectory(examples)
-endif(examples)
-
-option(tests "Build unit tests in /test and install lest test framework" OFF)
-option(lest "Install lest unittest headers" OFF)
-
-if (lest OR tests)
-  init_submodule(test/lest)
-  install(DIRECTORY test/lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/includeos/include)
-endif()
-
-if(tests)
-  enable_testing()
-  ExternalProject_Add(unittests
-    PREFIX unittests
-    SOURCE_DIR ${INCLUDEOS_ROOT}/test
-    BINARY_DIR unittests
-    CMAKE_ARGS -DINCLUDEOS_ROOT=${INCLUDEOS_ROOT} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-    )
-  #add_subdirectory(test)
-endif(tests)
-
-#
-# Libraries
-#
-#TODO verify the asumption that all these work once all the proper includes are in order!!
-#TODO create conan package for mana,uplink,mender,liveupdate and lb
-
 #
 # Installation
 #
@@ -268,71 +237,10 @@ install(FILES cmake/library.cmake DESTINATION cmake)
 install(FILES cmake/os.cmake DESTINATION cmake)
 install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
 
-# Install vmrunner
-install(DIRECTORY vmrunner DESTINATION tools)
-install(FILES vmrunner/${DEFAULT_VM} DESTINATION tools/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
 # TODO ? move to "linux cmake"
 # Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION cmake)
 
-# Install executable scripts
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-run DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-callgraph DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-debug DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-gprof DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-pgo DESTINATION bin)
-
-# Install scripts
-install(PROGRAMS
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/grubify.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifdown
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/solo5-ifup.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
-  DESTINATION scripts)
-
-#this replicates the install of libraries from bundles using conan
-if(NOT CONAN_EXPORTED)
-  install(CODE
-    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py)"
-  )
-  #install tools TODO THIS IS A [BUILD_REQUIRES] dependency for the service so should probably go there but for now its here so that things are in the right place
-  install(CODE
-    "execute_process(COMMAND conan install vmbuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
-  )
-  install(CODE
-    "execute_process(COMMAND conan install diskimagebuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
-  )
-  install(CODE
-    "execute_process(COMMAND conan install nacl/v0.2.1@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
-  )
-  if (${ARCH} STREQUAL "x86_64")
-    install(CODE
-      "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -pr ${CONAN_PROFILE} -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
-    )
-  endif()
-  if (NOT CORE_OS)
-    install(CODE
-      "execute_process(COMMAND conan install mana/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install mender/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install uplink/0.13.0@includeos/test  -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install microlb/0.13.0@includeos/test -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install liveupdate/[>=0.14.0,include_prerelease=True]@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-  endif()
-endif(NOT CONAN_EXPORTED)
 
 install(DIRECTORY api/ DESTINATION include/os)
