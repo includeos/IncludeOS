@@ -99,7 +99,6 @@ pipeline {
           sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload includeos to bintray"
           sh script: "conan upload --all -r $REMOTE liveupdate/${version}@$USER/$CHAN", label: "Upload liveupdate to bintray"
           sh script: "conan upload --all -r $REMOTE chainloader/${version}@$USER/$CHAN", label: "Upload chainloader to bintray"
-          }
         }
       }
     }
