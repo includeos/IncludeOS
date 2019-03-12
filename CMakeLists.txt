@@ -276,9 +276,6 @@ install(FILES vmrunner/${DEFAULT_VM} DESTINATION tools/vmrunner/ RENAME vm.defau
 # Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION cmake)
 
-# Install seed
-install(DIRECTORY seed/ DESTINATION seed)
-
 # Install executable scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-run DESTINATION bin)
