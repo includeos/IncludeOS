@@ -4,6 +4,7 @@ RUN apt-get update
 RUN apt-get -y install \
     clang-6.0 \
     cmake \
+    nasm \
     curl \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -20,3 +21,9 @@ ENV CC=clang-6.0 \
     CXX=clang++-6.0
 RUN mkdir service
 WORKDIR service
+
+CMD mkdir -p build && \
+    cd build && \
+    conan install .. -pr clang-6.0-linux-x86_64 && \
+    cmake .. && \
+    make
