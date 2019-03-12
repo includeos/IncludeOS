@@ -35,7 +35,7 @@ pipeline {
 
     stage('Build IncludeOS x86') {
       steps {
-        build_conan_package("$PROFILE_x86")
+        build_conan_package("$PROFILE_x86",ON)
       }
     }
     stage('Build IncludeOS x86_64') {
