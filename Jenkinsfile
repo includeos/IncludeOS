@@ -2,6 +2,7 @@ pipeline {
   agent { label 'vaskemaskin' }
 
   environment {
+    CONAN_USER_HOME = "${env.WORKSPACE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
     CPUS = """${sh(returnStdout: true, script: 'nproc')}"""
@@ -11,14 +12,15 @@ pipeline {
     USER = 'includeos'
     CHAN = 'test'
     MOD_VER= '0.13.0'
-    REMOTE = 'includeos-test'
+    REMOTE = "${env.CONAN_REMOTE}"
     COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
+    BINTRAY_CREDS = credentials('devops-includeos-user-pass-bintray')
   }
 
   stages {
     stage('Setup') {
       steps {
-        sh 'mkdir -p install'
+        sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
 
@@ -118,11 +120,14 @@ pipeline {
           }
           post {
             success {
+              echo "Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}"
+              /*
               script {
                 if (env.CHANGE_ID) {
                   pullRequest.comment("Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}")
                 }
               }
+              */
             }
           }
         }
@@ -147,6 +152,7 @@ pipeline {
         stage('Upload to bintray') {
           steps {
             script {
+              sh script: "conan user -p $BINTRAY_CREDS_PSW -r $REMOTE $BINTRAY_CREDS_USR", label: "Login to bintray"
               def version = sh (
                 script: 'conan inspect -a version . | cut -d " " -f 2',
                 returnStdout: true
