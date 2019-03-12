@@ -45,16 +45,15 @@ class ChainloaderConan(ConanFile):
     default_channel="test"
 
     def requirements(self):
-        self.requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
+        self.requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel),"private")
 
     def build_requirements(self):
         self.build_requires("vmbuild/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
 
-
     def _configure_cmake(self):
         cmake = CMake(self)
         cmake.configure(source_folder=self.source_folder+"/src/chainload")
-        return cmake;
+        return cmake
 
     def build(self):
         cmake=self._configure_cmake()
