@@ -56,7 +56,7 @@ pipeline {
     stage('Integration tests') {
       steps {
         sh script: "mkdir -p integration", label: "Setup"
-        sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
+        sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
         sh script: "cd integration; make -j $CPUS", label: "Make"
         sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
         sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
