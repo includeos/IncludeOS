@@ -78,11 +78,11 @@ during build disables this check.
 
 ##### Getting IncludeOS Conan Configs
 
-We have set up a repository ([includeos/conan_config](https://github.com/includeos/conan)) that helps IncludeOS users configure all the necessary
+We have set up a repository ([includeos/conan_config](https://github.com/includeos/conan_config)) that helps IncludeOS users configure all the necessary
 conan settings. To configure using this repo just do:
 
 ```
-  conan config install https://github.com/includeos/conan
+  conan config install https://github.com/includeos/conan_config
 ```
 
 This adds our remote artifactory in your conan remotes and also installs all the profiles we have in the repository for you.
