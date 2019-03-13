@@ -81,7 +81,7 @@ set(TEST_LIST
   #"microLB"   "50"    "net"
   "nat"       "30"    "net"
   "router"    "30"    "net"
-# "router6"   "30"    "net"
+  "router6"   "30"    "net"
   "slaac"     "30"    "net"
   "tcp"       "120"   "net"
   "udp"       "30"    "net"
