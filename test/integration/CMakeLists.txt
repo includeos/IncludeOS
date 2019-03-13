@@ -51,7 +51,8 @@ set(TEST_LIST
   "stat"    "20" "posix"
   "syslog_default" "20" "posix"
   "syslog_plugin" "20" "posix"
-  #disabled test is unstable after 0.13.1
+
+  # Disable posix_tcp as it is highly unreliable
   #"tcp"   "10"  "posix"
   "udp"   "20"  "posix"
   "utsname" "20" "posix"
