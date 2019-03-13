@@ -60,7 +60,6 @@ class IncludeOSConan(ConanFile):
             self.requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
             self.requires("http-parser/2.8.1@{}/{}".format(self.user,self.channel)) #this one is almost free anyways
             self.requires("uzlib/v2.1.1@{}/{}".format(self.user,self.channel))
-            self.requires("protobuf/3.5.1.1@{}/{}".format(self.user,self.channel))
             self.requires("botan/2.8.0@{}/{}".format(self.user,self.channel))
             self.requires("openssl/1.1.1@{}/{}".format(self.user,self.channel))
             self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
