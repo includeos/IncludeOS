@@ -164,7 +164,6 @@ function(do_conaningans TARGET SOURCE)
   #endif()
   if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}/conanfile.txt)
     set(CONAN_FILE ${SOURCE}/conanfile.txt)
-    message(STATUS "Found conanfile in ${SOURCE}/conanfile.txt")
   else()
     set(CONAN_FILE conanfile.txt)
   endif()
@@ -173,11 +172,13 @@ function(do_conaningans TARGET SOURCE)
   #hack for conan_cmake_run
   set(CMAKE_CURRENT_BINARY_DIR ${OLD_DIR}/${TARGET})
   file(MAKE_DIRECTORY ${OLD_DIR}/${TARGET})
-  #clear any old libs from last pass.. this is a ugly hack
-
+  #clear any old libs from last pass.. this is a ugly hack i wish it was an option to cmake_run
   set(CONAN_LIBS "")
   conan_cmake_run(
     CONANFILE ${CONAN_FILE}
+    #PENDING PR to conan-cmake
+    #NO_LOAD
+  #  INSTALL_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     ${CONANPROFILE}
   )
   set(CMAKE_CURRENT_BINARY_DIR ${OLD_DIR})
@@ -211,10 +212,11 @@ function(add_integration_tests TESTS)
 endfunction()
 
 if (STRESS)
+  do_conaningans(stress "../stress")
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../stress stress)
   add_test(NAME stress
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh 300 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../stress
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stress
   )
   set_property(TEST stress PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
 endif()
