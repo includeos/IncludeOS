@@ -38,7 +38,7 @@ static auto& create_connection_from(net::tcp::Connection_ptr conn)
 }
 
 #ifdef USE_LIVEUPDATE
-#include "../../lib/LiveUpdate/liveupdate.hpp"
+#include "liveupdate.hpp"
 
 void store_terminal(liu::Storage& store, const liu::buffer_t*)
 {

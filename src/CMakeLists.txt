@@ -18,7 +18,7 @@ include_directories(
 )
 
 #TODO move to util and check if needed / can be changed.. unwanted dependency?
-include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate/include)
 
 set(SRCS
   version.cpp
@@ -42,7 +42,7 @@ endif()
 SET(OBJECTS)
 foreach(LIB ${LIBRARIES})
     add_subdirectory(${LIB})
-    SET(OBJECTS ${OBJECTS} "$<TARGET_OBJECTS:${LIB}>" )
+    list(APPEND OBJECTS "$<TARGET_OBJECTS:${LIB}>" )
 endforeach()
 
 if (CMAKE_TESTING_ENABLED)

@@ -2,6 +2,7 @@ pipeline {
   agent { label 'vaskemaskin' }
 
   environment {
+    CONAN_USER_HOME = "${env.WORKSPACE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
     CPUS = """${sh(returnStdout: true, script: 'nproc')}"""
@@ -11,15 +12,15 @@ pipeline {
     USER = 'includeos'
     CHAN = 'test'
     MOD_VER= '0.13.0'
-    REMOTE = 'includeos-test'
+    REMOTE = "${env.CONAN_REMOTE}"
     COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
+    BINTRAY_CREDS = credentials('devops-includeos-user-pass-bintray')
   }
 
   stages {
     stage('Setup') {
       steps {
-        sh 'mkdir -p install'
-        sh 'cp conan/profiles/* ~/.conan/profiles/'
+        sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
 
@@ -36,7 +37,8 @@ pipeline {
         }
         stage('liveupdate x86_64') {
           steps {
-          	build_editable('lib/LiveUpdate','liveupdate')
+            //This ordering is wrong and should come post building includeos package
+            build_liveupdate_package("$PROFILE_x86_64")
           }
         }
         stage('mana x86_64') {
@@ -118,11 +120,14 @@ pipeline {
           }
           post {
             success {
+              echo "Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}"
+              /*
               script {
                 if (env.CHANGE_ID) {
                   pullRequest.comment("Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}")
                 }
               }
+              */
             }
           }
         }
@@ -141,20 +146,31 @@ pipeline {
           steps {
             build_conan_package("$PROFILE_x86", "ON")
             build_conan_package("$PROFILE_x86_64")
+            build_liveupdate_package("$PROFILE_x86_64")
           }
         }
         stage('Upload to bintray') {
           steps {
             script {
+              sh script: "conan user -p $BINTRAY_CREDS_PSW -r $REMOTE $BINTRAY_CREDS_USR", label: "Login to bintray"
               def version = sh (
                 script: 'conan inspect -a version . | cut -d " " -f 2',
                 returnStdout: true
               ).trim()
-              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload to bintray"
+              sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload includeos to bintray"
+              sh script: "conan upload --all -r $REMOTE liveupdate/${version}@$USER/$CHAN", label: "Upload liveupdate to bintray"
             }
           }
         }
       }
+    }
+  }
+  post {
+    cleanup {
+      sh script: """
+        VERSION=\$(conan inspect -a version lib/LiveUpdate | cut -d " " -f 2)
+        conan remove liveupdate/\$VERSION@$USER/$CHAN -f || echo 'Could not remove. This does not fail the pipeline'
+      """, label: "Cleaning up and removing conan package"
     }
   }
 }
@@ -173,4 +189,8 @@ def build_editable(String location, String name) {
 
 def build_conan_package(String profile, basic="OFF") {
   sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build with profile: $profile"
+}
+
+def build_liveupdate_package(String profile) {
+  sh script: "conan create lib/LiveUpdate $USER/$CHAN -pr ${profile}", label: "Build with profile: $profile"
 }

@@ -103,8 +103,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../api
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/include
   #TODO move to the right place
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/LiveUpdate
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/LiveUpdate/include
 )
 
 set(LEST_UTIL
@@ -225,18 +224,7 @@ if(EXTRA_TESTS)
 endif()
 
 #TODO get from conan!!! or should the test be in liveupdate and not vise versa?
-set(MOD_OBJECTS
-  #${INCLUDEOS_ROOT}/lib/LiveUpdate/hotswap.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/partition.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/rollback.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/elfscan.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
-  #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
-  ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp
-)
+
 #if we could do add directory here it would be a lot cleaner..
 #TODO investigate
 
@@ -258,11 +246,8 @@ if (CPPCHECK)
 endif()
 
 add_subdirectory(../src os)
-
-#TODO add_subdirectory would be nicer
+add_subdirectory(../lib/LiveUpdate liveupdate)
 add_library(lest_util ${LEST_UTIL})
-#TODO add_subdirectory would be nicer
-add_library(liveupdate ${MOD_OBJECTS})
 
 file(COPY memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -277,41 +262,6 @@ foreach(T ${TEST_SOURCES})
   #add to list of tests for dependencies
   list(APPEND TEST_BINARIES ${NAME})
 endforeach()
-
-if(COVERAGE)
-#  message(STATUS "Coverage")
-#  list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
-#wouldnt a --coverage on a general level do it ?
-  set_property(SOURCE ${OS_SOURCES} PROPERTY COMPILE_FLAGS --coverage)
-  set_property(SOURCE ${TEST_SOURCES} PROPERTY COMPILE_FLAGS --coverage)
-  set_property(SOURCE ${MOD_OBJECTS} PROPERTY COMPILE_FLAGS --coverage)
-  set_property(SOURCE ${LEST_UTIL} PROPERTY COMPILE_FLAGS --coverage)
-  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-endif()
-
-if(TRAVIS)
-  message(STATUS "Travis")
-endif()
-
-if ("${ARCH}" STREQUAL "ARCH_ARMv7")
-  list(REMOVE_ITEM TEST_SOURCES ${TEST}/hw/unit/cpu_test.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/ps2.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/serial.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/cpuid.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/irq_manager.cpp)
-  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/terminal.cpp)
-endif("${ARCH}" STREQUAL "ARCH_ARMv7")
-
-# Only build selected sources with SINGLE
-if(NOT SINGLE)
-  set(SOURCES ${MOD_OBJECTS} ${TEST_SOURCES} )
-else()
-  set(SOURCES ${MOD_OBJECTS} ${SINGLE} )
-endif()
-
-if ("${ARCH}" STREQUAL "ARCH_ARMv7")
-  set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
-endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 
 if(SILENT_BUILD)
   message(STATUS "NOTE: Building with some warnings turned off")
