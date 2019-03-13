@@ -28,7 +28,7 @@ project(IntegrationTests)
 
 #TODO check these and notify if any is missing
 find_program(HPING3 hping3)
-find_program(NODEJS nodejs) #if not found look for node
+find_program(NODEJS nodejs node) #if not found look for node
 #TODO ADD ws4py to deps
 enable_testing()
 
@@ -52,12 +52,12 @@ set(TEST_LIST
   "memdisk"   "20" "fs"
   "vfs"       "20" "fs"
   "virtio_block"  "30" "fs"
+
   #HW tests todo ?
   #"serial" "20" "hw"
   #"vga" "20" "hw"
   #"virtio_queue" "20" "hw"
 
-  #mod needs lest
   "gsl" "20" "mod"
 
   #plugin
@@ -65,25 +65,24 @@ set(TEST_LIST
 
   #posix
   "conf"    "20" "posix"
-  #needs lest
-  #"file_fd" "20" "posix"
+  "file_fd" "20" "posix"
   "main"    "20" "posix"
   #syscall error
   #"pthread" "20" "posix"
   "stat"    "20" "posix"
   "syslog_default" "20" "posix"
   "syslog_plugin" "20" "posix"
-
   "tcp"   "10"  "posix"
   "udp"   "20"  "posix"
-
   "utsname" "20" "posix"
 
+  #stl
   "exceptions" "20" "stl"
   "crt" "20" "stl"
   "stl" "20" "stl"
   "coroutines" "20" "stl"
 
+  #util
   "tar_gz" "20" "util"
   "tar" "20" "util"
 
@@ -91,11 +90,15 @@ set(TEST_LIST
   "bufstore"  "30"    "net"
   "configure" "30"    "net"
   "dns"       "20"    "net"
-  "gateway"   "50"    "net"
+  #TODO FIX
+  #gateway disabled as it needs nacl.. circular DEP issue
+  #"gateway"   "50"    "net"
+  #TODO move http to http library
   "http"      "20"    "net"
   "icmp"      "50"    "net"
   "icmp6"     "50"    "net"
-  "microLB"   "50"    "net"
+  #TODO move to microlb with framework to test
+  #"microLB"   "50"    "net"
   "nat"       "30"    "net"
   #disabled for now..
 #  "router"    "30"    "net"
@@ -104,6 +107,7 @@ set(TEST_LIST
   "tcp"       "120"    "net"
   "udp"       "30"    "net"
   "vlan"      "20"    "net"
+  #TODO move websocket to http library
   "websocket" "20"    "net"
 
   #TODO add a cmake variable to exclude these ?
@@ -137,6 +141,49 @@ function(get_list_param LIST item_index INDEX PARAM)
   set(${PARAM} ${VALUE} PARENT_SCOPE)
 endfunction()
 
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+   file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.13/conan.cmake"
+                 "${CMAKE_BINARY_DIR}/conan.cmake")
+endif()
+
+include(${CMAKE_BINARY_DIR}/conan.cmake)
+
+if (CONAN_PROFILE)
+  set(CONANPROFILE PROFILE ${CONAN_PROFILE})
+endif()
+
+function(do_conaningans TARGET SOURCE)
+  #force copy for now
+  #if (NOT EXISTS  ${TARGET}/conanfile.txt)
+  #FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt DESTINATION ${TARGET})
+  #endif()
+  if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}/conanfile.txt)
+    set(CONAN_FILE ${SOURCE}/conanfile.txt)
+    message(STATUS "Found conanfile in ${SOURCE}/conanfile.txt")
+  else()
+    set(CONAN_FILE conanfile.txt)
+  endif()
+
+  set(OLD_DIR ${CMAKE_CURRENT_BINARY_DIR})
+  #hack for conan_cmake_run
+  set(CMAKE_CURRENT_BINARY_DIR ${OLD_DIR}/${TARGET})
+  file(MAKE_DIRECTORY ${OLD_DIR}/${TARGET})
+  #clear any old libs from last pass.. this is a ugly hack
+
+  set(CONAN_LIBS "")
+  conan_cmake_run(
+    CONANFILE ${CONAN_FILE}
+    ${CONANPROFILE}
+  )
+  set(CMAKE_CURRENT_BINARY_DIR ${OLD_DIR})
+#endif()
+endfunction()
+
 function(add_integration_tests TESTS)
   list(LENGTH TESTS LISTLEN)
   math(EXPR LEN_MINUS_1 '${LISTLEN}-1')
@@ -146,7 +193,7 @@ function(add_integration_tests TESTS)
     get_list_param("${TESTS}" ${INDEX} ${TYPE_PARAM_INDEX} TYPE)
 
     message(STATUS "Adding test integration_${TYPE}_${T} with timeout ${TIMEOUT}")
-
+    do_conaningans(${TYPE}/${T} "../${TYPE}/integration/${T}")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}  ${TYPE}/${T})
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}/test.py)
@@ -157,7 +204,6 @@ function(add_integration_tests TESTS)
       )
       set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT_AFTER_MATCH "0.1" "Test timed out")
       set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
-      set_property(TEST integration_${TYPE}_${T} PROPERTY ENVIRONMENT INCLUDEOS_SRC=${CMAKE_CURRENT_SOURCE_DIR}/../../)
     else()
       message(WARNING "No test.py present in ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}")
     endif()
