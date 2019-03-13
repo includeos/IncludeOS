@@ -44,11 +44,12 @@ class ChainloaderConan(ConanFile):
     default_user="includeos"
     default_channel="test"
 
-    def requirements(self):
-        self.requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel),"private")
+    #def requirements(self):
+    #    self.requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel),private=True)
 
     def build_requirements(self):
         self.build_requires("vmbuild/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
+        self.build_requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
 
     def _configure_cmake(self):
         cmake = CMake(self)
