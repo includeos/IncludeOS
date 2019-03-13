@@ -80,11 +80,10 @@ set(TEST_LIST
   #TODO move to microlb with framework to test
   #"microLB"   "50"    "net"
   "nat"       "30"    "net"
-  #disabled for now..
-#  "router"    "30"    "net"
-#  "router6"   "30"     "net"
+  "router"    "30"    "net"
+# "router6"   "30"    "net"
   "slaac"     "30"    "net"
-  "tcp"       "120"    "net"
+  "tcp"       "120"   "net"
   "udp"       "30"    "net"
   "vlan"      "20"    "net"
   #TODO move websocket to http library
