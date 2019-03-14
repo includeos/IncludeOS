@@ -5,11 +5,6 @@ import subprocess
 import subprocess32
 
 thread_timeout = 30
-
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
-
 from vmrunner import vmrunner
 
 # Get an auto-created VM from the vmrunner

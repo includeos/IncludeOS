@@ -1,20 +1,15 @@
 cmake_minimum_required(VERSION 3.0)
-# IncludeOS install location
-if (NOT DEFINED INCLUDEOS_PREFIX)
-  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-    set(INCLUDEOS_PREFIX /usr/local/includeos)
-  else()
-    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
-  endif()
-endif()
-
-if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
-  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
-endif()
-list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
 #service
 project(service)
+if (NOT DEFINED CONAN_DEPENDENCIES)
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+  if (NOT HAS_CONAN)
+    message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
+  endif()
+endif()
+conan_basic_setup()
+
 include(os)
 
 set(SOURCES
@@ -23,5 +18,4 @@ set(SOURCES
 
 os_add_executable(stl_exceptions "C++ exceptions test" ${SOURCES})
 os_add_stdout(stl_exceptions default_stdout)
-os_add_conan_package(stl_exceptions "lest/1.33.5@includeos/test")
 configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

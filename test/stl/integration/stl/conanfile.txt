@@ -1,0 +1,13 @@
+[requires]
+includeos/[>=0.14.0,include_prerelease=True]@includeos/test
+
+[build_requires]
+vmbuild/[>=0.14.0,include_prerelease=True]@includeos/test
+vmrunner/[>=0.14.0,include_prerelease=True]@includeos/test
+diskbuilder/[>=0.14.0,include_prerelease=True]@includeos/test
+chainloader/[>=0.14.0,include_prerelease=True]@includeos/test
+lest/[>=1.33.5]@includeos/test
+
+[generators]
+virtualenv
+cmake
