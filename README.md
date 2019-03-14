@@ -122,11 +122,17 @@ Finally to build IncludeOS do:
     $ conan create <path-to-conan-recipe> <conan-user>/<conan_channel> -pr <profile-name>
 ```
 
-To build IncludeOS on Linux use profile named `clang-6.0-linux-x86_64` :
+To build **IncludeOS on Linux** use profile named `clang-6.0-linux-x86_64` :
 
 ```
     $ conan create IncludeOS includeos/test -pr clang-6.0-linux-x86_64
 ```
+
+To build **IncludeOS on Linux** for **Macos** use profile named `clang-6.0-macos-x86_64`.
+
+_To build **IncludeOS on Mac** requires a number of other configurations, which
+are in progress._ <!-- needs update -->
+
 
 ###### Searching Packages
 
@@ -137,6 +143,8 @@ if you want to check if a package exists you can search for it:
 ```
 
 ___
+
+<!-- TODO: How building with Conan works? -->
 
 ### Getting started developing packages
 
@@ -191,16 +199,22 @@ conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/
 conan create <conan-recipe-path>/llvm/libcxxabi -pr <yourprofilename> libcxxabi/7.0.1@includeos/test
 conan create <conan-recipe-path>/llvm/libcxx -pr <yourprofilename> libcxx/7.0.1@includeos/test
 ```
+
+<!-- TODO: How to build examples with conan? -->
+
+<!-- TODO: How to build libraries with conan? -->
+
+<!-- TODO: How to build services and plugins with conan? -->
 ___
 
-### Testing the IncludeOS installation
+### Testing the IncludeOS build
 
-
+<!-- TODO: needs update on how to build on conan -->
 ___
 
 ### Writing your first service
 
-
+<!-- TODO: needs update on how to build on conan -->
 
 ___
 
@@ -209,6 +223,8 @@ ___
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
+
+<!-- TODO: More on Contributing using conan -->
 
 ## C++ Guidelines
 
