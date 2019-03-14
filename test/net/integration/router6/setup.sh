@@ -15,9 +15,6 @@ shopt -s expand_aliases
 alias server1="sudo ip netns exec $NSNAME"
 
 setup() {
-  # Make sure the default bridge exists
-  $INCLUDEOS_PREFIX/scripts/create_bridge.sh
-
   # Create veth link
   sudo ip link add veth_src type veth peer name veth_dest
 

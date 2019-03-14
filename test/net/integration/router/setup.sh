@@ -1,6 +1,5 @@
 #! /bin/bash
 set -e #abort on first command returning a failure
-
 source_net=10.0.0.0/24
 source_bridge=bridge43
 
@@ -16,9 +15,6 @@ shopt -s expand_aliases
 alias server1="sudo ip netns exec $NSNAME"
 
 setup() {
-  # Make sure the default bridge exists
-  $INCLUDEOS_PREFIX/scripts/create_bridge.sh
-
   # Create veth link
   sudo ip link add veth_src type veth peer name veth_dest
 
@@ -54,7 +50,7 @@ setup() {
 undo(){
   # Always run all cleanup commands even if one fails
   set +e
-  echo ">>> Deleting veth devices" # veth_dest is deleted when we delete the netns
+  echo ">>> Deleting veth_src"
   sudo ip link delete veth_src
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
