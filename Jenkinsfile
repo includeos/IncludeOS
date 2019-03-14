@@ -98,22 +98,6 @@ pipeline {
       }
     }
   }
-  post {
-    cleanup {
-      sh script: """
-        VERSION=\$(conan inspect -a version lib/LiveUpdate | cut -d " " -f 2)
-        conan remove liveupdate/\$VERSION@$USER/$CHAN -f || echo 'Could not remove. This does not fail the pipeline'
-      """, label: "Cleaning up and removing conan package"
-      sh script: """
-        VERSION=\$(conan inspect -a version src/chainload | cut -d " " -f 2)
-        conan remove chainloader/\$VERSION@$USER/$CHAN -f || echo 'Could not remove. This does not fail the pipeline'
-      """, label: "Cleaning up and removing conan package"
-      sh script: """
-        VERSION=\$(conan inspect -a version . | cut -d " " -f 2)
-        conan remove includeos/\$VERSION@$USER/$CHAN -f || echo 'Could not remove. This does not fail the pipeline'
-      """, label: "Cleaning up and removing conan package"
-    }
-  }
 }
 
 def build_conan_package(String profile, basic="OFF") {
