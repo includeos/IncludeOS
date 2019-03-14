@@ -174,7 +174,7 @@ elif args.solo5_spt:
     solo5_spt = INCLUDEOS_PREFIX + "/x86_64/bin/solo5-spt"
 
     subprocess.call(['chmod', '+x', solo5_spt])
-    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/scripts/solo5-ifup.sh" ])
 
 vm = vmrunner.add_vm(config = config, hyper_name = hyper_name)
 
