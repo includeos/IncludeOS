@@ -86,6 +86,7 @@ pipeline {
       }
       steps {
         script {
+          sh script: "conan user -p $BINTRAY_CREDS_PSW -r $REMOTE $BINTRAY_CREDS_USR", label: "Login to bintray"
           def version = sh (
             script: 'conan inspect -a version . | cut -d " " -f 2',
             returnStdout: true
