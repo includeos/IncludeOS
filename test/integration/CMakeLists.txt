@@ -1,26 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-#to avoid parameters getting mixed between different tests ?
-#or does the new "OS cmake fix this.. so we can build many ?"
-#cmake_external_project_add(
-#  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../net/integration/gateway
-#)
-## this is where moving things around makes sense..
-
-#TODO add timeout column and make 2 dimensional ?
-#TODO create a "single" list of tests ?
-
-#TODO enable pulling everything from conan..
-
-if (NOT DEFINED INCLUDEOS_PREFIX)
-  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-    set(INCLUDEOS_PREFIX /usr/local/includeos)
-  else()
-    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
-  endif()
-endif()
-
-
 option(STRESS "Enable includeos stress test" OFF)
 project(IntegrationTests)
 
@@ -72,7 +51,8 @@ set(TEST_LIST
   "stat"    "20" "posix"
   "syslog_default" "20" "posix"
   "syslog_plugin" "20" "posix"
-  "tcp"   "10"  "posix"
+  #disabled test is unstable after 0.13.1
+  #"tcp"   "10"  "posix"
   "udp"   "20"  "posix"
   "utsname" "20" "posix"
 
@@ -158,10 +138,6 @@ if (CONAN_PROFILE)
 endif()
 
 function(do_conaningans TARGET SOURCE)
-  #force copy for now
-  #if (NOT EXISTS  ${TARGET}/conanfile.txt)
-  #FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt DESTINATION ${TARGET})
-  #endif()
   if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}/conanfile.txt)
     set(CONAN_FILE ${SOURCE}/conanfile.txt)
   else()
@@ -176,6 +152,7 @@ function(do_conaningans TARGET SOURCE)
   set(CONAN_LIBS "")
   conan_cmake_run(
     CONANFILE ${CONAN_FILE}
+
     #PENDING PR to conan-cmake
     #NO_LOAD
   #  INSTALL_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
