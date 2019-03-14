@@ -23,6 +23,7 @@ pipeline {
   stages {
     stage('Setup') {
       steps {
+        cleanWs patterns: [[pattern: 'src/**', type: 'EXCLUDE']]
         sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
