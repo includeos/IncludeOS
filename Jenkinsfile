@@ -1,6 +1,10 @@
 pipeline {
   agent { label 'vaskemaskin' }
 
+  options {
+    checkoutToSubdirectory('src')
+  }
+
   environment {
     CONAN_USER_HOME = "${env.WORKSPACE}"
     REMOTE = "${env.CONAN_REMOTE}"
@@ -13,6 +17,7 @@ pipeline {
     CHAN = 'test'
     COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
     BINTRAY_CREDS = credentials('devops-includeos-user-pass-bintray')
+    SRC = "${env.WORKSPACE}/src"
   }
 
   stages {
@@ -25,7 +30,7 @@ pipeline {
     stage('Unit tests') {
       steps {
         sh script: "mkdir -p unittests", label: "Setup"
-        sh script: "cd unittests; env CC=gcc CXX=g++ cmake ../test", label: "Cmake"
+        sh script: "cd unittests; env CC=gcc CXX=g++ cmake $SRC/test", label: "Cmake"
         sh script: "cd unittests; make -j $CPUS", label: "Make"
         sh script: "cd unittests; ctest", label: "Ctest"
       }
@@ -57,7 +62,7 @@ pipeline {
     stage('Integration tests') {
       steps {
         sh script: "mkdir -p integration", label: "Setup"
-        sh script: "cd integration; cmake ../test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
+        sh script: "cd integration; cmake $SRC/test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
         sh script: "cd integration; make -j $CPUS", label: "Make"
         sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
         sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
@@ -66,7 +71,7 @@ pipeline {
     stage('Code coverage') {
       steps {
         sh script: "mkdir -p coverage; rm -r $COVERAGE_DIR || :", label: "Setup"
-        sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR ../test", label: "Cmake"
+        sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
         sh script: "cd coverage; make -j $CPUS", label: "Make"
         sh script: "cd coverage; make coverage", label: "Make coverage"
       }
@@ -101,13 +106,13 @@ pipeline {
 }
 
 def build_conan_package(String profile, basic="OFF") {
-  sh script: "conan create . $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build includeos with profile: $profile"
+  sh script: "conan create $SRC $USER/$CHAN -pr ${profile} -o basic=${basic}", label: "Build includeos with profile: $profile"
 }
 
 def build_liveupdate_package(String profile) {
-  sh script: "conan create lib/LiveUpdate $USER/$CHAN -pr ${profile}", label: "Build liveupdate with profile: $profile"
+  sh script: "conan create $SRC/lib/LiveUpdate $USER/$CHAN -pr ${profile}", label: "Build liveupdate with profile: $profile"
 }
 
 def build_chainloader_package(String profile) {
-  sh script: "conan create src/chainload $USER/$CHAN -pr ${profile}", label: "Build chainloader with profile: $profile"
+  sh script: "conan create $SRC/src/chainload $USER/$CHAN -pr ${profile}", label: "Build chainloader with profile: $profile"
 }
