@@ -1,2 +1,0 @@
-Iface eth0 dhcp
-eth0.index: 0
