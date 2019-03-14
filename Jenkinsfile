@@ -29,10 +29,11 @@ pipeline {
     stage('Unit tests') {
       when { changeRequest() }
       steps {
-        sh script: "mkdir -p unittests", label: "Setup"
-        sh script: "cd unittests; env CC=gcc CXX=g++ cmake $SRC/test", label: "Cmake"
-        sh script: "cd unittests; make -j $CPUS", label: "Make"
-        sh script: "cd unittests; ctest", label: "Ctest"
+        dir('unittests') {
+          sh script: "env CC=gcc CXX=g++ cmake $SRC/test", label: "Cmake"
+          sh script: "make -j $CPUS", label: "Make"
+          sh script: "ctest", label: "Ctest"
+        }
       }
     }
     stage('Build IncludeOS x86') {
@@ -59,19 +60,23 @@ pipeline {
       when { changeRequest() }
       steps {
         sh script: "mkdir -p integration", label: "Setup"
-        sh script: "cd integration; cmake $SRC/test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
-        sh script: "cd integration; make -j $CPUS", label: "Make"
-        sh script: "cd integration; ctest -E stress --output-on-failure", label: "Tests"
-        sh script: "cd integration; ctest -R stress -E integration --output-on-failure", label: "Stress test"
+        dir('integration') {
+          sh script: "cmake $SRC/test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
+          sh script: "make -j $CPUS", label: "Make"
+          sh script: "ctest -E stress --output-on-failure", label: "Tests"
+          sh script: "ctest -R stress -E integration --output-on-failure", label: "Stress test"
+        }
       }
     }
     stage('Code coverage') {
       when { changeRequest() }
       steps {
-        sh script: "mkdir -p coverage; rm -r $COVERAGE_DIR || :", label: "Setup"
-        sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
-        sh script: "cd coverage; make -j $CPUS", label: "Make"
-        sh script: "cd coverage; make coverage", label: "Make coverage"
+        dir('code_coverage') {
+          sh script: "rm -r $COVERAGE_DIR || :", label: "Setup"
+          sh script: "env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
+          sh script: "make -j $CPUS", label: "Make"
+          sh script: "make coverage", label: "Make coverage"
+        }
       }
       post {
         success {
