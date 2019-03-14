@@ -26,8 +26,8 @@ pipeline {
         sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
-
     stage('Unit tests') {
+      when { changeRequest() }
       steps {
         sh script: "mkdir -p unittests", label: "Setup"
         sh script: "cd unittests; env CC=gcc CXX=g++ cmake $SRC/test", label: "Cmake"
@@ -35,7 +35,6 @@ pipeline {
         sh script: "cd unittests; ctest", label: "Ctest"
       }
     }
-
     stage('Build IncludeOS x86') {
       steps {
         build_conan_package("$PROFILE_x86","ON")
@@ -46,20 +45,18 @@ pipeline {
         build_conan_package("$PROFILE_x86_64")
       }
     }
-
     stage('Build chainloader x86') {
       steps {
         build_chainloader_package("$PROFILE_x86")
       }
     }
-
     stage('Build liveupdate x86_64') {
       steps {
         build_liveupdate_package("$PROFILE_x86_64")
       }
     }
-
     stage('Integration tests') {
+      when { changeRequest() }
       steps {
         sh script: "mkdir -p integration", label: "Setup"
         sh script: "cd integration; cmake $SRC/test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
@@ -69,6 +66,7 @@ pipeline {
       }
     }
     stage('Code coverage') {
+      when { changeRequest() }
       steps {
         sh script: "mkdir -p coverage; rm -r $COVERAGE_DIR || :", label: "Setup"
         sh script: "cd coverage; env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
