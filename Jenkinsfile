@@ -3,6 +3,7 @@ pipeline {
 
   environment {
     CONAN_USER_HOME = "${env.WORKSPACE}"
+    REMOTE = "${env.CONAN_REMOTE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
     CPUS = """${sh(returnStdout: true, script: 'nproc')}"""
@@ -71,11 +72,7 @@ pipeline {
       }
       post {
         success {
-          script {
-            if (env.CHANGE_ID) {
-              pullRequest.comment("Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}")
-            }
-          }
+           echo "Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}"
         }
       }
     }
