@@ -23,7 +23,7 @@ pipeline {
   stages {
     stage('Setup') {
       steps {
-        cleanWs patterns: [[pattern: 'src/**', type: 'EXCLUDE']]
+        sh script: "ls -A | grep -v src | xargs rm -r || :", label: "Clean workspace"
         sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
@@ -97,7 +97,7 @@ pipeline {
         script {
           sh script: "conan user -p $BINTRAY_CREDS_PSW -r $REMOTE $BINTRAY_CREDS_USR", label: "Login to bintray"
           def version = sh (
-            script: 'conan inspect -a version . | cut -d " " -f 2',
+            script: "conan inspect -a version $SRC | cut -d ' ' -f 2",
             returnStdout: true
           ).trim()
           sh script: "conan upload --all -r $REMOTE includeos/${version}@$USER/$CHAN", label: "Upload includeos to bintray"
