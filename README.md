@@ -32,22 +32,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 A longer list of features and limitations can be found on our [documentation site](http://includeos.readthedocs.io/en/latest/Features.html).
 
-## Getting started
-
-### Set custom location and compiler
-
-By default the project is installed to `/usr/local/includeos`.
-
-However, it is recommended to choose a custom location as well as select the compiler we want clang to find. In this document we assume you install IncludeOS in your home directory, in the folder `~/includeos`.
-
-To do this we can edit `~/.bash_profile` (mac os) or `~/.bashrc` (linux), adding these lines at the end of the file:
-
-```
-    export INCLUDEOS_PREFIX=~/includeos/
-    export PATH=$PATH:$INCLUDEOS_PREFIX/bin
-```
-
-This will also crucially make the boot program visible globally, so that you can simply run ```boot <myservice>``` inside any service folder.
+___
 
 ### Getting started with IncludeOS development
 
@@ -73,8 +58,7 @@ For Mac OS ensure that you have a working installation of [brew](https://brew.sh
 
 Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html)
 to build packages. By default IncludeOS will build with `clang 6.0` if
-`CONAN_PROFILE` is not defined. Passing `-DCONAN_DISABLE_CHECK_COMPILER`
-during build disables this check.
+`CONAN_PROFILE` is not defined.
 
 ##### Getting IncludeOS Conan Configs
 
@@ -82,13 +66,13 @@ We have set up a repository ([includeos/conan_config](https://github.com/include
 conan settings. To configure using this repo just do:
 
 ```
-  conan config install https://github.com/includeos/conan_config
+  conan config install https://github.com/includeos/conan_config.git
 ```
 
-This adds our remote artifactory in your conan remotes and also installs all the profiles we have in the repository for you.
+This adds our remote in your conan remotes and also installs all the profiles we have in the repository for you.
 
-##### Profiles
-Profiles we are developing with can be found in [includeos/conan_config ](https://github.com/includeos/conan_config) repository under `conan_config/profiles/`.
+###### Profiles
+Profiles we are using for development can be found in [includeos/conan_config ](https://github.com/includeos/conan_config) repository under `conan_config/profiles/`.
 If you have not used the `conan config install` command above, then to install the profiles, copy them over to your user `./conan/profiles` folder.
 
 The target profiles we have verified are the following:
@@ -111,9 +95,9 @@ Verify the content of your profile by:
 If your profile is on the list and contents are verified, you are set to use the
 profile for building.
 
-##### IncludeOS Artifactory Repo
+###### IncludeOS Bintray Repositories
 
-The artifactory repository is where all the packages used to build IncludeOS
+The [Bintray](https://bintray.com/includeos) repository is where all the packages used to build IncludeOS
 are uploaded. Adding the repo to your conan remotes will give you access to all
 our packages developed for IncludeOS.
 
@@ -124,20 +108,24 @@ conan remote list
 ```
 If the includeOS-Develop remote is not added do, you have to add it.
 
-To add the IncludeOS-Develop conan Artifactory repository to your conan remotes:
+To add the IncludeOS-Develop conan Bintray repository to your conan remotes:
 
 ```
 conan remote add includeos-test https://api.bintray.com/conan/includeos/test-packages
 ```
 
-##### Install IncludeOS
+##### Build IncludeOS
 
-Finally to install IncludeOS with profile named `clang-6.0-linux-x86_64` do:
+Finally to build IncludeOS do:
 
 ```
-    $ cmake -DCONAN_PROFILE=clang-6.0-linux-x86_64 <path to includeos repo>
-    $ make
-    $ make install
+    $ conan create <path-to-conan-recipe> <conan-user>/<conan_channel> -pr <profile-name>
+```
+
+To build IncludeOS on Linux use profile named `clang-6.0-linux-x86_64` :
+
+```
+    $ conan create IncludeOS includeos/test -pr clang-6.0-linux-x86_64
 ```
 
 ###### Searching Packages
@@ -147,6 +135,8 @@ if you want to check if a package exists you can search for it:
 ```
     conan search help
 ```
+
+___
 
 ### Getting started developing packages
 
@@ -172,7 +162,7 @@ To build `bintuils` using our [includeos/conan](https://github.com/includeos/con
 ```
 conan create <binutils-conan-recipe-path>/binutils/2.31 -pr <yourprofilename>-toolchain includeos/test
 ```
-#### Building Dependencies
+##### Building Dependencies
 
 To build our other dependencies you may use the conan recipes we have in the
 repository.
@@ -180,17 +170,17 @@ repository.
 **Note:** If you plan to build dependencies you might need to ensure you have
 other missing libraries installed.
 
-##### Dependencies
+**Requirements**
 
 - GNU C++ compiler - `g++-multilib`
 - Secure Sockets Layer toolkit `libssl-dev`
 
-##### Building musl
+###### Building musl
 ```
 conan create <conan-recipe-path>/musl/1.1.18 -pr <yourprofilename> includeos/test
 ```
 
-##### Building llvm stdc++ stdc++abi and libunwind
+###### Building llvm stdc++ stdc++abi and libunwind
 
 If these recipes do not have a fixed version in the conan recipe then you have
 to specify it alongside the `user/channel` as `package/version@user/channel`
@@ -201,39 +191,18 @@ conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/
 conan create <conan-recipe-path>/llvm/libcxxabi -pr <yourprofilename> libcxxabi/7.0.1@includeos/test
 conan create <conan-recipe-path>/llvm/libcxx -pr <yourprofilename> libcxx/7.0.1@includeos/test
 ```
+___
 
 ### Testing the IncludeOS installation
 
-A successful setup enables you to build and run a virtual machine. There are a few demonstration services in the source folder. If you look in the `examples/` folder you see these. If you enter `demo_service` and type `boot --create-bridge .` this script will build the service and boot it using [qemu].
 
-```
-    $ cd examples/demo_service
-    $ boot --create-bridge .
-```
-
-will build and run [this example service](./examples/demo_service/service.cpp). You can visit the service on [http://10.0.0.42/](http://10.0.0.42/).
-
-More information is available on our [documentation site](http://includeos.readthedocs.io/en/latest/Getting-started.html#testing-the-example-service).
+___
 
 ### Writing your first service
 
-1. Copy the [./seed/service](./seed/service) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service/service.cpp) (very simple example provided). This function will be called once the OS is up and running.
-2. Update the [CMakeLists.txt](./seed/service/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
 
-**Example:**
 
-```
-    $ cp -r seed/service ~/my_service
-    $ cd ~/my_service
-    $ emacs service.cpp
-    ... add your code
-    $ mkdir build && cd build
-    $ cmake ..
-    $ make
-    $ boot my_service
-```
-
-Take a look at the [examples](./examples) and the [tests](./test). These all started out as copies of the same seed.
+___
 
 ## Contributing to IncludeOS
 
