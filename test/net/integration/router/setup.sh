@@ -1,6 +1,5 @@
 #! /bin/bash
 set -e #abort on first command returning a failure
-
 source_net=10.0.0.0/24
 source_bridge=bridge43
 
@@ -16,13 +15,6 @@ shopt -s expand_aliases
 alias server1="sudo ip netns exec $NSNAME"
 
 setup() {
-
-  # TODO: it's probably not nice to install test deps here
-  #sudo apt-get -qqq install -y iperf3
-
-  # Make sure the default bridge exists
-  $INCLUDEOS_PREFIX/scripts/create_bridge.sh
-
   # Create veth link
   sudo ip link add veth_src type veth peer name veth_dest
 
@@ -41,42 +33,40 @@ setup() {
   server1 ip link set lo up
 
   # Create a second bridge and bring it up, no IP
-  sudo brctl addbr $dest_bridge
+  sudo ip link add name $dest_bridge type bridge
   sudo ip link set dev $dest_bridge up
 
   # Add source end to bridge44
-  sudo brctl addif $dest_bridge veth_src
+  sudo ip link set dev veth_src master $dest_bridge
 
   # Route all traffic to the isolated network via bridge43
   sudo ip route add $dest_net dev $source_bridge
 
   # Route all traffic from server1 back to root namespace, via veth_dest
   server1 sudo ip route add $source_net via $dest_gateway
-
+  echo ">>> Setup complete"
 }
 
-
 undo(){
-  echo ">>> Deleting veth devices"
+  # Always run all cleanup commands even if one fails
+  set +e
+  echo ">>> Deleting veth_src"
   sudo ip link delete veth_src
-  sudo ip link delete veth_dest
   echo ">>> Deleting $dest_bridge"
   sudo ip link set $dest_bridge down
-  sudo brctl delbr $dest_bridge
+  sudo ip link del $dest_bridge
   echo ">>> Deleting namespace and veth pair"
   sudo ip netns del $NSNAME
   echo ">>> Deleting route to namespace"
   sudo ip route del $dest_net dev $source_bridge
-
 }
 
 vmsetup(){
   echo ">>> Moving VM iface $if2 to $dest_bridge"
-  sudo brctl delif $source_bridge $if2
-  sudo brctl addif $dest_bridge $if2
-  sudo ifconfig $if2 up
+  sudo ip link set dev $if2 nomaster
+  sudo ip link set dev $if2 master $dest_bridge
+  sudo ip link set $if2 up
   echo ">>> Done."
-
 }
 
 if [ "$1" == "--clean" ]

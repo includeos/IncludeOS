@@ -51,7 +51,8 @@ set(TEST_LIST
   "stat"    "20" "posix"
   "syslog_default" "20" "posix"
   "syslog_plugin" "20" "posix"
-  #disabled test is unstable after 0.13.1
+
+  # Disable posix_tcp as it is highly unreliable
   #"tcp"   "10"  "posix"
   "udp"   "20"  "posix"
   "utsname" "20" "posix"
@@ -80,11 +81,10 @@ set(TEST_LIST
   #TODO move to microlb with framework to test
   #"microLB"   "50"    "net"
   "nat"       "30"    "net"
-  #disabled for now..
-#  "router"    "30"    "net"
-#  "router6"   "30"     "net"
+  "router"    "30"    "net"
+  "router6"   "30"    "net"
   "slaac"     "30"    "net"
-  "tcp"       "120"    "net"
+  "tcp"       "120"   "net"
   "udp"       "30"    "net"
   "vlan"      "20"    "net"
   #TODO move websocket to http library
