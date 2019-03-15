@@ -10,15 +10,11 @@ import subprocess
 thread_timeout = 20
 
 from threading import Timer
-
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
-
 from vmrunner import vmrunner
 import socket
-
 from vmrunner.prettify import color
+
+thread_timeout = 40
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
@@ -126,4 +122,7 @@ def run_dhclient(trigger_line):
 vm.on_output("Service started", run_dhclient)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout).clean()
