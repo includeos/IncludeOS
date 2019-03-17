@@ -2,7 +2,6 @@
 #    memstream.c TODO delete
     async.cpp
     statman.cpp
-    statman_liu.cpp
     logger.cpp
     sha1.cpp
     syslog_facility.cpp
@@ -20,6 +19,7 @@ if (NOT CORE_OS)
     tar.cpp
     uri.cpp #rapidjson
     autoconf.cpp
+    statman_liu.cpp
   )
 endif()
 
