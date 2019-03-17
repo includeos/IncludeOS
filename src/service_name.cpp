@@ -20,13 +20,38 @@
 #include <isotime>
 #include <stdexcept>
 
-extern "C" __attribute__((noreturn))
-void panic(const char* reason);
+void failing_function()
+{
+  throw std::invalid_argument( "received negative value" );
+}
 
-#ifndef __linux__
-extern "C" __attribute__((noreturn))
-void abort(){
-  panic("Abort called");
+void Service::start(const std::string& args)
+{
+#ifdef __GNUG__
+  printf("Built by g++ " __VERSION__ "\n");
+#endif
+  printf("Issue SVC\n");
+  //SVC is not legal in EL1.. HVC and SMC is
+  asm volatile ("svc #0"); //this will trigger a syn exception and return
+
+  printf("SVC success\n");
+
+  //wfi
+//  while(1);
+  // TODO fix this
+/*  try {
+    //raise std::exception("Test");
+    throw 20;
+    //failing_function();
+  }
+  catch(int e)
+  {
+    printf("Exception caught\n");
+  }*/
+  //TODO fix time handling
+  //printf("Hello world! Time is now %s\n", isotime::now().c_str());
+  printf("Args = %s\n", args.c_str());
+  printf("Try giving the service less memory, eg. 3MB in vm.json\n");
 }
 #endif
 
