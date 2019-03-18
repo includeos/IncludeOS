@@ -24,7 +24,7 @@ def get_version():
 class IncludeOSConan(ConanFile):
     settings= "os","arch","build_type","compiler"
     name = "includeos"
-    #version = get_version()
+    version = get_version()
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
