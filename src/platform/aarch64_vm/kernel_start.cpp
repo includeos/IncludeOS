@@ -17,7 +17,9 @@
 
 #include <kprint>
 #include <info>
-#include <kernel/os.hpp>
+#include <os>
+#include <kernel.hpp>
+//#include <kernel/os.hpp>
 #include <kernel/service.hpp>
 //#include <boot/multiboot.h>
 extern "C" {
@@ -207,20 +209,20 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
   // Initialize heap
-  OS::init_heap(free_mem_begin, mem_end);
+  kernel::init_heap(free_mem_begin, mem_end);
 
   // Initialize system calls
   _init_syscalls();
 
   // Initialize stdout handlers
-  if (os_default_stdout)
-    OS::add_stdout(&OS::default_stdout);
+  //if (os_default_stdout)
+  //  OS::add_stdout(&OS::default_stdout);
 
 
   const int intc_offset = fdt_path_offset(fdt, "/pcie");
 
   kprintf("OS start intc %d\r\n",intc_offset);
-  OS::start(fdt_addr);
+  kernel::start(fdt_addr);
 
   // Start the service
   Service::start();

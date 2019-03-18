@@ -1,4 +1,4 @@
-#include <os>
+#include <kernel.hpp>
 #include <timer.h>
 
 extern "C" {
@@ -8,7 +8,7 @@ extern "C" {
 #include "gic.h"
 #include <cpu.h>
 
-void OS::start(uint64_t fdt_addr) // boot_magic, uint32_t boot_addr)
+void kernel::start(uint64_t fdt_addr) // boot_magic, uint32_t boot_addr)
 {
   //printf("printf os start\r\n");
   //belongs in platform ?
