@@ -1,6 +1,6 @@
 #include <hw/vga_gfx.hpp>
 #include <hw/ioport.hpp>
-#if defined(ARCH_X86) || defined(ARCH_x86_64)
+#if defined(__SSE2__)
   #include <x86intrin.h>
 #endif
 #include <cassert>
