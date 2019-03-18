@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.1.0)
 
-set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
-
 # Target CPU Architecture
-if (NOT DEFINED ARCH)
-  if(DEFINED ENV{ARCH})
-    set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+if (NOT ARCH)
+  if (CMAKE_SYSTEM_PROCESSOR)
+    set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+  elseif(ENV{ARCH})
+    set(ARCH $ENV{ARCH})
   else()
-    set(ARCH "x86_64" CACHE STRING "Architecture (default)")
+    set(ARCH "x86_64")
   endif()
 endif()
 
@@ -20,19 +20,22 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-# Remember we was APPLE in earlier life
-if(APPLE)
-  set(BORNED_AS_AN_APPLE FRUITSALAD)
-endif()
 
 project (includeos C CXX)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+#TODO fix this by using cmake's well defined buld type definitions
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 include(ExternalProject)
 include(CMakeDependentOption)
 
 #if not apple and x86_64 enable with solo5.. this option results in a different arch in conan.. should be handled like that as well
-cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
-"NOT APPLE;${ARCH} STREQUAL x86_64" OFF)
+#cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
+#"NOT APPLE;${ARCH} STREQUAL x86_64" OFF)
+option(WITH_SOLO5 "Build with solo5 support" OFF)
 
 if(NOT BORNED_AS_AN_APPLE)
   include(CheckCXXCompilerFlag)
@@ -47,7 +50,7 @@ if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
    set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
  else()
    set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos CACHE PATH "..." FORCE)
-   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
+   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set CMAKE_INSTALL_PREFIX")
  endif()
 endif()
 
@@ -84,24 +87,24 @@ include_directories(${CMAKE_BINARY_DIR})
 cmake_dependent_option(CORE_OS "Only build the core OS reducing dependencies on botan,openssl etc" OFF
   "NOT PLATFORM STREQUAL x86_nano" ON)
 
-option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
-if(cpu_feat_vanilla)
-  include("cmake/vanilla.cmake")
-  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
-  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
-else()
-  include("cmake/cpu_feat.cmake")
-  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
-  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
-endif(cpu_feat_vanilla)
+#option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
+#if(cpu_feat_vanilla)
+#  include("cmake/vanilla.cmake")
+#  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
+#  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
+#else()
+#  include("cmake/cpu_feat.cmake")
+#  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
+#  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
+#endif(cpu_feat_vanilla)
 
 option(smp "Compile with SMP (multiprocessing)" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
-option (undefined_san "Enable undefined-behavior sanitizer" OFF)
-option (thin_lto "Enable the Thin LTO plugin" OFF)
-option (full_lto "Enable full LTO (compatibility)" OFF)
+#option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+#option (thin_lto "Enable the Thin LTO plugin" OFF)
+#option (full_lto "Enable full LTO (compatibility)" OFF)
 
 set(CAPABS "${CAPABS} -g -fstack-protector-strong")
 
@@ -118,7 +121,7 @@ option(stripped "reduce size" OFF)
 
 function(init_submodule MOD)
   message(STATUS "Init git submodule: " ${MOD})
-  execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${INCLUDEOS_ROOT})
+  execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
 
@@ -157,6 +160,7 @@ if ("${ARCH}" STREQUAL "i686" OR "${ARCH}" STREQUAL "i386" )
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
   set(OBJCOPY_TARGET "elf32-i386")
   set(CAPABS "${CAPABS} -m32")
+  enable_language(ASM_NASM)
 elseif ("${ARCH}" STREQUAL "aarch64")
   #In cmake we trust
   #set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
@@ -189,15 +193,11 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
-#TODO fix this by using cmake's well defined buld type definitions
-set(CMAKE_BUILD_TYPE Release)
-
-#TODO separate dependencies if build is GCC from if build is clang in
-#conanfile.py and add requirement for the tools in the profile!!
-
 #Sets the includeos default profile to clang-5.0
 if (NOT DEFINED CONAN_PROFILE)
-  SET(CONAN_PROFILE "default")
+  SET(CONANPROFILE "")
+else()
+  set(CONANPROFILE PROFILE ${CONAN_PROFILE})
 endif()
 
 #Are we executing cmake from conan or locally
@@ -224,6 +224,7 @@ else() # in user space
     OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
     NO_IMPORTS
+    ${CONANPROFILE}
   )
 endif()
 
@@ -240,7 +241,7 @@ set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(FILES cmake/linux.service.cmake DESTINATION cmake)
 install(FILES cmake/library.cmake DESTINATION cmake)
 install(FILES cmake/os.cmake DESTINATION cmake)
-install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
+#install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
 
 
 # TODO ? move to "linux cmake" this is only apple

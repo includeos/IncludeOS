@@ -19,4 +19,4 @@ set_target_properties(x86_solo5 PROPERTIES LINKER_LANGUAGE CXX)
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
-install(TARGETS x86_solo5 DESTINATION ${ARCH}/platform)
+install(TARGETS x86_solo5 DESTINATION platform)

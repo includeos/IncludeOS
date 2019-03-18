@@ -1,5 +1,4 @@
 ﻿set(SRCS
-#    memstream.c TODO delete
     async.cpp
     statman.cpp
     logger.cpp
@@ -15,7 +14,9 @@
 #if (NOT CMAKE_TESTING_ENABLED)
 
 if (NOT CORE_OS)
+  include_directories(${CMAKE_SOURCE_DIR}/lib/LiveUpdate/include)
   list(APPEND SRCS
+    memstream.c
     tar.cpp
     uri.cpp #rapidjson
     autoconf.cpp

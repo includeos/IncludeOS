@@ -32,10 +32,6 @@ set(LIBRARIES
     hw
 )
 
-if (NOT CORE_OS)
-  list(APPEND LIBRARIES fuzz)
-endif()
-
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND LIBRARIES crt)
 endif()
@@ -58,19 +54,22 @@ if (NOT CMAKE_TESTING_ENABLED)
   add_dependencies(os version )
   add_subdirectory(arch/${ARCH})
   if (NOT CORE_OS)
-
-    add_subdirectory(platform/x86_pc)
-
     if(WITH_SOLO5)
-     add_subdirectory(platform/x86_solo5)
+      message(STATUS "platform x86_solo5")
+      add_subdirectory(platform/x86_solo5)
+    else()
+      message(STATUS "platform x86_pc")
+      add_subdirectory(platform/x86_pc)
     endif(WITH_SOLO5)
 
     add_subdirectory(drivers)
     add_subdirectory(plugins)
   else()
-    if (${ARCH} STREQUAL "aarch64")
+    if ("${ARCH}" STREQUAL "aarch64")
+      message(STATUS "platform aarch64_vm")
       add_subdirectory(platform/aarch64_vm)
     else()
+      message(STATUS "platform x86_nano")
       add_subdirectory(platform/x86_nano)
     endif()
   endif()
@@ -82,10 +81,14 @@ endif()
 # Installation
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
-install(TARGETS os DESTINATION ${ARCH}/lib)
+install(TARGETS os DESTINATION lib)
+
+configure_file(${CMAKE_SOURCE_DIR}/src/memdisk/empty.asm ${CMAKE_BINARY_DIR}/tools/memdisk/empty.asm)
+configure_file(${CMAKE_SOURCE_DIR}/src/memdisk/memdisk.asm ${CMAKE_BINARY_DIR}/tools/memdisk/memdisk.asm)
+configure_file(${CMAKE_SOURCE_DIR}/src/memdisk/memdisk.py ${CMAKE_BINARY_DIR}/tools/memdisk/memdisk.py)
 
 #TODO build ?
-install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION tools/memdisk
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/memdisk/ DESTINATION tools/memdisk
         FILES_MATCHING PATTERN "*.*")
 
 install(FILES service_name.cpp DESTINATION src)

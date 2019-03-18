@@ -27,4 +27,4 @@ set_source_files_properties(start_aarch64.asm PROPERTIES COMPILE_FLAGS "-x assem
 add_library(aarch64_vm STATIC ${PLATFORM_OBJECTS} ${PLATFORM_SOURCES})
 #set_source_files_properties(${PLATFORM_SOURCES} PROPERIES LINKER_LANGUAGE CXX)
 set_target_properties(aarch64_vm PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS aarch64_vm DESTINATION ${ARCH}/platform)
+install(TARGETS aarch64_vm DESTINATION platform)

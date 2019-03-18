@@ -17,6 +17,6 @@ set(ARCH_OBJECTS
 
 add_library(arch STATIC ${ARCH_OBJECTS})
 set_target_properties(arch PROPERTIES LINKER_LANGUAGE CXX)
-
-install(TARGETS arch DESTINATION ${ARCH}/lib)
-install(FILES linker.ld DESTINATION ${ARCH})
+configure_file(linker.ld ${CMAKE_BINARY_DIR})
+install(TARGETS arch DESTINATION lib)
+install(FILES linker.ld DESTINATION .)

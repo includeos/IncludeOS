@@ -9,4 +9,4 @@ set(PLATFORM_OBJECTS
 
 add_library(x86_nano STATIC ${PLATFORM_OBJECTS})
 set_target_properties(x86_nano PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS x86_nano DESTINATION ${ARCH}/platform)
+install(TARGETS x86_nano DESTINATION platform)

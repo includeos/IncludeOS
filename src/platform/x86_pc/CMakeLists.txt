@@ -44,4 +44,4 @@ add_library(x86_pc STATIC ${X86_PC_OBJECTS} apic_boot.o)
 
 add_subdirectory(boot)
 set_target_properties(x86_pc PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS x86_pc DESTINATION ${ARCH}/platform/)
+install(TARGETS x86_pc DESTINATION platform)

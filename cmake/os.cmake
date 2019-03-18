@@ -36,7 +36,7 @@ if (CONAN_EXPORTED)
   conan_basic_setup()
 endif()
 
-set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
+#set(INCLUDEOS_PREFIX ${CONAN_RES_DIRS_INCLUDEOS})
 
 
 #TODO use these
@@ -45,7 +45,7 @@ set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
 #CONAN_SETTINGS_COMPILER AND CONAN_SETTINGS_COMPILER_VERSION
 #CONAN_SETTINGS_OS ("Linux","Windows","Macos")
 
-if (NOT DEFINED ARCH)
+if (NOT ARCH)
   if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
     set(ARCH i686)
   else()
@@ -74,16 +74,15 @@ if (DISKBUILDER-NOTFOUND)
   message(FATAL_ERROR "diskbuilder not found")
 endif()
 
-set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
+set(LINK_SCRIPT ${CONAN_RES_DIRS_INCLUDEOS}/linker.ld)
 #includeos package can provide this!
 include_directories(
-  ${INCLUDEOS_PREFIX}/include/os
+  ${CONAN_RES_DIRS_INCLUDEOS}/include/os
 )
 
 
 # arch and platform defines
-#message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
-
+#TODO get from toolchain ?
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
@@ -256,18 +255,18 @@ endfunction()
 function (os_add_drivers TARGET)
   foreach(DRIVER ${ARGN})
     #if in conan expect it to be in order ?
-    os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers")
+    os_add_library_from_path(${TARGET} ${DRIVER} "${CONAN_RES_DIRS_INCLUDEOS}/drivers")
   endforeach()
 endfunction()
 
 function(os_add_plugins TARGET)
   foreach(PLUGIN ${ARGN})
-    os_add_library_from_path(${TARGET} ${PLUGIN} "${INCLUDEOS_PREFIX}/${ARCH}/plugins")
+    os_add_library_from_path(${TARGET} ${PLUGIN} "${CONAN_RES_DIRS_INCLUDEOS}/plugins")
   endforeach()
 endfunction()
 
 function (os_add_stdout TARGET DRIVER)
-   os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers/stdout")
+   os_add_library_from_path(${TARGET} ${DRIVER} "${CONAN_RES_DIRS_INCLUDEOS}/drivers/stdout")
 endfunction()
 
 
@@ -294,7 +293,7 @@ function(os_add_memdisk TARGET DISK)
     REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND ${Python2_EXECUTABLE} ${INCLUDEOS_PREFIX}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND ${Python2_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
@@ -355,8 +354,9 @@ function(internal_os_add_config TARGET CONFIG_JSON)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json_${TARGET} --no-whole-archive)
 endfunction()
 
+#TODO fix nacl
 function(os_add_nacl TARGET FILENAME)
-  set(NACL_PATH ${INCLUDEOS_PREFIX}/tools/NaCl)
+  set(NACL_PATH ${CONAN_RES_DIRS_INCLUDEOS}/tools/NaCl)
   add_custom_command(
      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
      COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp

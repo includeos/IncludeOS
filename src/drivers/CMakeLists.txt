@@ -5,41 +5,68 @@
 #
 # ...There are probably nicer solutions, so please PR if you know them.
 
-# make LiveUpdate visible to drivers
+# make LiveUpdate visible to drivers systemlog.. yet another DEP!!
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
-# Simple stuff
+#TODO delete (including sources)
+#add_library(ide_readwrite STATIC ide.cpp)
+#set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
+
+#add_library(ide_readonly STATIC ide.cpp)
+#set_target_properties(ide_readonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ")
+
+#add_library(ide_writeonly STATIC ide.cpp)
+#set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
+#END TODO
+
+set(DRIVER_SRCS
+  virtiocon.cpp
+  virtioblk.cpp
+  virtionet.cpp
+  vmxnet3.cpp
+  e1000.cpp
+  ip4_reassembly.cpp
+  heap_debugging.cpp
+  vga_emergency.cpp
+  stdout/timestamps.cpp
+)
+if (WITH_SOLO5)
+  list(APPEND DRIVER_SRCS
+    solo5blk.cpp
+    solo5net.cpp
+  )
+endif()
+set(DRIVERS "")
+foreach(DRIVER ${DRIVER_SRCS})
+  get_filename_component(DRIVER_NAME ${DRIVER} NAME_WE)
+  add_library(${DRIVER_NAME} STATIC ${DRIVER})
+  list(APPEND DRIVERS ${DRIVER_NAME})
+endforeach()
+
+#TODO rename source file
 add_library(boot_logger STATIC stdout/bootlog.cpp)
-add_library(default_stdout STATIC "stdout/default_stdout.cpp")
-
-add_library(ide_readwrite STATIC ide.cpp)
-set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
-
-add_library(ide_readonly STATIC ide.cpp)
-set_target_properties(ide_readonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ")
-
-add_library(ide_writeonly STATIC ide.cpp)
-set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
-
-add_library(virtiocon STATIC virtiocon.cpp)
-
-add_library(virtioblk STATIC virtioblk.cpp)
-
-add_library(virtionet STATIC virtionet.cpp)
-
-add_library(vmxnet3 STATIC vmxnet3.cpp)
-
-add_library(e1000 STATIC e1000.cpp)
-
-add_library(ip4_reassembly STATIC "ip4_reassembly.cpp")
-
-add_library(heap_debugging STATIC heap_debugging.cpp)
-
-add_library(timestamps STATIC stdout/timestamps.cpp)
-
+list(APPEND DRIVERS
+  boot_logger
+)
+set_target_properties(${DRIVERS}
+  PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/drivers
+  ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/drivers
+  ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/drivers
+)
+install(TARGETS ${DRIVERS} DESTINATION drivers)
+# Simple stuff
 add_library(vga_output STATIC stdout/vgaout.cpp)
+add_library(default_stdout STATIC stdout/default_stdout.cpp)
+# TODO DELETE
+#add_library(vga_emergency STATIC vga_emergency.cpp)
 
-add_library(vga_emergency STATIC vga_emergency.cpp)
+set_target_properties(vga_output default_stdout
+  PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/drivers/stdout
+  ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/drivers/stdout
+  ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/drivers/stdout
+)
 
 #
 # Installation
@@ -50,23 +77,5 @@ set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(TARGETS
     default_stdout
     vga_output
-    vga_emergency
-  DESTINATION ${ARCH}/drivers/stdout)
-
-# installation of drivers (called just before plugins)
-install(TARGETS
-    ide_readwrite ide_readonly ide_writeonly
-    virtionet virtioblk virtiocon
-    vmxnet3 e1000
-    ip4_reassembly
-    heap_debugging
-    # stdout drivers that are simple enough to remain here
-    boot_logger timestamps
-  DESTINATION ${ARCH}/drivers)
-
-if(WITH_SOLO5)
-  add_library(solo5blk STATIC solo5blk.cpp)
-  add_library(solo5net STATIC solo5net.cpp)
-
-  install(TARGETS solo5net solo5blk DESTINATION ${ARCH}/drivers)
-endif(WITH_SOLO5)
+  #  vga_emergency
+  DESTINATION drivers/stdout)
