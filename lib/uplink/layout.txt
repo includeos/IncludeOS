@@ -1,5 +1,0 @@
-[includedirs]
-.
-
-[libdirs]
-build/lib

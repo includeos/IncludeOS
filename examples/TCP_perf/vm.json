@@ -1,4 +1,0 @@
-{
-  "net" : [{"device" : "vmxnet3"}],
-  "mem" : 2048
-}
