@@ -24,7 +24,7 @@ def get_version():
 class IncludeOSConan(ConanFile):
     settings= "os","arch","build_type","compiler"
     name = "includeos"
-    version = get_version()
+    #version = get_version()
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
@@ -104,6 +104,8 @@ class IncludeOSConan(ConanFile):
 
     def package_info(self):
         #this is messy but unless we rethink things its the way to go
+        self.cpp_info.resdirs=[self.package_folder]
+
         # this puts os.cmake in the path
         self.cpp_info.builddirs = ["cmake"]
         # this ensures that API is searchable
@@ -115,12 +117,15 @@ class IncludeOSConan(ConanFile):
                 platform='x86_nano'
             else:
                 platform='x86_pc'
+        if (self.settings.arch == "armv8"):
+            platform='aarch64_vm'
         #if (self.settings.solo5):
         #if solo5 set solo5 as platform
         self.cpp_info.libs=[platform,'os','arch','musl_syscalls']
         self.cpp_info.libdirs = [
-            '{}/lib'.format(self._target_arch()),
-            '{}/platform'.format(self._target_arch())
+            'lib',
+            'platform'
         ]
+
     def deploy(self):
         self.copy("*",dst=".",src=".")
