@@ -205,7 +205,6 @@ struct Restore
   uint16_t    get_id()   const noexcept;
   int         length()   const noexcept;
   const void* data()     const noexcept;
-  bool is_stream() const noexcept;
   uint16_t    next_id()  const noexcept;
   // go to the next storage entry
   void        go_next();

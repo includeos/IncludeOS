@@ -46,15 +46,15 @@ static inline multiboot_info_t* bootinfo(uint32_t addr)
   // NOTE: the address is 32-bit and not a pointer
   return (multiboot_info_t*) (uintptr_t) addr;
 }
-
-multiboot_info_t* OS::bootinfo()
-{
 #if defined(ARCH_aarch64)
   uint32_t dummy[24];
   uintptr_t __multiboot_addr=(uintptr_t)&dummy[0];
 #else
   extern uint32_t __multiboot_addr;
 #endif
+
+multiboot_info_t* kernel::bootinfo()
+{
   return (multiboot_info_t*) (uintptr_t) __multiboot_addr;
 }
 
