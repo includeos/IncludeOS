@@ -24,62 +24,133 @@
 
 namespace hw {
 
+  template<class PCIInterface>
+  class PCI_Handler
+  {
+  public:
+    static inline uint8_t rdb(uint16_t port) {
+      return PCIInterface::read_byte(port);
+    }
+    static inline uint16_t rdw(uint16_t port) {
+      return PCIInterface::read_word(port);
+    }
+    static inline uint32_t rdl(uint16_t port) {
+      return PCIInterface::read_long(port);
+    }
+    static inline void outb(uint16_t port,uint8_t data) {
+      PCIInterface::write_byte(port,data);
+    }
+    static inline void outw(uint16_t port,uint16_t data) {
+      PCIInterface::write_word(port,data);
+    }
+    static inline void outl(uint16_t port,uint32_t data) {
+      PCIInterface::write_long(port,data);
+    }
+  };
+
+  #if defined(ARCH_x86) || defined(ARCH_x86_64)
+    class PCI_Impl
+    {
+    public:
+      static inline uint8_t read_byte(uint16_t port)
+      {
+        uint8_t ret;
+        asm volatile("inb %1,%0" : "=a"(ret) : "Nd"(port));
+        return ret;
+      }
+
+      static inline uint16_t read_word(uint16_t port)
+      {
+        uint16_t ret;
+        asm volatile("inw %1,%0" : "=a"(ret) : "Nd"(port));
+        return ret;
+      }
+
+      static inline uint32_t read_long(uint16_t port)
+      {
+        uint32_t ret;
+        asm volatile("inl %1,%0" : "=a"(ret) : "Nd"(port));
+        return ret;
+      }
+
+      static inline void write_byte(uint16_t port, uint8_t data)
+      {
+        asm volatile ("outb %0,%1" :: "a"(data), "Nd"(port));
+      }
+      static inline void write_word(uint16_t port, uint16_t data)
+      {
+        asm volatile ("outw %0,%1" :: "a" (data), "Nd"(port));
+      }
+      static inline void write_long(uint16_t port, uint32_t data)
+      {
+        asm volatile ("outl %0,%1" :: "a" (data), "Nd"(port));
+      }
+    };
+
+  #elif defined(ARCH_aarch64)
+    class PCI_Impl
+    {
+    public:
+      const static inline uint8_t read_byte(uint16_t port)
+      {
+        #warning NOT_IMPLEMENTED
+        return 0;
+      }
+
+      static const inline uint16_t read_word(uint16_t port)
+      {
+        #warning NOT_IMPLEMENTED
+        return 0;
+      }
+
+      static const inline uint32_t read_long(uint16_t port)
+      {
+        #warning NOT_IMPLEMENTED
+        return 0;
+      }
+
+      static const inline void write_byte(uint16_t port, uint8_t data)
+      {
+          #warning NOT_IMPLEMENTED
+      }
+      static const inline void write_word(uint16_t port, uint16_t data)
+      {
+          #warning NOT_IMPLEMENTED
+      }
+      static const inline void write_long(uint16_t port, uint32_t data)
+      {
+          #warning NOT_IMPLEMENTED
+      }
+    };
+  #endif
   static inline uint8_t inp(uint16_t port)
   {
-    uint8_t ret;
-#if defined(ARCH_x86)
-    asm volatile("inb %1,%0" : "=a"(ret) : "Nd"(port));
-#else
-#error "inp() not implemented for selected arch"
-#endif
-    return ret;
+    return PCI_Handler<PCI_Impl>::rdb(port);
   }
 
   static inline uint16_t inpw(uint16_t port)
   {
-    uint16_t ret;
-#if defined(ARCH_x86)
-    asm volatile("inw %1,%0" : "=a"(ret) : "Nd"(port));
-#else
-#error "inpw() not implemented for selected arch"
-#endif
-    return ret;
+    return PCI_Handler<PCI_Impl>::rdw(port);
   }
 
   static inline uint32_t inpd(uint16_t port)
   {
-    uint32_t ret;
-#if defined(ARCH_x86)
-    asm volatile("inl %1,%0" : "=a"(ret) : "Nd"(port));
-#else
-#error "inpd() not implemented for selected arch"
-#endif
-    return ret;
+    return PCI_Handler<PCI_Impl>::rdl(port);
   }
 
   static inline void outp(uint16_t port, uint8_t data)
   {
-#if defined(ARCH_x86)
-    asm volatile ("outb %0,%1" :: "a"(data), "Nd"(port));
-#else
-#error "outp() not implemented for selected arch"
-#endif
+    PCI_Handler<PCI_Impl>::outb(port,data);
   }
+
   static inline void outpw(uint16_t port, uint16_t data)
   {
-#if defined(ARCH_x86)
-    asm volatile ("outw %0,%1" :: "a" (data), "Nd"(port));
-#else
-#error "outpw() not implemented for selected arch"
-#endif
+    PCI_Handler<PCI_Impl>::outw(port,data);
   }
+
   static inline void outpd(uint16_t port, uint32_t data)
   {
-#if defined(ARCH_x86)
-    asm volatile ("outl %0,%1" :: "a" (data), "Nd"(port));
-#else
-#error "outpd() not implemented for selected arch"
-#endif
+    PCI_Handler<PCI_Impl>::outl(port,data);
   }
 
 } //< namespace hw

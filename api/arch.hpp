@@ -56,6 +56,8 @@ inline void __sw_barrier() noexcept
 #include "arch/x86_64.hpp"
 #elif defined(ARCH_i686)
 #include "arch/i686.hpp"
+#elif defined(ARCH_aarch64)
+#include "arch/aarch64.hpp"
 #else
 #error "Unsupported arch specified"
 #endif

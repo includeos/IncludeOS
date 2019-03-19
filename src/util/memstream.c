@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,7 +22,7 @@ void* streamcpy(void* dest, const void* srce, size_t n)
 {
   char* dst       = (char*) dest;
   const char* src = (const char*) srce;
-  
+
   // copy up to 15 bytes until SSE-aligned
   while (((intptr_t) dst & (SSE_SIZE-1)) && n)
   {
@@ -33,10 +33,10 @@ void* streamcpy(void* dest, const void* srce, size_t n)
   {
     __m128i data = _mm_load_si128((__m128i*) src);
     _mm_stream_si128((__m128i*) dst, data);
-    
+
     dst += SSE_SIZE;
     src += SSE_SIZE;
-    
+
     n -= SSE_SIZE;
   }
   // copy remainder
@@ -50,7 +50,7 @@ void* streamucpy(void* dest, const void* usrc, size_t n)
 {
   char* dst       = (char*) dest;
   const char* src = (const char*) usrc;
-  
+
   // copy up to 15 bytes until SSE-aligned
   while (((intptr_t) dst & (SSE_SIZE-1)) && n)
   {
@@ -61,10 +61,10 @@ void* streamucpy(void* dest, const void* usrc, size_t n)
   {
     __m128i data = _mm_loadu_si128((__m128i*) src);
     _mm_stream_si128((__m128i*) dst, data);
-    
+
     dst  += SSE_SIZE;
     src += SSE_SIZE;
-    
+
     n -= SSE_SIZE;
   }
   // copy remainder
@@ -80,7 +80,7 @@ static inline char* stream_fill(char* dst, size_t* n, const __m128i data)
   while (*n >= SSE_SIZE)
   {
     _mm_stream_si128((__m128i*) dst, data);
-    
+
     dst += SSE_SIZE;
     *n  -= SSE_SIZE;
   }
@@ -90,7 +90,7 @@ static inline char* stream_fill(char* dst, size_t* n, const __m128i data)
 void* streamset8(void* dest, int8_t value, size_t n)
 {
   char* dst = dest;
-  
+
   // memset up to 15 bytes until SSE-aligned
   while (((intptr_t) dst & (SSE_SIZE-1)) && n)
   {

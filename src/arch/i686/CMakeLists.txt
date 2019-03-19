@@ -13,9 +13,7 @@ set(ARCH_OBJECTS
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})
-add_library(crti STATIC crti.asm)
-add_library(crtn STATIC crtn.asm)
 
-set_target_properties(crti crtn arch PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS crti crtn arch DESTINATION ${ARCH}/lib)
-install(FILES linker.ld DESTINATION ${ARCH})
+set_target_properties(arch PROPERTIES LINKER_LANGUAGE CXX)
+install(TARGETS arch DESTINATION lib)
+install(FILES linker.ld DESTINATION .)

@@ -255,11 +255,15 @@ namespace
 
     // Call cpuid
     // EBX/RBX needs to be preserved depending on the memory model and use of PIC
+
     cpuid_t result;
+#if defined(ARCH_x86) || defined(ARCH_x86_64)
     asm volatile ("cpuid"
       : "=a"(result.EAX), "=b"(result.EBX), "=c"(result.ECX), "=d"(result.EDX)
       : "a"(func), "c"(subfunc));
+#elif defined(ARCH_aarch64)
 
+#endif
     // Try to find an empty spot in the cache
     for (auto& cached : cache)
     {

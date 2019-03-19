@@ -1,4 +1,4 @@
-if(${ARCH} STREQUAL "x86_64")
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
   set(OPENSSL_MODULES
     openssl/init.cpp
     openssl/client.cpp

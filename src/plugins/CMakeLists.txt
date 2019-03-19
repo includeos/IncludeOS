@@ -3,52 +3,44 @@
 #
 
 # make LiveUpdate visible to plugins
-include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+include_directories(${CMAKE_SOURCE_DIR}/lib/LiveUpdate/include)
+set(PLUGIN_SRCS
+  system_log.cpp
+  syslogd.cpp
+  unik.cpp
+  example.cpp
+  autoconf.cpp
+  terminal.cpp
+  nacl.cpp
+  vfs.cpp
+  syslog.cpp
+  madness/madness.cpp
+)
 
-add_library(system_log STATIC "system_log.cpp")
+set(PLUGINS "")
+foreach(PLUGIN ${PLUGIN_SRCS})
+  get_filename_component(PLUGIN_NAME ${PLUGIN} NAME_WE)
+  add_library(${PLUGIN_NAME} STATIC ${PLUGIN})
+  list(APPEND PLUGINS ${PLUGIN_NAME})
+  install(TARGETS ${DRIVER_NAME} DESTINATION drivers)
+endforeach()
 
-add_library(syslogd STATIC syslogd.cpp)
-
-add_library(unik STATIC unik.cpp)
-
-add_library(example STATIC example.cpp)
-
-add_library(autoconf STATIC autoconf.cpp)
-
-add_library(terminal STATIC terminal.cpp)
-
+#handle the more complex ones
 add_library(terminal_liu STATIC terminal.cpp)
 set_target_properties(terminal_liu PROPERTIES COMPILE_FLAGS "-DUSE_LIVEUPDATE")
-
-add_library(nacl STATIC nacl.cpp)
-
-add_library(vfs STATIC vfs.cpp)
 
 add_library(field_medic STATIC
             field_medic/fieldmedic.cpp
             field_medic/diag.cpp)
+list(APPEND PLUGINS field_medic)
 
-add_library(madness STATIC
-            madness/madness.cpp)
+#handle build targets for conan editable
+set_target_properties(${PLUGINS}
+  PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/plugins
+  ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/plugins
+  ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/plugins
+)
 
-add_library(syslog STATIC syslog.cpp)
-
-#
-# Installation
-#
-set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
-
-install(TARGETS
-    system_log
-    syslogd
-    unik
-    example
-    autoconf
-    terminal
-    terminal_liu
-    nacl
-    vfs
-    field_medic
-    syslog
-    madness
-  DESTINATION ${ARCH}/plugins)
+#handle install of all plugins
+install(TARGETS ${PLUGINS} DESTINATION plugins)
