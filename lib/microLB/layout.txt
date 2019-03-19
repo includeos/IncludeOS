@@ -1,5 +1,0 @@
-[includedirs]
-micro_lb
-
-[libdirs]
-build/lib

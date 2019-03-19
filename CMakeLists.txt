@@ -1,38 +1,41 @@
 cmake_minimum_required(VERSION 3.1.0)
 
-set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
-
 # Target CPU Architecture
-if (NOT DEFINED ARCH)
-  if(DEFINED ENV{ARCH})
-    set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+if (NOT ARCH)
+  if (CMAKE_SYSTEM_PROCESSOR)
+    set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+  elseif(ENV{ARCH})
+    set(ARCH $ENV{ARCH})
   else()
-    set(ARCH "x86_64" CACHE STRING "Architecture (default)")
+    set(ARCH "x86_64")
   endif()
 endif()
 
 message(STATUS "Target CPU ${ARCH}")
 
-#only for clang..
+#only for clang.. and probably only for apple or when we dont have a cross compiler..
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-# Remember we was APPLE in earlier life
-if(APPLE)
-  set(BORNED_AS_AN_APPLE FRUITSALAD)
-endif()
 
 project (includeos C CXX)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+#TODO fix this by using cmake's well defined buld type definitions
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 include(ExternalProject)
 include(CMakeDependentOption)
 
 #if not apple and x86_64 enable with solo5.. this option results in a different arch in conan.. should be handled like that as well
-cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
-"NOT APPLE;${ARCH} STREQUAL x86_64" OFF)
+#cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
+#"NOT APPLE;${ARCH} STREQUAL x86_64" OFF)
+option(WITH_SOLO5 "Build with solo5 support" OFF)
 
 if(NOT BORNED_AS_AN_APPLE)
   include(CheckCXXCompilerFlag)
@@ -47,7 +50,7 @@ if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
    set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
  else()
    set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos CACHE PATH "..." FORCE)
-   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
+   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set CMAKE_INSTALL_PREFIX")
  endif()
 endif()
 
@@ -84,24 +87,24 @@ include_directories(${CMAKE_BINARY_DIR})
 cmake_dependent_option(CORE_OS "Only build the core OS reducing dependencies on botan,openssl etc" OFF
   "NOT PLATFORM STREQUAL x86_nano" ON)
 
-option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
-if(cpu_feat_vanilla)
-  include("cmake/vanilla.cmake")
-  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
-  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
-else()
-  include("cmake/cpu_feat.cmake")
-  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
-  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
-endif(cpu_feat_vanilla)
+#option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
+#if(cpu_feat_vanilla)
+#  include("cmake/vanilla.cmake")
+#  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
+#  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
+#else()
+#  include("cmake/cpu_feat.cmake")
+#  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
+#  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
+#endif(cpu_feat_vanilla)
 
 option(smp "Compile with SMP (multiprocessing)" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
-option (undefined_san "Enable undefined-behavior sanitizer" OFF)
-option (thin_lto "Enable the Thin LTO plugin" OFF)
-option (full_lto "Enable full LTO (compatibility)" OFF)
+#option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+#option (thin_lto "Enable the Thin LTO plugin" OFF)
+#option (full_lto "Enable full LTO (compatibility)" OFF)
 
 set(CAPABS "${CAPABS} -g -fstack-protector-strong")
 
@@ -118,7 +121,7 @@ option(stripped "reduce size" OFF)
 
 function(init_submodule MOD)
   message(STATUS "Init git submodule: " ${MOD})
-  execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${INCLUDEOS_ROOT})
+  execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
 
@@ -157,13 +160,20 @@ if ("${ARCH}" STREQUAL "i686" OR "${ARCH}" STREQUAL "i386" )
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
   set(OBJCOPY_TARGET "elf32-i386")
   set(CAPABS "${CAPABS} -m32")
+  enable_language(ASM_NASM)
+elseif ("${ARCH}" STREQUAL "aarch64")
+  #In cmake we trust
+  #set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  #TODO set(OBJCOPY_TARGET "elf64-x86-64")
+  #set(CAPABS "${CAPABS} -m64")
 else()
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
   set(OBJCOPY_TARGET "elf64-x86-64")
   set(CAPABS "${CAPABS} -m64")
+  enable_language(ASM_NASM)
 endif()
 
-enable_language(ASM_NASM)
+
 
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
@@ -183,15 +193,11 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
-#TODO fix this by using cmake's well defined buld type definitions
-set(CMAKE_BUILD_TYPE Release)
-
-#TODO separate dependencies if build is GCC from if build is clang in
-#conanfile.py and add requirement for the tools in the profile!!
-
 #Sets the includeos default profile to clang-5.0
 if (NOT DEFINED CONAN_PROFILE)
-  SET(CONAN_PROFILE "default")
+  SET(CONANPROFILE "")
+else()
+  set(CONANPROFILE PROFILE ${CONAN_PROFILE})
 endif()
 
 #Are we executing cmake from conan or locally
@@ -218,6 +224,7 @@ else() # in user space
     OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
     NO_IMPORTS
+    ${CONANPROFILE}
   )
 endif()
 
@@ -226,38 +233,6 @@ endif()
 #
 add_subdirectory(src)
 
-option(examples "Build example unikernels in /examples" OFF)
-if(examples)
-  set(libprotobuf ON) # dependent
-  add_subdirectory(examples)
-endif(examples)
-
-option(tests "Build unit tests in /test and install lest test framework" OFF)
-option(lest "Install lest unittest headers" OFF)
-
-if (lest OR tests)
-  init_submodule(test/lest)
-  install(DIRECTORY test/lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/includeos/include)
-endif()
-
-if(tests)
-  enable_testing()
-  ExternalProject_Add(unittests
-    PREFIX unittests
-    SOURCE_DIR ${INCLUDEOS_ROOT}/test
-    BINARY_DIR unittests
-    CMAKE_ARGS -DINCLUDEOS_ROOT=${INCLUDEOS_ROOT} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-    )
-  #add_subdirectory(test)
-endif(tests)
-
-#
-# Libraries
-#
-#TODO verify the asumption that all these work once all the proper includes are in order!!
-#TODO create conan package for mana,uplink,mender,liveupdate and lb
-
-#
 # Installation
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
@@ -266,73 +241,12 @@ set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(FILES cmake/linux.service.cmake DESTINATION cmake)
 install(FILES cmake/library.cmake DESTINATION cmake)
 install(FILES cmake/os.cmake DESTINATION cmake)
-install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
+#install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
 
-# Install vmrunner
-install(DIRECTORY vmrunner DESTINATION tools)
-install(FILES vmrunner/${DEFAULT_VM} DESTINATION tools/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
-# TODO ? move to "linux cmake"
+# TODO ? move to "linux cmake" this is only apple
 # Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION cmake)
 
-# Install executable scripts
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-run DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-callgraph DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-debug DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-gprof DESTINATION bin)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-pgo DESTINATION bin)
-
-# Install scripts
-install(PROGRAMS
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/grubify.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifdown
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/solo5-ifup.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
-  DESTINATION scripts)
-
-#this replicates the install of libraries from bundles using conan
-if(NOT CONAN_EXPORTED)
-  install(CODE
-    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py)"
-  )
-  #install tools TODO THIS IS A [BUILD_REQUIRES] dependency for the service so should probably go there but for now its here so that things are in the right place
-  install(CODE
-    "execute_process(COMMAND conan install vmbuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
-  )
-  install(CODE
-    "execute_process(COMMAND conan install diskimagebuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
-  )
-  install(CODE
-    "execute_process(COMMAND conan install nacl/v0.2.1@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
-  )
-  if (${ARCH} STREQUAL "x86_64")
-    install(CODE
-      "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -pr ${CONAN_PROFILE} -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
-    )
-  endif()
-  if (NOT CORE_OS)
-    install(CODE
-      "execute_process(COMMAND conan install mana/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install mender/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install uplink/0.13.0@includeos/test  -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install microlb/0.13.0@includeos/test -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-    install(CODE
-      "execute_process(COMMAND conan install liveupdate/[>=0.14.0,include_prerelease=True]@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-  endif()
-endif(NOT CONAN_EXPORTED)
 
 install(DIRECTORY api/ DESTINATION include/os)

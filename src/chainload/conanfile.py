@@ -1,15 +1,38 @@
-#README to build botan 2.8.0 use conan create (botan/2.8.0@user/channel) path to this file
-import shutil
-
 from conans import ConanFile,tools,CMake
 
+def get_version():
+    git = tools.Git()
+    try:
+        prev_tag = git.run("describe --tags --abbrev=0")
+        commits_behind = int(git.run("rev-list --count %s..HEAD" % (prev_tag)))
+        # Commented out checksum due to a potential bug when downloading from bintray
+        #checksum = git.run("rev-parse --short HEAD")
+        if prev_tag.startswith("v"):
+            prev_tag = prev_tag[1:]
+        if commits_behind > 0:
+            prev_tag_split = prev_tag.split(".")
+            prev_tag_split[-1] = str(int(prev_tag_split[-1]) + 1)
+            output = "%s-%d" % (".".join(prev_tag_split), commits_behind)
+        else:
+            output = "%s" % (prev_tag)
+        return output
+    except:
+        return '0.0.0'
+
+
 class ChainloaderConan(ConanFile):
-    settings= "os","arch","build_type","compiler"
     name = "chainloader"
+    version=get_version()
     license = 'Apache-2.0'
     description = 'IncludeOS 32->64 bit chainloader for x86'
     generators = ['cmake','virtualenv']
     url = "http://www.includeos.org/"
+    scm = {
+        "type": "git",
+        "url": "auto",
+        "subfolder": ".",
+        "revision": "auto"
+    }
 
     default_options={
         "includeos:solo5":"OFF",
@@ -17,46 +40,32 @@ class ChainloaderConan(ConanFile):
         "includeos:basic":"ON"
     }
     no_copy_source=True
+
     default_user="includeos"
     default_channel="test"
 
-    def configure(self):
-        del self.settings.compiler.libcxx
-        del self.settings.compiler.version
-        del self.settings.compiler
-        del self.settings.arch
-        del self.settings.os
+    #def requirements(self):
+    #    self.requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel),private=True)
 
     def build_requirements(self):
-        self.build_requires("includeos/0.13.0@{}/{}".format(self.user,self.channel))
-        self.build_requires("libgcc/1.0@includeos/test")
-        self.build_requires("vmbuild/0.13.0@{}/{}".format(self.user,self.channel))
-
-    def source(self):
-        #shutil.copytree("/home/kristian/git/IncludeOS","includeos")
-        repo = tools.Git(folder="includeos")
-        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="dev")
+        self.build_requires("vmbuild/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
+        self.build_requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        cmake.definitions['INCLUDEOS_PREFIX']=self.build_folder
-        cmake.configure(source_folder=self.source_folder+"/includeos/src/chainload")
-        return cmake;
+        cmake.configure(source_folder=self.source_folder+"/src/chainload")
+        return cmake
 
     def build(self):
         cmake=self._configure_cmake()
         cmake.build()
 
+    def package_info(self):
+        self.env_info.INCLUDEOS_CHAINLOADER=self.package_folder+"/bin"
 
-    #def package_info(self):
-    #    if self.settings.arch in ["x86","x86_64"]:
-    #        self.settings.arch="x86_64"
-    
     def package(self):
         cmake=self._configure_cmake()
         cmake.install()
 
     def deploy(self):
-        #for editable packages
-        self.copy("chainloader",dst="bin",src="build")
         self.copy("chainloader",dst="bin",src="bin")

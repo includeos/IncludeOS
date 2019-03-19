@@ -29,215 +29,60 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
-if (CONAN_EXPORTED OR CONAN_LIBS)
-  # standard conan installation, deps will be defined in conanfile.py
-  # and not necessary to call conan again, conan is already running
-  if (CONAN_EXPORTED)
-    include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-    conan_basic_setup()
-  endif()
-  
-  set(INCLUDEOS_PREFIX ${CONAN_INCLUDEOS_ROOT})
+# standard conan installation, deps will be defined in conanfile.py
+# and not necessary to call conan again, conan is already running
+if (CONAN_EXPORTED)
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+endif()
+
+#set(INCLUDEOS_PREFIX ${CONAN_RES_DIRS_INCLUDEOS})
 
 
-  #TODO use these
-  #CONAN_SETTINGS_ARCH Provides arch type
-  #CONAN_SETTINGS_BUILD_TYPE provides std cmake "Debug" and "Release" "are they set by conan_basic?"
-  #CONAN_SETTINGS_COMPILER AND CONAN_SETTINGS_COMPILER_VERSION
-  #CONAN_SETTINGS_OS ("Linux","Windows","Macos")
+#TODO use these
+#CONAN_SETTINGS_ARCH Provides arch type
+#CONAN_SETTINGS_BUILD_TYPE provides std cmake "Debug" and "Release" "are they set by conan_basic?"
+#CONAN_SETTINGS_COMPILER AND CONAN_SETTINGS_COMPILER_VERSION
+#CONAN_SETTINGS_OS ("Linux","Windows","Macos")
 
-  if (NOT DEFINED ARCH)
-    if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
-      set(ARCH i686)
-    else()
-      set(ARCH ${CONAN_SETTINGS_ARCH})
-    endif()
-  endif()
-
-
-  set(NAME_STUB "${CONAN_INCLUDEOS_ROOT}/src/service_name.cpp")
-  set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
-  set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
-
-  set(TRIPLE "${ARCH}-pc-linux-elf")
-  set(LIBRARIES ${CONAN_LIBS})
-  set(CONAN_LIBS "")
-
-  #set(ELF_SYMS elf_syms)
-
-  find_program(ELF_SYMS elf_syms)
-  if (ELF_SYMS-NOTFOUND)
-    message(FATAL_ERROR "elf_syms not found")
-  endif()
-
-  find_program(DISKBUILDER diskbuilder)
-  if (DISKBUILDER-NOTFOUND)
-    message(FATAL_ERROR "diskbuilder not found")
-  endif()
-
-  set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
-  #includeos package can provide this!
-  include_directories(
-    ${INCLUDEOS_PREFIX}/include/os
-  )
-
-
-else()
-  #TODO initialise self
-  #message(FATAL_ERROR "Not running under conan")
-  #TODO surely we can fix this!!
-  if (NOT DEFINED ARCH)
-    if (DEFINED ENV{ARCH})
-      set(ARCH $ENV{ARCH})
-    else()
-      set(ARCH x86_64)
-    endif()
-  endif()
-
-  set(TRIPLE "${ARCH}-pc-linux-elf")
-  include_directories(
-    ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1
-    #${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1/experimental
-    ${INCLUDEOS_PREFIX}/${ARCH}/include
-    ${INCLUDEOS_PREFIX}/include/os
-  )
-
-  set(NAME_STUB "${INCLUDEOS_PREFIX}/src/service_name.cpp")
-  set(CRTN ${INCLUDEOS_PREFIX}/${ARCH}/lib/crtn.o)
-  set(CRTI ${INCLUDEOS_PREFIX}/${ARCH}/lib/crti.o)
-  #TODO do the whole ye old dance
-
-  add_library(libos STATIC IMPORTED)
-  set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libos PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libos.a)
-
-  add_library(libarch STATIC IMPORTED)
-  set_target_properties(libarch PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libarch PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libarch.a)
-
-  add_library(libplatform STATIC IMPORTED)
-  set_target_properties(libplatform PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libplatform PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/platform/lib${PLATFORM}.a)
-
-  if(${ARCH} STREQUAL "x86_64")
-    add_library(libbotan STATIC IMPORTED)
-    set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libbotan-2.a)
-
-    add_library(libs2n STATIC IMPORTED)
-    set_target_properties(libs2n PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(libs2n PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libs2n.a)
-
-    add_library(libssl STATIC IMPORTED)
-    set_target_properties(libssl PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(libssl PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libssl.a)
-
-    add_library(libcrypto STATIC IMPORTED)
-    set_target_properties(libcrypto PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libcrypto.a)
-    set(OPENSSL_LIBS libs2n libssl libcrypto)
-
-    include_directories(${INSTALL_LOC}/${ARCH}/include)
-  endif()
-  if (NOT ${PLATFORM} STREQUAL x86_nano )
-    add_library(http_parser STATIC IMPORTED)
-    set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/http_parser.o)
-
-    add_library(uzlib STATIC IMPORTED)
-    set_target_properties(uzlib PROPERTIES LINKER_LANGUAGE CXX)
-    set_target_properties(uzlib PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libtinf.a)
-
-  endif()
-
-  add_library(musl_syscalls STATIC IMPORTED)
-  set_target_properties(musl_syscalls PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(musl_syscalls PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libmusl_syscalls.a)
-
-  add_library(libcxx STATIC IMPORTED)
-  add_library(cxxabi STATIC IMPORTED)
-  add_library(libunwind STATIC IMPORTED)
-  add_library(libcxx_experimental STATIC IMPORTED)
-
-  set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc++.a)
-  set_target_properties(cxxabi PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc++abi.a)
-  set_target_properties(libunwind PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libunwind.a)
-  set_target_properties(libcxx_experimental PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libcxx_experimental PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc++experimental.a)
-
-  add_library(libc STATIC IMPORTED)
-  set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libc.a)
-
-  add_library(libpthread STATIC IMPORTED)
-  set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
-
-  #allways use the provided libcompiler.a
-  set(COMPILER_RT_FILE "${INCLUDEOS_PREFIX}/${ARCH}/lib/libcompiler.a")
-
-
-  add_library(libgcc STATIC IMPORTED)
-  set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION "${COMPILER_RT_FILE}")
-
-  if ("${PLATFORM}" STREQUAL "x86_solo5")
-    add_library(solo5 STATIC IMPORTED)
-    set_target_properties(solo5 PROPERTIES LINKER_LANGUAGE C)
-    set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/solo5_hvt.o)
-  endif()
-
-  if (${PLATFORM} STREQUAL x86_nano)
-    set(LIBRARIES
-      libos
-      libplatform
-      libarch
-      musl_syscalls
-      ${LIBR_CMAKE_NAMES}
-      libos
-      libcxx
-      libunwind
-      libpthread
-      libc
-      libgcc
-    )
-
+if (NOT ARCH)
+  if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
+    set(ARCH i686)
   else()
-    set(LIBRARIES
-      libgcc
-      libplatform
-      libarch
-      ${LIBR_CMAKE_NAMES}
-      libos
-      http_parser
-      uzlib
-      libbotan
-      ${OPENSSL_LIBS}
-      musl_syscalls
-      libcxx_experimental
-      libcxx
-      libunwind
-      libpthread
-      libc
-      libgcc
-    )
+    set(ARCH ${CONAN_SETTINGS_ARCH})
   endif()
-  if ("${PLATFORM}" STREQUAL "x86_solo5")
-    set(LIBRARIES ${LIBRARIES} solo5)
-  endif()
-
-  set(ELF_SYMS ${INCLUDEOS_PREFIX}/bin/elf_syms)
-  set(DISKBUILDER ${INCLUDEOS_PREFIX}/bin/diskbuilder)
-  set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
 endif()
 
 
-# arch and platform defines
-#message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
+set(NAME_STUB "${CONAN_INCLUDEOS_ROOT}/src/service_name.cpp")
+set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
+set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
 
+set(TRIPLE "${ARCH}-pc-linux-elf")
+set(LIBRARIES ${CONAN_LIBS})
+set(CONAN_LIBS "")
+
+#set(ELF_SYMS elf_syms)
+
+find_program(ELF_SYMS elf_syms)
+if (ELF_SYMS-NOTFOUND)
+  message(FATAL_ERROR "elf_syms not found")
+endif()
+
+find_program(DISKBUILDER diskbuilder)
+if (DISKBUILDER-NOTFOUND)
+  message(FATAL_ERROR "diskbuilder not found")
+endif()
+
+set(LINK_SCRIPT ${CONAN_RES_DIRS_INCLUDEOS}/linker.ld)
+#includeos package can provide this!
+include_directories(
+  ${CONAN_RES_DIRS_INCLUDEOS}/include/os
+)
+
+
+# arch and platform defines
+#TODO get from toolchain ?
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
@@ -252,6 +97,8 @@ if ("${ARCH}" STREQUAL "x86_64")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
   set(OBJCOPY_TARGET "elf64-x86-64")
 #  set(CAPABS "${CAPABS} -m64")
+elseif("${ARCH}" STREQUAL "aarch64")
+
 else()
   set(ARCH_INTERNAL "ARCH_X86")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
@@ -285,8 +132,11 @@ set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 # TODO: find a more proper way to get the linker.ld script ?
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE} ${PRE_BSS_SIZE}")
-
+if("${ARCH}" STREQUAL "aarch64")
+  set(LDFLAGS "-nostdlib -m${ELF}elf --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE}  ${PRE_BSS_SIZE}")
+else()
+  set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE} ${PRE_BSS_SIZE}")
+endif()
 
 set(ELF_POSTFIX .elf.bin)
 
@@ -301,35 +151,6 @@ function(os_add_config TARGET FILE)
   set(JSON_CONFIG_FILE_${ELF_TARGET} ${FILE} PARENT_SCOPE)
 endfunction()
 
-
-function(os_add_conan_package TARGET PACKAGE)
-
-#TODO MOVE SOMEWHERE MORE SANE
-
-  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
-                    "${CMAKE_BINARY_DIR}/conan.cmake")
-  endif()
-  #TODO se if this goes all wack
-  include(${CMAKE_BINARY_DIR}/conan.cmake)
-  #should we specify a directory.. can we run it multiple times ?
-  conan_cmake_run(
-    REQUIRES ${PACKAGE}
-    BASIC_SETUP
-    CMAKE_TARGETS
-  )
-  #convert pkg/version@user/channel to pkg;versin;user;chanel
-  string(REPLACE "@" ";" LIST ${PACKAGE})
-  string(REPLACE "/" ";" LIST ${LIST})
-  #get the first element
-  list(GET LIST 0 PKG)
-
-  os_link_libraries(${TARGET} CONAN_PKG::${PKG})
-
-endfunction()
-
-# TODO: fix so that we can add two executables in one service (NAME_STUB)
 function(os_add_executable TARGET NAME)
   set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
   add_executable(${ELF_TARGET} ${ARGN} ${NAME_STUB})
@@ -370,7 +191,33 @@ function(os_add_executable TARGET NAME)
   endif()
 endfunction()
 
-##
+##string parse ? painful
+function(os_add_conan_package TARGET PACKAGE)
+
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                    "${CMAKE_BINARY_DIR}/conan.cmake")
+  endif()
+  #TODO se if this goes all wack
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+  #should we specify a directory.. can we run it multiple times ?
+  conan_cmake_run(
+    REQUIRES ${PACKAGE}
+    BASIC_SETUP
+    CMAKE_TARGETS
+    PROFILE ${CONAN_PROFILE}
+  )
+  #convert pkg/version@user/channel to pkg;versin;user;chanel
+  string(REPLACE "@" ";" LIST ${PACKAGE})
+  string(REPLACE "/" ";" LIST ${LIST})
+  #get the first element
+  list(GET LIST 0 PKG)
+
+  os_link_libraries(${TARGET} CONAN_PKG::${PKG})
+
+endfunction()
+
 function(os_compile_options TARGET)
   target_compile_options(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
@@ -408,23 +255,20 @@ endfunction()
 function (os_add_drivers TARGET)
   foreach(DRIVER ${ARGN})
     #if in conan expect it to be in order ?
-    os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers")
+    os_add_library_from_path(${TARGET} ${DRIVER} "${CONAN_RES_DIRS_INCLUDEOS}/drivers")
   endforeach()
 endfunction()
 
 function(os_add_plugins TARGET)
   foreach(PLUGIN ${ARGN})
-    os_add_library_from_path(${TARGET} ${PLUGIN} "${INCLUDEOS_PREFIX}/${ARCH}/plugins")
+    os_add_library_from_path(${TARGET} ${PLUGIN} "${CONAN_RES_DIRS_INCLUDEOS}/plugins")
   endforeach()
 endfunction()
 
 function (os_add_stdout TARGET DRIVER)
-   os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers/stdout")
+   os_add_library_from_path(${TARGET} ${DRIVER} "${CONAN_RES_DIRS_INCLUDEOS}/drivers/stdout")
 endfunction()
 
-function(os_add_os_library TARGET LIB)
-  os_add_library_from_path(${TARGET} ${LIB} "${INCLUDEOS_PREFIX}/${ARCH}/lib")
-endfunction()
 
 #input file blob name and blob type eg add_binary_blob(<somefile> input.bin binary)
 #results in an object called binary_input_bin
@@ -449,7 +293,7 @@ function(os_add_memdisk TARGET DISK)
     REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND ${Python2_EXECUTABLE} ${INCLUDEOS_PREFIX}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND ${Python2_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
@@ -510,8 +354,9 @@ function(internal_os_add_config TARGET CONFIG_JSON)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json_${TARGET} --no-whole-archive)
 endfunction()
 
+#TODO fix nacl
 function(os_add_nacl TARGET FILENAME)
-  set(NACL_PATH ${INCLUDEOS_PREFIX}/tools/NaCl)
+  set(NACL_PATH ${CONAN_RES_DIRS_INCLUDEOS}/tools/NaCl)
   add_custom_command(
      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
      COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp

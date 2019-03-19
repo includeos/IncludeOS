@@ -21,11 +21,15 @@
 #include <common>
 
 /** Intel (iSCSI) or vanilla-polynomial, DONT mix with other code **/
-#include <immintrin.h>
+#if defined(ARCH_x86_64) || defined(ARCH_i686)
+  #include <immintrin.h>
+#endif
+
 inline bool ____is__aligned(const uint8_t* buffer, const int align) noexcept {
   return (((uintptr_t) buffer) & (align-1)) == 0;
 }
 
+#if defined(ARCH_x86_64) || defined(ARCH_i686)
 __attribute__ ((target ("sse4.2")))
 uint32_t crc32c_hw(const uint8_t* buffer, size_t len)
 {
@@ -57,6 +61,7 @@ uint32_t crc32c_hw(const uint8_t* buffer, size_t len)
   }
   return hash ^ 0xFFFFFFFF;
 }
+#endif
 
 uint32_t crc32c_sw(uint32_t partial, const char* buf, size_t len)
 {

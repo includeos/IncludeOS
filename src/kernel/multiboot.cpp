@@ -22,7 +22,7 @@
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
 
-// #define DEBUG_MULTIBOOT
+#define DEBUG_MULTIBOOT
 #if defined(DEBUG_MULTIBOOT)
 #undef debug
 #define debug(X,...)  kprintf(X,##__VA_ARGS__);
@@ -46,8 +46,13 @@ static inline multiboot_info_t* bootinfo(uint32_t addr)
   // NOTE: the address is 32-bit and not a pointer
   return (multiboot_info_t*) (uintptr_t) addr;
 }
+#if defined(ARCH_aarch64)
+  uint32_t dummy[24];
+  uintptr_t __multiboot_addr=(uintptr_t)&dummy[0];
+#else
+  extern uint32_t __multiboot_addr;
+#endif
 
-extern uint32_t __multiboot_addr;
 multiboot_info_t* kernel::bootinfo()
 {
   return (multiboot_info_t*) (uintptr_t) __multiboot_addr;

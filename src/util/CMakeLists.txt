@@ -1,8 +1,6 @@
 ﻿set(SRCS
-    memstream.c
     async.cpp
     statman.cpp
-    statman_liu.cpp
     logger.cpp
     sha1.cpp
     syslog_facility.cpp
@@ -16,11 +14,16 @@
 #if (NOT CMAKE_TESTING_ENABLED)
 
 if (NOT CORE_OS)
+  include_directories(${CMAKE_SOURCE_DIR}/lib/LiveUpdate/include)
   list(APPEND SRCS
+    memstream.c
     tar.cpp
     uri.cpp #rapidjson
     autoconf.cpp
+    statman_liu.cpp
   )
 endif()
+
+
 
 add_library(util OBJECT ${SRCS})
