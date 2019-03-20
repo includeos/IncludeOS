@@ -1,5 +1,48 @@
 cmake_minimum_required(VERSION 3.1.0)
 
+project (includeos C CXX)
+
+option(WITH_SOLO5 "Build with solo5 support" OFF)
+
+#Sets the includeos default profile to clang-5.0
+if (NOT DEFINED CONAN_PROFILE)
+  SET(CONANPROFILE "")
+else()
+  set(CONANPROFILE PROFILE ${CONAN_PROFILE})
+endif()
+
+#Are we executing cmake from conan or locally
+#if locally then pull the deps from conanfile.py
+#if buiding from conan expect the conanbuildinfo.cmake to already be present
+if(CONAN_EXPORTED OR EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake) # in conan local cache
+  # standard conan installation, deps will be defined in conanfile.py
+  # and not necessary to call conan again, conan is already running
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+else() # in user space
+  if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+  endif()
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/develop/conan.cmake"
+                    "${CMAKE_BINARY_DIR}/conan.cmake")
+  endif()
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+
+  conan_check(VERSION 1.8.4 REQUIRED)
+
+  conan_cmake_run(
+    CONANFILE conanfile.py
+    PROFILE ${CONAN_PROFILE}
+    OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
+    BASIC_SETUP
+    NO_IMPORTS
+    ${CONANPROFILE}
+  )
+endif()
+
+#TODO get from conan ?
 # Target CPU Architecture
 if (NOT ARCH)
   if (CMAKE_SYSTEM_PROCESSOR)
@@ -20,14 +63,10 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-
-project (includeos C CXX)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 #TODO fix this by using cmake's well defined buld type definitions
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
+
 
 include(ExternalProject)
 include(CMakeDependentOption)
@@ -35,27 +74,11 @@ include(CMakeDependentOption)
 #if not apple and x86_64 enable with solo5.. this option results in a different arch in conan.. should be handled like that as well
 #cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
 #"NOT APPLE;${ARCH} STREQUAL x86_64" OFF)
-option(WITH_SOLO5 "Build with solo5 support" OFF)
 
-if(NOT BORNED_AS_AN_APPLE)
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
-  if(NOT HAVE_FLAG_STD_CXX17)
-    message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
-  endif()
-endif()
 
-if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
- if (DEFINED ENV{INCLUDEOS_PREFIX})
-   set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
- else()
-   set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos CACHE PATH "..." FORCE)
-   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set CMAKE_INSTALL_PREFIX")
- endif()
-endif()
-
-# C++ version
-set(CPP_VERSION c++17)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 ##extract version header only ONCE avoiding endless rebuild loop ?
 FIND_PACKAGE(Git REQUIRED)
@@ -119,12 +142,6 @@ option(debug "Build with no optimizations" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
-function(init_submodule MOD)
-  message(STATUS "Init git submodule: " ${MOD})
-  execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-endfunction()
-
-
 #TODO get all these from profile ?
 # set optimization level
 set(OPTIMIZE "-O2")
@@ -174,58 +191,16 @@ else()
 endif()
 
 
-
+#TODO these should all come from the conan profile!!!!!!
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "${CAPABS}  -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
-  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS}  -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS}  -nostdlib -fno-omit-frame-pointer -c ${CMAKE_C_FLAGS}")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "${CAPABS}  -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
-  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib  -nostdlibinc -fno-omit-frame-pointer -c")
-endif()
-
-
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/develop/conan.cmake"
-                  "${CMAKE_BINARY_DIR}/conan.cmake")
-endif()
-
-#Sets the includeos default profile to clang-5.0
-if (NOT DEFINED CONAN_PROFILE)
-  SET(CONANPROFILE "")
-else()
-  set(CONANPROFILE PROFILE ${CONAN_PROFILE})
-endif()
-
-#Are we executing cmake from conan or locally
-#if locally then pull the deps from conanfile.py
-#if buiding from conan expect the conanbuildinfo.cmake to already be present
-if(CONAN_EXPORTED) # in conan local cache
-  # standard conan installation, deps will be defined in conanfile.py
-  # and not necessary to call conan again, conan is already running
-  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  conan_basic_setup()
-else() # in user space
-  include(${CMAKE_BINARY_DIR}/conan.cmake)
-
-  conan_check(VERSION 1.8.4 REQUIRED)
-  #TODO check if we can check if remote is added and give a warning if its
-  #missing ?
-  #conan_add_remote(NAME includeos INDEX 1
-  #          URL https://api.bintray.com/conan/bincrafters/public-conan)
-  #include(conan.cmake)
-  # Make sure to use conanfile.py to define dependencies, to stay consistent
-  conan_cmake_run(
-    CONANFILE conanfile.py
-    PROFILE ${CONAN_PROFILE}
-    OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
-    BASIC_SETUP
-    NO_IMPORTS
-    ${CONANPROFILE}
-  )
+  set(CMAKE_CXX_FLAGS "${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib  -nostdlibinc -fno-omit-frame-pointer -c ${CMAKE_C_FLAGS}")
 endif()
 
 #
