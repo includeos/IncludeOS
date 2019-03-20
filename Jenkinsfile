@@ -60,7 +60,6 @@ pipeline {
     stage('Integration tests') {
       when { changeRequest() }
       steps {
-        sh script: "mkdir -p integration", label: "Setup"
         dir('integration') {
           sh script: "cmake $SRC/test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
           sh script: "make -j $CPUS", label: "Make"
