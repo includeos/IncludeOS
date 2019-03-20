@@ -146,6 +146,7 @@ namespace x86
     aux[i++].set_ptr(AT_RANDOM, &aux[canary_idx].a_un.a_val);
     aux[i++].set_long(AT_NULL, 0);
 
+#ifdef PLATFORM_x86_pc
     // SYSCALL instruction
   #if defined(__x86_64__)
     PRATTLE("* Initialize syscall MSR (64-bit)\n");
@@ -158,6 +159,7 @@ namespace x86
     PRATTLE("Initialize syscall intr (32-bit)\n");
     #warning Classical syscall interface missing for 32-bit
   #endif
+#endif
 
     // GDB_ENTRY;
     PRATTLE("* Starting libc initialization\n");

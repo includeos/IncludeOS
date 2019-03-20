@@ -97,9 +97,11 @@ namespace os::detail {
     memory().deallocate((void*)back, reserve_mem);
     MINFO("Reserving %zu b for machine use \n", reserve);
 
+#ifndef PLATFORM_x86_solo5
     const auto liu_steal = main_mem.size / (100 / 25);
     main_mem.size -= liu_steal;
     main_mem.size &= ~(uintptr_t) 0xFFF;
+#endif
     kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
   }
 

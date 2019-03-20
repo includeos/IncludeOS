@@ -25,7 +25,6 @@ extern __multiboot_addr
 %define P4_TAB                  0x1000 ;; one page
 %define P3_TAB                  0x2000 ;; one page
 %define P2_TAB                  0x100000 ;; many pages
-%define STACK_LOCATION          0x200000 - 16
 
 %define IA32_EFER               0xC0000080
 %define IA32_STAR               0xC0000081
@@ -55,6 +54,7 @@ extern __multiboot_addr
 
 
 [BITS 32]
+SECTION .text
 __arch_start:
     ;; disable old paging
     mov eax, cr0
@@ -123,6 +123,7 @@ __arch_start:
 
 
 [BITS 64]
+SECTION .text
 long_mode:
     cli
 
@@ -135,8 +136,9 @@ long_mode:
     mov ss, cx
 
     ;; set up new stack for 64-bit
+    extern _ELF_START_
     push rsp
-    mov  rsp, STACK_LOCATION
+    mov  rsp, _ELF_START_
     push 0
     push 0
     mov  rbp, rsp
