@@ -27,7 +27,7 @@ class IncludeOSConan(ConanFile):
     version = get_version()
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
-    generators = 'cmake'
+    generators = [ 'cmake','virtualenv' ]
     url = "http://www.includeos.org/"
     scm = {
         "type": "git",
@@ -72,21 +72,16 @@ class IncludeOSConan(ConanFile):
 
     def configure(self):
         del self.settings.compiler.libcxx
-    def imports(self):
-        self.copy("*")
 
     def _target_arch(self):
         return {
             "x86":"i686",
-            "x86_64":"x86_64"
+            "x86_64":"x86_64",
+            "armv8" : "aarch64"
         }.get(str(self.settings.arch))
     def _configure_cmake(self):
         cmake = CMake(self)
-        #glad True and False also goes but not recursily
-        if (str(self.settings.arch) == "x86"):
-            cmake.definitions['ARCH']="i686"
-        else:
-            cmake.definitions['ARCH']=str(self.settings.arch)
+        cmake.definitions['ARCH']=self._target_arch()
         if (self.options.basic):
             cmake.definitions['CORE_OS']=True
         cmake.definitions['WITH_SOLO5']=self.options.solo5
@@ -128,4 +123,8 @@ class IncludeOSConan(ConanFile):
         ]
 
     def deploy(self):
-        self.copy("*",dst=".",src=".")
+        self.copy("*",dst="cmake",src="cmake")
+        self.copy("*",dst="lib",src="lib")
+        self.copy("*",dst="drivers",src="drivers")
+        self.copy("*",dst="plugins",src="plugins")
+        self.copy("*",dst="os",src="os")
