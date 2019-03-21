@@ -131,7 +131,8 @@ To build **IncludeOS on Linux** use profile named `clang-6.0-linux-x86_64` :
 To build **IncludeOS on Linux** for **Macos** use profile named `clang-6.0-macos-x86_64`.
 
 _To build **IncludeOS on Mac** requires a number of other configurations, which
-are in progress._ <!-- needs update -->
+are in progress and will be updated soon._
+<!-- TODO: test the whole process of macos and write down the process. -->
 
 
 ###### Searching Packages
@@ -247,23 +248,23 @@ add a README in your example folder with description of your service.
   $ source deactivate.sh
 ```
 
-<!-- TODO: How building with Conan works? -->
+<!-- TODO: ### How building with Conan works? -->
+___
 
 ### Getting started developing packages
 
-Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchain.
-It is expected that these are already installed in your system. However we
-hope to provide toolchains in the future.
+Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchains.
+It is expected that these are already installed in your system.
 
 ##### Building Tools
 
-Binutils is a tool and not an actual part of the final binary by having it
-added in the profile the binaries are always executable inside the conan
-environment.
+The GNU Binutils are a collection of binary tools we have added to the profiles
+so that the binaries are always executable inside the conan environment.
+They are not an actual part of the final binary.
 
-The binutils tool must be built for the Host it's intended to run on. Therefore
-the binutils package is built using a special toolchain profile that doesn't have
-a requirement on binutils.
+The binutils package must be built for the Host it's intended to run on. Therefore
+the binutils package is built using a special _toolchain profile_ that doesn't have
+a requirement on binutils itself.
 
 To build `bintuils` using our [includeos/conan](https://github.com/includeos/conan/tree/master/dependencies/gnu/binutils/2.31) recipes:
 
@@ -273,10 +274,13 @@ To build `bintuils` using our [includeos/conan](https://github.com/includeos/con
 ```
 conan create <binutils-conan-recipe-path>/binutils/2.31 -pr <yourprofilename>-toolchain includeos/test
 ```
+
+For MacOS users, we currently have a [apple-clang-10-macos-toolchain](https://github.com/includeos/conan_config/blob/master/profiles/apple-clang-10-macos-toolchain) for building a binutils package.
+
 ##### Building Dependencies
 
 To build our other dependencies you may use the conan recipes we have in the
-repository.
+[conan](https://github.com/includeos/conan) repository.
 
 **Note:** If you plan to build dependencies you might need to ensure you have
 other missing libraries installed.
@@ -302,25 +306,13 @@ conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/
 conan create <conan-recipe-path>/llvm/libcxxabi -pr <yourprofilename> libcxxabi/7.0.1@includeos/test
 conan create <conan-recipe-path>/llvm/libcxx -pr <yourprofilename> libcxx/7.0.1@includeos/test
 ```
-
-<!-- TODO: How to build libraries with conan? -->
-
-<!-- TODO: How to build services and plugins with conan? -->
 ___
-
-### Testing the IncludeOS build
-
-<!-- TODO: needs update on how to build on conan -->
-___
-
 
 ## Contributing to IncludeOS
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
-
-<!-- TODO: More on Contributing using conan -->
 
 ## C++ Guidelines
 
