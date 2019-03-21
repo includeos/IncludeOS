@@ -36,7 +36,7 @@ ___
 
 ### Getting started with IncludeOS development
 
-The [IncludeOS](https://www.includeos.org/) conan recipes are developed with [Conan version 1.12.3](https://github.com/conan-io/conan/releases/tag/1.12.3) or newer.
+The [IncludeOS](https://www.includeos.org/) conan recipes are developed with [Conan version 1.13.1](https://github.com/conan-io/conan/releases/tag/1.13.1) or newer.
 
 For Mac OS ensure that you have a working installation of [brew](https://brew.sh/) to be able to install all dependencies.
 
@@ -251,6 +251,83 @@ add a README in your example folder with description of your service.
 <!-- TODO: ### How building with Conan works? -->
 ___
 
+### Getting IncludeOS in editable mode
+
+To get started with getting the conan package in editable mode,
+
+- ###### Edit the `conanfile.py` : comment out the `version = get_version()`
+
+- ###### Create a `build` folder to build IncludeOS
+
+- ###### Edit the `layout.txt` : _(uses jinja2 syntax)_ needed to parse the build folder correctly.
+
+Do some local adaptions for where your build folder is by setting your build
+folder in the first line as follows:
+
+```
+  {% set build_dir='build' %}
+  [bindirs]
+  cmake
+  [includedirs]
+  api
+  [libdirs]
+  {{ build_dir }}/plugins
+  {{ build_dir }}/drivers
+  {{ build_dir }}/lib
+  [resdirs]
+  {{ build_dir }}
+
+```
+
+- ###### Set the conan package into **editable mode**
+
+Make sure to adjust the version to whatever is apropriate.
+
+```
+  conan editable add . includeos/0.15.0@includeos/test --layout=layout.txt
+```
+**Note:** Avoid choosing `latest`
+
+- ###### Check Status
+
+The package is now in **editable mode** and any dependencies of IncludeOS will
+pick this IncludeOS package from your local cache. If you make any changes to the
+code a simple `make` should be enough. However if your dependencies have changed
+you need to redo the `conan install` step.
+
+Here is an example on how it looks when its pulled into cache as editable:
+
+```
+  $ conan editable list
+  includeos/0.15.0@includeos/test:45955af12a7f7608830c1d255b80a75440406e3c - Editable
+```
+
+- ###### Build IncludeOS
+
+```
+  cd build
+  conan install .. -pr <conan_profile> (-o options like solo5=True etc)
+  cmake .. (-DTOOLCHAIN_PROFILE=xx.yy when needed)
+  make
+```
+
+- ###### Finalizing Changes
+
+Once the code is **finalized** and you want to verify that the conan package
+still builds remove the editable:
+
+```
+  $ conan editable remove includeos/0.15.0@includeos/test
+```
+
+Then remove the comment on the `#version` in the `conanfile.py` and do a normal
+
+```
+  $ conan create <source_path> includeos/test -pr <conan_profile>
+```
+
+___
+
 ### Getting started developing packages
 
 Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchains.
@@ -306,6 +383,57 @@ conan create <conan-recipe-path>/llvm/libunwind -pr <yourprofilename> libunwind/
 conan create <conan-recipe-path>/llvm/libcxxabi -pr <yourprofilename> libcxxabi/7.0.1@includeos/test
 conan create <conan-recipe-path>/llvm/libcxx -pr <yourprofilename> libcxx/7.0.1@includeos/test
 ```
+___
+
+##### Building IncludeOS libraries and tools
+
+We have moved the libraries and tools created by IncludeOS outside the IncludeOS
+repository. You can now find them all in there own repositories inside the IncludeOS organization.
+
+To build the libraries and tools,
+
+```
+  $ git clone https://github.com/includeos/mana.git
+  $ cd mana
+  $ conan create . includeos/test -pr clang-6.0-linux-x86_64
+```
+
+Below is a list of some of our Libraries/Tools:
+
+- [Vmbuild](https://github.com/includeos/vmbuild) -
+Vmbuild is an utility for building the IncludeOS virtual machines.
+
+- [Vmrunner](https://github.com/includeos/vmrunner) -
+Vmrunner is a utility developed for booting IncludeOS binanries.
+
+
+- [Uplink](https://github.com/includeos/uplink) -
+Uplink is a tool and a library for Live updating IncludeOS instances.
+
+- [Mana](https://github.com/includeos/mana) -
+Mana is a web application framework which is used to build a IncludeOS webserver.
+We have a demo-example called [acorn](https://github.com/includeos/demo-examples/tree/master/acorn) which demonstrates a lot of potential.
+
+- [Microlb](https://github.com/includeos/microlb) -
+Microlb is a library written for building the IncludeOS load balancer.
+We have a demo-example called [microlb](https://github.com/includeos/demo-examples/tree/master/microLB) which demonstrates our load balancer.
+
+- [Mender](https://github.com/includeos/mender) -
+Mender is a client for IncludeOS. We have a demo-example demonstrating
+[mender](https://github.com/includeos/demo-examples/tree/master/mender) use case.
+
+- [Diskbuilder](https://github.com/includeos/diskbuilder) -
+Diskbuilder is a tool used for building disks for IncludeOS.
+
+
+- [Chainloader](https://github.com/includeos/chainloader) -
+Chainloader is a tool developed for building IncludeOS in x86 architectures.
+
+- [NaCl](https://github.com/includeos/NaCl) -
+NaCl is the configuration language tool we have tailored for IncludeOS to allow
+users to configure various network settings such as firewall rules, vlans,
+ip configurations etc.
+
 ___
 
 ## Contributing to IncludeOS
