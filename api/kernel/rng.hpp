@@ -40,6 +40,13 @@ inline uint32_t rng_extract_uint32()
   return x;
   }
 
+// Extract 64 bit integer from system RNG
+inline uint64_t rng_extract_uint64()
+  {
+  uint64_t x;
+  rng_extract(&x, sizeof(x));
+  return x;
+  }
 
 #include <fs/fd_compatible.hpp>
 class RNG : public FD_compatible {
@@ -50,7 +57,7 @@ public:
     return rng;
   }
 
-  void init();
+  static void init();
 
 private:
   RNG() {}

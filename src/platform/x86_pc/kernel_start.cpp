@@ -15,8 +15,9 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
-#include <kernel/syscalls.hpp>
 #include <kernel/cpuid.hpp>
+#include <kernel/rng.hpp>
+#include <kernel/syscalls.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
 #include <debug>
@@ -185,8 +186,24 @@ void kernel_start(uint32_t magic, uint32_t addr)
   }
 #endif
 
+  // initialize RNG as early as possible
+  RNG::init();
+
   // Build AUX-vector for C-runtime
-  auxv_t aux[38];
+  std::array<char*, 6 + 38*2> argv;
+  // Parameters to main
+  argv[0] = (char*) Service::name();
+  argv[1] = 0x0;
+  int argc = 1;
+
+  // Env vars
+  argv[2] = strdup("LC_CTYPE=C");
+  argv[3] = strdup("LC_ALL=C");
+  argv[4] = strdup("USER=root");
+  argv[5] = 0x0;
+
+  // auxiliary vector
+  auxv_t* aux = (auxv_t*) &argv[6];
   PRATTLE("* Initializing aux-vector @ %p\n", aux);
 
   int i = 0;
@@ -211,22 +228,15 @@ void kernel_start(uint32_t magic, uint32_t addr)
 
   const char* plat = "x86_64";
   aux[i++].set_ptr(AT_PLATFORM, plat);
+
+  // SSP value generated from system RNG
+  const long canary = rng_extract_uint64();
+  const long canary_idx = i;
+  aux[i++].set_long(AT_RANDOM, canary);
+  kprintf("* Stack protector value: %#lx\n", canary);
+  // entropy slot
+  aux[i++].set_ptr(AT_RANDOM, &aux[canary_idx].a_un.a_val);
   aux[i++].set_long(AT_NULL, 0);
-
-  std::array<char*, 6 + 38> argv;
-
-  // Parameters to main
-  argv[0] = (char*) Service::name();
-  argv[1] = 0x0;
-  int argc = 1;
-
-  // Env vars
-  argv[2] = strdup("LC_CTYPE=C");
-  argv[3] = strdup("LC_ALL=C");
-  argv[4] = strdup("USER=root");
-  argv[5] = 0x0;
-
-  memcpy(&argv[6], aux, sizeof(auxv_t) * 38);
 
 #if defined(__x86_64__)
   PRATTLE("* Initialize syscall MSR (64-bit)\n");

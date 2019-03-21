@@ -23,6 +23,7 @@
 #endif
 
 #include <kernel/os.hpp>
+#include <kernel/cpuid.hpp>
 #include <kernel/rng.hpp>
 #include <service>
 #include <cstdio>
@@ -134,10 +135,6 @@ void OS::post_start()
   // Dependent on the liveupdate location being set
   SystemLog::initialize();
 
-  MYINFO("Initializing RNG");
-  PROFILE("RNG init");
-  RNG::get().init();
-
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
@@ -168,6 +165,19 @@ void OS::post_start()
          static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
+
+  // if we have disabled important checks, its unsafe for production
+#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(DISABLE_INET_CHECKSUMS)
+  const bool unsafe = true;
+#else
+  // if we dont have a good random source, its unsafe for production
+  const bool unsafe = !CPUID::has_feature(CPUID::Feature::RDSEED)
+                   && !CPUID::has_feature(CPUID::Feature::RDRAND);
+#endif
+  if (unsafe) {
+    printf(" +--> WARNiNG: Environment unsafe for production\n");
+    FILLINE('~');
+  }
 
   Service::start();
 }

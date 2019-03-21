@@ -18,6 +18,7 @@ set(X86_PC_OBJECTS
   cpu_freq_sampling.cpp
   serial1.cpp
   pic.cpp
+  rand.cpp
   softreset.cpp
   sanity_checks.cpp
   smbios.cpp
