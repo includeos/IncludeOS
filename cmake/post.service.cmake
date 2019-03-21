@@ -294,7 +294,7 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-option(for_production "Stop the OS when conditions not suitable for production" OFF)
+option(for_production "Stop the OS when conditions not suitable for production" ON)
 if (for_production)
   set(PROD_USE 0x2000)
 else()
