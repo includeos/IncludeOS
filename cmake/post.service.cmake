@@ -294,7 +294,14 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
+option(for_production "Stop the OS when conditions not suitable for production" OFF)
+if (for_production)
+  set(PROD_USE 0x2000)
+else()
+  set(PROD_USE 0x1000)
+endif()
+
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE} --defsym __for_production_use=${PROD_USE}")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 

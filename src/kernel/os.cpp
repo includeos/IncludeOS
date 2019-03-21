@@ -50,6 +50,10 @@ extern char _LOAD_START_;
 extern char _ELF_END_;
 
 bool __libc_initialized = false;
+extern char __for_production_use;
+inline static bool is_for_production_use() {
+  return &__for_production_use == (char*) 0x2000;
+}
 
 bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
@@ -176,6 +180,11 @@ void OS::post_start()
 #endif
   if (unsafe) {
     printf(" +--> WARNiNG: Environment unsafe for production\n");
+    if (is_for_production_use()) {
+      printf(" +--> Stop option enabled. Shutting down now...\n");
+      OS::shutdown();
+      return;
+    }
     FILLINE('~');
   }
 
