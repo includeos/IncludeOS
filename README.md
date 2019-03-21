@@ -1,4 +1,4 @@
-![IncludeOS Logo](./doc/logo.png)
+![IncludeOS Logo](./etc/logo.png)
 ================================================
 
 **IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
