@@ -16,7 +16,28 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 **Note:** *IncludeOS is under active development. The public API should not be considered stable.*
 
-### Key features
+##### Contents:
+
+- [Key Features](#features)
+- [Getting started with IncludeOS development](#getting_started)
+
+- ###### Service Developers Howto:
+ - [Building IncludeOS with dependencies from conan](#building_includeos)
+ - [Building, starting and creating your first IncludeOS Service](#building_service)
+
+- ###### Kernel Developers Howto:
+ - [Getting IncludeOS in Editable mode](#editing_includeos)
+ - [Getting started developing packages](#develop_pkg)
+
+- ###### Other Info:
+ - [Contributing to IncludeOS](#contribute)
+ - [Our Website](https://www.includeos.org/)
+ - [The Company](https://www.includeos.com/)
+ - [C++ Guidelines](#guideline)
+ - [Security contact](#security)
+
+
+### <a name="features"></a> Key features
 
 * **Extreme memory footprint**: A minimal bootable 64-bit web server, including operating system components and a anything needed from the C/C++ standard libraries is currently 2.5 MB.
 * **KVM, VirtualBox and VMWare support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization), available on most modern x86 CPUs. IncludeOS will run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), and VMWare [ESXi](https://www.vmware.com/products/esxi-and-esx.html)/[Fusion](https://www.vmware.com/products/fusion.html) which means that you can run your IncludeOS service on Linux, Microsoft Windows and macOS, as well as on cloud providers such as [Google Compute Engine](http://www.includeos.org/blog/2017/includeos-on-google-compute-engine.html), [OpenStack](https://www.openstack.org/) and VMWare [vcloud](https://www.vmware.com/products/vcloud-suite.html).
@@ -34,12 +55,12 @@ A longer list of features and limitations can be found on our [documentation sit
 
 ___
 
-### Getting started with IncludeOS development
+### <a name="getting_started"></a> Getting started with IncludeOS development
 
 The [IncludeOS](https://www.includeos.org/) conan recipes are developed with [Conan version 1.13.1](https://github.com/conan-io/conan/releases/tag/1.13.1) or newer.
 
 For Mac OS ensure that you have a working installation of [brew](https://brew.sh/) to be able to install all dependencies.
-
+</p>
 
 ##### Cloning the IncludeOS repository:
 ```
@@ -54,7 +75,7 @@ For Mac OS ensure that you have a working installation of [brew](https://brew.sh
 - GCC version: `gcc-7`
 - [Conan](https://github.com/conan-io/conan)
 
-### Building IncludeOS with dependencies from conan
+### <a name="building_includeos"></a> Building IncludeOS with dependencies from conan
 
 Conan uses [profiles](https://docs.conan.io/en/latest/reference/profiles.html)
 to build packages. By default IncludeOS will build with `clang 6.0` if
@@ -111,7 +132,7 @@ If the includeOS-Develop remote is not added do, you have to add it.
 To add the IncludeOS-Develop conan Bintray repository to your conan remotes:
 
 ```
-conan remote add includeos-test https://api.bintray.com/conan/includeos/test-packages
+conan remote add includeos https://api.bintray.com/conan/includeos/includeos
 ```
 
 ##### Build IncludeOS
@@ -145,7 +166,7 @@ if you want to check if a package exists you can search for it:
 
 ___
 
-### Building and Starting your first IncludeOS Service with Conan
+### <a name="building_service"></a>Building, starting and creating your first IncludeOS Service with Conan
 
 Examples are now built with conan packages. The IncludeOS demo examples have now
 been moved to [includeos/demo-examples](https://github.com/includeos/demo-examples.git).
@@ -251,7 +272,7 @@ add a README in your example folder with description of your service.
 <!-- TODO: ### How building with Conan works? -->
 ___
 
-### Getting IncludeOS in editable mode
+### <a name="editing_includeos"></a> Getting IncludeOS in editable mode
 
 To get started with getting the conan package in editable mode,
 
@@ -328,7 +349,7 @@ Then remove the comment on the `#version` in the `conanfile.py` and do a normal
 
 ___
 
-### Getting started developing packages
+### <a name="develop_pkg"></a> Getting started developing packages
 
 Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchains.
 It is expected that these are already installed in your system.
@@ -436,18 +457,18 @@ ip configurations etc.
 
 ___
 
-## Contributing to IncludeOS
+## <a name="contribute"></a> Contributing to IncludeOS
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
 
-## C++ Guidelines
+## <a name="guideline"></a> C++ Guidelines
 
 We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/hioa-cs/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/hioa-cs/IncludeOS/pulls).
 
 [brew]: https://brew.sh/
 [qemu]: https://www.qemu.org/
 
-## Security contact
+## <a name="security"></a> Security contact
 If you discover a security issue in IncludeOS please avoid the public issue tracker. Instead send an email to security@includeos.org. For more information and encryption please refer to the [documentation](http://includeos.readthedocs.io/en/latest/Security.html).
