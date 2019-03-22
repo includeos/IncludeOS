@@ -230,7 +230,8 @@ void kernel_start(uint32_t magic, uint32_t addr)
   aux[i++].set_ptr(AT_PLATFORM, plat);
 
   // SSP value generated from system RNG
-  const long canary = rng_extract_uint64();
+  // The second byte will be zero, to catch string copying algorithms
+  const long canary = rng_extract_uint64() & 0xFFFFFFFFFFFF00FFul;
   const long canary_idx = i;
   aux[i++].set_long(AT_RANDOM, canary);
   kprintf("* Stack protector value: %#lx\n", canary);
