@@ -64,7 +64,7 @@ For Mac OS ensure that you have a working installation of [brew](https://brew.sh
 
 ##### Cloning the IncludeOS repository:
 ```
-    $ git clone https://github.com/hioa-cs/IncludeOS
+    $ git clone https://github.com/includeos/IncludeOS
     $ cd IncludeOS
 ```
 
@@ -506,7 +506,7 @@ IncludeOS is being developed on GitHub. Create your own fork, send us a pull req
 
 ## <a name="guideline"></a> C++ Guidelines
 
-We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/hioa-cs/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/hioa-cs/IncludeOS/pulls).
+We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/includeos/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/includeos/IncludeOS/pulls).
 
 [brew]: https://brew.sh/
 [qemu]: https://www.qemu.org/
