@@ -19,6 +19,15 @@
 #ifndef UTIL_CONFIG_HPP
 #define UTIL_CONFIG_HPP
 
+#ifndef RAPIDJSON_HAS_STDSTRING
+  #define RAPIDJSON_HAS_STDSTRING 1
+#endif
+
+#ifndef RAPIDJSON_THROWPARSEEXCEPTION
+  #define RAPIDJSON_THROWPARSEEXCEPTION 1
+#endif
+
+#include <rapidjson/document.h>
 #include <cstddef>
 
 /**
@@ -34,6 +43,13 @@ public:
    * @return     A Config
    */
   static const Config& get() noexcept;
+
+  /**
+   * @brief      Retrieve the the config as a parsed json document.
+   *
+   * @return     Json Doc
+   */
+  static const rapidjson::Document& doc();
 
   const char* data() const noexcept
   { return start_; }
