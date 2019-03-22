@@ -48,27 +48,24 @@ class IncludeOSConan(ConanFile):
         "basic": 'OFF'
     }
     no_copy_source=True
-    default_user='includeos'
-    default_channel='test'
-    #keep_imports=True
     def requirements(self):
-        self.requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))## do we need this or just headers
-        self.requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
-        self.requires("libgcc/1.0@{}/{}".format(self.user,self.channel))
+        self.requires("libcxx/[>=5.0]@includeos/stable")## do we need this or just headers
+        self.requires("GSL/2.0.0@includeos/stable")
+        self.requires("libgcc/1.0@includeos/stable")
 
         if self.settings.arch == "armv8":
-            self.requires("libfdt/1.4.7@includeos/test")
+            self.requires("libfdt/1.4.7@includeos/stable")
 
         if self.options.basic == 'OFF':
-            self.requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
-            self.requires("http-parser/2.8.1@{}/{}".format(self.user,self.channel)) #this one is almost free anyways
-            self.requires("uzlib/v2.1.1@{}/{}".format(self.user,self.channel))
-            self.requires("botan/2.8.0@{}/{}".format(self.user,self.channel))
-            self.requires("openssl/1.1.1@{}/{}".format(self.user,self.channel))
-            self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
+            self.requires("rapidjson/1.1.0@includeos/stable")
+            self.requires("http-parser/2.8.1@includeos/stable") #this one is almost free anyways
+            self.requires("uzlib/v2.1.1@includeos/stable")
+            self.requires("botan/2.8.0@includeos/stable")
+            self.requires("openssl/1.1.1@includeos/stable")
+            self.requires("s2n/1.1.1@includeos/stable")
 
         if (self.options.solo5):
-            self.requires("solo5/0.4.1@{}/{}".format(self.user,self.channel))
+            self.requires("solo5/0.4.1@includeos/stable")
 
     def configure(self):
         del self.settings.compiler.libcxx
