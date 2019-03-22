@@ -161,9 +161,34 @@ are in progress and will be updated soon._
 if you want to check if a package exists you can search for it:
 
 ```
-    conan search help
+    $ conan search help
 ```
 
+To access all the available packages on our includeos remote:
+
+```
+    $ conan search -r includeos
+```
+
+This should list all the packages we have uploaded to the includeos repository.
+We allow uploading of packages to two channels, namely:
+- `stable`: this channel has all the stable packages.
+- `latest`: this channel will have the latest package
+  in development/test phase.
+
+To find all the stable versions uploaded for a particular package, try:
+
+```
+    $ conan search -r includeos '<package_name>/*@includeos/stable'
+```
+> **NOTE:** We only guarantee that the **latest 10 packages** are kept in the
+`latest` channel. All `stable` packages will be kept in the stable channel unless
+proven unsafe. One suggested workaround is to copy packages into your own repository.
+YOu can do that using the copy command:
+
+```
+    $ conan copy --all -p <path-to-conanfile> <package_name>@<your_repository>/<your_channel>
+```
 ___
 
 ### <a name="building_service"></a>Building, starting and creating your first IncludeOS Service with Conan
