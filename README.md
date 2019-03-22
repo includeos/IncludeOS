@@ -263,7 +263,8 @@ You should then be able to run your service in the same way as the demo_service.
 To add a new service to our demo examples, make a PR to our [demo-examples](https://github.com/includeos/demo-examples) repo. Make sure to
 add a README in your example folder with description of your service.
 
-**Note:** Remember to deactivate your service environment after your work with:
+
+> **Note:** Remember to deactivate your service environment after your work with:
 
 ```
   $ source deactivate.sh
@@ -272,7 +273,18 @@ add a README in your example folder with description of your service.
 <!-- TODO: ### How building with Conan works? -->
 ___
 
-### <a name="editing_includeos"></a> Getting IncludeOS in editable mode
+### <a name="editing_includeos"></a> Getting IncludeOS in Editable mode
+
+If you are a kernel developer or are simple interested in fiddling with our
+kernel code, you can use the includeos package in `editable` mode. This is useful
+when working with several interconnected components and you would like to test
+your changes across several libraries or functionalities.
+
+Below we have written down a few steps to get you started with editable packages.
+You can read more about it at [packages in editable mode](https://docs.conan.io/en/latest/developing_packages/editable_packages.html).
+
+> **Note:** Currently this is an experimental feature on conan version 1.13 and they
+have mentioned that for future releases the feature is subject to breaking changes.
 
 To get started with getting the conan package in editable mode,
 
@@ -307,7 +319,7 @@ Make sure to adjust the version to whatever is apropriate.
 ```
   conan editable add . includeos/0.15.0@includeos/test --layout=layout.txt
 ```
-**Note:** Avoid choosing `latest`
+> **Note:** Avoid choosing `latest`
 
 - ###### Check Status
 
@@ -351,8 +363,12 @@ ___
 
 ### <a name="develop_pkg"></a> Getting started developing packages
 
-Currently building works for `clang-6` and `gcc-7.3.0` compiler toolchains.
-It is expected that these are already installed in your system.
+If you are interested in editing/building our dependency packages on your own,
+you can checkout our repositories at [includeos/](https://github.com/includeos/).  
+Some our tools and libraries are listed below under [Tools and Libraries](#libs_tools).
+You can find the external dependency recipes at [includeos/conan](https://github.com/includeos/conan).
+Currently we build with `clang-6` and `gcc-7.3.0` compiler toolchains.
+It is expected that these are already installed on your system.
 
 ##### Building Tools
 
@@ -380,7 +396,7 @@ For MacOS users, we currently have a [apple-clang-10-macos-toolchain](https://gi
 To build our other dependencies you may use the conan recipes we have in the
 [conan](https://github.com/includeos/conan) repository.
 
-**Note:** If you plan to build dependencies you might need to ensure you have
+> **Note:** If you plan to build dependencies you might need to ensure you have
 other missing libraries installed.
 
 **Requirements**
@@ -419,7 +435,7 @@ To build the libraries and tools,
   $ conan create . includeos/test -pr clang-6.0-linux-x86_64
 ```
 
-Below is a list of some of our Libraries/Tools:
+<a name="libs_tools"></a> Below is a list of some of our Libraries/Tools:
 
 - [Vmbuild](https://github.com/includeos/vmbuild) -
 Vmbuild is an utility for building the IncludeOS virtual machines.
@@ -461,7 +477,7 @@ ___
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
-**Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
+> **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
 
 ## <a name="guideline"></a> C++ Guidelines
 
