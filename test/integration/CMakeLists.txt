@@ -209,8 +209,8 @@ function(add_integration_tests TESTS)
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}/test.py)
       add_test(NAME integration_${TYPE}_${T}
         #TODO make cmake find python version .. and update vmrunner
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TIMEOUT} ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/test.py ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
-        WORKING_DIRECTORY  ${CMAKE_BINARY_DIR}
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${CMAKE_BINARY_DIR} ${TIMEOUT} ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}
       )
       set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT_AFTER_MATCH "0.1" "Test timed out")
       set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
@@ -223,7 +223,7 @@ endfunction()
 if (STRESS)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../stress stress)
   add_test(NAME stress
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh 300 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${CMAKE_BINARY_DIR} 300 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stress
   )
   set_property(TEST stress PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
