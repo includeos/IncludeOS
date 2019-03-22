@@ -22,19 +22,19 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 - [Getting started with IncludeOS development](#getting_started)
 
 - ###### Service Developers Howto:
- - [Building IncludeOS with dependencies from conan](#building_includeos)
- - [Building, starting and creating your first IncludeOS Service](#building_service)
+  - [Building IncludeOS with dependencies from conan](#building_includeos)
+  - [Building, starting and creating your first IncludeOS Service](#building_service)
 
 - ###### Kernel Developers Howto:
- - [Getting IncludeOS in Editable mode](#editing_includeos)
- - [Getting started developing packages](#develop_pkg)
+  - [Getting IncludeOS in Editable mode](#editing_includeos)
+  - [Getting started developing packages](#develop_pkg)
 
 - ###### Other Info:
- - [Contributing to IncludeOS](#contribute)
- - [Our Website](https://www.includeos.org/)
- - [The Company](https://www.includeos.com/)
- - [C++ Guidelines](#guideline)
- - [Security contact](#security)
+  - [Contributing to IncludeOS](#contribute)
+  - [Our Website](https://www.includeos.org/)
+  - [The Company](https://www.includeos.com/)
+  - [C++ Guidelines](#guideline)
+  - [Security contact](#security)
 
 
 ### <a name="features"></a> Key features
