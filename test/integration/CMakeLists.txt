@@ -8,6 +8,22 @@ project(IntegrationTests)
 #TODO check these and notify if any is missing
 find_program(HPING3 hping3)
 find_program(NODEJS nodejs node) #if not found look for node
+
+if (HPING3-NOTFOUND)
+  set(FAIL True)
+  message("missing test dependency hping3 some tests will fail")
+endif()
+if (NODEJS-NOTFOUND)
+  set(FAIL True)
+  message("missing test dependency nodejs, node some tests will fail")
+endif()
+
+
+if (NOT NO_FAIL AND FAIL)
+  message(FATAL_ERROR "Integration test requirements are not met see previous message")
+endif()
+
+
 #TODO ADD ws4py to deps
 enable_testing()
 
@@ -125,24 +141,39 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-   file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.13/conan.cmake"
-                 "${CMAKE_BINARY_DIR}/conan.cmake")
-endif()
+#if not run already run conan install to get dependencies sorted
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  if (CONAN_PROFILE)
+    set(CONANPROFILE PROFILE ${CONAN_PROFILE})
+  endif()
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.13/conan.cmake"
+                   "${CMAKE_BINARY_DIR}/conan.cmake")
+  endif()
 
-include(${CMAKE_BINARY_DIR}/conan.cmake)
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+  conan_cmake_run(
+    CONANFILE conanfile.txt
 
-if (CONAN_PROFILE)
-  set(CONANPROFILE PROFILE ${CONAN_PROFILE})
+    #PENDING PR to conan-cmake
+    #NO_LOAD
+  #  INSTALL_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+    ${CONANPROFILE}
+  )
 endif()
 
 function(do_conaningans TARGET SOURCE)
-  if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}/conanfile.txt)
-    set(CONAN_FILE ${SOURCE}/conanfile.txt)
-  else()
-    set(CONAN_FILE conanfile.txt)
+  #this package needs special care..
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.13/conan.cmake"
+                   "${CMAKE_BINARY_DIR}/conan.cmake")
   endif()
+
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+
+  set(CONAN_FILE ${SOURCE}/conanfile.txt)
 
   set(OLD_DIR ${CMAKE_CURRENT_BINARY_DIR})
   #hack for conan_cmake_run
@@ -151,15 +182,14 @@ function(do_conaningans TARGET SOURCE)
   #clear any old libs from last pass.. this is a ugly hack i wish it was an option to cmake_run
   set(CONAN_LIBS "")
   conan_cmake_run(
-    CONANFILE ${CONAN_FILE}
+    CONANFILE ${SOURCE}/conanfile.txt
 
-    #PENDING PR to conan-cmake
-    #NO_LOAD
-  #  INSTALL_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+      #PENDING PR to conan-cmake
+      #NO_LOAD
+    #  INSTALL_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     ${CONANPROFILE}
   )
   set(CMAKE_CURRENT_BINARY_DIR ${OLD_DIR})
-#endif()
 endfunction()
 
 function(add_integration_tests TESTS)
@@ -171,14 +201,16 @@ function(add_integration_tests TESTS)
     get_list_param("${TESTS}" ${INDEX} ${TYPE_PARAM_INDEX} TYPE)
 
     message(STATUS "Adding test integration_${TYPE}_${T} with timeout ${TIMEOUT}")
-    do_conaningans(${TYPE}/${T} "../${TYPE}/integration/${T}")
+    #if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}/conanfile.txt)
+    #  do_conaningans(${TYPE}/${T} "../${TYPE}/integration/${T}")
+  #endif()
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}  ${TYPE}/${T})
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../${TYPE}/integration/${T}/test.py)
       add_test(NAME integration_${TYPE}_${T}
         #TODO make cmake find python version .. and update vmrunner
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TIMEOUT} ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
-        WORKING_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TIMEOUT} ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/test.py ${CMAKE_CURRENT_BINARY_DIR}/${TYPE}/${T}/${TYPE}_${T}
+        WORKING_DIRECTORY  ${CMAKE_BINARY_DIR}
       )
       set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT_AFTER_MATCH "0.1" "Test timed out")
       set_property(TEST integration_${TYPE}_${T} PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
@@ -189,7 +221,6 @@ function(add_integration_tests TESTS)
 endfunction()
 
 if (STRESS)
-  do_conaningans(stress "../stress")
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../stress stress)
   add_test(NAME stress
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh 300 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
