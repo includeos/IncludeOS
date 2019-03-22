@@ -3,12 +3,46 @@ cmake_minimum_required(VERSION 3.1.0)
 project(unittests C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_BUILD_TYPE "Debug")
-
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Debug")
 endif()
+
+if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+else()
+  #TODO get a released version ? or put one into root/cmake/ ?
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                    "${CMAKE_BINARY_DIR}/conan.cmake")
+  endif()
+  ##needed by conaningans
+
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+  #include conan cmake
+  if (UPDATE)
+   set(CONAN_UPDATE UPDATE)
+  endif()
+  if (CONAN_PROFILE)
+    set(CONANPROFILE PROFILED ${CONAN_PROFILE})
+  endif()
+  conan_cmake_run(
+    CONANFILE conanfile.txt
+    BASIC_SETUP
+    ${CONAN_UPDATE}
+    ${CONANPROFILE}
+  )
+endif()
+
+if (NOT ARCH)
+  if (CONAN_SETTINGS_ARCH)
+    set(ARCH ${CONAN_SETTINGS_ARCH})
+  else()
+    set(ARCH "x86_64")
+  endif()
+endif()
+message(STATUS "Building for arch ${ARCH}")
 
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
@@ -18,11 +52,10 @@ option(DEBUG_INFO "Print debug macro output when DEBUG/DEBUG2 etc. is defined in
 option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e.g. tar)" ON)
 option(EXTRA_TESTS "Build extra test" OFF)
 
-if ("${ARCH}" STREQUAL "")
-  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
-endif("${ARCH}" STREQUAL "")
-message(STATUS "Building for arch ${ARCH}")
+#if ("${ARCH}" STREQUAL "")
+#  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+#  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
+#endif("${ARCH}" STREQUAL "")
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
@@ -33,6 +66,7 @@ FILE(WRITE ${CMAKE_BINARY_DIR}/version.h
 )
 
 include_directories(${CMAKE_BINARY_DIR})
+
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
@@ -72,38 +106,14 @@ if (APPLE)
   endif()
 endif()
 
-if(NOT DEFINED ${INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
-endif()
-
-#set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR})
-
-#TODO get a released version ? or put one into root/cmake/ ?
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
-                  "${CMAKE_BINARY_DIR}/conan.cmake")
-endif()
-##needed by conaningans
-
-include(${CMAKE_BINARY_DIR}/conan.cmake)
-#include conan cmake
-if (UPDATE)
- set(CONAN_UPDATE UPDATE)
-endif()
-conan_cmake_run(
-  CONANFILE conanfile.txt
-  BASIC_SETUP
-  ${CONAN_UPDATE}
-)
 
 include_directories(
   ${TEST}/lest_util
-  ${CMAKE_CURRENT_SOURCE_DIR}/../api
-  ${CMAKE_CURRENT_SOURCE_DIR}/../src/include
+  ${TEST}/../api
+  ${TEST}/../src/include
   #TODO move to the right place
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/LiveUpdate/include
+  ${TEST}/../lib/LiveUpdate/include
 )
 
 set(LEST_UTIL
