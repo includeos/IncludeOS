@@ -40,10 +40,10 @@ class LiveupdateConan(ConanFile):
     }
     def requirements(self):
         self.requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
-        self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
+        self.requires("s2n/0.8@includeos/stable")
 
     def build_requirements(self):
-        self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
+        self.build_requires("GSL/2.0.0@includeos/stable")
 
     def _arch(self):
         return {
