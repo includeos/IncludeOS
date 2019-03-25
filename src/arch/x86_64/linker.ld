@@ -198,8 +198,8 @@ SECTIONS
     *(COMMON)
     _BSS_END_ = .;
   }
-  . = ALIGN(0x8);
 
+  . = ALIGN(0x8);
   _end = .;
 
   PROVIDE (end = .);
