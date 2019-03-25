@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'vaskemaskin' }
+  agent { label 'ubuntu-18.04' }
 
   options {
     checkoutToSubdirectory('src')
