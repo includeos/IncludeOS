@@ -62,7 +62,7 @@ class IncludeOSConan(ConanFile):
             self.requires("uzlib/v2.1.1@includeos/stable")
             self.requires("botan/2.8.0@includeos/stable")
             self.requires("openssl/1.1.1@includeos/stable")
-            self.requires("s2n/1.1.1@includeos/stable")
+            self.requires("s2n/0.8@includeos/stable")
 
         if (self.options.solo5):
             self.requires("solo5/0.4.1@includeos/stable")
