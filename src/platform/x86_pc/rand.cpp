@@ -3,40 +3,33 @@
 #include <kernel/os.hpp>
 #include <arch.hpp>
 #include <kprint>
-extern "C" void intel_rdrand(void*);
-extern "C" void intel_rdseed(void*);
+extern "C" void intel_rdrand(uint64_t*);
+extern "C" void intel_rdseed(uint64_t*);
+
+static void fallback_entropy(uint64_t* res)
+{
+  uint64_t clock = (uint64_t) res;
+  // this is horrible, better solution needed here
+  for (int i = 0; i < 64; ++i) {
+    clock += OS::cycles_since_boot();
+    asm volatile("cpuid" ::: "memory", "eax", "ebx", "ecx", "edx");
+  }
+  // here we need to add our own bits
+  *res = clock;
+}
 
 // used to generate initial
 // entropy for a cryptographic randomness generator
 void RNG::init()
 {
   if (CPUID::has_feature(CPUID::Feature::RDSEED)) {
-    for (int i = 0; i < 64 * 2; i++)
-    {
-      uintptr_t rdseed;
-      intel_rdseed(&rdseed);
-      rng_absorb(&rdseed, sizeof(rdseed));
-    }
+    rng_reseed_init(intel_rdseed, 2);
   }
   else if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
-    for (int i = 0; i < 64 * 5; i++)
-    {
-      uintptr_t rdrand;
-      intel_rdrand(&rdrand);
-      rng_absorb(&rdrand, sizeof(rdrand));
-    }
+    rng_reseed_init(intel_rdrand, 65);
   }
   else {
-    for (int i = 0; i < 64 * 16; i++)
-    {
-      uint64_t clock = 0;
-      // this is horrible, better solution needed here
-      for (int i = 0; i < 64; ++i) {
-        clock += OS::cycles_since_boot();
-        asm volatile("cpuid" ::: "memory", "eax", "ebx", "ecx", "edx");
-      }
-      rng_absorb(&clock, sizeof(clock));
-    }
+    rng_reseed_init(fallback_entropy, 64*16);
     return;
   }
   assert(0 && "No randomness fallback");
