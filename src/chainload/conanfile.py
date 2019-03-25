@@ -3,6 +3,7 @@ from conans import ConanFile, python_requires, CMake
 conan_tools = python_requires("conan-tools/[>=1.0.0]@includeos/stable")
 
 class ChainloaderConan(ConanFile):
+    settings = "arch"
     name = "chainloader"
     version = conan_tools.git_get_semver()
     license = 'Apache-2.0'
@@ -17,14 +18,12 @@ class ChainloaderConan(ConanFile):
     }
 
     default_options={
-        "includeos:solo5":"OFF",
-        "includeos:apple":'',
-        "includeos:basic":"ON"
+        "includeos:platform":"nano"
     }
     no_copy_source=True
 
     default_user="includeos"
-    default_channel="test"
+    default_channel="latest"
 
     def package_id(self):
         self.info.requires.major_mode()
@@ -44,6 +43,7 @@ class ChainloaderConan(ConanFile):
 
     def package_info(self):
         self.env_info.INCLUDEOS_CHAINLOADER=self.package_folder+"/bin"
+        del self.settings.arch
 
     def package(self):
         cmake=self._configure_cmake()

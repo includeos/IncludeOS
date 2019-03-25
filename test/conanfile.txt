@@ -5,3 +5,6 @@
    GSL/2.0.0@includeos/test
    lest/1.33.5@includeos/test
 
+[generators]
+virtualenv
+cmake
