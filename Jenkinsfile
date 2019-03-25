@@ -61,7 +61,8 @@ pipeline {
       when { changeRequest() }
       steps {
         dir('integration') {
-          sh script: "cmake $SRC/test/integration -DSTRESS=ON, -DCMAKE_BUILD_TYPE=Debug -DCONAN_PROFILE=$PROFILE_x86_64", label: "Cmake"
+          sh script: "conan install $SRC/test/integration -pr $PROFILE_x86_64", label: "Conan install"
+          sh script: ". ./activate.sh; cmake $SRC/test/integration -DSTRESS=ON -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
           sh script: "make -j $CPUS", label: "Make"
           sh script: "ctest -E stress --output-on-failure", label: "Tests"
           sh script: "ctest -R stress -E integration --output-on-failure", label: "Stress test"
