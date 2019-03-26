@@ -24,13 +24,15 @@ void RNG::init()
 {
   if (CPUID::has_feature(CPUID::Feature::RDSEED)) {
     rng_reseed_init(intel_rdseed, 2);
+    return;
   }
   else if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
     rng_reseed_init(intel_rdrand, 65);
-  }
-  else {
-    rng_reseed_init(fallback_entropy, 64*16);
     return;
   }
+#ifndef PLATFORM_x86_solo5
+  rng_reseed_init(fallback_entropy, 64*16);
+  return;
+#endif
   assert(0 && "No randomness fallback");
 }
