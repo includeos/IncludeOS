@@ -1,30 +1,13 @@
 import shutil
 
-from conans import ConanFile,tools,CMake
+from conans import ConanFile, python_requires, CMake
 
-def get_version():
-    git = tools.Git()
-    try:
-        prev_tag = git.run("describe --tags --abbrev=0")
-        commits_behind = int(git.run("rev-list --count %s..HEAD" % (prev_tag)))
-        # Commented out checksum due to a potential bug when downloading from bintray
-        #checksum = git.run("rev-parse --short HEAD")
-        if prev_tag.startswith("v"):
-            prev_tag = prev_tag[1:]
-        if commits_behind > 0:
-            prev_tag_split = prev_tag.split(".")
-            prev_tag_split[-1] = str(int(prev_tag_split[-1]) + 1)
-            output = "%s-%d" % (".".join(prev_tag_split), commits_behind)
-        else:
-            output = "%s" % (prev_tag)
-        return output
-    except:
-        return None
+conan_tools = python_requires("conan-tools/[>=1.0.0]@includeos/stable")
 
 class IncludeOSConan(ConanFile):
     settings= "os","arch","build_type","compiler"
     name = "includeos"
-    version = get_version()
+    version = conan_tools.git_get_semver()
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = [ 'cmake','virtualenv' ]
@@ -48,27 +31,24 @@ class IncludeOSConan(ConanFile):
         "basic": 'OFF'
     }
     no_copy_source=True
-    default_user='includeos'
-    default_channel='test'
-    #keep_imports=True
     def requirements(self):
-        self.requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))## do we need this or just headers
-        self.requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
-        self.requires("libgcc/1.0@{}/{}".format(self.user,self.channel))
+        self.requires("libcxx/[>=5.0]@includeos/stable")## do we need this or just headers
+        self.requires("GSL/2.0.0@includeos/stable")
+        self.requires("libgcc/1.0@includeos/stable")
 
         if self.settings.arch == "armv8":
-            self.requires("libfdt/1.4.7@includeos/test")
+            self.requires("libfdt/1.4.7@includeos/stable")
 
         if self.options.basic == 'OFF':
-            self.requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
-            self.requires("http-parser/2.8.1@{}/{}".format(self.user,self.channel)) #this one is almost free anyways
-            self.requires("uzlib/v2.1.1@{}/{}".format(self.user,self.channel))
-            self.requires("botan/2.8.0@{}/{}".format(self.user,self.channel))
-            self.requires("openssl/1.1.1@{}/{}".format(self.user,self.channel))
-            self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
+            self.requires("rapidjson/1.1.0@includeos/stable")
+            self.requires("http-parser/2.8.1@includeos/stable") #this one is almost free anyways
+            self.requires("uzlib/v2.1.1@includeos/stable")
+            self.requires("botan/2.8.0@includeos/stable")
+            self.requires("openssl/1.1.1@includeos/stable")
+            self.requires("s2n/0.8@includeos/stable")
 
         if (self.options.solo5):
-            self.requires("solo5/0.4.1@{}/{}".format(self.user,self.channel))
+            self.requires("solo5/0.4.1@includeos/stable")
 
     def configure(self):
         del self.settings.compiler.libcxx

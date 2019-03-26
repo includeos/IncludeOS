@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'vaskemaskin' }
+  agent { label 'ubuntu-18.04' }
 
   options {
     checkoutToSubdirectory('src')
@@ -14,13 +14,34 @@ pipeline {
     CC = 'clang-6.0'
     CXX = 'clang++-6.0'
     USER = 'includeos'
-    CHAN = 'test'
+    CHAN = 'default'
     COVERAGE_DIR = "${env.COVERAGE_DIR}/${env.JOB_NAME}"
     BINTRAY_CREDS = credentials('devops-includeos-user-pass-bintray')
     SRC = "${env.WORKSPACE}/src"
   }
 
   stages {
+    stage('Conan channel') {
+      parallel {
+        stage('Pull request') {
+          when { changeRequest() }
+          steps { script { CHAN = 'test' } }
+        }
+        stage('Master merge') {
+          when {
+            anyOf {
+              branch 'master'
+              branch 'dev'
+            }
+          }
+          steps { script { CHAN = 'latest' } }
+        }
+        stage('Stable release') {
+          when { buildingTag() }
+          steps { script { CHAN = 'stable' } }
+        }
+      }
+    }
     stage('Setup') {
       steps {
         sh script: "ls -A | grep -v src | xargs rm -r || :", label: "Clean workspace"
@@ -91,6 +112,7 @@ pipeline {
         anyOf {
           branch 'master'
           branch 'dev'
+          buildingTag()
         }
       }
       steps {
