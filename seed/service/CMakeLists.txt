@@ -23,7 +23,7 @@ set(SOURCES
 set(DRIVERS
   # virtionet   # Virtio networking driver
   # virtioblk   # Virtio block device driver
-  #boot_logger   # Enable lots of logging from boot stage
+  boot_logger   # Enable lots of logging from boot stage
 
   # Use "boot --drivers ." to see other drivers
   )

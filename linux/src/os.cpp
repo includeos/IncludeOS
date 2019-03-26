@@ -1,9 +1,11 @@
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
+#include <kernel/rng.hpp>
 #include <kernel/service.hpp>
 #include <kernel/timers.hpp>
 #include <system_log>
 #include <sys/time.h>
+#include <sys/random.h>
 #include <malloc.h> // mallinfo()
 #include <sched.h>
 extern bool __libc_initialized;
@@ -101,6 +103,11 @@ void OS::start(const char* cmdline)
   // setup timer system
   Timers::init(begin_timer, stop_timers);
   Timers::ready();
+  // seed RNG with entropy
+  char entropy[2048];
+  ssize_t rngres = getrandom(entropy, sizeof(entropy), 0);
+  assert(rngres == sizeof(entropy));
+  rng_absorb(entropy, sizeof(entropy));
   // fake CPU frequency
   using namespace std::chrono;
   OS::cpu_khz_ = decltype(OS::cpu_freq()) {3000000ul};

@@ -4,6 +4,7 @@
 #include <smp>
 #include <boot/multiboot.h>
 #include <kernel/os.hpp>
+#include <kernel/rng.hpp>
 
 extern "C" {
 #include <solo5.h>
@@ -47,6 +48,8 @@ void kernel_start()
 
   // Initialize system calls
   _init_syscalls();
+
+  RNG::init();
 
   // Initialize OS including devices
   OS::start(temp_cmdline);

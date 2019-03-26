@@ -59,6 +59,7 @@ namespace CPUID
     AVX,               // AVX Instructions
     F16C,              // 16-bit Floating Point Instructions
     RDRAND,            // RDRAND Instruction
+    RDSEED,            // RDSEED Instruction
 
     FPU,               // Floating-Point Unit On-Chip
     VME,               // Virtual 8086 Mode Extensions
