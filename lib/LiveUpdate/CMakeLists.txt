@@ -30,6 +30,10 @@ add_library(liveupdate STATIC
     os.cpp serialize_tcp.cpp hotswap.cpp hotswap64_blob.asm
     ${LIU_OPENSSL_FILES}
   )
+
+# to allow out of source build, even if hotswap64_blob.asm contains incbin "hotswap64.bin"
+set_source_files_properties(hotswap64_blob.asm PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_BINARY_DIR}/")
+
 add_dependencies(liveupdate hotswap64)
 add_dependencies(liveupdate PrecompiledLibraries)
 
