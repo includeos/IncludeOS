@@ -10,6 +10,8 @@ import traceback
 import validate_vm
 import signal
 import psutil
+import platform
+
 from shutil import copyfile
 
 from prettify import color
@@ -424,6 +426,10 @@ class qemu(hypervisor):
             self.info("KVM OFF")
             return False
 
+    # Check if we should use the hvf accel (MacOS only)
+    def hvf_present(self):
+        return (platform.system() == "Darwin")
+
     # Start a process and preserve in- and output pipes
     # Note: if the command failed, we can't know until we have exit status,
     # but we can't wait since we expect no exit. Checking for program start error
@@ -555,6 +561,10 @@ class qemu(hypervisor):
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", qemu_binary]
         if self._kvm_present: command.extend(["--enable-kvm"])
+
+        # If hvf is present, use it and enable cpu features (needed for rdrand/rdseed)
+        if self.hvf_present():
+            command.extend(["-accel","hvf","-cpu","host"])
 
         command += kernel_args
         command += disk_args + debug_args + net_args + mem_arg + mod_args
