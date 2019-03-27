@@ -65,11 +65,23 @@ __amd64_load_tr:
 GLOBAL intel_rdrand:function
 intel_rdrand:
   mov eax, 0x1
-retry:
+retry_rdrand:
   rdrand rcx
   mov QWORD [rdi], rcx
   cmovb ecx, eax
-  jae retry
+  jae retry_rdrand
+  cmp ecx, 0x1
+  sete al
+  ret
+
+GLOBAL intel_rdseed:function
+intel_rdseed:
+  mov eax, 0x1
+retry_rdseed:
+  rdseed rcx
+  mov QWORD [rdi], rcx
+  cmovb ecx, eax
+  jae retry_rdseed
   cmp ecx, 0x1
   sete al
   ret
