@@ -1,0 +1,37 @@
+{% set simple=true%}
+
+{% set build_dir='build' %}
+
+{% if simple==false %}
+{% set arch=settings.arch|string %}
+{% set platform=options.platform|string %}
+{% set build_dir=build_dir+'/'+arch+'/'+platform %}
+{% endif %}
+
+[bindirs]
+{#This is so that we can find os.cmake after including conanbuildinfo.cmake #}
+cmake
+
+[includedirs]
+{#This is to ensure the include directory in conanbuildinfo.cmake includes our API#}
+api
+
+[libdirs]
+{#This is so that we can find our libraries #}
+{{ build_dir }}/plugins
+{{ build_dir }}/drivers
+{{ build_dir }}/lib
+{{ build_dir }}/platform
+
+[resdirs]
+{#This is so that we can find ldscript and search for drivers plugins etc#}
+{{ build_dir }}
+
+{#
+TODO figure out why adding these two fails
+[source_folder]
+.
+
+[build_folder]
+{{ build_dir }}
+#}

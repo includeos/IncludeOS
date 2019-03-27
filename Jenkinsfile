@@ -26,7 +26,8 @@ pipeline {
       when { changeRequest() }
       steps {
         dir('unittests') {
-          sh script: "env CC=gcc CXX=g++ cmake $SRC/test", label: "Cmake"
+          sh script: "conan install $SRC/test -pr $PROFILE_x86_64", label: "Conan install"
+          sh script: ". ./activate.sh; cmake $SRC/test -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
           sh script: "make -j $CPUS", label: "Make"
           sh script: "ctest", label: "Ctest"
         }
@@ -34,7 +35,7 @@ pipeline {
     }
     stage('Build IncludeOS x86') {
       steps {
-        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "ON")
+        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
         script { VERSION = sh(script: "conan inspect -a version $SRC | cut -d ' ' -f 2", returnStdout: true).trim() }
       }
     }
@@ -107,8 +108,8 @@ pipeline {
   }
 }
 
-def build_conan_package(String src, user_chan, profile, basic="") {
-  sh script: "basic=${basic}; conan create $src $user_chan -pr ${profile} \${basic:+-o basic=$basic}", label: "Build with profile: $profile"
+def build_conan_package(String src, user_chan, profile, platform="") {
+  sh script: "platform=${platform}; conan create $src $user_chan -pr ${profile} \${platform:+-o platform=$platform}", label: "Build with profile: $profile"
 }
 
 def upload_package(String package_name, channel) {
