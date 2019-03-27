@@ -8,6 +8,7 @@ if (NOT HAS_CONAN)
 endif()
 conan_basic_setup()
 
+set(ARCH i686)
 include(os)
 
 option(default_stdout "" OFF)
