@@ -105,6 +105,7 @@ def start(line):
     print("Waiting for UDP data")
     while True:
         data, addr = sock.recvfrom(4096)
+        data = data.decode("utf-8")
         print("Received data")
         if end_msg not in data:
             validate(data)

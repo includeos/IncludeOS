@@ -12,8 +12,8 @@ vm = vmrunner.vms[0]
 def begin_test(line):
     s = socket.socket()
     s.connect(("10.0.0.63", 23))
-    s.send("netstat\r\n")
-    result = s.recv(1024)
+    s.send(str.encode("netstat\r\n"))
+    result = s.recv(1024).decode()
     print(result)
     s.close()
     return "Banana Terminal" in result

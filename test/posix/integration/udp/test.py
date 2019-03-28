@@ -44,7 +44,7 @@ HOST, PORT = '10.0.0.58', 1042
 RECEIVED = ''
 
 def UDP_send(trigger_line):
-  MESSAGE = "POSIX is for hipsters"
+  MESSAGE = str.encode("POSIX is for hipsters")
   sock = socket.socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   sock.bind((S_HOST, S_PORT + 1))
@@ -66,8 +66,9 @@ def UDP_send_much(trigger_line):
   sock.connect((HOST, PORT))
 
   for i in range(0, 5):
-    sock.send(MESSAGE + repr(i))
-    print("Sending", MESSAGE + repr(i))
+    msg = str.encode(MESSAGE + repr(i))
+    sock.send(msg)
+    print("Sending {}".format(msg))
 
 import _thread
 _thread.start_new_thread(UDP_recv, ())

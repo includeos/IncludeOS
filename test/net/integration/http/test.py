@@ -18,9 +18,9 @@ DO_SERVE = True
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(s):
         s.send_response(200)
-        s.send_header("Content-type", "text/plain")
+        s.send_header("Content-type", "text/plain; charset=utf-8",)
         s.end_headers()
-        s.wfile.write("%s" % s.path)
+        s.wfile.write(s.path.encode("utf-8"))
 
 
 def Client_test():
