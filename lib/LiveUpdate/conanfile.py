@@ -12,7 +12,7 @@ class LiveupdateConan(ConanFile):
     url = "http://www.includeos.org/"
 
     default_user="includeos"
-    default_channel="test"
+    default_channel="latest"
 
     scm = {
         "type" : "git",

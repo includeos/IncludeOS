@@ -1,5 +1,8 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
+from builtins import range
 import sys
 import os
 import subprocess
@@ -38,13 +41,13 @@ def start_icmp_test(trigger_line):
   # subprocess.call(["brew", "install", "hping"])
 
   # 1 Ping: Checking output from callback in service.cpp
-  print color.INFO("<Test.py>"), "Performing ping test"
+  print(color.INFO("<Test.py>"), "Performing ping test")
 
   output_data = ""
   for x in range(0, 11):
     output_data += vm.readline()
 
-  print output_data
+  print(output_data)
 
   if "Received packet from gateway" in output_data and \
     "Identifier: 0" in output_data and \
@@ -58,35 +61,35 @@ def start_icmp_test(trigger_line):
     "No reply received from 10.0.0.42" in output_data and \
     "No reply received from 10.0.0.43" in output_data:
     num_successes += 1
-    print color.INFO("<Test.py>"), "Ping test succeeded"
+    print(color.INFO("<Test.py>"), "Ping test succeeded")
   else:
-    print color.FAIL("<Test.py>"), "Ping test FAILED"
+    print(color.FAIL("<Test.py>"), "Ping test FAILED")
 
   # 2 Port unreachable
-  print color.INFO("<Test.py>"), "Performing Destination Unreachable (port) test"
+  print(color.INFO("<Test.py>"), "Performing Destination Unreachable (port) test")
   # Sending 1 udp packet to 10.0.0.45 to port 8080
-  udp_port_output = subprocess32.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"], timeout=thread_timeout)
-  print udp_port_output
+  udp_port_output = subprocess32.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"], timeout=thread_timeout).decode("utf-8")
+  print(udp_port_output)
 
   # Validate content in udp_port_output:
   if "ICMP Port Unreachable from ip=10.0.0.45" in udp_port_output:
-    print color.INFO("<Test.py>"), "Port Unreachable test succeeded"
+    print(color.INFO("<Test.py>"), "Port Unreachable test succeeded")
     num_successes += 1
   else:
-    print color.FAIL("<Test.py>"), "Port Unreachable test FAILED"
+    print(color.FAIL("<Test.py>"), "Port Unreachable test FAILED")
 
   # 3 Protocol unreachable
-  print color.INFO("<Test.py>"), "Performing Destination Unreachable (protocol) test"
+  print(color.INFO("<Test.py>"), "Performing Destination Unreachable (protocol) test")
   # Sending 1 raw ip packet to 10.0.0.45 with protocol 16
-  rawip_protocol_output = subprocess32.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"], timeout=thread_timeout)
-  print rawip_protocol_output
+  rawip_protocol_output = subprocess32.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"], timeout=thread_timeout).decode("utf-8")
+  print(rawip_protocol_output)
 
   # Validate content in rawip_protocol_output:
   if "ICMP Protocol Unreachable from ip=10.0.0.45" in rawip_protocol_output:
-    print color.INFO("<Test.py>"), "Protocol Unreachable test succeeded"
+    print(color.INFO("<Test.py>"), "Protocol Unreachable test succeeded")
     num_successes += 1
   else:
-    print color.FAIL("<Test.py>"), "Protocol Unreachable test FAILED"
+    print(color.FAIL("<Test.py>"), "Protocol Unreachable test FAILED")
 
   # 4 Check result of tests
   if num_successes == 3:

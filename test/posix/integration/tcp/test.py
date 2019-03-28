@@ -1,5 +1,9 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import sys
 import os
 import subprocess
@@ -7,7 +11,7 @@ import atexit
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-print 'includeos_src: {0}'.format(includeos_src)
+print('includeos_src: {0}'.format(includeos_src))
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
@@ -59,9 +63,9 @@ def TCP_recv(trigger_line):
   conn.close()
   return verify_recv(RECEIVED)
 
-import thread
+import _thread
 def TCP_connect_thread(trigger_line):
-  thread.start_new_thread(TCP_connect, ())
+  _thread.start_new_thread(TCP_connect, ())
 
 # Add custom event-handler
 vm.on_output("accept()", TCP_connect_thread)

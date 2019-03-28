@@ -17,14 +17,13 @@ class ChainloaderConan(ConanFile):
     }
 
     default_options={
-        "includeos:solo5":"OFF",
-        "includeos:apple":'',
-        "includeos:basic":"ON"
+        "includeos:platform":"nano"
     }
     no_copy_source=True
 
     default_user="includeos"
-    default_channel="test"
+    default_channel="latest"
+
 
     def package_id(self):
         self.info.requires.major_mode()

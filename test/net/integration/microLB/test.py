@@ -1,9 +1,13 @@
 #! /usr/bin/env python
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import os
 import signal
 import sys
 import subprocess
-import thread
+import _thread
 import time
 import atexit
 
@@ -25,7 +29,7 @@ pro = subprocess.Popen(["node", "server.js"], stdout=subprocess.PIPE)
 
 requests_completed = False
 def startBenchmark(line):
-    print "<test.py> starting test "
+    print("<test.py> starting test ")
     assert validateRequest(6001)
     assert validateRequest(6002)
     assert validateRequest(6003)
@@ -35,7 +39,7 @@ def startBenchmark(line):
     assert validateRequest(6002)
     assert validateRequest(6003)
     assert validateRequest(6004)
-    print "Waiting for TCP MSL end..."
+    print("Waiting for TCP MSL end...")
     global requests_completed
     requests_completed = True
     return True
@@ -46,7 +50,7 @@ def mslEnded(line):
 
 @atexit.register
 def cleanup():
-    print "<test.py> Stopping node server"
+    print("<test.py> Stopping node server")
     # stop nodeJS
     pro.kill()
 

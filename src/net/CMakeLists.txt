@@ -1,4 +1,4 @@
-if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES
     openssl/init.cpp
     openssl/client.cpp
@@ -116,12 +116,6 @@ set(SRCS
     ws/websocket.cpp
 )
 
-if (NOT CORE_OS AND NOT CMAKE_TESTING_ENABLED)
-  list(APPEND SRCS
-    configure.cpp
-  )
-endif()
-
 #TODO figure out if cmake can do multilevel objects somehow
 #or maybe calling this will return a list of objects..
 SET(OBJLIST
@@ -136,15 +130,18 @@ SET(OBJLIST
         ${DHCP_SRCS}
     )
 #TODO what else can we strip away from net?
-if (NOT CORE_OS)
+if (NOT ${PLATFORM} STREQUAL "nano")
   list(APPEND OBJLIST ${HTTP_SRCS})
+  if (NOT CMAKE_TESTING_ENABLED)
+    list(APPEND OBJLIST
+      ${BOTAN_MODULES}
+      ${OPENSSL_MODULES}
+    )
+    list(APPEND SRCS
+      configure.cpp
+    )
+  endif()
 endif()
 
-if (NOT CORE_OS AND NOT CMAKE_TESTING_ENABLED)
-  SET(NET_LIBS
-    ${BOTAN_MODULES}
-    ${OPENSSL_MODULES}
-  )
-endif()
 
-add_library(net OBJECT ${SRCS} ${NET_LIBS} ${OBJLIST})
+add_library(net OBJECT ${SRCS} ${OBJLIST})

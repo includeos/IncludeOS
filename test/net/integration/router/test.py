@@ -1,10 +1,14 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import sys
 import os
 import subprocess
 import subprocess32
-import thread
+import _thread
 import time
 
 thread_timeout = 60
@@ -31,8 +35,8 @@ def iperf_server():
                                     stderr = subprocess.PIPE)
 
 def iperf_client(o):
-    print "Starting iperf client. Iperf output: "
-    print subprocess32.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size], timeout=thread_timeout)
+    print("Starting iperf client. Iperf output: ")
+    print(subprocess32.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size], timeout=thread_timeout))
     vmrunner.vms[0].exit(0, "Test completed without errors")
     return True
 
@@ -46,7 +50,7 @@ vm = vmrunner.vms[0]
 vm.on_output("Routing test", move_tap1)
 
 # Start iperf server right away, client when vm is up
-thread.start_new_thread(iperf_server, ())
+_thread.start_new_thread(iperf_server, ())
 vm.on_output("Service ready", iperf_client)
 
 # Clean

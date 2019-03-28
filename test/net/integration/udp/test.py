@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -9,7 +11,7 @@ import socket
 vm = vmrunner.vms[0]
 
 def UDP_test(trigger_line):
-  print "<Test.py> Performing UDP tests"
+  print("<Test.py> Performing UDP tests")
   HOST, PORT = "10.0.0.55", 4242
   sock = socket.socket
   # SOCK_DGRAM is the socket type to use for UDP sockets
@@ -24,23 +26,23 @@ def UDP_test(trigger_line):
   sock.sendto(data, (HOST, PORT))
   received = sock.recv(1024)
 
-  print "<Test.py> Sent:     {}".format(data)
-  print "<Test.py> Received: {}".format(received)
+  print("<Test.py> Sent:     {}".format(data))
+  print("<Test.py> Received: {}".format(received))
   if received != data: return False
 
   data = "Luke"
   sock.sendto(data, (HOST, PORT))
   received = sock.recv(1024)
 
-  print "<Test.py> Sent:     {}".format(data)
-  print "<Test.py> Received: {}".format(received)
+  print("<Test.py> Sent:     {}".format(data))
+  print("<Test.py> Received: {}".format(received))
   if received != data: return False
 
   data = "x" * 1472
   sock.sendto(data, (HOST, PORT))
   received = sock.recv(1500)
   if received != data:
-      print "<Test.py> Did not receive long string: {}".format(received)
+      print("<Test.py> Did not receive long string: {}".format(received))
       return False
 
   data = "x" * 9216 # 9216 is apparently default max for MacOS
@@ -48,9 +50,9 @@ def UDP_test(trigger_line):
   received = bytearray()
   while (len(received) < len(data)):
         received.extend(sock.recv(len(data)))
-        print "RECEIVED: ", len(received)
+        print("RECEIVED: ", len(received))
   if received != data:
-      print "<Test.py> Did not receive mega string (64k)"
+      print("<Test.py> Did not receive mega string (64k)")
       return False
 
   vm.exit(0, "Test completed without errors")

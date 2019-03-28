@@ -4,6 +4,7 @@
 #include <kernel.hpp>
 #include <kernel/auxvec.h>
 #include <kernel/cpuid.hpp>
+#include <kernel/rng.hpp>
 #include <kernel/service.hpp>
 #include <util/elf_binary.hpp>
 #include <version.h>
@@ -134,14 +135,11 @@ namespace x86
     const char* plat = "x86_64";
     aux[i++].set_ptr(AT_PLATFORM, plat);
 
-    // outside random source
-    const auto ssp_init_value = (uintptr_t) &_SSP_INIT_;
     // supplemental randomness
-    const long randomness = __arch_rand32() | ((uint64_t) __arch_rand32() << 32);
-    const long canary = ssp_init_value ^ randomness;
+    const long canary = rng_extract_uint64() & 0xFFFFFFFFFFFF00FFul;
     const long canary_idx = i;
     aux[i++].set_long(AT_RANDOM, canary);
-    kprintf("* Stack protector value: %p -> %#lx\n", (void*) ssp_init_value, canary);
+    kprintf("* Stack protector value: %#lx\n", canary);
     // entropy slot
     aux[i++].set_ptr(AT_RANDOM, &aux[canary_idx].a_un.a_val);
     aux[i++].set_long(AT_NULL, 0);

@@ -91,7 +91,7 @@ set(TEST_LIST
   #gateway disabled as it needs nacl.. circular DEP issue
   #"gateway"   "50"    "net"
   #TODO move http to http library
-  "http"      "20"    "net"
+  #"http"      "20"    "net"
   "icmp"      "50"    "net"
   "icmp6"     "50"    "net"
   #TODO move to microlb with framework to test
@@ -101,7 +101,7 @@ set(TEST_LIST
   "router6"   "30"    "net"
   "slaac"     "30"    "net"
   "tcp"       "120"   "net"
-  "udp"       "30"    "net"
+  #"udp"       "30"    "net"
   "vlan"      "20"    "net"
   #TODO move websocket to http library
   "websocket" "20"    "net"

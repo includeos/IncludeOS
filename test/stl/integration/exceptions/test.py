@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -16,14 +18,14 @@ def test_ok(line):
         vm.exit(0, "All tests passed")
 
 def expected_panic(line):
-    print "<test.py> VM panicked"
+    print("<test.py> VM panicked")
     if (tests_ok == 1):
         return True
     else:
         return False
 
 def test_fail(line):
-    print "Test didn't get expected panic output before end of backtrace"
+    print("Test didn't get expected panic output before end of backtrace")
     return False
 
 vm.on_output("Part 1 OK", test_ok)

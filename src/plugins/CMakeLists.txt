@@ -10,12 +10,22 @@ set(PLUGIN_SRCS
   unik.cpp
   example.cpp
   autoconf.cpp
-  terminal.cpp
   nacl.cpp
-  vfs.cpp
-  syslog.cpp
   madness/madness.cpp
 )
+
+if (NOT ${PLATFORM} STREQUAL "nano")
+  list(APPEND PLUGIN_SRCS
+    vfs.cpp
+    terminal.cpp
+    syslog.cpp
+
+  )
+  #handle the more complex ones
+  add_library(terminal_liu STATIC terminal.cpp)
+  set_target_properties(terminal_liu PROPERTIES COMPILE_FLAGS "-DUSE_LIVEUPDATE")
+  
+endif()
 
 set(PLUGINS "")
 foreach(PLUGIN ${PLUGIN_SRCS})
@@ -24,10 +34,6 @@ foreach(PLUGIN ${PLUGIN_SRCS})
   list(APPEND PLUGINS ${PLUGIN_NAME})
   install(TARGETS ${DRIVER_NAME} DESTINATION drivers)
 endforeach()
-
-#handle the more complex ones
-add_library(terminal_liu STATIC terminal.cpp)
-set_target_properties(terminal_liu PROPERTIES COMPILE_FLAGS "-DUSE_LIVEUPDATE")
 
 add_library(field_medic STATIC
             field_medic/fieldmedic.cpp
