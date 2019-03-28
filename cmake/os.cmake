@@ -39,7 +39,7 @@ endif()
 if (NOT ARCH)
   if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
     set(ARCH i686)
-  elseif(${CONAN_SETTINGS_ARCG} STREQUAL "armv8")
+  elseif(${CONAN_SETTINGS_ARCH} STREQUAL "armv8")
     set(ARCH aarch64)
   else()
     set(ARCH ${CONAN_SETTINGS_ARCH})
@@ -169,12 +169,8 @@ function(os_add_executable TARGET NAME)
     COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
     COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     COMMAND ${STRIP_LV}
+    COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
     DEPENDS ${ELF_TARGET}
-  )
-
-  add_custom_target(link
-    DEPENDS ${TARGET}
-    COMMAND rm -rf bin/${ELF_TARGET}
   )
 
   if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})

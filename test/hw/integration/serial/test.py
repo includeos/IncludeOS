@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys
 import os
 
@@ -15,7 +16,7 @@ from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
 def test_serial_port():
-  print "<test.py> Test triggered"
+  print("<test.py> Test triggered")
   global vm
   vm.writeline("Here is a test\n")
 

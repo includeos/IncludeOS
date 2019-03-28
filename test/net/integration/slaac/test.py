@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import time
@@ -16,22 +18,22 @@ vm = vmrunner.vms[0]
 ping_count = 3
 
 def Slaac_test(trigger_line):
-  print color.INFO("<Test.py>"),"Got IP"
+  print(color.INFO("<Test.py>"),"Got IP")
   vm_string = vm.readline()
   wlist = vm_string.split()
   ip_string = wlist[-1]
-  print color.INFO("<Test.py>"), "Assigned address: ", ip_string
-  print color.INFO("<Test.py>"), "Trying to ping"
+  print(color.INFO("<Test.py>"), "Assigned address: ", ip_string)
+  print(color.INFO("<Test.py>"), "Trying to ping")
   time.sleep(1)
   try:
     command = ["ping6", "-I", "bridge43", ip_string.rstrip(), "-c",
             str(ping_count) ]
-    print color.DATA(" ".join(command))
-    print subprocess.check_output(command)
+    print(color.DATA(" ".join(command)))
+    print(subprocess.check_output(command))
     vm.exit(0,"<Test.py> Ping test passed. Process returned 0 exit status")
   except Exception as e:
-    print color.FAIL("<Test.py> Ping FAILED Process threw exception:")
-    print e
+    print(color.FAIL("<Test.py> Ping FAILED Process threw exception:"))
+    print(e)
     return False
 
 

@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+from builtins import str
 import sys
 import subprocess
 import os
@@ -14,7 +16,7 @@ disks = ["memdisk", "virtio1", "virtio2"]
 def cleanup():
     for disk in disks:
         diskname = disk + ".disk"
-        print "Removing disk file ", diskname
+        print("Removing disk file ", diskname)
         subprocess32.check_call(["rm", "-f", diskname], timeout=thread_timeout)
 
 # Create all data disk images from folder names

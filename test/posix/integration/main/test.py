@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -13,16 +15,16 @@ T = 0
 def check_exit(line, n = "0"):
     global T
     T += 1
-    print color.INFO("test.py"), "received: ", line
+    print(color.INFO("test.py"), "received: ", line)
     status = line.split(" ")[-1].lstrip().rstrip()
     as_expected = status == n
 
     if as_expected:
-        print color.INFO("test.py"), "Exit status is ", status, "as expected"
+        print(color.INFO("test.py"), "Exit status is ", status, "as expected")
         vm.exit(0, "Test " + str(T) + "/" + str(N) + " passed", keep_running = True)
         return as_expected
     else:
-        print color.WARNING("test.py"), "Exit status is", status, "expected", n
+        print(color.WARNING("test.py"), "Exit status is", status, "expected", n)
         return as_expected
 
 def exit1(line):

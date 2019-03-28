@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from builtins import str
 import sys
 import subprocess
 import subprocess32
