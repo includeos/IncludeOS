@@ -23,59 +23,74 @@ pipeline {
         sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
       }
     }
-    stage('Unit tests') {
+    stage('Unit test and coverage') {
       when { changeRequest() }
       steps {
-        dir('unittests') {
-          sh script: "conan install $SRC/test -pr $PROFILE_x86_64", label: "Conan install"
-          sh script: ". ./activate.sh; cmake $SRC/test -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
-          sh script: "make -j $CPUS", label: "Make"
-          sh script: "ctest --schedule-random", label: "Ctest"
+        dir('code_coverage') {
+          sh script: "rm -r $COVERAGE_DIR || :", label: "Setup"
+          sh script: "conan install $SRC/test -pr $PROFILE_COVERAGE -s build_type=Debug", label: "conan install"
+          sh script: ". ./activate.sh && cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
+          sh script: ". ./activate.sh make -j $CPUS coverage", label: "Make coverage"
+        }
+      }
+      post {
+        success {
+           echo "Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}"
         }
       }
     }
+    /*
     stage('build kernel') {
       parallel {
         stage ('Build IncludeOS x86 nano') {
           agent { label 'ubuntu-18.04' }
           steps {
-            //checkout scm
+            //checkout scm ?
             build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
           }
         }
         stage ('Build IncludeOS armv8 nano') {
           agent { label 'ubuntu-18.04' }
           steps {
-            //checkout scm
+            //checkout scm ?
             build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_arvm8", "nano")
           }
         }
         stage ('Build IncludeOS x86_64') {
           agent { label 'ubuntu-18.04' }
           steps {
-            //checkout scm
+            //checkout scm ?
             build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
           }
         }
       }
     }
-    /*
+    */
     stage('Build IncludeOS x86') {
       steps {
         build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
         script { VERSION = sh(script: "conan inspect -a version $SRC | cut -d ' ' -f 2", returnStdout: true).trim() }
       }
     }
-    stage('Build IncludeOS x86_64') {
+
+    stage('Build IncludeOS armv8') {
       steps {
-        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
+        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_armv8", "nano")
       }
-    }*/
+    }
+
     stage('Build chainloader x86') {
       steps {
         build_conan_package("$SRC/src/chainload", "$USER/$CHAN_LATEST", "$PROFILE_x86")
       }
     }
+
+    stage('Build IncludeOS x86_64') {
+      steps {
+        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
+      }
+    }
+
     stage('Build liveupdate x86_64') {
       steps {
         build_conan_package("$SRC/lib/LiveUpdate", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
@@ -93,31 +108,16 @@ pipeline {
         }
       }
     }
-    stage('Code coverage') {
-      when { changeRequest() }
-      steps {
-        dir('code_coverage') {
-          sh script: "rm -r $COVERAGE_DIR || :", label: "Setup"
-          sh script: "env CC=gcc CXX=g++ cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
-          sh script: "make -j $CPUS", label: "Make"
-          sh script: "make coverage", label: "Make coverage"
-        }
-      }
-      post {
-        success {
-           echo "Code coverage: ${env.COVERAGE_ADDRESS}/${env.JOB_NAME}"
-        }
-      }
-    }
+
     stage('Upload to bintray') {
-      when {
-        anyOf {
-          branch 'master'
-          branch 'dev'
-        }
-      }
       parallel {
         stage('Latest release') {
+          when {
+            anyOf {
+              branch 'master'
+              branch 'dev'
+            }
+          }
           steps {
             upload_package("includeos", "$CHAN_LATEST")
             upload_package("liveupdate", "$CHAN_LATEST")
