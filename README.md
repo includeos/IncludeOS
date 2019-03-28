@@ -19,11 +19,11 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 Now install the conan profiles and remotes for getting binary packages of includeos libraries.
 ```
-$ conan install https://github.com/includeos/conan_config.git
+$ conan config install https://github.com/includeos/conan_config.git
 ```
 
 ### Hello world with IncludeOS
-First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, linux users you typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
+First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, linux users can typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
 
 The following steps let you build and boot the IncludeOS hello world example. 
 ```
@@ -36,7 +36,7 @@ $ cmake ../hello_world
 $ cmake --build .
 $ boot hello
 ```
-You can use the hello world repo as a starting point for developing your own IncludeOS services. For more advanced examples see the examples repo or the integration tests.
+You can use the [hello world repo](https://github.com/includeos/hello_world) as a starting point for developing your own IncludeOS services. For more advanced examples see the [examples repo](https://github.com/includeos/demo-examples) or the integration tests (under ./IncludeOS/test/\*/integration).
 
 Once you're done `$ source ./deactivate.sh` will reset the environment to its previous state.
 
@@ -47,7 +47,7 @@ The above shows how to build bootable IncludeOS binaries using pre-built version
 $ git clone https://github.com/includeos/IncludeOS.git
 ```
 
-Now create a conan layout file, or edit your own copy of `layout.txt`. Have the first line point to `your_kernel_build_dir`, e.g. where you want the compiled IncludeOS libraries to be built while you work. You can now tell conan to use this local build instead of the prebuilt binary versions.
+Now create a conan layout file, or edit your own copy of [layout.txt](https://github.com/includeos/IncludeOS/blob/dev/etc/layout.txt). Have the first line point to `your_kernel_build_dir`, e.g. where you want the compiled IncludeOS libraries to be built while you work. You can now tell conan to use this local build instead of the prebuilt binary versions.
 
 ```
 $ conan editable add your_IncludeOS_fork -l your_layout.txt includeos/0.15.0@includeos/test
@@ -56,7 +56,7 @@ $ conan install your_IncludeOS_fork -pr <your conan profile>
 $ conan build your_IncludeOS_fork -sf your_IncludeOS_fork -bf . 
 ```
 
-Building a service that depends on `includeos <=0.15` will now depend on the local copy of the IncludeOS kernel libraries. You can now make changes to the IncludeOS source (pointed to by the `conan build ... -sf `parameter) and simply `
+Building a service that depends on `includeos <=0.15` will now depend on the local copy of the IncludeOS kernel libraries. You can now make changes to the IncludeOS source (pointed to by the `conan build ... -sf `parameter) and simply
 ```
 $ cd your_kernel_build_dir
 $ cmake --build . # or simply make, if you use the default cmake backend
