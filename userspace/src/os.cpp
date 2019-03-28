@@ -1,8 +1,10 @@
 #include <kernel.hpp>
 #include <kernel/events.hpp>
+#include <kernel/rng.hpp>
 #include <kernel/service.hpp>
 #include <kernel/timers.hpp>
 #include <system_log>
+#include <sys/random.h>
 #include <sys/time.h>
 #include <unistd.h>
 #ifndef PORTABLE_USERSPACE
@@ -50,6 +52,11 @@ void kernel::start(const char* cmdline)
   // setup timer system
   Timers::init(begin_timer, stop_timers);
   Timers::ready();
+  // seed RNG with entropy
+  char entropy[2048];
+  ssize_t rngres = getrandom(entropy, sizeof(entropy), 0);
+  assert(rngres == sizeof(entropy));
+  rng_absorb(entropy, sizeof(entropy));
   // fake CPU frequency
   kernel::state().cmdline = cmdline;
   kernel::state().cpu_khz = decltype(os::cpu_freq()) {3000000ul};

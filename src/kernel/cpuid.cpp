@@ -38,6 +38,7 @@ namespace CPUID {
       {Feature::SSE3,"SSE3"},
       {Feature::SSSE3,"SSSE3"},
       {Feature::RDRAND,"RDRAND"},
+      {Feature::RDSEED,"RDSEED"},
       {Feature::XSAVE,"XSAVE"},
       {Feature::FXSR,"FXSR"},
       {Feature::AES,"AES"},
@@ -208,10 +209,12 @@ namespace
 
       case Feature::SVM:          return FeatureInfo { 0x80000001, 0, Register::ECX, 1u <<  2 }; // Secure Virtual Machine (AMD-V)
       case Feature::SSE4A:        return FeatureInfo { 0x80000001, 0, Register::ECX, 1u <<  6 }; // SSE4a
+      // Standard function 7
       case Feature::AVX2:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  5 }; // AVX2
       case Feature::BMI1:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  3 }; // BMI1
       case Feature::BMI2:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  8 }; // BMI2
       case Feature::LZCNT:        return FeatureInfo { 7, 0, Register::ECX, 1u <<  5 }; // LZCNT
+      case Feature::RDSEED:       return FeatureInfo { 7, 0, Register::EBX, 1u << 18 }; // RDSEED
       default: throw std::out_of_range("Unimplemented CPU feature encountered");
     }
   }

@@ -9,6 +9,7 @@ set(PLATFORM_OBJECTS
   sanity_checks.cpp
   solo5_manager.cpp
   ../x86_pc/init_libc.cpp
+  ../x86_pc/rand.cpp
   )
 
 add_library(x86_solo5 STATIC ${PLATFORM_OBJECTS})
