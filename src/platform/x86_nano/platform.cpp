@@ -1,5 +1,6 @@
 #include <os>
 #include <kernel.hpp>
+#include <kernel/rng.hpp>
 #include <kprint>
 #include "../x86_pc/idt.hpp"
 #include <smp>
@@ -16,9 +17,9 @@ void __arch_poweroff()
   __builtin_unreachable();
 }
 
-uint32_t __arch_rand32()
+void RNG::init()
 {
-  return 4;
+  // the nano platform does not do anything extra
 }
 
 static void platform_init()
