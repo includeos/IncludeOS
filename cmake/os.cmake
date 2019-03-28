@@ -169,12 +169,8 @@ function(os_add_executable TARGET NAME)
     COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
     COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     COMMAND ${STRIP_LV}
+    COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
     DEPENDS ${ELF_TARGET}
-  )
-
-  add_custom_target(link
-    DEPENDS ${TARGET}
-    COMMAND rm -rf bin/${ELF_TARGET}
   )
 
   if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
