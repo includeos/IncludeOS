@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -16,7 +18,7 @@ def cleanup():
 def increment(line):
   global num_outputs
   num_outputs += 1
-  print "num_outputs after increment: ", num_outputs
+  print("num_outputs after increment: ", num_outputs)
   return True
 
 def check_num_outputs(line):

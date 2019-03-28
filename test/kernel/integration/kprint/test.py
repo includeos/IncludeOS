@@ -1,5 +1,9 @@
 #! /usr/bin/env python
 
+from __future__ import division
+from __future__ import print_function
+from builtins import str
+from past.utils import old_div
 import sys
 import os
 
@@ -17,13 +21,13 @@ format_string_size = None
 def set_format_string_size(line):
   global format_string_size
 
-  print "Received format string: ", line
+  print("Received format string: ", line)
   format_string_size = int(line.split(":")[1].strip())
 
 def check_truncation(line):
   assert(format_string_size)
 
-  print "Received truncated string: ", line, "of size", len(line), "(format size * ", len(line)/format_string_size,")"
+  print("Received truncated string: ", line, "of size", len(line), "(format size * ", old_div(len(line),format_string_size),")")
   assert(len(line) <= format_string_size * 2)
   # truncated outputs are unacceptable :)
   assert(line.strip().split(" ")[-1] == "END")

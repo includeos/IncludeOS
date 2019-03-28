@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import time
@@ -29,7 +31,7 @@ ping_count = 3
 
 def cleanup():
   # Remove leases-file
-  print color.INFO("<Test.py>"), "Removing /var/lib/dhcp/dhclient.leases"
+  print(color.INFO("<Test.py>"), "Removing /var/lib/dhcp/dhclient.leases")
   subprocess.call(["sudo", "rm", "/var/lib/dhcp/dhclient.leases"])
   # Kill dhclient process:
   subprocess.call(["sudo", "dhclient", "bridge43", "-4", "-x", "-n", "-v"])
@@ -66,17 +68,17 @@ def check_dhclient_output(output):
 def ping_test():
   global ping_passed
 
-  print color.INFO("<Test.py>"), "Assigned address: ", assigned_ip
-  print color.INFO("<Test.py>"), "Trying to ping"
+  print(color.INFO("<Test.py>"), "Assigned address: ", assigned_ip)
+  print(color.INFO("<Test.py>"), "Trying to ping")
   time.sleep(1)
   try:
     command = ["ping", assigned_ip, "-c", str(ping_count), "-i", "0.2"]
-    print color.DATA(" ".join(command))
-    print subprocess32.check_output(command, timeout=thread_timeout)
+    print(color.DATA(" ".join(command)))
+    print(subprocess32.check_output(command, timeout=thread_timeout))
     ping_passed = True
   except Exception as e:
-    print color.FAIL("<Test.py> Ping FAILED Process threw exception:")
-    print e
+    print(color.FAIL("<Test.py> Ping FAILED Process threw exception:"))
+    print(e)
     cleanup()
     vm.exit(1, "<Test.py> Ping test failed")
   finally:
@@ -91,9 +93,9 @@ def run_dhclient(trigger_line):
 
   if "10.200.0.0" not in route_output:
     subprocess32.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"], timeout=thread_timeout)
-    print color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0"
+    print(color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0")
 
-  print color.INFO("<Test.py>"), "Running dhclient"
+  print(color.INFO("<Test.py>"), "Running dhclient")
 
   try:
     dhclient = subprocess32.check_output(
@@ -102,15 +104,15 @@ def run_dhclient(trigger_line):
         timeout=thread_timeout
     )
 
-    print color.INFO("<dhclient>")
-    print dhclient
+    print(color.INFO("<dhclient>"))
+    print(dhclient)
 
     # gets ip of dhclient used to ping
     check_dhclient_output(dhclient)
 
   except subprocess.CalledProcessError as exception:
-    print color.FAIL("<Test.py> dhclient FAILED threw exception:")
-    print exception.output
+    print(color.FAIL("<Test.py> dhclient FAILED threw exception:"))
+    print(exception.output)
     vm.exit(1, "<Test.py> dhclient test failed")
     return False
 

@@ -1,18 +1,21 @@
 #! /usr/bin/env python
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import sys
 import os
-import thread
+import _thread
 
 from vmrunner import vmrunner
 
 HOST = ''
 PORT = 9011
 
-import BaseHTTPServer
+import http.server
 
 DO_SERVE = True
-class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class RequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(s):
         s.send_response(200)
         s.send_header("Content-type", "text/plain")
@@ -21,7 +24,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 def Client_test():
-    server_class = BaseHTTPServer.HTTPServer
+    server_class = http.server.HTTPServer
     httpd = server_class((HOST, PORT), RequestHandler)
     global DO_SERVE
     while(DO_SERVE):
@@ -30,12 +33,12 @@ def Client_test():
     httpd.server_close()
 
 # Start web server in a separate thread
-thread.start_new_thread(Client_test, ())
+_thread.start_new_thread(Client_test, ())
 
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 def Server_test(triggerline):
-    res = urllib2.urlopen("http://10.0.0.46:8080").read()
+    res = urllib.request.urlopen("http://10.0.0.46:8080").read()
     assert(res == "Hello")
 
 

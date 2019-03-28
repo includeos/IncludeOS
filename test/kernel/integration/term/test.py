@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import socket
@@ -12,7 +14,7 @@ def begin_test(line):
     s.connect(("10.0.0.63", 23))
     s.send("netstat\r\n")
     result = s.recv(1024)
-    print result
+    print(result)
     s.close()
     return "Banana Terminal" in result
 

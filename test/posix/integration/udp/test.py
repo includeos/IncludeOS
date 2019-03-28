@@ -1,5 +1,10 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import sys
 import os
 import subprocess
@@ -61,11 +66,11 @@ def UDP_send_much(trigger_line):
   sock.connect((HOST, PORT))
 
   for i in range(0, 5):
-    sock.send(MESSAGE + `i`)
-    print "Sending", MESSAGE + `i`
+    sock.send(MESSAGE + repr(i))
+    print("Sending", MESSAGE + repr(i))
 
-import thread
-thread.start_new_thread(UDP_recv, ())
+import _thread
+_thread.start_new_thread(UDP_recv, ())
 
 # Add custom event-handler
 vm.on_output("recvfrom()", UDP_send)

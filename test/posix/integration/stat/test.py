@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -13,7 +15,7 @@ num_outputs = 0
 def increment(line):
   global num_outputs
   num_outputs += 1
-  print "num_outputs after increment: ", num_outputs
+  print("num_outputs after increment: ", num_outputs)
 
 def check_num_outputs(line):
   assert(num_outputs == 18)
