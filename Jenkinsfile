@@ -6,8 +6,9 @@ pipeline {
     REMOTE = "${env.CONAN_REMOTE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
-    PROFILE_arvm8 = 'gcc-8.2.0-linux-aarch64'
-    CPUS = """${sh(returnStdout: true, script: 'nproc')}"""
+    PROFILE_armv8 = 'gcc-8.2.0-linux-aarch64'
+    PROFILE_coverage = 'gcc-7.3.0-linux-x86_64'
+    CPUS = """${sh(returnStdout: true, script: 'nproc').trim()}"""
     USER = 'includeos'
     CHAN_LATEST = 'latest'
     CHAN_STABLE = 'stable'
@@ -28,9 +29,9 @@ pipeline {
       steps {
         dir('code_coverage') {
           sh script: "rm -r $COVERAGE_DIR || :", label: "Setup"
-          sh script: "conan install $SRC/test -pr $PROFILE_COVERAGE -s build_type=Debug", label: "conan install"
+          sh script: "conan install $SRC/test -pr $PROFILE_coverage -s build_type=Debug", label: "conan install"
           sh script: ". ./activate.sh && cmake -DCOVERAGE=ON -DCODECOV_HTMLOUTPUTDIR=$COVERAGE_DIR $SRC/test", label: "Cmake"
-          sh script: ". ./activate.sh make -j $CPUS coverage", label: "Make coverage"
+          sh script: ". ./activate.sh && make -j $CPUS coverage", label: "Make coverage"
         }
       }
       post {
