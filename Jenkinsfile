@@ -6,6 +6,7 @@ pipeline {
     REMOTE = "${env.CONAN_REMOTE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
+    PROFILE_arvm8 = 'gcc-8.2.0-linux-aarch64'
     CPUS = """${sh(returnStdout: true, script: 'nproc')}"""
     USER = 'includeos'
     CHAN_LATEST = 'latest'
@@ -33,6 +34,32 @@ pipeline {
         }
       }
     }
+    stage('build kernel') {
+      parallel {
+        stage ('Build IncludeOS x86 nano') {
+          agent { label 'ubuntu-18.04' }
+          steps {
+            //checkout scm
+            build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
+          }
+        }
+        stage ('Build IncludeOS armv8 nano') {
+          agent { label 'ubuntu-18.04' }
+          steps {
+            //checkout scm
+            build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_arvm8", "nano")
+          }
+        }
+        stage ('Build IncludeOS x86_64') {
+          agent { label 'ubuntu-18.04' }
+          steps {
+            //checkout scm
+            build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
+          }
+        }
+      }
+    }
+    /*
     stage('Build IncludeOS x86') {
       steps {
         build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
@@ -43,7 +70,7 @@ pipeline {
       steps {
         build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
       }
-    }
+    }*/
     stage('Build chainloader x86') {
       steps {
         build_conan_package("$SRC/src/chainload", "$USER/$CHAN_LATEST", "$PROFILE_x86")
