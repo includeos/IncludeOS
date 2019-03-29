@@ -48,7 +48,7 @@ struct scoped_spinlock
     lock(this->spinlock);
   }
   ~scoped_spinlock() noexcept {
-    __sync_lock_release(&spinlock, 0); // barrier
+    unlock(spinlock); // barrier
   }
 private:
     spinlock_t& spinlock;
