@@ -118,7 +118,7 @@ set(TEST_LIST
   #"fiber"     "20" "kernel"
   "grub"  "20" "kernel"
   "kprint"    "10" "kernel"
-  "LiveUpdate" "10" "kernel"
+  "LiveUpdate" "30" "kernel"
   "memmap"    "20" "kernel"
   #This failes on jenkins but not locally trying to disable it to verify that tests run
   #"modules" "20" "kernel"
