@@ -101,7 +101,7 @@ set(TEST_LIST
   "router6"   "30"    "net"
   "slaac"     "30"    "net"
   "tcp"       "120"   "net"
-  #"udp"       "30"    "net"
+  "udp"       "30"    "net"
   "vlan"      "20"    "net"
   #TODO move websocket to http library
   "websocket" "20"    "net"
