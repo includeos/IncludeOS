@@ -6,7 +6,7 @@ pipeline {
     REMOTE = "${env.CONAN_REMOTE}"
     PROFILE_x86_64 = 'clang-6.0-linux-x86_64'
     PROFILE_x86 = 'clang-6.0-linux-x86'
-    PROFILE_armv8 = 'gcc-8.2.0-linux-aarch64'
+    PROFILE_armv8 = 'gcc-7.3.0-linux-aarch64'
     PROFILE_coverage = 'gcc-7.3.0-linux-x86_64'
     CPUS = """${sh(returnStdout: true, script: 'nproc').trim()}"""
     USER = 'includeos'
@@ -40,49 +40,51 @@ pipeline {
         }
       }
     }
-    /*
-    stage('build kernel') {
+    stage('build includeos') {
       parallel {
-        stage ('Build IncludeOS x86 nano') {
-          agent { label 'ubuntu-18.04' }
-          steps {
-            //checkout scm ?
-            build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
+        stage('x86') {
+          stages {
+            stage ('Build IncludeOS nano') {
+            //  agent { label 'ubuntu-18.04' }
+              steps {
+                //checkout scm ?
+                build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
+              }
+            }
+            stage ('Build chainloader x86') {
+              steps {
+                build_conan_package("$SRC/src/chainload", "$USER/$CHAN_LATEST", "$PROFILE_x86")
+              }
+            }
           }
         }
-        stage ('Build IncludeOS armv8 nano') {
-          agent { label 'ubuntu-18.04' }
-          steps {
-            //checkout scm ?
-            build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_arvm8", "nano")
+        stage('x86_64') {
+          stages {
+            stage ('Build IncludeOS') {
+              //agent { label 'ubuntu-18.04' }
+              steps {
+                //checkout scm ?
+                build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
+              }
+            }
+            stage('Build liveupdate') {
+              steps {
+                build_conan_package("$SRC/lib/LiveUpdate", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
+              }
+            }
           }
         }
-        stage ('Build IncludeOS x86_64') {
-          agent { label 'ubuntu-18.04' }
-          steps {
-            //checkout scm ?
-            build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
+        stage('armv8') {
+          stages {
+            stage ('Build IncludeOS nano') {
+              //agent { label 'ubuntu-18.04' }
+              steps {
+                //checkout scm ?
+                build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_armv8", "nano")
+              }
+            }
           }
         }
-      }
-    }
-    */
-    stage('Build IncludeOS x86') {
-      steps {
-        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
-        script { VERSION = sh(script: "conan inspect -a version $SRC | cut -d ' ' -f 2", returnStdout: true).trim() }
-      }
-    }
-
-    stage('Build IncludeOS armv8') {
-      steps {
-        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_armv8", "nano")
-      }
-    }
-
-    stage('Build chainloader x86') {
-      steps {
-        build_conan_package("$SRC/src/chainload", "$USER/$CHAN_LATEST", "$PROFILE_x86")
       }
     }
 
@@ -92,11 +94,7 @@ pipeline {
       }
     }
 
-    stage('Build liveupdate x86_64') {
-      steps {
-        build_conan_package("$SRC/lib/LiveUpdate", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
-      }
-    }
+
     stage('Integration tests') {
       when { changeRequest() }
       steps {
