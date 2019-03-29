@@ -148,6 +148,17 @@ long_mode:
     mov eax, 0x0
     wrmsr
 
+    ;; setup fake TLS table for SMP and SSP
+    mov ecx, IA32_FS_BASE
+    mov edx, 0x0
+    mov eax, tls_table
+    wrmsr
+
+    mov ecx, IA32_GS_BASE
+    mov edx, 0x0
+    mov eax, smp_table
+    wrmsr
+
     ;; geronimo!
     mov  edi, DWORD[__multiboot_magic]
     mov  esi, DWORD[__multiboot_addr]
@@ -190,3 +201,9 @@ GDT64:
 __gdt64_base_pointer:
     dw $ - GDT64 - 1             ; Limit.
     dq GDT64                     ; Base.
+
+SECTION .bss
+tls_table:
+    dq   tls_table
+smp_table:
+    resw 8

@@ -134,9 +134,6 @@ void Statman::free(void* addr)
 
 ssize_t Statman::find_free_stat() const noexcept
 {
-#ifdef INCLUDEOS_SMP_ENABLE
-  volatile scoped_spinlock lock(this->stlock);
-#endif
   for (size_t i = 0; i < this->m_stats.size(); i++)
   {
     if (m_stats[i].unused()) return i;
