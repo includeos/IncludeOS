@@ -51,7 +51,7 @@ def get_mem():
   try:
     # We expect this socket to allready be opened
     time.sleep(1)
-    sock_mem.send("memsize\n")
+    sock_mem.send("memsize\n".encode())
     received = sock_mem.recv(1000).rstrip()
 
   except Exception as e:
@@ -248,7 +248,7 @@ def wait_for_tw():
   socket_limit = 11500
   time_wait_proc = 30000
   while time_wait_proc > socket_limit:
-    output = subprocess.check_output(('netstat', '-anlt'))
+    output = subprocess.check_output(('netstat', '-anlt')).decode("utf-8")
     output = output.split('\n')
     time_wait_proc = 0
     for line in output:

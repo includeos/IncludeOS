@@ -226,6 +226,7 @@ if (STRESS)
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${CMAKE_BINARY_DIR} 300 300 10 1000 ${CMAKE_CURRENT_BINARY_DIR}/stress/stress
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stress
   )
+  set_property(TEST stress PROPERTY TIMEOUT_AFTER_MATCH "0.1" "Test timed out")
   set_property(TEST stress PROPERTY TIMEOUT ${FALLBACK_TIMEOUT})
 endif()
 
