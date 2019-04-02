@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -14,26 +16,26 @@ num_header2 = 0
 def increment_element(line):
   global num_elements
   num_elements += 1
-  print "num_elements after increment: ", num_elements
+  print("num_elements after increment: ", num_elements)
 
 def increment_header1(line):
   global num_header1
   num_header1 += 1
-  print "num_header1 after increment: ", num_header1
+  print("num_header1 after increment: ", num_header1)
 
 def increment_content(line):
   global num_content
   num_content += 1
-  print "num_content after increment: ", num_content
+  print("num_content after increment: ", num_content)
 
 def increment_header2(line):
   global num_header2
   num_header2 += 1
-  print "num_header2 after increment: ", num_header2
+  print("num_header2 after increment: ", num_header2)
 
 def check_num_outputs(line):
   assert(num_elements == 20)  # 2 * 10
-  print "Num_header1: ", num_header1
+  print("Num_header1: ", num_header1)
   assert(num_header1 == 17)
   assert(num_content == 5)
   assert(num_header2 == 17)

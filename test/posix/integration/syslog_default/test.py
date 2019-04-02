@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
@@ -22,7 +24,7 @@ END_C     = "\033\\[0m"           # CLEAR
 def increment(line):
     global num_outputs
     num_outputs += 1
-    print "num_outputs after increment: ", num_outputs
+    print("num_outputs after increment: ", num_outputs)
 
 def unexpected(line):
     assert False
@@ -30,7 +32,7 @@ def unexpected(line):
 expected_outputs = 22
 
 def check_num_outputs(line):
-    print "Registered", num_outputs, " / ", expected_outputs, " expected ouput lines"
+    print("Registered", num_outputs, " / ", expected_outputs, " expected ouput lines")
     assert(num_outputs == expected_outputs)
     vmrunner.vms[0].exit(0, "All tests passed")
 

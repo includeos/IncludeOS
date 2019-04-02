@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import subprocess
@@ -89,10 +91,10 @@ end_msg = "Something special to close with"
 def increment():
   global num_received
   num_received += 1
-  print "num_received after increment: ", num_received
+  print("num_received after increment: ", num_received)
 
 def validate(data):
-  print "Received message: ", data
+  print("Received message: ", data)
   if num_received < len(pre_messages):
     assert pre_messages[num_received] in data and post_messages[num_received], "Message don't match"
   else:
@@ -100,10 +102,11 @@ def validate(data):
     post_messages[num_received - len(pre_messages)], "Message don't match"
 
 def start(line):
-    print "Waiting for UDP data"
+    print("Waiting for UDP data")
     while True:
         data, addr = sock.recvfrom(4096)
-        print "Received data"
+        data = data.decode("utf-8")
+        print("Received data")
         if end_msg not in data:
             validate(data)
             increment()

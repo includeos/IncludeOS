@@ -36,18 +36,11 @@ if (CONAN_EXPORTED)
   conan_basic_setup()
 endif()
 
-#set(INCLUDEOS_PREFIX ${CONAN_RES_DIRS_INCLUDEOS})
-
-
-#TODO use these
-#CONAN_SETTINGS_ARCH Provides arch type
-#CONAN_SETTINGS_BUILD_TYPE provides std cmake "Debug" and "Release" "are they set by conan_basic?"
-#CONAN_SETTINGS_COMPILER AND CONAN_SETTINGS_COMPILER_VERSION
-#CONAN_SETTINGS_OS ("Linux","Windows","Macos")
-
 if (NOT ARCH)
   if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
     set(ARCH i686)
+  elseif(${CONAN_SETTINGS_ARCH} STREQUAL "armv8")
+    set(ARCH aarch64)
   else()
     set(ARCH ${CONAN_SETTINGS_ARCH})
   endif()
@@ -159,6 +152,8 @@ function(os_add_executable TARGET NAME)
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
   target_link_libraries(${ELF_TARGET} ${LIBRARIES})
 
+
+
   # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(STRIP_LV )
@@ -174,6 +169,7 @@ function(os_add_executable TARGET NAME)
     COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
     COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     COMMAND ${STRIP_LV}
+    COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
     DEPENDS ${ELF_TARGET}
   )
 
@@ -379,7 +375,6 @@ function(os_install)
   endif()
 
   foreach(T ${os_install_TARGETS})
-    #message("OS install  ${T} to ${os_install_DESTINATION}")
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${T} DESTINATION ${os_install_DESTINATION})
   endforeach()
 

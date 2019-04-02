@@ -17,20 +17,25 @@ include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
 #add_library(ide_writeonly STATIC ide.cpp)
 #set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
+
+#delete heap_debugging.cpp
 #END TODO
 
 set(DRIVER_SRCS
-  virtiocon.cpp
-  virtioblk.cpp
-  virtionet.cpp
-  vmxnet3.cpp
-  e1000.cpp
   ip4_reassembly.cpp
-  heap_debugging.cpp
-  vga_emergency.cpp
   stdout/timestamps.cpp
 )
-if (WITH_SOLO5)
+
+if (${PLATFORM} STREQUAL "default")
+  list(APPEND DRIVER_SRCS
+      vga_emergency.cpp
+    virtiocon.cpp
+    virtioblk.cpp
+    virtionet.cpp
+    vmxnet3.cpp
+    e1000.cpp
+  )
+elseif (${PLATFORM} STREQUAL "solo5-hvt" OR ${PLATFORM} STREQUAL "solo5-spt")
   list(APPEND DRIVER_SRCS
     solo5blk.cpp
     solo5net.cpp

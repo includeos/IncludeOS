@@ -6,7 +6,7 @@
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 
-if (smp)
+if (SMP)
   add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
@@ -15,7 +15,7 @@ include_directories(
   include
 )
 
-#TODO move to util and check if needed / can be changed.. unwanted dependency?
+#TODO move to util and check if needed / can be changed ?..
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate/include)
 
 set(SRCS
@@ -36,8 +36,14 @@ if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND LIBRARIES crt)
 endif()
 
+if(${PLATFORM} STREQUAL "solo5-hvt")
+  message(STATUS "Building for solo5")
+  add_definitions(-DPLATFORM_x86_solo5)
+endif()
 
 SET(OBJECTS)
+#TODO make the subdirectory add return an LIST of target objects..
+#needed to make multilevel dep work for eg.. net.
 foreach(LIB ${LIBRARIES})
     add_subdirectory(${LIB})
     list(APPEND OBJECTS "$<TARGET_OBJECTS:${LIB}>" )
@@ -48,32 +54,25 @@ if (CMAKE_TESTING_ENABLED)
     arch/${ARCH}/paging.cpp
   )
 endif()
-add_library(os STATIC ${SRCS} ${OBJECTS})
 
+if (NOT VERSION)
+  set(VERSION VERY_DIRTY)
+endif()
+
+FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.h
+  "#define OS_VERSION \"${VERSION}\"\n"
+)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+add_library(os STATIC ${SRCS} ${OBJECTS} ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+
+#TODO check if this is almost correct for platform userspace
 if (NOT CMAKE_TESTING_ENABLED)
-  add_dependencies(os version )
-  add_subdirectory(arch/${ARCH})
-  if (NOT CORE_OS)
-    if(WITH_SOLO5)
-      message(STATUS "platform x86_solo5")
-      add_subdirectory(platform/x86_solo5)
-    else()
-      message(STATUS "platform x86_pc")
-      add_subdirectory(platform/x86_pc)
-    endif(WITH_SOLO5)
-
-    add_subdirectory(drivers)
-    add_subdirectory(plugins)
-  else()
-    if ("${ARCH}" STREQUAL "aarch64")
-      message(STATUS "platform aarch64_vm")
-      add_subdirectory(platform/aarch64_vm)
-    else()
-      message(STATUS "platform x86_nano")
-      add_subdirectory(platform/x86_nano)
-    endif()
-  endif()
-  # Add musl
+  add_subdirectory(arch)
+  add_subdirectory(platform)
+  add_subdirectory(drivers)
+  add_subdirectory(plugins)
   add_subdirectory(musl)
 endif()
 

@@ -3,11 +3,6 @@
 
 **IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
-The build system will:
-* link your service with the necessary OS objects into a single binary
-* attach a boot loader
-* combine everything into a self-contained bootable disk image, ready to run on almost any modern hypervisor.
-
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 [![Pre-release](https://img.shields.io/github/release-pre/includeos/IncludeOS.svg)](https://github.com/hioa-cs/IncludeOS/releases)
@@ -15,6 +10,66 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 [![Join the chat](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://goo.gl/NXBVsc)
 
 **Note:** *IncludeOS is under active development. The public API should not be considered stable.*
+
+## Quick start
+### Install the dependencies for building IncludeOS services:
+* [The conan package manager](https://docs.conan.io/en/latest/installation.html)
+* CMake
+* clang, or alternatively gcc on linux
+
+Now install the conan profiles and remotes for getting binary packages of includeos libraries.
+```
+$ conan config install https://github.com/includeos/conan_config.git
+```
+
+### Hello world with IncludeOS
+First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, linux users can typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
+
+The following steps let you build and boot the IncludeOS hello world example.
+```
+$ git clone https://github.com/includeos/hello_world.git
+$ mkdir your_build_dir
+$ cd your_build_dir
+$ conan install ../hello_world -pr <your_conan_profile>
+$ source ./activate.sh
+$ cmake ../hello_world
+$ cmake --build .
+$ boot hello
+```
+You can use the [hello world repo](https://github.com/includeos/hello_world) as a starting point for developing your own IncludeOS services. For more advanced examples see the [examples repo](https://github.com/includeos/demo-examples) or the integration tests (under ./IncludeOS/test/\*/integration).
+
+Once you're done `$ source ./deactivate.sh` will reset the environment to its previous state.
+
+### IncludeOS kernel development
+The above shows how to build bootable IncludeOS binaries using pre-built versions the IncludeOS libraries. In order to modify IncludeOS itself or contribute to IncludeOS development, you need a different workflow. Start by cloning IncludeOS.
+
+```
+$ git clone https://github.com/includeos/IncludeOS.git
+```
+
+Now create a conan layout file, or edit your own copy of [layout.txt](https://github.com/includeos/IncludeOS/blob/dev/etc/layout.txt). Have the first line point to `your_kernel_build_dir`, e.g. where you want the compiled IncludeOS libraries to be built while you work. You can now tell conan to use this local build instead of the prebuilt binary versions.
+
+```
+$ conan editable add your_IncludeOS_fork -l your_layout.txt includeos/0.15.0@includeos/test
+$ cd your_kernel_build_dir
+$ conan install your_IncludeOS_fork -pr <your conan profile>
+$ conan build your_IncludeOS_fork -sf your_IncludeOS_fork -bf .
+```
+
+Building a service that depends on `includeos <=0.15` will now depend on the local copy of the IncludeOS kernel libraries. You can now make changes to the IncludeOS source (pointed to by the `conan build ... -sf `parameter) and simply
+```
+$ cd your_kernel_build_dir
+$ cmake --build . # or simply make, if you use the default cmake backend
+```
+Test your changes e.g. in the hello world example like so:
+```
+$ cd your_build_dir
+$ rm bin/hello.elf.bin # force cmake to relink
+$ source ./activate.sh
+$ cmake ../hello_world
+$ cmake --build .
+$ boot hello
+```
 
 ##### Contents:
 
@@ -389,7 +444,7 @@ ___
 ### <a name="develop_pkg"></a> Getting started developing packages
 
 If you are interested in editing/building our dependency packages on your own,
-you can checkout our repositories at [includeos/](https://github.com/includeos/).  
+you can checkout our repositories at [includeos/](https://github.com/includeos/).
 Some our tools and libraries are listed below under [Tools and Libraries](#libs_tools).
 You can find the external dependency recipes at [includeos/conan](https://github.com/includeos/conan).
 Currently we build with `clang-6` and `gcc-7.3.0` compiler toolchains.

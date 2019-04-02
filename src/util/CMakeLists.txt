@@ -13,7 +13,7 @@
 
 #if (NOT CMAKE_TESTING_ENABLED)
 
-if (NOT CORE_OS)
+if (NOT ${PLATFORM} STREQUAL "nano")
   include_directories(${CMAKE_SOURCE_DIR}/lib/LiveUpdate/include)
   list(APPEND SRCS
     memstream.c

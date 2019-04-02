@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import print_function
+from builtins import str
 import socket
 import sys
 import os
@@ -24,7 +26,7 @@ def connect(port):
     res = socket.getaddrinfo(addr[0], addr[1], socket.AF_INET6, socket.SOCK_STREAM, socket.SOL_TCP)
     af, socktype, proto, canonname, sa = res[0]
     sock = socket.socket(af, socktype, proto)
-    print INFO, 'connecting to %s' % res
+    print(INFO, 'connecting to %s' % res)
     sock.connect(sa)
     bytes_received = 0
     try:
@@ -37,7 +39,7 @@ def connect(port):
             else:
                 break
     finally:
-        print INFO, 'closing socket. Received ', str(bytes_received),"bytes"
+        print(INFO, 'closing socket. Received ', str(bytes_received),"bytes")
         sock.close()
 
     return True
@@ -45,7 +47,7 @@ def connect(port):
 def listen(port):
     addr = (HOST, port)
     res = socket.getaddrinfo(addr[0], addr[1], socket.AF_INET6, socket.SOCK_STREAM, socket.SOL_TCP)
-    print INFO, 'starting up on %s' % res
+    print(INFO, 'starting up on %s' % res)
     af, socktype, proto, canonname, sa = res[0]
     sock = socket.socket(af, socktype, proto)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -55,16 +57,16 @@ def listen(port):
     while True:
         connection, client_address = sock.accept()
         try:
-            print INFO, 'connection from', client_address
+            print(INFO, 'connection from', client_address)
             while True:
                 data = connection.recv(1024)
                 if data:
-                    print INFO,'received data, sending data back to the client'
+                    print(INFO,'received data, sending data back to the client')
                     connection.sendall(data)
-                    print INFO,'close connection to client'
+                    print(INFO,'close connection to client')
                     connection.close()
                 else:
-                    print INFO,'no more data from', client_address
+                    print(INFO,'no more data from', client_address)
                     break
 
         finally:
@@ -76,23 +78,23 @@ def listen(port):
 
 
 def test1(trigger):
-    print INFO, trigger.rstrip(),  "triggered by VM"
+    print(INFO, trigger.rstrip(),  "triggered by VM")
     return connect(TEST1)
 
 def test2(trigger):
-    print INFO, trigger.rstrip(),  "triggered by VM"
+    print(INFO, trigger.rstrip(),  "triggered by VM")
     return connect(TEST2)
 
 def test3(trigger):
-    print INFO, trigger.rstrip(),  "triggered by VM"
+    print(INFO, trigger.rstrip(),  "triggered by VM")
     return connect(TEST3)
 
 def test4(trigger):
-    print INFO, trigger.rstrip(),  "triggered by VM"
+    print(INFO, trigger.rstrip(),  "triggered by VM")
     connect(TEST4)
 
 def test5(trigger):
-    print INFO, trigger.rstrip(),  "triggered by VM"
+    print(INFO, trigger.rstrip(),  "triggered by VM")
     listen(TEST5)
 
 

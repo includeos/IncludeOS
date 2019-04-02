@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import socket
@@ -10,9 +12,9 @@ vm = vmrunner.vms[0]
 def begin_test(line):
     s = socket.socket()
     s.connect(("10.0.0.63", 23))
-    s.send("netstat\r\n")
-    result = s.recv(1024)
-    print result
+    s.send(str.encode("netstat\r\n"))
+    result = s.recv(1024).decode()
+    print(result)
     s.close()
     return "Banana Terminal" in result
 

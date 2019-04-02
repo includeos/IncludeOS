@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-
 project(chainloader C CXX)
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
@@ -9,11 +8,7 @@ if (NOT HAS_CONAN)
 endif()
 conan_basic_setup()
 
-
-#TODO cleanup ARCH in os.cmake and just add set platform?
 set(ARCH i686)
-set(PLATFORM x86_nano)
-
 include(os)
 
 option(default_stdout "" OFF)

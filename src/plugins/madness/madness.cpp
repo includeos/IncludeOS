@@ -108,6 +108,6 @@ namespace madness {
 }
 
 __attribute__ ((constructor))
-extern "C" void madness_plugin() {
+void madness_plugin() {
   os::register_plugin(madness::init, "Madness");
 }

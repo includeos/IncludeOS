@@ -22,12 +22,18 @@
 #include <algorithm>
 #include <cstring>
 #include <smp>
+#define SHAKE_128_RATE (1600-256)/8
 
 struct alignas(SMP_ALIGN) rng_state
 {
   uint64_t state[25];
+  int64_t  reseed_counter = 0;
+  int32_t  reseed_rounds  = 0;
+  delegate<void(uint64_t*)> reseed_callback = nullptr;
 };
 static SMP::Array<rng_state> rng;
+// every RESEED_RATE bytes entropy is refilled
+static const int RESEED_RATE = 4096;
 
 static inline uint64_t rotate_left(uint64_t input, size_t rot) {
   return (input << rot) | (input >> (64-rot));
@@ -114,8 +120,6 @@ static void keccak_1600_p(uint64_t A[25]) {
   }
 }
 
-#define SHAKE_128_RATE (1600-256)/8
-
 static inline void xor_bytes(const uint8_t* in, uint8_t* out, size_t bytes)
    {
    for(size_t i = 0; i != bytes; ++i)
@@ -137,7 +141,17 @@ void rng_absorb(const void* input, size_t bytes)
       keccak_1600_p(PER_CPU(rng).state);
       absorbed += absorbing;
      }
+  PER_CPU(rng).reseed_counter += RESEED_RATE * bytes;
   }
+
+static void reseed_now()
+{
+  uint64_t value;
+  for (int i = 0; i < PER_CPU(rng).reseed_rounds; i++) {
+      PER_CPU(rng).reseed_callback(&value);
+      rng_absorb(&value, sizeof(value));
+  }
+}
 
 void rng_extract(void* output, size_t bytes)
    {
@@ -150,13 +164,19 @@ void rng_extract(void* output, size_t bytes)
       keccak_1600_p(PER_CPU(rng).state);
       copied += copying;
       }
+    // don't reseed if no callback to do so
+    if (PER_CPU(rng).reseed_callback == nullptr) return;
+    PER_CPU(rng).reseed_counter -= bytes;
+    // reseed when below certain entropy
+    if (PER_CPU(rng).reseed_counter < 0) {
+      PER_CPU(rng).reseed_counter = 0;
+      reseed_now();
+    }
    }
 
-void RNG::init()
+void rng_reseed_init(delegate<void(uint64_t*)> func, int rounds)
 {
-  for (int i = 0; i < 32; i++) {
-    const uint32_t value = __arch_rand32();
-    //printf("RNG: i=%d value=%#x\n", i, value);
-    rng_absorb(&value, sizeof(value));
-  }
+  PER_CPU(rng).reseed_callback = func;
+  PER_CPU(rng).reseed_rounds = rounds;
+  reseed_now();
 }

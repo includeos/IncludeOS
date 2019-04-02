@@ -1,5 +1,6 @@
 add_definitions(-DPLATFORM_x86_pc)
 
+set(PLATFORM_TARGET ${ARCH}_pc)
 ### x86 PC specific ###
 set(X86_PC_OBJECTS
   acpi.cpp
@@ -38,10 +39,18 @@ add_custom_command(
 	DEPENDS apic_boot.asm
 )
 
-add_library(x86_pc STATIC ${X86_PC_OBJECTS} apic_boot.o)
+
+add_library(${PLATFORM_TARGET} STATIC ${X86_PC_OBJECTS} apic_boot.o)
+
+set_target_properties(${PLATFORM_TARGET}
+  PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/platform
+  ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/platform
+  ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/platform
+)
 
 # disable sanitizers on kernel_start and others
 
 add_subdirectory(boot)
-set_target_properties(x86_pc PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS x86_pc DESTINATION platform)
+set_target_properties(${PLATFORM_TARGET} PROPERTIES LINKER_LANGUAGE CXX)
+install(TARGETS ${PLATFORM_TARGET} DESTINATION platform)

@@ -24,11 +24,6 @@
     context.cpp
     #context_asm.asm
     )
-if (WITH_SOLO5)
-  list(APPEND SRCS
-    solo5_manager.cpp
-  )
-endif()
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND SRCS
   #  rdrand.cpp
