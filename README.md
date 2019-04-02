@@ -25,9 +25,9 @@ $ conan config install https://github.com/includeos/conan_config.git
 ### Hello world with IncludeOS
 First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, linux users can typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
 
-The following steps let you build and boot the IncludeOS hello world example. 
+The following steps let you build and boot the IncludeOS hello world example.
 ```
-$ git clone https://github.com/includeos/hello-world.git 
+$ git clone https://github.com/includeos/hello_world.git
 $ mkdir your_build_dir
 $ cd your_build_dir
 $ conan install ../hello_world -pr <your_conan_profile>
@@ -53,7 +53,7 @@ Now create a conan layout file, or edit your own copy of [layout.txt](https://gi
 $ conan editable add your_IncludeOS_fork -l your_layout.txt includeos/0.15.0@includeos/test
 $ cd your_kernel_build_dir
 $ conan install your_IncludeOS_fork -pr <your conan profile>
-$ conan build your_IncludeOS_fork -sf your_IncludeOS_fork -bf . 
+$ conan build your_IncludeOS_fork -sf your_IncludeOS_fork -bf .
 ```
 
 Building a service that depends on `includeos <=0.15` will now depend on the local copy of the IncludeOS kernel libraries. You can now make changes to the IncludeOS source (pointed to by the `conan build ... -sf `parameter) and simply
@@ -444,7 +444,7 @@ ___
 ### <a name="develop_pkg"></a> Getting started developing packages
 
 If you are interested in editing/building our dependency packages on your own,
-you can checkout our repositories at [includeos/](https://github.com/includeos/).  
+you can checkout our repositories at [includeos/](https://github.com/includeos/).
 Some our tools and libraries are listed below under [Tools and Libraries](#libs_tools).
 You can find the external dependency recipes at [includeos/conan](https://github.com/includeos/conan).
 Currently we build with `clang-6` and `gcc-7.3.0` compiler toolchains.

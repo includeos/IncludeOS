@@ -30,7 +30,7 @@ class ChainloaderConan(ConanFile):
 
     def build_requirements(self):
         self.build_requires("includeos/[>=0.14.0,include_prerelease=True]@{}/{}".format(self.user,self.channel))
-        self.build_requires("vmbuild/[>=0.14.0,include_prerelease=True]@includeos/latest")
+        self.build_requires("vmbuild/0.15.0@includeos/stable")
 
     def _configure_cmake(self):
         cmake = CMake(self)
