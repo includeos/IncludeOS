@@ -21,7 +21,7 @@ def Slaac_test(trigger_line):
   print(color.INFO("<Test.py>"),"Got IP")
   vm_string = vm.readline()
   wlist = vm_string.split()
-  ip_string = wlist[-1]
+  ip_string = wlist[-1].split("/")[0]
   print(color.INFO("<Test.py>"), "Assigned address: ", ip_string)
   print(color.INFO("<Test.py>"), "Trying to ping")
   time.sleep(1)
