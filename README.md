@@ -265,7 +265,7 @@ After that clone the IncludeOS repo. This will be the basis for bringing up the 
 	$ vagrant up
 	$ vagrant ssh
 ```
-Test the vagrant box installation by creating your first IncludeOS service. See the following paragraph.
+Test the vagrant box installation by creating your first IncludeOS service. Inside Vagrant IncludeOS has been built with profile 'clang-6.0-linux-x86_64', use this profile to create the demo service. See the following paragraph.
 ___
 
 ### <a name="building_service"></a>Building, starting and creating your first IncludeOS Service with Conan
