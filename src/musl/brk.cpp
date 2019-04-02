@@ -16,7 +16,7 @@ uintptr_t __init_brk(uintptr_t begin, size_t size)
   brk_end   = begin;
   brk_max   = begin + size;
   brk_initialized = brk_end;
-  return brk_begin + brk_max;
+  return brk_max;
 }
 
 
