@@ -1,4 +1,4 @@
-﻿set(SRCS
+set(SRCS
     async.cpp
     statman.cpp
     logger.cpp
@@ -7,7 +7,6 @@
     syslogd.cpp
     percent_encoding.cpp
     path_to_regex.cpp
-    config.cpp
     crc32.cpp
 )
 
@@ -20,6 +19,7 @@ if (NOT ${PLATFORM} STREQUAL "nano")
     tar.cpp
     uri.cpp #rapidjson
     autoconf.cpp
+    config.cpp
     statman_liu.cpp
   )
 endif()
