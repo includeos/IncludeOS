@@ -1,6 +1,7 @@
 #include <os>
 #include <kprint>
 #include <kernel.hpp>
+#include <kernel/rng.hpp>
 #include <smp>
 
 //#include "../x86_pc/idt.hpp"
@@ -16,6 +17,11 @@ void __arch_poweroff()
   //TODO check that this is sane on ARM
   while (1) asm("hlt #0xf000;");
   __builtin_unreachable();
+}
+
+void RNG::init()
+{
+  // the nano platform does not do anything extra
 }
 
 static void platform_init()
@@ -50,7 +56,10 @@ void kernel::default_stdout(const char* str, const size_t len)
   __serial_print(str, len);
 }
 
-void __arch_reboot(){}
+void __arch_reboot()
+{
+  //TODO
+}
 void __arch_enable_legacy_irq(unsigned char){}
 void __arch_disable_legacy_irq(unsigned char){}
 

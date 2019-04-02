@@ -88,13 +88,6 @@ pipeline {
       }
     }
 
-    stage('Build IncludeOS x86_64') {
-      steps {
-        build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
-      }
-    }
-
-
     stage('Integration tests') {
       when { changeRequest() }
       steps {

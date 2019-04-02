@@ -1,4 +1,6 @@
 
+set(LIB_NAME aarch64_${PLATFORM})
+
 set(PLATFORM_OBJECTS
 
   serial1.cpp
@@ -24,14 +26,14 @@ set_source_files_properties(start_aarch64.asm PROPERTIES COMPILE_FLAGS "-x assem
 
 #  set_source_files_properties(start.asm PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
-add_library(aarch64_vm STATIC ${PLATFORM_OBJECTS} ${PLATFORM_SOURCES})
+add_library(${LIB_NAME} STATIC ${PLATFORM_OBJECTS} ${PLATFORM_SOURCES})
 #set_source_files_properties(${PLATFORM_SOURCES} PROPERIES LINKER_LANGUAGE CXX)
-set_target_properties(aarch64_vm PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(aarch64_vm
+set_target_properties(${LIB_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(${LIB_NAME}
   PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/platform
   ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/platform
   ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/platform
 )
 
-install(TARGETS aarch64_vm DESTINATION platform)
+install(TARGETS ${LIB_NAME} DESTINATION platform)
