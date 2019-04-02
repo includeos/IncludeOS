@@ -17,6 +17,7 @@
 
 #include <util/config.hpp>
 #include <rapidjson/error/en.h>
+#include <memory>
 #include <info>
 
 extern char _CONFIG_JSON_START_;
@@ -28,7 +29,7 @@ const Config& Config::get() noexcept
   return config;
 }
 
-inline const std::unique_ptr<rapidjson::Document> parse_doc()
+inline std::unique_ptr<rapidjson::Document> parse_doc()
 {
   const auto& cfg = Config::get();
 
