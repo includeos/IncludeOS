@@ -246,6 +246,28 @@ YOu can do that using the copy command:
 ```
 ___
 
+### <a name="getting_started"></a> Getting started with IncludeOS development on Vagrant
+
+To get started with IncludeOS development on a Vagrant, you should install Vagrant and virtualbox as instructed.
+</p>
+
+* [Install Vagrant](https://www.vagrantup.com/docs/installation/)
+* [Install VirtualBox](https://www.virtualbox.org/manual/UserManual.html#installation)
+
+After that clone the IncludeOS repo. This will be the basis for bringing up the Vagrant box.
+##### Cloning the IncludeOS repository:
+```
+    $ git clone https://github.com/includeos/IncludeOS
+    $ cd IncludeOS
+```
+##### Now you can create the Vagrant box with IncludeOS for development of services and login to the Vagrant box:
+```
+	$ vagrant up
+	$ vagrant ssh
+```
+Test the vagrant box installation by creating your first IncludeOS service. See the following paragraph.
+___
+
 ### <a name="building_service"></a>Building, starting and creating your first IncludeOS Service with Conan
 
 Examples are now built with conan packages. The IncludeOS demo examples have now
