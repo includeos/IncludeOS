@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #include <util/config.hpp>
+#include <rapidjson/error/en.h>
+#include <info>
 
 extern char _CONFIG_JSON_START_;
 extern char _CONFIG_JSON_END_;
@@ -35,6 +37,11 @@ inline const std::unique_ptr<rapidjson::Document> parse_doc()
 
   auto doc = std::make_unique<rapidjson::Document>();
   doc->Parse(cfg.data());
+  if(doc->HasParseError())
+  {
+    INFO("Config", "Parse error @ offset %zu: %s",
+      doc->GetErrorOffset(), rapidjson::GetParseError_En(doc->GetParseError()));
+  }
   assert(doc->IsObject() && "Bad formatted config");
   return doc;
 }
