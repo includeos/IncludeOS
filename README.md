@@ -281,6 +281,7 @@ and generates the required virtualenv scripts and cmake information.
 Next to build the service do:
 
 ```
+  $ source activate.sh
   $ cmake ..
   $ cmake --build .
 
@@ -300,9 +301,7 @@ an executable file named `demo` which is now the service you will start.
 ##### Starting a service
 
 Now that you have all your build requirements ready, you can start the service.
-
-However to start a service a good practice is to always activate the service
-requirements;
+If you skipped the step of activating the virtual environment in the previous step remeber to do:
 
 ```
   $ source activate.sh
@@ -368,38 +367,52 @@ have mentioned that for future releases the feature is subject to breaking chang
 
 To get started with getting the conan package in editable mode,
 
-- ###### Edit the `conanfile.py` : comment out the `version = get_version()`
-
 - ###### Create a `build` folder to build IncludeOS
 
-- ###### Edit the `layout.txt` : _(uses jinja2 syntax)_ needed to parse the build folder correctly.
+- ###### Edit the `etc/layout.txt` : _(uses jinja2 syntax)_ needed to parse the build folder correctly.
 
-Do some local adaptions for where your build folder is by setting your build
-folder in the first line as follows:
-
+Do some local adaptions for where your build folder is relative to the includeos source folder by setting build_dir in the third line as follows :
 ```
+  {% set simple=true%}
+
   {% set build_dir='build' %}
+
+  {% if simple==false %}
+  {% set arch=settings.arch|string %}
+  {% set platform=options.platform|string %}
+  {% set build_dir=build_dir+'/'+arch+'/'+platform %}
+  {% endif %}
+
   [bindirs]
+  {#This is so that we can find os.cmake after including conanbuildinfo.cmake #}
   cmake
+
   [includedirs]
+  {#This is to ensure the include directory in conanbuildinfo.cmake includes our API#}
   api
+
   [libdirs]
+  {#This is so that we can find our libraries #}
   {{ build_dir }}/plugins
   {{ build_dir }}/drivers
   {{ build_dir }}/lib
+  {{ build_dir }}/platform
+
   [resdirs]
+  {#This is so that we can find ldscript and search for drivers plugins etc#}
   {{ build_dir }}
 
 ```
+> **Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases
+
 
 - ###### Set the conan package into **editable mode**
 
 Make sure to adjust the version to whatever is apropriate.
 
 ```
-  conan editable add . includeos/0.15.0@includeos/test --layout=layout.txt
+  conan editable add . includeos/$(conan inspect -a version . | cut -d " " -f 2)@includeos/latest --layout=etc/layout.txt
 ```
-> **Note:** Avoid choosing `latest`
 
 - ###### Check Status
 
@@ -411,32 +424,34 @@ you need to redo the `conan install` step.
 Here is an example on how it looks when its pulled into cache as editable:
 
 ```
-  $ conan editable list
-  includeos/0.15.0@includeos/test:45955af12a7f7608830c1d255b80a75440406e3c - Editable
+  $ conan editable list
+    includeos/0.14.1-1052@includeos/latest
+      Path: ~/git/IncludeOS
+      Layout: ~/git/IncludeOS/etc/layout.txt
 ```
 
 - ###### Build IncludeOS
-
+Asuming the buildfolder is build under the includeos source directory the following is enough.
+you can also manually perform the build step for the editable package however doing the step below ensures all parameters are transfered correctly from your conan profile and options into the build.
 ```
-  cd build
-  conan install .. -pr <conan_profile> (-o options like solo5=True etc)
-  cmake .. (-DTOOLCHAIN_PROFILE=xx.yy when needed)
-  make
+  conan install -if build . -pr <conan_profile> (-o options like platform=nano etc)
+  conan build -bf build .
 ```
-
+- ###### building small changes once the first build is done
+Once IncludeOS is buildt by the conan build command you simply have to make sure to issue a make command in the build location
+```
+  cd build && make
+  or
+  cmake build --build
+```
 - ###### Finalizing Changes
 
 Once the code is **finalized** and you want to verify that the conan package
-still builds remove the editable:
+still builds remove the editable and do a conan create on the package:
 
 ```
   $ conan editable remove includeos/0.15.0@includeos/test
-```
-
-Then remove the comment on the `#version` in the `conanfile.py` and do a normal
-
-```
-  $ conan create <source_path> includeos/test -pr <conan_profile>
+  $ conan create <source_path> includeos/Latest -pr <conan_profile>
 ```
 
 ___
