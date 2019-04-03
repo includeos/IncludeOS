@@ -300,3 +300,20 @@ int gicd_decode_irq()
   //irq max or negative value?
   return 0x3ff;
 }
+
+//TODO fix i really really do not like this
+void __arch_subscribe_irq(uint8_t irq)
+{
+//  assert(irq < IRQ_LINES);
+//  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, modern_interrupt_handler);
+}
+void __arch_install_irq(uint8_t irq, uintptr_t handler)
+{
+//  assert(irq < IRQ_LINES);
+//  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, handler);
+}
+void __arch_unsubscribe_irq(uint8_t irq)
+{
+//  assert(irq < IRQ_LINES);
+//  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, unused_interrupt_handler);
+}
