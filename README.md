@@ -327,7 +327,7 @@ This should start your demo service and show something along the following lines
   *** Basic demo service started ***
 ```
 
-To build more examples follow the [README](https://github.com/includeos/demo-examples/blob/master/README.md) in the demo-examples repository.
+To build more examples follow the [README](https://github.com/includeos/demo-examples/blob/master/README.md) in the examples repository.
 
 ##### Writing your first service
 
@@ -544,15 +544,14 @@ Uplink is a tool and a library for Live updating IncludeOS instances.
 
 - [Mana](https://github.com/includeos/mana) -
 Mana is a web application framework which is used to build a IncludeOS webserver.
-We have a demo-example called [acorn](https://github.com/includeos/demo-examples/tree/master/acorn) which demonstrates a lot of potential.
+We have an example named [acorn](https://github.com/includeos/demo-examples/tree/master/acorn) which demonstrates mana's potential.
 
 - [Microlb](https://github.com/includeos/microlb) -
 Microlb is a library written for building the IncludeOS load balancer.
-We have a demo-example called [microlb](https://github.com/includeos/demo-examples/tree/master/microLB) which demonstrates our load balancer.
+We have an example named [microlb](https://github.com/includeos/demo-examples/tree/master/microLB) which demonstrates our load balancer.
 
 - [Mender](https://github.com/includeos/mender) -
-Mender is a client for IncludeOS. We have a demo-example demonstrating
-[mender](https://github.com/includeos/demo-examples/tree/master/mender) use case.
+Mender is a client for IncludeOS.
 
 - [Diskbuilder](https://github.com/includeos/diskbuilder) -
 Diskbuilder is a tool used for building disks for IncludeOS.
