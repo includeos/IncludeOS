@@ -228,16 +228,16 @@ void Inet::autoconf_v6(int retries, slaac_timeout_func handler,
         uint64_t token, bool use_token)
 {
 
-  INFO("Inet", "Attempting automatic configuration of ipv6 address");
+  INFO("Inet6", "Attempting automatic configuration of IPv6 address");
   if (!slaac_)
-      slaac_ = std::make_unique<Slaac>(*this);
+    slaac_ = std::make_unique<Slaac>(*this);
 
   // @Retries for Slaac auto-configuration
   slaac_->autoconf_start(retries, token, use_token);
 
   // add failure_handler if supplied
   if (handler)
-      slaac_->on_config(handler);
+    slaac_->on_config(handler);
 }
 
 void Inet::network_config(ip4::Addr addr,
@@ -283,10 +283,11 @@ void Inet::network_config6(IP6::addr addr6,
 void Inet::add_addr(const ip6::Addr& addr, uint8_t prefix,
               uint32_t pref_lifetime, uint32_t valid_lifetime)
 {
+  Expects(prefix != 0);
   int r = this->ip6_.addr_list().input(
     addr, prefix, pref_lifetime, valid_lifetime);
   if(r == 1) {
-    INFO("Inet6", "Address configured %s", addr.to_string().c_str());
+    INFO("Inet6", "Address configured %s/%u", addr.to_string().c_str(), prefix);
   }
 }
 

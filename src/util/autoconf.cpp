@@ -16,16 +16,6 @@
 // limitations under the License.
 
 #include <util/autoconf.hpp>
-
-#ifndef RAPIDJSON_HAS_STDSTRING
-  #define RAPIDJSON_HAS_STDSTRING 1
-#endif
-
-#ifndef RAPIDJSON_THROWPARSEEXCEPTION
-  #define RAPIDJSON_THROWPARSEEXCEPTION 1
-#endif
-
-#include <rapidjson/document.h>
 #include <util/config.hpp>
 #include <net/configure.hpp>
 #include <common>
@@ -42,11 +32,7 @@ void autoconf::run()
     return;
   }
 
-  rapidjson::Document doc;
-  doc.Parse(cfg.data());
-
-  Expects(doc.IsObject() && "Malformed config (not an object)");
-
+  const auto& doc = Config::doc();
   // Configure network
   if(doc.HasMember("net"))
   {
