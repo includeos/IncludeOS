@@ -12,10 +12,17 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 **Note:** *IncludeOS is under active development. The public API should not be considered stable.*
 
 ## Quick start
-### Install the dependencies for building IncludeOS services:
+### Install the dependencies
+On macOS there is a work in progress homebrew package here: https://github.com/includeos/homebrew-includeos
+#### Building IncludeOS services:
 * [The conan package manager](https://docs.conan.io/en/latest/installation.html)
-* CMake
+* cmake, make, nasm
 * clang, or alternatively gcc on linux
+
+#### Running an IncludeOS service (using boot):
+* qemu
+* python3
+* python packages: psutil, jsonschema
 
 Now install the conan profiles and remotes for getting binary packages of includeos libraries.
 ```
@@ -520,14 +527,14 @@ ___
 ##### Building IncludeOS libraries and tools
 
 We have moved the libraries and tools created by IncludeOS outside the IncludeOS
-repository. You can now find them all in there own repositories inside the IncludeOS organization.
+repository. You can now find them all in their own repositories inside the IncludeOS organization.
 
 To build the libraries and tools,
 
 ```
   $ git clone https://github.com/includeos/mana.git
   $ cd mana
-  $ conan create . includeos/test -pr clang-6.0-linux-x86_64
+  $ conan create . includeos/latest -pr clang-6.0-linux-x86_64
 ```
 
 <a name="libs_tools"></a> Below is a list of some of our Libraries/Tools:
@@ -548,9 +555,6 @@ We have an example named [microlb](https://github.com/includeos/demo-examples/tr
 
 - [Diskbuilder](https://github.com/includeos/diskbuilder) -
 Diskbuilder is a tool used for building disks for IncludeOS.
-
-- [Chainloader](https://github.com/includeos/chainloader) -
-Chainloader is a tool developed for building IncludeOS in x86 architectures.
 
 - [NaCl](https://github.com/includeos/NaCl) -
 NaCl is the configuration language tool we have tailored for IncludeOS to allow
