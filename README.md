@@ -47,37 +47,6 @@ You can use the [hello world repo](https://github.com/includeos/hello_world) as 
 
 Once you're done `$ source ./deactivate.sh` will reset the environment to its previous state.
 
-### IncludeOS kernel development
-The above shows how to build bootable IncludeOS binaries using pre-built versions the IncludeOS libraries. In order to modify IncludeOS itself or contribute to IncludeOS development, you need a different workflow. Start by cloning IncludeOS.
-
-```
-$ git clone https://github.com/includeos/IncludeOS.git
-```
-
-Now create a conan layout file, or edit your own copy of [layout.txt](https://github.com/includeos/IncludeOS/blob/dev/etc/layout.txt). Have the first line point to `your_kernel_build_dir`, e.g. where you want the compiled IncludeOS libraries to be built while you work. You can now tell conan to use this local build instead of the prebuilt binary versions.
-
-```
-$ conan editable add your_IncludeOS_fork -l your_layout.txt includeos/0.15.0@includeos/test
-$ cd your_kernel_build_dir
-$ conan install your_IncludeOS_fork -pr <your conan profile>
-$ conan build your_IncludeOS_fork -sf your_IncludeOS_fork -bf .
-```
-
-Building a service that depends on `includeos <=0.15` will now depend on the local copy of the IncludeOS kernel libraries. You can now make changes to the IncludeOS source (pointed to by the `conan build ... -sf `parameter) and simply
-```
-$ cd your_kernel_build_dir
-$ cmake --build . # or simply make, if you use the default cmake backend
-```
-Test your changes e.g. in the hello world example like so:
-```
-$ cd your_build_dir
-$ rm bin/hello.elf.bin # force cmake to relink
-$ source ./activate.sh
-$ cmake ../hello_world
-$ cmake --build .
-$ boot hello
-```
-
 ##### Contents:
 
 - [Key Features](#features)
