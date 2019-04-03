@@ -538,10 +538,6 @@ Vmbuild is an utility for building the IncludeOS virtual machines.
 - [Vmrunner](https://github.com/includeos/vmrunner) -
 Vmrunner is a utility developed for booting IncludeOS binanries.
 
-
-- [Uplink](https://github.com/includeos/uplink) -
-Uplink is a tool and a library for Live updating IncludeOS instances.
-
 - [Mana](https://github.com/includeos/mana) -
 Mana is a web application framework which is used to build a IncludeOS webserver.
 We have an example named [acorn](https://github.com/includeos/demo-examples/tree/master/acorn) which demonstrates mana's potential.
@@ -550,12 +546,8 @@ We have an example named [acorn](https://github.com/includeos/demo-examples/tree
 Microlb is a library written for building the IncludeOS load balancer.
 We have an example named [microlb](https://github.com/includeos/demo-examples/tree/master/microLB) which demonstrates our load balancer.
 
-- [Mender](https://github.com/includeos/mender) -
-Mender is a client for IncludeOS.
-
 - [Diskbuilder](https://github.com/includeos/diskbuilder) -
 Diskbuilder is a tool used for building disks for IncludeOS.
-
 
 - [Chainloader](https://github.com/includeos/chainloader) -
 Chainloader is a tool developed for building IncludeOS in x86 architectures.
