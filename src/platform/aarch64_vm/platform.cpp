@@ -9,13 +9,28 @@
 extern "C" void noop_eoi() {}
 extern "C" void cpu_sampling_irq_handler() {}
 extern "C" void blocking_cycle_irq_handler() {}
+
+extern "C" void vm_exit();
+
+
 void (*current_eoi_mechanism)() = noop_eoi;
 void (*current_intr_handler)() = nullptr;
 
+
 void __arch_poweroff()
 {
+
+/*  register int reg0 asm("x0");
+  register int reg1 asm("x1");
+
+  reg0 = 0x18;    // angel_SWIreason_ReportException
+  reg1 = 0x20026; // ADP_Stopped_ApplicationExit
+
+  asm volatile ("svc 0x00123456");  // make semihosting call
+*/
+  vm_exit();
   //TODO check that this is sane on ARM
-  while (1) asm("hlt #0xf000;");
+//  while (1) asm("hlt #0xf000;");
   __builtin_unreachable();
 }
 

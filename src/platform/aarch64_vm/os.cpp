@@ -1,12 +1,19 @@
 #include <kernel.hpp>
 #include <timer.h>
-
+#include <service>
 extern "C" {
   #include <libfdt.h>
 }
 
 #include "gic.h"
 #include <cpu.h>
+
+#include <kernel/events.hpp>
+
+#define DEBUG
+#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
+
+
 
 void kernel::start(uint64_t fdt_addr) // boot_magic, uint32_t boot_addr)
 {
@@ -58,7 +65,9 @@ void kernel::start(uint64_t fdt_addr) // boot_magic, uint32_t boot_addr)
 
   timer_virtual_start();
   //Wait for interrupt
+  printf("WFI\n");
   cpu_wfi();
+  printf("WFI received\n");
 /*
   for (int i =0 ; i < 9000;i++)
   {
@@ -96,4 +105,19 @@ void kernel::start(uint64_t fdt_addr) // boot_magic, uint32_t boot_addr)
   assert(OS::memory_end_ != 0);
 */
   //platform_init();
+}
+
+void os::event_loop()
+{
+  Events::get(0).process_events();
+  do {
+    os::halt();
+    Events::get(0).process_events();
+  } while (kernel::is_running());
+
+  MYINFO("Stopping service");
+  Service::stop();
+
+  MYINFO("Powering off");
+  __arch_poweroff();
 }

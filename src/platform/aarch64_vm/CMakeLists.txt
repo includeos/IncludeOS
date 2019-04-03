@@ -3,25 +3,30 @@ set(LIB_NAME aarch64_${PLATFORM})
 
 set(PLATFORM_OBJECTS
 
-  serial1.cpp
+
 #  start.asm
   start_aarch64.asm
+  stop.asm
 )
 
 SET(PLATFORM_SOURCES
+  serial1.cpp
   platform.cpp
   kernel_start.cpp
   os.cpp
   gic.cpp
   exception_handling.cpp
+  init_libc.cpp
+  sanity_checks.cpp
 )
 
 #add the arch in include path..
 include_directories(../../arch/aarch64)
+#include_directories(../x86_pc)
 
 enable_language(ASM)
   #project(assembler C ASM)
-set_source_files_properties(start_aarch64.asm PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
+set_source_files_properties(${PLATFORM_OBJECTS} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
   #add_executable(hello foo.s bar.c)
 
 #  set_source_files_properties(start.asm PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")

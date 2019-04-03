@@ -16,27 +16,8 @@
 // limitations under the License.
 
 #include <kprint>
-#include <info>
-#include <os>
-#include <kernel.hpp>
-//#include <kernel/os.hpp>
-#include <kernel/service.hpp>
-//#include <boot/multiboot.h>
-extern "C" {
-  #include <libfdt.h>
-}
 
-
-#include <cpu.h>
-
-extern "C" {
-  void __init_sanity_checks();
-  uintptr_t _move_symbols(uintptr_t loc);
-  void _init_bss();
-  void _init_heap(uintptr_t);
-  void _init_syscalls();
-}
-
+#include <cstdint>
 uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
 uintptr_t _multiboot_memory_end(uintptr_t boot_addr);
 extern bool os_default_stdout;
@@ -128,9 +109,59 @@ void print_be(const char *mem,int size)
   *((volatile unsigned int *) 0x09000000) =' ';
 }
 
+#include <kernel.hpp>
+#include <info>
+#include <os>
+
+//#include <kernel/os.hpp>
+#include <kernel/service.hpp>
+//#include <boot/multiboot.h>
+extern "C" {
+  #include <libfdt.h>
+}
+
+#include "init_libc.hpp"
+//#include "idt.h"
+#include <cpu.h>
+
+extern "C" {/*
+  void __init_sanity_checks();
+  uintptr_t _move_symbols(uintptr_t loc);
+//  void _init_bss();
+  void _init_heap(uintptr_t);
+  void _init_syscalls();
+*/
+  void __init_sanity_checks();
+  void kernel_sanity_checks();
+  void _init_bss();
+  uintptr_t _move_symbols(uintptr_t loc);
+  void _init_elf_parser();
+  void _init_syscalls();
+  void __elf_validate_section(const void*);
+}
+
+
+
+static os::Machine* __machine = nullptr;
+os::Machine& os::machine() noexcept {
+  LL_ASSERT(__machine != nullptr);
+  return *__machine;
+}
+
+
+//__attribute__((no_sanitize("all")))
 extern "C"
+void _init_bss()
+{
+  extern char _BSS_START_, _BSS_END_;
+  __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+}
+
+extern "C"
+//__attribute__((no_sanitize("all")))
 void kernel_start(uintptr_t magic, uintptr_t addrin)
 {
+  __init_sanity_checks();
 
   cpu_print_current_el();
   //its a "RAM address 0"
@@ -171,7 +202,7 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
 
   for (i = 0; i < proplen / cellslen; ++i) {
 
-  	int memc_idx;
+  //	int memc_idx;
   	int j;
 
   	for (j = 0; j < addr_cells; ++j) {
@@ -192,47 +223,57 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   print_le_named64("RAM BASE :",(char *)&addr);
   print_le_named64("RAM SIZE :",(char *)&size);
 
-  uint64_t free_mem_begin=addr;
   uint64_t mem_end=addr+size;
 
-  //Something tells me this messes with things
+  extern char _end;
+  uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
-  // Preserve symbols from the ELF binary
-  //free_mem_begin = ?
-    //keep the fdt for now
-  free_mem_begin+=fdt_totalsize(fdt);
     //ok now its sane
   free_mem_begin += _move_symbols(free_mem_begin);
 
   // Initialize .bss
-  extern char _BSS_START_, _BSS_END_;
-  __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+  _init_bss();
+
+  // Instantiate machine
+  size_t memsize = mem_end - free_mem_begin;
+  __machine = os::Machine::create((void*)free_mem_begin, memsize);
+
+  printf("elf-parser\n");
+  _init_elf_parser();
+  printf("init machine\n");
+  // Begin portable HAL initialization
+  __machine->init();
 
   // Initialize heap
-  kernel::init_heap(free_mem_begin, mem_end);
-
+//  kernel::init_heap(free_mem_begin, mem_end);
+  printf("init syscalls\n");
   // Initialize system calls
   _init_syscalls();
+  printf("continue\n");
 
+  //probably not very sane!
+  cpu_debug_enable();
+  cpu_fiq_enable();
+  cpu_irq_enable();
+  cpu_serror_enable();
+
+  aarch64::init_libc((uintptr_t)fdt_addr);
   // Initialize stdout handlers
-  //if (os_default_stdout)
-  //  OS::add_stdout(&OS::default_stdout);
+/*  if (os_default_stdout)
+    os::add_stdout(&OS::default_stdout);
+*/
 
-
+/*
   const int intc_offset = fdt_path_offset(fdt, "/pcie");
 
   kprintf("OS start intc %d\r\n",intc_offset);
+
   kernel::start(fdt_addr);
 
   // Start the service
+  printf("Service start\n");
   Service::start();
 
-  __arch_poweroff();
+  printf("Arch poweroff\n");
+  __arch_poweroff();*/
 }
-
-/*
-extern "C" int __divdi3() {}
-extern "C" int __moddi3() {}
-extern "C" unsigned int __udivdi3() {}
-extern "C" unsigned int __umoddi3() {}
-*/
