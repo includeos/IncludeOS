@@ -161,6 +161,8 @@ extern "C"
 //__attribute__((no_sanitize("all")))
 void kernel_start(uintptr_t magic, uintptr_t addrin)
 {
+  kprintf("Magic %zx addrin %zx\n",magic,addrin);
+
   __init_sanity_checks();
 
   cpu_print_current_el();
@@ -168,7 +170,8 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   const struct fdt_property *prop;
   int addr_cells = 0, size_cells = 0;
   int proplen;
-  //TODO find this somewhere.. although it is at memory 0x00
+
+  //TODO find this somewhere ?.. although it is at memory 0x00
   uint64_t fdt_addr=0x40000000;
   char *fdt=(char*)fdt_addr;
 
@@ -183,7 +186,6 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
     kprint("FDT Header check failed\r\n");
     return;
   }
-  kprintf("FDT OK totalsize %d\n",fdt_totalsize(fdt));
 
   size_cells = fdt_size_cells(fdt,0);
   print_le_named32("size_cells :",(char *)&size_cells);
@@ -198,20 +200,16 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
 
   prop = fdt_get_property(fdt, mem_offset, "reg", &proplen);
   int cellslen = (int)sizeof(uint32_t) * (addr_cells + size_cells);
-  int i;
 
-  for (i = 0; i < proplen / cellslen; ++i) {
+  for (int i = 0; i < proplen / cellslen; ++i) {
 
-  //	int memc_idx;
-  	int j;
-
-  	for (j = 0; j < addr_cells; ++j) {
+  	for (int j = 0; j < addr_cells; ++j) {
   		int offset = (cellslen * i) + (sizeof(uint32_t) * j);
 
   		addr |= (uint64_t)fdt32_ld((const fdt32_t *)((char *)prop->data + offset)) <<
   			((addr_cells - j - 1) * 32);
   	}
-  	for (j = 0; j < size_cells; ++j) {
+  	for (int j = 0; j < size_cells; ++j) {
   		int offset = (cellslen * i) +
   			(sizeof(uint32_t) * (j + addr_cells));
 
@@ -238,18 +236,12 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   size_t memsize = mem_end - free_mem_begin;
   __machine = os::Machine::create((void*)free_mem_begin, memsize);
 
-  printf("elf-parser\n");
   _init_elf_parser();
-  printf("init machine\n");
   // Begin portable HAL initialization
   __machine->init();
 
-  // Initialize heap
-//  kernel::init_heap(free_mem_begin, mem_end);
-  printf("init syscalls\n");
   // Initialize system calls
   _init_syscalls();
-  printf("continue\n");
 
   //probably not very sane!
   cpu_debug_enable();
@@ -258,22 +250,5 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   cpu_serror_enable();
 
   aarch64::init_libc((uintptr_t)fdt_addr);
-  // Initialize stdout handlers
-/*  if (os_default_stdout)
-    os::add_stdout(&OS::default_stdout);
-*/
 
-/*
-  const int intc_offset = fdt_path_offset(fdt, "/pcie");
-
-  kprintf("OS start intc %d\r\n",intc_offset);
-
-  kernel::start(fdt_addr);
-
-  // Start the service
-  printf("Service start\n");
-  Service::start();
-
-  printf("Arch poweroff\n");
-  __arch_poweroff();*/
 }

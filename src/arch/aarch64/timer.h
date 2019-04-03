@@ -27,7 +27,7 @@ uint32_t timer_get_virtual_control();
 
 void timer_virtual_stop();
 void timer_virtual_start();
-//void timer_start_downcount();
+
 void timer_start();
 void timer_stop();
 
