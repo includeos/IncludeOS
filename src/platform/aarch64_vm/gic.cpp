@@ -9,7 +9,7 @@ extern "C" {
 #include "gic_regs.h"
 //#define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 
-#define GIC_TRACE 1
+//#define GIC_TRACE 0
 
 #if defined(GIC_TRACE)
   #define GIC_PRINT(type, fmt, ...) \

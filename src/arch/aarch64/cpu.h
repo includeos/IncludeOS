@@ -51,6 +51,9 @@ void cpu_enable_exceptions(uint32_t irq);
 uint32_t cpu_get_current_el();
 void cpu_print_current_el();
 
+char *get_tpidr();
+void set_tpidr(void *self);
+
 #if defined(__cplusplus)
 }
 #endif

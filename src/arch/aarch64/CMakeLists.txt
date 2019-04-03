@@ -15,6 +15,7 @@ set(ARCH_SOURCES
   paging.cpp
   cpu.cpp
   timer.cpp
+  syscall_entry.cpp
 )
 enable_language(ASM)
 

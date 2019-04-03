@@ -11,7 +11,7 @@
 #include <version.h>
 #include <kprint>
 
-//#define KERN_DEBUG 1
+#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
 #define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #else
@@ -23,8 +23,7 @@ extern char _ELF_END_;
 extern char _INIT_START_;
 extern char _FINI_START_;
 extern char _SSP_INIT_;
-static uint32_t grub_magic;
-static uint32_t grub_addr;
+static uint64_t fdt_addr;
 
 static volatile int global_ctors_ok = 0;
 __attribute__((constructor))
@@ -45,7 +44,8 @@ int kernel_main(int, char * *, char * *)
   PRATTLE("<kernel_main> OS start \n");
 
   // Initialize early OS, platform and devices
-#if defined(PLATFORM_x86_pc)
+  kernel::start(fdt_addr);
+/*#if defined(PLATFORM_x86_pc)
   kernel::start(grub_magic, grub_addr);
 #elif defined(PLATFORM_x86_solo5)
   //kernel::start((const char*) (uintptr_t) grub_magic);
@@ -53,7 +53,8 @@ int kernel_main(int, char * *, char * *)
 #else
   LL_ASSERT(0 && "Implement call to kernel start for this platform");
 #endif
-
+*/
+  PRATTLE("<kernel_main> sanity checks \n");
   // verify certain read-only sections in memory
   // NOTE: because of page protection we can choose to stop checking here
   kernel_sanity_checks();
@@ -62,6 +63,7 @@ int kernel_main(int, char * *, char * *)
   // Initialize common subsystems and call Service::start
   kernel::post_start();
 
+  PRATTLE("<kernel_main> os_event_loop \n");
   // Starting event loop from here allows us to profile OS::start
   os::event_loop();
   return 0;
@@ -75,6 +77,7 @@ namespace aarch64
 
   void init_libc(uintptr_t fdt)
   {
+    fdt_addr=fdt;
 //    grub_magic = magic;
 //    grub_addr  = addr;
 
@@ -156,21 +159,7 @@ namespace aarch64
     x86::CPU::write_msr(IA32_STAR, star);
     x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
   #elif defined(__aarch64__)
-    //sycall is svc 0
-    //TODO register a __syscall_entry method to issue on svc0
-    /* from x8=n syscall to x5=f.. syscall6
-    static inline long __syscall6(long n, long a, long b, long c, long d, long e, long f)
-{
-        register long x8 __asm__("x8") = n;
-        register long x0 __asm__("x0") = a;
-        register long x1 __asm__("x1") = b;
-        register long x2 __asm__("x2") = c;
-        register long x3 __asm__("x3") = d;
-        register long x4 __asm__("x4") = e;
-        register long x5 __asm__("x5") = f;
-        __asm_syscall("r"(x8), "0"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x5));
-}
-*/
+  //do nothing.. syscalls should result in svc,hvc etc instructions trapping the exception handler
   #elif defined(__i386__)
     PRATTLE("Initialize syscall intr (32-bit)\n");
     #warning Classical syscall interface missing for 32-bit

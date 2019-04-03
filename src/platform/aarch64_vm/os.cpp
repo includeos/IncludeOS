@@ -13,10 +13,15 @@ extern "C" {
 #define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-
+extern bool os_default_stdout;
 
 void kernel::start(uint64_t fdt_addr) // boot_magic, uint32_t boot_addr)
 {
+
+  // Initialize stdout handlers
+  if(os_default_stdout) {
+    os::add_stdout(&kernel::default_stdout);
+  }
   //printf("printf os start\r\n");
   //belongs in platform ?
   const char *fdt=(const char *)fdt_addr;

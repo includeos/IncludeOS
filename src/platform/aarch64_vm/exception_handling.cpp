@@ -46,19 +46,6 @@ static inline void _dump_regs(struct stack_frame *ctx,uint64_t esr)
   kprintf(" x%02d %016zx \n",30,ctx->x[30]);
 }
 
-void exception_handler_syn_el(struct stack_frame *ctx, uint64_t esr)
-{
-  kprintf("SYN EXCEPTION %08x\r\n",esr);
-  uint8_t type = (esr>>26 )&0x3F;
-  switch(type)
-  {
-    //brk
-    case 0x3C:
-      kprintf("Reason: (BRK) code (%04x)\n",(esr&0xFFFF));
-      _dump_regs(ctx,esr);
-      break;
-
-  }
 //  kprintf("SYN EXCEPTION el=%08x\r\n",cpu_get_current_el());
   //kprint("SYN EXCEPTION\r\n");
 //  kprintf("SYN EXCEPTION %08x , %08x\r\n",ctx,syndrome);
@@ -125,7 +112,20 @@ Alignment fault.
 Debug event.
 */
 
-  //asm volatile("eret");
+void exception_handler_syn_el(struct stack_frame *ctx, uint64_t esr)
+{
+  kprintf("SYN EXCEPTION %08x\r\n",esr);
+  uint8_t type = (esr>>26 )&0x3F;
+  switch(type)
+  {
+    //brk
+    case 0x3C:
+      kprintf("Reason: (BRK) code (%04x)\n",(esr&0xFFFF));
+      _dump_regs(ctx,esr);
+      break;
+
+  }
+
   while(1);
 }
 
@@ -133,8 +133,6 @@ void exception_handler_fiq_el(struct stack_frame *ctx,uint64_t esr)
 {
 //  kprintf("FIQ EXCEPTION el=%08x\r\n",cpu_get_current_el());
   kprintf("FIQ EXCEPTION\r\n");
-  //asm volatile("eret");
-
 }
 
 void exception_handler_serror_el(struct stack_frame *ctx,uint64_t esr)
@@ -142,8 +140,6 @@ void exception_handler_serror_el(struct stack_frame *ctx,uint64_t esr)
 //  kprintf("SERROR EXCEPTION el=%08x\r\n",cpu_get_current_el());
   //kprint("SYN EXCEPTION\r\n");
   kprintf("SERROR EXCEPTION\r\n");
-//  asm volatile("eret");
-
 }
 
 void exception_unhandled()
