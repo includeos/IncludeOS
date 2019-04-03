@@ -102,7 +102,7 @@ namespace os::detail {
     main_mem.size -= liu_steal;
     main_mem.size &= ~(uintptr_t) 0xFFF;
 #endif
-    kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
+    kernel::init_heap((uintptr_t)main_mem.ptr,(uintptr_t)((char *)main_mem.ptr + main_mem.size));
   }
 
   const char* Machine::arch() { return Arch::name; }
