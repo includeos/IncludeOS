@@ -89,6 +89,7 @@ pipeline {
             anyOf {
               branch 'master'
               branch 'dev'
+              buildingTag()
             }
           }
           steps {
