@@ -56,14 +56,14 @@ To boot VMs locally you will also need:
 * python3
 * python packages: psutil, jsonschema
 
-The following command will configure conan to use our build profiles and remote repositories.
+The following command will configure conan to use our build profiles and remote repositories. (**Note:** this overwrites any existing conan configuration. Set `CONAN_USER_HOME` to create a separate conan home folder for testing.)
 
 ```text
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git)-repository.
 
-#### Ubuntu 
+#### Ubuntu
 
 ```text
 $ apt-get install python3-pip git cmake clang-6.0 nasm
@@ -77,7 +77,6 @@ If you have [homebrew](https://brew.sh/) you can use our `brew tap` to install t
 ```text
 $ brew tap includeos/includeos
 $ brew install includeos
-$ pip3 install psutil jsonschema
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 
@@ -89,17 +88,16 @@ The following steps let you build and boot the IncludeOS hello world example.
 
 ```text
 $ git clone https://github.com/includeos/hello_world.git
-$ mkdir your_build_dir
-$ cd your_build_dir
+$ mkdir your_build_dir && cd "$_"
 $ conan install ../hello_world -pr <your_conan_profile>
-$ source ./activate.sh
+$ source activate.sh
 $ cmake ../hello_world
 $ cmake --build .
 $ boot hello
 ```
 You can use the [hello world repo](https://github.com/includeos/hello_world) as a starting point for developing your own IncludeOS services. For more advanced examples see the [examples repo](https://github.com/includeos/demo-examples) or the integration tests (under ./IncludeOS/test/\*/integration).
 
-Once you're done `$ source ./deactivate.sh` will reset the environment to its previous state.
+Once you're done `$ source deactivate.sh` will reset the environment to its previous state.
 
 ### <a name="develop_pkg"></a> Getting started developing packages
 
@@ -114,7 +112,7 @@ We upload to two channels:
 - `stable`: this channel has all the stable packages.
 - `latest`: this channel will have the latest packages in development/test phase (including stable releases).
 
-> **NOTE:** We only guarantee that the **latest 10 packages** are kept in the `latest` channel. All `stable` packages will be kept in the stable channel unless proven unsafe. One suggested workaround is to copy packages into your own repository.
+> **Note:** We only guarantee that the **latest 10 packages** are kept in the `latest` channel. All `stable` packages will be kept in the stable channel unless proven unsafe. One suggested workaround is to copy packages into your own repository.
 
 To set up our remote, we recommend following the steps listed in [Dependencies](#dependencies).
 
@@ -156,7 +154,7 @@ Below we have written down a few steps to get you started with editable packages
 
 > **Note:** Currently this is an experimental feature on conan version 1.13 and they have mentioned that for future releases the feature is subject to breaking changes.
 
-Start by cloning the IncludeOS source code and create a `build` folder. You have to edit `etc/layout.txt` in the source code to point to the `build` folder you created, by updating the `build_dir` variable. 
+Start by cloning the IncludeOS source code and create a `build` folder. You have to edit `etc/layout.txt` in the source code to point to the `build` folder you created, by updating the `build_dir` variable.
 
 The layout will look similar to the example below. You only have to update `build_dir`.
 
@@ -193,13 +191,13 @@ The layout will look similar to the example below. You only have to update `buil
 ```
 > **Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases
 
-You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this has to match exactly. 
+You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this has to match exactly.
 
 ```text
 $ conan editable add . includeos/$(conan inspect -a version . | cut -d " " -f 2)@includeos/latest --layout=etc/layout.txt
 ```
 
-The package is now in **editable mode** and any dependencies of IncludeOS will pick this IncludeOS package from your local cache. 
+The package is now in **editable mode** and any dependencies of IncludeOS will pick this IncludeOS package from your local cache.
 
 Here is an example on how it looks when its pulled into cache as editable:
 
@@ -210,7 +208,7 @@ $ conan editable list
     Layout: ~/git/IncludeOS/etc/layout.txt
 ```
 
-We are now ready to build the package. Assuming the build-folder is called `build` under the includeos source directory the following is enough. 
+We are now ready to build the package. Assuming the build-folder is called `build` under the includeos source directory the following is enough.
 
 ```text
 $ cd [includeos source root]
@@ -218,7 +216,7 @@ $ conan install -if build . -pr <conan_profile> (-o options like platform=nano e
 $ conan build -bf build .
 ```
 
-After making changes to the code you can rebuild the package with 
+After making changes to the code you can rebuild the package with
 
 ```text
 $ cd build && make
@@ -270,8 +268,6 @@ NaCl is the configuration language tool we have tailored for IncludeOS to allow 
 ## <a name="contribute"></a> Contributing to IncludeOS
 
 IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
-
-> **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
 
 ## <a name="guideline"></a> C++ Guidelines
 
