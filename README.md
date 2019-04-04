@@ -66,8 +66,8 @@ If you prefer to set up conan manually the full configuration can be found in th
 #### Ubuntu
 
 ```text
-$ apt-get install python3-pip git cmake clang-6.0 nasm
-$ pip3 install conan psutil jsonschema
+$ apt-get install python3-pip python3-dev git cmake clang-6.0 gcc nasm make qemu
+$ pip3 install setuptools wheel conan psutil jsonschema
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 
