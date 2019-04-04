@@ -1,7 +1,7 @@
 ![IncludeOS Logo](./etc/logo.png)
 ================================================
 
-**IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
+**IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud and on real HW. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
@@ -21,7 +21,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
     * Full C++11/14/17 language support with [clang](http://clang.llvm.org) 5 and later.
     * Standard C++ library (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/).
     * Exceptions and stack unwinding (currently using [libgcc](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html)).
-    * *Note:* Certain language features, such as threads and filestreams are currently missing backend support.
+    * *Note:* Certain language features, such as threads and filestreams are currently missing backend support but is beeing worked on.
 * **Standard C library** using [musl libc](http://www.musl-libc.org/).
 * **Virtio and vmxnet3 Network drivers** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. vmxnet3 is the VMWare equivalent.
 * **A highly modular TCP/IP-stack**.
@@ -47,14 +47,13 @@ A longer list of features and limitations can be found on our [documentation sit
 For building IncludeOS services you will need:
 
 * [The conan package manager](https://docs.conan.io/en/latest/installation.html) (1.13.1 or newer)
-* cmake, make, nasm
+* cmake, make, nasm (x86/x86_64 only)
 * clang, or alternatively gcc on linux. Prebuilt packages are available for clang 6.0 and gcc 7.3.
 
-To boot VMs locally you will also need:
+To boot VMs locally with our tooling you will also need:
 
 * qemu
-* python3
-* python packages: psutil, jsonschema
+* python3 packages: psutil, jsonschema
 
 The following command will configure conan to use our build profiles and remote repositories. (**Note:** this overwrites any existing conan configuration. Set `CONAN_USER_HOME` to create a separate conan home folder for testing.)
 
@@ -80,7 +79,7 @@ $ brew install includeos
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 
-### <a href="hello_world"></a> Hello world
+### <a href="hello_world"></a> Hello World
 
 First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, Linux users can typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
 
