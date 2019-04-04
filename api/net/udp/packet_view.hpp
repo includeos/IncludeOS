@@ -80,13 +80,13 @@ public:
   { return sizeof(udp::Header); }
 
   uint16_t udp_length() const noexcept
-  { return ntohs(udp_header().length); }
+  { return udp_header_length() + udp_data_length(); }
 
   uint16_t udp_data_length() const noexcept
   {
     const uint16_t hdr_len = ip_header_length();
     uint16_t real_length = pkt->size() - hdr_len;
-    uint16_t final_length = std::min(real_length, udp_length());
+    uint16_t final_length = std::min(real_length, ntohs(udp_header().length));
     return final_length - sizeof(udp::Header);
   }
 

@@ -84,7 +84,7 @@ namespace net {
     PRINT("<%s> UDP", stack_.ifname().c_str());
 
     PRINT("\t Source port: %u, Dest. Port: %u Length: %u\n",
-          udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
+          udp_packet->src_port(), udp_packet->dst_port(), udp_packet->udp_length());
 
     const auto dest = udp_packet->destination();
     auto it = find(dest);
@@ -222,9 +222,9 @@ namespace net {
   void UDP::transmit(udp::Packet_view_ptr udp)
   {
     PRINT("<UDP> Transmitting %u bytes (data=%u) from %s to %s:%i\n",
-           udp->length(), udp->data_length(),
-           udp->ip_src().str().c_str(),
-           udp->ip_dst().str().c_str(), udp->dst_port());
+           udp->udp_length(), udp->udp_data_length(),
+           udp->ip_src().to_string().c_str(),
+           udp->ip_dst().to_string().c_str(), udp->dst_port());
 
     Expects(udp->udp_length() >= sizeof(udp::Header));
 
