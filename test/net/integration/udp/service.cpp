@@ -28,6 +28,9 @@ void Service::start()
   const uint16_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
+  inet.add_addr(ip6::Addr{"fe80::4242"});
+  auto& sock6 = inet.udp().bind6(port);
+
   sock.on_read(
     [&sock] (
       UDP::addr_t addr, UDP::port_t port,
@@ -47,6 +50,21 @@ void Service::start()
       sock.sendto(addr, port, data, len);
     }
   });
+
+  sock6.on_read(
+    [&sock6] (
+      UDP::addr_t addr, UDP::port_t port,
+      const char* data, size_t len)
+  {
+    CHECK(1, "UDP data from %s:%u -> %.*s",
+         addr.to_string().c_str(), port, std::min((int) len, 16), data);
+    // send the same thing right back!
+    printf("Got %lu bytes\n", len);
+    if (len > 0) {
+      sock6.sendto(addr, port, data, len);
+    }
+  });
+
 
   INFO("UDP test service", "Listening on port %d\n", port);
 }
