@@ -78,6 +78,8 @@ $ brew tap includeos/includeos
 $ brew install includeos
 $ conan config install https://github.com/includeos/conan_config.git
 ```
+#### Vagrant
+If you want to use a Vagrant box to explore IncludeOS and contribute to IncludeOS development, you can read the getting started with Vagrant. See [etc/vagrant.md](etc/vagrant.md)
 
 ### <a href="hello_world"></a> Hello World
 
@@ -110,93 +112,6 @@ We upload to two channels:
 
 - `stable`: this channel has all the stable packages.
 - `latest`: this channel will have the latest packages in development/test phase (including stable releases).
-
-To find all the stable versions uploaded for a particular package, try:
-
-```
-    $ conan search -r includeos '<package_name>/*@includeos/stable'
-```
-> **NOTE:** We only guarantee that the **latest 10 packages** are kept in the
-`latest` channel. All `stable` packages will be kept in the stable channel unless
-proven unsafe. One suggested workaround is to copy packages into your own repository.
-YOu can do that using the copy command:
-
-```
-    $ conan copy --all -p <path-to-conanfile> <package_name>@<your_repository>/<your_channel>
-```
-___
-
-### <a name="getting_started"></a> Getting started with IncludeOS development on Vagrant
-
-To get started with IncludeOS development on a Vagrant, you should install Vagrant and virtualbox as instructed.
-</p>
-
-* [Install Vagrant](https://www.vagrantup.com/docs/installation/)
-* [Install VirtualBox](https://www.virtualbox.org/manual/UserManual.html#installation)
-
-After that clone the IncludeOS repo. This will be the basis for bringing up the Vagrant box.
-##### Cloning the IncludeOS repository:
-```
-    $ git clone https://github.com/includeos/IncludeOS
-    $ cd IncludeOS
-```
-##### Now you can create the Vagrant box with IncludeOS for development of services and login to the Vagrant box:
-```
-	$ vagrant up
-	$ vagrant ssh
-```
-Test the vagrant box installation by creating your first IncludeOS service. Inside Vagrant IncludeOS has been built with profile 'clang-6.0-linux-x86_64', use this profile to create the demo service. See the following paragraph.
-___
-
-### <a name="building_service"></a>Building, starting and creating your first IncludeOS Service with Conan
-
-Examples are now built with conan packages. The IncludeOS demo examples have now
-been moved to [includeos/demo-examples](https://github.com/includeos/demo-examples.git).
-
-To start build your first service clone the repository:
-
-```
-  $ git clone https://github.com/includeos/demo-examples.git
-  $ cd demo-examples && ls
-```
-
-You will see a list of all the example services you can try building.
-
-##### Building the demo service
-
-To build the demo service, create a `build` folder inside the `demo_service` folder
-and install with the profile you would like to use.
-
-```
-  $ cd demo_service
-  $ mkdir build
-  $ cd build
-  $ conan install .. -pr <name-of-profile>
-```
-
-Installing with the chosen profile, fetches the profile configurations and Installs
-the requirements in the `conanfile.txt`. If the required packages are not in the
-local conan cache they are downloaded and installed. If all the packages required
-are already in the local conan cache then it moves on to apply build requirements
-and generates the required virtualenv scripts and cmake information.
-
-Next to build the service do:
-
-```
-  $ cmake ..
-  $ cmake --build .
-
-```
-Doing `cmake` configures and generates the build files and they are written to
-the build folder. Then doing `cmake --build .` builds the target service. You
-should see the last line as:
-
-```
-  [100%] Built target demo
-```
-`demo` is the name of this service for the demo_service. That's the name you will
-use when starting the service. Do `ls` to see all the files created. There is also
-an executable file named `demo` which is now the service you will start.
 
 > **Note:** We only guarantee that the **latest 10 packages** are kept in the `latest` channel. All `stable` packages will be kept in the stable channel unless proven unsafe. One suggested workaround is to copy packages into your own repository.
 
