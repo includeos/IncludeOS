@@ -1082,7 +1082,7 @@ private:
   void finish_fast_recovery();
 
   bool reno_full_ack(seq_t ACK)
-  { return ACK - 1 > cb.recover; }
+  { return static_cast<int32_t>(ACK - cb.recover) > 1; }
 
 
 
