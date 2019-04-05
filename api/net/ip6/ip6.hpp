@@ -167,6 +167,10 @@ namespace net
     Filter_chain<IP6>& output_chain()
     { return output_chain_; }
 
+    /*
+      Maximum Datagram Data Size
+    */
+    uint16_t MDDS() const;
 
     /**
      * Stats getters

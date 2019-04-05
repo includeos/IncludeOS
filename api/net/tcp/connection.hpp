@@ -572,8 +572,8 @@ public:
 
     uint32_t TS_recent; // Recent timestamp received from user [RFC 7323]
 
-    TCB(const uint32_t recvwin);
-    TCB();
+    TCB(const uint16_t mss, const uint32_t recvwin);
+    TCB(const uint16_t mss);
 
     void init() {
       ISS = Connection::generate_iss();
@@ -1020,6 +1020,8 @@ private:
   Packet_view_ptr outgoing_packet()
   { return create_outgoing_packet(); }
 
+  uint16_t MSS() const noexcept;
+
   /**
    * @brief      Maximum Segment Data Size
    *             Limits the size for outgoing packets
@@ -1080,7 +1082,7 @@ private:
   void finish_fast_recovery();
 
   bool reno_full_ack(seq_t ACK)
-  { return ACK - 1 > cb.recover; }
+  { return static_cast<int32_t>(ACK - cb.recover) > 1; }
 
 
 

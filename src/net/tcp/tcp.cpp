@@ -608,6 +608,13 @@ void TCP::queue_offer(Connection& conn)
 tcp::Address TCP::address() const noexcept
 { return inet_.ip_addr(); }
 
+uint16_t TCP::MSS(const Protocol ipv) const
+{
+  return ((ipv == Protocol::IPv6) ?
+    inet_.ip6_obj().MDDS() : network().MDDS())
+    - sizeof(tcp::Header);
+}
+
 IP4& TCP::network() const
 { return inet_.ip_obj(); }
 

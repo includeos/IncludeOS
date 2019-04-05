@@ -288,7 +288,10 @@ namespace net
     ndp_out_(std::move(packet), next_hop, MAC::EMPTY);
   }
 
-    const ip6::Addr IP6::local_ip() const {
+  const ip6::Addr IP6::local_ip() const {
     return stack_.ip6_addr();
   }
+
+  uint16_t IP6::MDDS() const
+  { return stack_.MTU() - sizeof(ip6::Header); }
 }

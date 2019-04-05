@@ -33,7 +33,7 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     is_ipv6_(local_.address().is_v6()),
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
-    cb{host_.window_size()},
+    cb{(is_ipv6_) ? default_mss_v6 : default_mss, host_.window_size()},
     read_request(nullptr),
     writeq(),
     on_connect_{std::move(callback)},
@@ -44,7 +44,7 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     queued_(false),
     dack_{0},
     last_ack_sent_{cb.RCV.NXT},
-    smss_{host_.MSS()}
+    smss_{MSS()}
 {
   setup_congestion_control();
   //printf("<Connection> Created %p %s  ACTIVE: %u\n", this,
@@ -124,8 +124,8 @@ Connection_ptr Connection::retrieve_shared() {
 {
 }*/
 
-Connection::TCB::TCB(const uint32_t recvwin)
-  : SND{ 0, 0, default_window_size, 0, 0, 0, default_mss, 0, false },
+Connection::TCB::TCB(const uint16_t mss, const uint32_t recvwin)
+  : SND{ 0, 0, default_window_size, 0, 0, 0, mss, 0, false },
     ISS{(seq_t)4815162342},
     RCV{ 0, recvwin, 0, 0, 0 },
     IRS{0},
@@ -136,8 +136,8 @@ Connection::TCB::TCB(const uint32_t recvwin)
 {
 }
 
-Connection::TCB::TCB()
-  : Connection::TCB(default_window_size)
+Connection::TCB::TCB(const uint16_t mss)
+  : Connection::TCB(mss, default_window_size)
 {
 }
 
@@ -154,8 +154,12 @@ void Connection::reset_callbacks()
   }
 }
 
+uint16_t Connection::MSS() const noexcept {
+  return host_.MSS(ipv());
+}
+
 uint16_t Connection::MSDS() const noexcept {
-  return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
+  return std::min(MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
 size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) {
@@ -1359,7 +1363,7 @@ void Connection::add_option(Option::Kind kind, Packet_view& packet) {
   switch(kind) {
 
   case Option::MSS: {
-    packet.add_tcp_option<Option::opt_mss>(host_.MSS());
+    packet.add_tcp_option<Option::opt_mss>(MSS());
     debug2("<TCP::Connection::add_option@Option::MSS> Packet: %s - MSS: %u\n",
            packet.to_string().c_str(), ntohs(*(uint16_t*)(packet.tcp_options()+2)));
     break;
