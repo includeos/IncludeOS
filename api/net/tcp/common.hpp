@@ -42,7 +42,8 @@ namespace net {
     static constexpr bool     default_sack {true};
     static constexpr size_t   default_sack_entries{32};
     // maximum size of a TCP segment - later set based on MTU or peer
-    static constexpr uint16_t default_mss {536};
+    static constexpr uint16_t default_mss     {536};
+    static constexpr uint16_t default_mss_v6  {1220};
     // the maximum amount of half-open connections per port (listener)
     static constexpr size_t   default_max_syn_backlog {64};
     // clock granularity of the timestamp value clock

@@ -424,8 +424,7 @@ namespace net {
      *
      * @return     The MSS
      */
-    uint16_t MSS() const
-    { return network().MDDS() - sizeof(tcp::Header); }
+    uint16_t MSS(const Protocol) const;
 
     /**
      * @brief      Returns a string representation of the listeners and connections.
