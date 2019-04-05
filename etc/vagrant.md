@@ -19,4 +19,4 @@ After that clone the IncludeOS repo. This will be the basis for bringing up the 
 	$ vagrant up
 	$ vagrant ssh
 ```
-Test the vagrant box installation by creating your first IncludeOS service. Inside Vagrant IncludeOS has been built with profile 'clang-6.0-linux-x86_64', use this profile to create the Hello World service. See [README](/README.MD#hello_world).
+Test the vagrant box installation by creating your first IncludeOS service. Inside Vagrant IncludeOS has been built with profile 'clang-6.0-linux-x86_64', use this profile to create the Hello World service. See [README](/README.md#hello_world).
