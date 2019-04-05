@@ -114,7 +114,7 @@ endif()
 
 # linker stuff
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS) # this removed -rdynamic from linker output
-if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS> ${CRTI} --start-group <LINK_LIBRARIES> --end-group ${CRTN}")
 else()
   set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -S -o <TARGET> <LINK_FLAGS> <OBJECTS> ${CRTI} --start-group <LINK_LIBRARIES> --end-group ${CRTN}")
@@ -155,7 +155,7 @@ function(os_add_executable TARGET NAME)
 
 
   # TODO: if not debug strip
-  if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(STRIP_LV )
   else()
     set(STRIP_LV ${CMAKE_STRIP} --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
