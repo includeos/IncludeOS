@@ -2,13 +2,21 @@
 #include <arch.hpp>
 #include <string>
 #include <os>
+#include <kernel/threads.hpp>
 
 __attribute__((noreturn))
 static long sys_exit(int status)
 {
-  const std::string msg = "Service exited with status " + std::to_string(status) + "\n";
-  os::print(msg.data(), msg.size());
-  __arch_poweroff();
+  auto* t = kernel::get_thread();
+  if (t == 0) {
+    const std::string msg = "Service exited with status " + std::to_string(status) + "\n";
+    os::print(msg.data(), msg.size());
+    __arch_poweroff();
+  }
+  else {
+    // exit from a thread
+    kernel::thread_exit();
+  }
   __builtin_unreachable();
 }
 

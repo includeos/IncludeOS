@@ -16,8 +16,9 @@ set(SRCS
 #    profile.cpp
     terminal.cpp
     timers.cpp
+    threads.cpp
+    #tls.cpp
     rng.cpp
-    tls.cpp
     vga.cpp
     context.cpp
     #context_asm.asm

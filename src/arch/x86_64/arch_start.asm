@@ -202,8 +202,9 @@ __gdt64_base_pointer:
     dw $ - GDT64 - 1             ; Limit.
     dq GDT64                     ; Base.
 
-SECTION .bss
+SECTION .rodata
 tls_table:
     dq   tls_table
+SECTION .bss
 smp_table:
     resw 8

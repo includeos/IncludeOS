@@ -235,7 +235,7 @@ uintptr_t Elf::resolve_addr(void* addr)
   return (uintptr_t) addr;
 }
 
-safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
+safe_func_offset Elf::safe_resolve_symbol(const void* addr, char* buffer, size_t length)
 {
   return get_parser().getsym_safe((ElfAddr) addr, buffer, length);
 }
