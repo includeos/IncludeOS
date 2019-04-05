@@ -62,7 +62,7 @@ namespace net::udp
   uint16_t calculate_checksum6(const View6& packet)
   {
     constexpr uint8_t Proto_UDP = 17;
-    const uint16_t length = packet.udp_data_length();
+    const uint16_t length = packet.udp_length();
     const auto ip_src = packet.ip6_src();
     const auto ip_dst = packet.ip6_dst();
     // Compute sum of pseudo-header
