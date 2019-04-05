@@ -78,6 +78,8 @@ $ brew tap includeos/includeos
 $ brew install includeos
 $ conan config install https://github.com/includeos/conan_config.git
 ```
+#### Vagrant
+If you want to use a Vagrant box to explore IncludeOS and contribute to IncludeOS development, you can read the getting started with Vagrant. See [etc/vagrant.md](etc/vagrant.md)
 
 ### <a href="hello_world"></a> Hello World
 
