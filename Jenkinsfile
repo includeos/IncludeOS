@@ -85,7 +85,13 @@ pipeline {
     stage('Upload to bintray') {
       parallel {
         stage('Latest release') {
-          when { branch 'master' }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'dev'
+              buildingTag()
+            }
+          }
           steps {
             upload_package("includeos", "$CHAN_LATEST")
             upload_package("liveupdate", "$CHAN_LATEST")

@@ -10,7 +10,7 @@ import socket
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
-def UDP_test(trigger_line):
+def UDP_test():
   print("<Test.py> Performing UDP tests")
   HOST, PORT = "10.0.0.55", 4242
   sock = socket.socket
@@ -57,8 +57,47 @@ def UDP_test(trigger_line):
 
   vm.exit(0, "Test completed without errors")
 
+def UDP6_test(trigger_line):
+  print("<Test.py> Performing UDP6 tests")
+  HOST, PORT = 'fe80::4242%bridge43', 4242
+  sock = socket.socket
+  # SOCK_DGRAM is the socket type to use for UDP sockets
+  sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+  sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+  res = socket.getaddrinfo(HOST, PORT, socket.AF_INET6, socket.SOCK_DGRAM)
+  af, socktype, proto, canonname, addr = res[0]
+  # NOTE: This is necessary for the test to exit after the VM has
+  # been shut down due to a VM timeout
+  sock.settimeout(20)
+
+  data = "Lucky".encode()
+  sock.sendto(data, addr)
+  received = sock.recv(1024)
+
+  print("<Test.py> Sent:     {}".format(data))
+  print("<Test.py> Received: {}".format(received))
+  if received != data: return False
+
+  data = "Luke".encode()
+  sock.sendto(data, addr)
+  received = sock.recv(1024)
+
+  print("<Test.py> Sent:     {}".format(data))
+  print("<Test.py> Received: {}".format(received))
+  if received != data: return False
+
+  data = "x".encode() * 1448
+  sock.sendto(data, addr)
+  received = sock.recv(1500)
+  if received != data:
+      print("<Test.py> Did not receive long string: {}".format(received))
+      return False
+
+  UDP_test()
+
 # Add custom event-handler
-vm.on_output("UDP test service", UDP_test)
+vm.on_output("UDP test service", UDP6_test)
 
 if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
