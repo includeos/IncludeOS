@@ -3,9 +3,6 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-# create OS version string from git describe (used in CXX flags)
-set(SSP_VALUE "0x0" CACHE STRING "Fixed stack sentinel value")
-
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -120,11 +117,18 @@ set(CMAKE_SKIP_RPATH ON)
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
+option(for_production "Stop the OS when conditions not suitable for production" ON)
+if (for_production)
+  set(PROD_USE "--defsym __for_production_use=0x2000")
+else()
+  set(PROD_USE "--defsym __for_production_use=0x1000")
+endif()
+
 # TODO: find a more proper way to get the linker.ld script ?
 if("${ARCH}" STREQUAL "aarch64")
-  set(LDFLAGS "-nostdlib -m${ELF}elf --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE}  ${PRE_BSS_SIZE}")
+  set(LDFLAGS "-nostdlib -m${ELF}elf --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE} ${PRE_BSS_SIZE}")
 else()
-  set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} --defsym _SSP_INIT_=${SSP_VALUE} ${PRE_BSS_SIZE}")
+  set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE} ${PRE_BSS_SIZE}")
 endif()
 
 set(ELF_POSTFIX .elf.bin)
