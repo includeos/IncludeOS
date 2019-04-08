@@ -4,7 +4,6 @@ from builtins import str
 import sys
 import os
 import subprocess
-import subprocess32
 
 thread_timeout = 20
 

@@ -3,7 +3,6 @@ from __future__ import print_function
 import sys
 import os
 import subprocess
-import subprocess32
 
 thread_timeout = 30
 from vmrunner import vmrunner
@@ -17,7 +16,7 @@ def cleanup():
 
 cleanup()
 # Setup disk
-subprocess32.call(["./fat32_disk.sh"], shell=True, timeout=thread_timeout)
+subprocess.call(["./fat32_disk.sh"], shell=True, timeout=thread_timeout)
 
 # Clean up on exit
 vm.on_exit(cleanup)
