@@ -43,10 +43,12 @@ extern char _TEXT_START_;
 extern char _LOAD_START_;
 extern char _ELF_END_;
 
-//uintptr_t OS::liveupdate_loc_   = 0;
+extern char __for_production_use;
+inline static bool is_for_production_use() {
+  return &__for_production_use == (char*) 0x2000;
+}
 
 kernel::State __kern_state;
-
 kernel::State& kernel::state() noexcept {
   return __kern_state;
 }
@@ -166,10 +168,16 @@ void kernel::post_start()
   const bool unsafe = true;
 #else
   // if we dont have a good random source, its unsafe for production
-  const bool unsafe = CPUID::has_feature(CPUID::Feature::RDRAND);
+  const bool unsafe = !CPUID::has_feature(CPUID::Feature::RDSEED)
+                   && !CPUID::has_feature(CPUID::Feature::RDRAND);
 #endif
   if (unsafe) {
     printf(" +--> WARNiNG: Environment unsafe for production\n");
+    if (is_for_production_use()) {
+      printf(" +--> Stop option enabled. Shutting down now...\n");
+      os::shutdown();
+      return;
+    }
     FILLINE('~');
   }
 

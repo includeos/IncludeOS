@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <kernel.hpp>
+#include <kernel/rng.hpp>
 #include <os.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
@@ -104,6 +105,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   __machine->init();
 
   // TODO: Move more stuff into Machine::init
+  RNG::init();
 
   PRATTLE("* Init syscalls\n");
   _init_syscalls();
