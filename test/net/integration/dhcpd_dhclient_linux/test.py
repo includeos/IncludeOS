@@ -6,7 +6,6 @@ import sys
 import os
 import time
 import subprocess
-import subprocess32
 
 thread_timeout = 20
 
@@ -74,7 +73,7 @@ def ping_test():
   try:
     command = ["ping", assigned_ip, "-c", str(ping_count), "-i", "0.2"]
     print(color.DATA(" ".join(command)))
-    print(subprocess32.check_output(command, timeout=thread_timeout))
+    print(subprocess.check_output(command, timeout=thread_timeout))
     ping_passed = True
   except Exception as e:
     print(color.FAIL("<Test.py> Ping FAILED Process threw exception:"))
@@ -88,17 +87,17 @@ def run_dhclient(trigger_line):
   route_output = subprocess.check_output(["route"])
 
   if "10.0.0.0" not in route_output:
-    subprocess32.call(["sudo", "ifconfig", "bridge43", "10.0.0.1", "netmask", "255.255.0.0", "up"], timeout=thread_timeout)
+    subprocess.call(["sudo", "ifconfig", "bridge43", "10.0.0.1", "netmask", "255.255.0.0", "up"], timeout=thread_timeout)
     time.sleep(1)
 
   if "10.200.0.0" not in route_output:
-    subprocess32.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"], timeout=thread_timeout)
+    subprocess.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"], timeout=thread_timeout)
     print(color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0")
 
   print(color.INFO("<Test.py>"), "Running dhclient")
 
   try:
-    dhclient = subprocess32.check_output(
+    dhclient = subprocess.check_output(
         ["sudo", "dhclient", "bridge43", "-4", "-n", "-v"],
         stderr=subprocess.STDOUT,
         timeout=thread_timeout

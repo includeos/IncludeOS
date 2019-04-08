@@ -4,7 +4,6 @@ from builtins import str
 import sys
 import os
 import subprocess
-import subprocess32
 
 thread_timeout = 30
 
@@ -22,7 +21,7 @@ def cleanup():
     print(subprocess.check_output(["./fat32_disk.sh", "clean"]))
 
 # Setup disk
-subprocess32.call(["./fat32_disk.sh"], shell=True, timeout=thread_timeout)
+subprocess.call(["./fat32_disk.sh"], shell=True, timeout=thread_timeout)
 
 # Clean up on exit
 vm.on_exit(cleanup)
