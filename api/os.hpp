@@ -47,7 +47,8 @@ namespace os {
   /** Enter the main event loop.  Trigger subscribed and triggerd events */
   void event_loop();
 
-
+  /** Have we booted up or are we resuming */
+  bool is_booted() noexcept;
   /**
    *  Halt until next event.
    *

@@ -147,9 +147,16 @@ function(os_add_executable TARGET NAME)
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
   conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
-  target_link_libraries(${ELF_TARGET} ${LIBRARIES})
 
-
+  foreach(_LIB ${LIBRARIES})
+    get_filename_component(_PATH ${_LIB} DIRECTORY)
+    if (_PATH MATCHES ".*drivers" OR _PATH MATCHES ".*plugins" OR _PATH MATCHES ".*stdout")
+      message(STATUS "Whole Archive " ${_LIB})
+      os_link_libraries(${TARGET} --whole-archive ${_LIB} --no-whole-archive)
+    else()
+      target_link_libraries(${ELF_TARGET} ${_LIB})
+    endif()
+  endforeach()
 
   # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
