@@ -52,10 +52,6 @@ set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
 set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
-set(LIBRARIES ${CONAN_LIBS})
-set(CONAN_LIBS "")
-
-#set(ELF_SYMS elf_syms)
 
 find_program(ELF_SYMS elf_syms)
 if (ELF_SYMS-NOTFOUND)
@@ -150,6 +146,7 @@ function(os_add_executable TARGET NAME)
   set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS SERVICE="${TARGET}" SERVICE_NAME="${NAME}")
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
+  conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
   target_link_libraries(${ELF_TARGET} ${LIBRARIES})
 
 
