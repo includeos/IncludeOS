@@ -29,7 +29,7 @@ pipeline {
           sh script: "conan install $SRC/test -pr $PROFILE_x86_64", label: "Conan install"
           sh script: ". ./activate.sh; cmake $SRC/test -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
           sh script: "make -j $CPUS", label: "Make"
-          sh script: "ctest", label: "Ctest"
+          sh script: "ctest --schedule-random", label: "Ctest"
         }
       }
     }
@@ -61,7 +61,7 @@ pipeline {
           sh script: "conan install $SRC/test/integration -pr $PROFILE_x86_64", label: "Conan install"
           sh script: ". ./activate.sh; cmake $SRC/test/integration -DSTRESS=ON -DCMAKE_BUILD_TYPE=Debug", label: "Cmake"
           sh script: "make -j $CPUS", label: "Make"
-          sh script: "ctest -E stress --output-on-failure", label: "Tests"
+          sh script: "ctest -E stress --output-on-failure --schedule-random", label: "Tests"
           sh script: "ctest -R stress -E integration --output-on-failure", label: "Stress test"
         }
       }
@@ -83,15 +83,14 @@ pipeline {
       }
     }
     stage('Upload to bintray') {
+      when {
+        anyOf {
+          branch 'master'
+          branch 'dev'
+        }
+      }
       parallel {
         stage('Latest release') {
-          when {
-            anyOf {
-              branch 'master'
-              branch 'dev'
-              buildingTag()
-            }
-          }
           steps {
             upload_package("includeos", "$CHAN_LATEST")
             upload_package("liveupdate", "$CHAN_LATEST")
