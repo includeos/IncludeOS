@@ -68,7 +68,7 @@ void kernel::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept 
   kernel::state().heap_max   = memory_end - 1;
   kernel::state().heap_begin = util::bits::roundto<heap_alignment>(free_mem_begin);
   auto brk_end  = __init_brk(kernel::heap_begin(), __brk_max);
-
+  Expects(brk_end <= memory_end);
   __init_mmap(brk_end, memory_end);
   __heap_ready = true;
 }

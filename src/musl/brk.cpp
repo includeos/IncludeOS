@@ -5,7 +5,7 @@
 #include <kprint>
 
 static uintptr_t brk_begin        = 0;
-static uintptr_t brk_end          = 0;
+static uintptr_t brk_current_end  = 0;
 static uintptr_t brk_initialized  = 0;
 static ssize_t   brk_max          = 0;
 
@@ -13,15 +13,15 @@ static ssize_t   brk_max          = 0;
 uintptr_t __init_brk(uintptr_t begin, size_t size)
 {
   brk_begin = begin;
-  brk_end   = begin;
-  brk_max   = begin + size;
-  brk_initialized = brk_end;
+  brk_current_end = begin;
+  brk_max   = size;
+  brk_initialized = brk_current_end;
   return brk_begin + brk_max;
 }
 
 
 size_t brk_bytes_used() {
-  return brk_end - brk_begin;
+  return brk_current_end - brk_begin;
 }
 
 size_t brk_bytes_free() {
@@ -33,17 +33,17 @@ static uintptr_t sys_brk(void* addr)
   if (addr == nullptr
       or (uintptr_t)addr > brk_begin +  brk_max
       or (uintptr_t)addr < brk_begin) {
-    return brk_end;
+    return brk_current_end;
   }
 
-  brk_end = (uintptr_t)addr;
+  brk_current_end = (uintptr_t)addr;
 
-  if (brk_end > brk_initialized) {
-    memset((void*)brk_initialized, 0, brk_end - brk_initialized);
-    brk_initialized = brk_end;
+  if (brk_current_end > brk_initialized) {
+    memset((void*)brk_initialized, 0, brk_current_end - brk_initialized);
+    brk_initialized = brk_current_end;
   }
 
-  return brk_end;
+  return brk_current_end;
 }
 
 extern "C"
