@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.0)
-
-#service
 project (service)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
@@ -12,18 +10,10 @@ conan_basic_setup()
 include(os)
 
 option(benchmark_mode "Optimizations for benchmarking" OFF)
-option(SERIAL_OUTPUT "Output information" OFF)
+option(SERIAL_OUTPUT "Output information" ON)
 if (benchmark_mode)
   add_definitions(-DBENCHMARK_MODE)
 endif()
-
-# Human-readable name of your service
-#set(SERVICE_NAME "LiveUpdate integration test")
-
-# Name of your service binary
-#set(BINARY       "service")
-
-
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
