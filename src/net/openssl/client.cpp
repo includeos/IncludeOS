@@ -38,7 +38,9 @@ static void
 tls_private_key_for_ctx(SSL_CTX* ctx, int bits = 2048)
 {
   BIGNUM* bne = BN_new();
-  assert(BN_set_word(bne, RSA_F4) == 1);
+  auto res = BN_set_word(bne, RSA_F4);
+  assert(res == 1);
+  (void)res;
 
   RSA* rsa = RSA_new();
   int ret = RSA_generate_key_ex(rsa, bits, bne, NULL);
