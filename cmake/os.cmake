@@ -338,10 +338,14 @@ function(os_diskbuilder TARGET FOLD)
   os_build_memdisk(${TARGET} ${FOLD})
 endfunction()
 
-function(os_install_certificates FOLDER)
-  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  message(STATUS "Install certificate bundle at ${FOLDER}")
-  file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
+function(os_add_ssl_certificates TARGET)
+  file(DOWNLOAD https://github.com/fwsGonzo/s2n_bundle/releases/download/v1/ca_bundle.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/certs)
+  execute_process(
+    COMMAND tar -xvf  ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz --strip-components=1 -C ${CMAKE_CURRENT_BINARY_DIR}/certs
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+  os_build_memdisk(${TARGET} ${CMAKE_CURRENT_BINARY_DIR}/certs)
 endfunction()
 
 
