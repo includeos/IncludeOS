@@ -22,7 +22,7 @@ pipeline {
       steps {
         sh script: "ls -A | grep -v src | xargs rm -r || :", label: "Clean workspace"
         sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
-        script { VERSION = sh(script: "conan inspect -a version $SRC | cut -d ' ' -f 2", returnStdout: true).trim() }
+        script { VERSION = sh(script: "conan inspect -a version $SRC | grep version | cut -d ' ' -f 2", returnStdout: true).trim() }
       }
     }
     stage('Unit test and coverage') {
