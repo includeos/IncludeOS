@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()

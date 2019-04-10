@@ -1,4 +1,3 @@
-
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
@@ -6,16 +5,9 @@ endif()
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (${CMAKE_VERSION} VERSION_LESS "3.12")
-  find_program(Python2 python2.7)
-  if (NOT Python2)
-    #brutal fallback
-    set(Python2_EXECUTABLE python)
-  else()
-    set(Python2_EXECUTABLE ${Python2})
-  endif()
-else()
-  find_package(Python2 COMPONENTS Interpreter)
+find_program(PYTHON3_EXECUTABLE python3)
+if (PYTHON3_EXECUTABLE-NOTFOUND)
+  message(FATAL_ERROR "python3 not found")
 endif()
 
 if (NOT DEFINED PLATFORM)
@@ -297,7 +289,7 @@ function(os_add_memdisk TARGET DISK)
     REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND ${Python2_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND ${PYTHON3_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
@@ -367,7 +359,7 @@ function(os_add_nacl TARGET FILENAME)
   set(NACL_PATH ${CONAN_RES_DIRS_INCLUDEOS}/tools/NaCl)
   add_custom_command(
      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
-     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${PYTHON3_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}
    )
    add_library(nacl_content STATIC ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp)
