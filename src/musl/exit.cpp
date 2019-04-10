@@ -4,6 +4,9 @@
 #include <os>
 #include <kernel/threads.hpp>
 
+// We can't use the usual "info", as printf isn't available after call to exit
+#define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
+
 __attribute__((noreturn))
 static long sys_exit(int status)
 {
@@ -17,6 +20,15 @@ static long sys_exit(int status)
     // exit from a thread
     kernel::thread_exit();
   }
+  __builtin_unreachable();
+}
+
+extern "C"
+void syscall_SYS_exit_group(int status)
+{
+  auto* t = kernel::get_thread();
+  SYSINFO("Service exiting with status %d (thread %ld)\n", status, t->tid);
+  kernel::default_exit();
   __builtin_unreachable();
 }
 

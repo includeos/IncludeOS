@@ -82,7 +82,7 @@ __clone_helper:
     push rsp
 
     mov r11, rcx
-    ;; R9:  struct pt_regs* regs
+    ;; R9:  TLS data
     mov r9, r8
     ;; R8:  void* ctid
     mov r8, r10
@@ -116,6 +116,7 @@ __clone_exit:
     mov rax, rdx
     mov rbx, rdi
     mov rsp, rsi
+
     pop rbp
     POPAQ
     ;;

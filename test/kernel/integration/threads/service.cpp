@@ -19,6 +19,12 @@
 #include <cassert>
 #include <pthread.h>
 
+struct testdata
+{
+  int depth     = 0;
+  const int max_depth = 5;
+};
+
 extern "C" {
   static void* thread_function1(void* data)
   {
@@ -33,6 +39,26 @@ extern "C" {
     thread_local int test = 2020;
     printf("test @ %p, test = %d\n", &test, test);
     pthread_exit(NULL);
+  }
+  static void* recursive_function(void* tdata)
+  {
+    auto* data = (testdata*) tdata;
+    data->depth++;
+    printf("Thread depth: %d / %d\n", data->depth, data->max_depth);
+    if (data->depth < data->max_depth)
+    {
+      pthread_t t;
+      int res = pthread_create(&t, NULL, recursive_function, data);
+      if (res < 0) {
+        printf("Failed to create thread!\n");
+        return NULL;
+      }
+    }
+    printf("Thread exiting: %d / %d\n", data->depth, data->max_depth);
+    data->depth--;
+    pthread_t t = pthread_self();
+    pthread_exit(&t);
+    return NULL;
   }
 }
 
@@ -53,6 +79,9 @@ void Service::start()
     printf("Failed to create thread!\n");
     return;
   }
-  printf("After pthread_create\n");
+  printf("Now testing recursive threads...\n");
+  static testdata rdata;
+  recursive_function(&rdata);
+  printf("SUCCESS\n");
   os::shutdown();
 }

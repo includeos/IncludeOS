@@ -17,15 +17,11 @@
 
 #include <os.hpp>
 #include <kernel.hpp>
-#include <os.hpp>
 #include <kernel/elf.hpp>
 #include <system_log>
 #include <statman>
 #include <kprint>
-#include <info>
 #include <smp>
-#include <cstring>
-#include <util/bitops.hpp>
 
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
@@ -33,39 +29,10 @@
 #define THROW
 #endif
 
-// We can't use the usual "info", as printf isn't available after call to exit
-#define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
-
 // Emitted if and only if panic (unrecoverable system wide error) happens
 static const char* panic_signature = "\x15\x07\t**** PANIC ****";
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
-
-/*
-extern "C" __attribute__((noreturn))
-void abort_message(const char* format, ...)
-{
-  static char abort_buf[2048];
-  va_list list;
-  va_start(list, format);
-  vsnprintf(abort_buf, sizeof(abort_buf), format, list);
-  va_end(list);
-  panic(abort_buf);
-}*/
-
-void _exit(int status) {
-  SYSINFO("Service exiting with status %d", status);
-  kernel::default_exit();
-  __builtin_unreachable();
-}
-
-extern "C"
-void syscall_SYS_exit_group(int status)
-{
-  SYSINFO("Service exiting with status %d", status);
-  kernel::default_exit();
-  __builtin_unreachable();
-}
 
 struct alignas(SMP_ALIGN) context_buffer
 {

@@ -89,6 +89,8 @@ void* syscall_clone(void* next_instr,
   auto* thread = kernel::thread_create();
   thread->ret_instr = next_instr;
   thread->ret_stack = old_stack;
+  thread->ret_tls   = x86::CPU::read_msr(IA32_FS_BASE);
+  //kprintf("thread %ld return TLS: %p\n", thread->tid, (void*) thread->ret_tls);
   // new TLS location (arch-specific)
   syscall_SYS_set_thread_area(newtls);
   // store ourselves in the guarded libc structure

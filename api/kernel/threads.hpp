@@ -5,9 +5,10 @@ namespace kernel
 {
   struct thread_t {
     thread_t* self;
-    int   tid;
-    void* ret_instr;
-    void* ret_stack;
+    int64_t  tid;
+    void*    ret_instr;
+    void*    ret_stack;
+    uint64_t ret_tls;
 
     void init(int tid);
   };
