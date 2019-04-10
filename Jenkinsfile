@@ -22,6 +22,7 @@ pipeline {
       steps {
         sh script: "ls -A | grep -v src | xargs rm -r || :", label: "Clean workspace"
         sh script: "conan config install https://github.com/includeos/conan_config.git", label: "conan config install"
+        script { VERSION = sh(script: "conan inspect -a version $SRC | cut -d ' ' -f 2", returnStdout: true).trim() }
       }
     }
     stage('Unit test and coverage') {
@@ -45,9 +46,7 @@ pipeline {
         stage('x86') {
           stages {
             stage ('Build IncludeOS nano') {
-            //  agent { label 'ubuntu-18.04' }
               steps {
-                //checkout scm ?
                 build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86", "nano")
               }
             }
@@ -61,9 +60,7 @@ pipeline {
         stage('x86_64') {
           stages {
             stage ('Build IncludeOS') {
-              //agent { label 'ubuntu-18.04' }
               steps {
-                //checkout scm ?
                 build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_x86_64")
               }
             }
@@ -77,9 +74,7 @@ pipeline {
         stage('armv8') {
           stages {
             stage ('Build IncludeOS nano') {
-              //agent { label 'ubuntu-18.04' }
               steps {
-                //checkout scm ?
                 build_conan_package("$SRC", "$USER/$CHAN_LATEST", "$PROFILE_armv8", "nano")
               }
             }
