@@ -20,6 +20,7 @@
 
 #include <net/inet.hpp>
 #include <net/netfilter.hpp>
+#include <statman>
 
 //#define ROUTER_DEBUG 1
 #ifdef ROUTER_DEBUG
@@ -199,7 +200,10 @@ namespace net {
 
     /** Construct a router over a set of interfaces **/
     Router(Routing_table tbl = {})
-      : routing_table_{tbl}
+      : routing_table_{tbl},
+        packets_fwd{Statman::get().get_or_create(Stat::UINT64, "router.packets_fwd").get_uint64()},
+        packets_dropped{Statman::get().get_or_create(Stat::UINT64, "router.packets_dropped").get_uint64()},
+        bytes_fwd{Statman::get().get_or_create(Stat::UINT64, "router.bytes_fwd").get_uint64()}
     {
       INFO("Router", "Router created with %lu routes", tbl.size());
       for(auto& route : routing_table_)
@@ -208,7 +212,7 @@ namespace net {
 
     void set_routing_table(Routing_table tbl) {
       routing_table_ = tbl;
-    };
+    }
 
     /** Whether to send ICMP Time Exceeded when TTL is zero */
     bool send_time_exceeded = true;
@@ -218,6 +222,9 @@ namespace net {
 
   private:
     Routing_table routing_table_;
+    uint64_t& packets_fwd;
+    uint64_t& packets_dropped;
+    uint64_t& bytes_fwd;
 
   }; // < class Router
 
@@ -272,6 +279,7 @@ namespace net {
       // Send ICMP Time Exceeded if on. RFC 1812, page 84
       if(this->send_time_exceeded == true and not pckt->ip_dst().is_multicast())
         stack.icmp().time_exceeded(std::move(pckt), icmp4::code::Time_exceeded::TTL);
+      packets_dropped++;
       return;
     }
 
@@ -284,7 +292,10 @@ namespace net {
 
     // Call the forward chain
     auto res = forward_chain(std::move(pckt), stack, ct);
-    if (res == Filter_verdict_type::DROP) return;
+    if (res == Filter_verdict_type::DROP) {
+      packets_dropped++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     pckt = res.release();
@@ -295,11 +306,14 @@ namespace net {
 
     if(route) {
       PRINT("Found route: %s", route->to_string().c_str());
+      bytes_fwd += pckt->ip_data_length();
       route->ship(std::move(pckt), ct);
+      packets_fwd++;
       return;
     }
     else {
       PRINT("No route found for %s DROP", dest.to_string().c_str());
+      packets_dropped++;
       return;
     }
   }
