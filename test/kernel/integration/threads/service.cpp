@@ -18,11 +18,12 @@
 #include <os>
 #include <cassert>
 #include <pthread.h>
+#include <kernel/threads.hpp>
 
 struct testdata
 {
   int depth     = 0;
-  const int max_depth = 5;
+  const int max_depth = 40;
 };
 
 extern "C" {
@@ -44,7 +45,8 @@ extern "C" {
   {
     auto* data = (testdata*) tdata;
     data->depth++;
-    printf("Thread depth: %d / %d\n", data->depth, data->max_depth);
+    printf("%ld: Thread depth %d / %d\n",
+          kernel::get_thread()->tid, data->depth, data->max_depth);
     if (data->depth < data->max_depth)
     {
       pthread_t t;
@@ -54,7 +56,8 @@ extern "C" {
         return NULL;
       }
     }
-    printf("Thread exiting: %d / %d\n", data->depth, data->max_depth);
+    printf("%ld: Thread exiting %d / %d\n",
+           kernel::get_thread()->tid, data->depth, data->max_depth);
     data->depth--;
     pthread_t t = pthread_self();
     pthread_exit(&t);

@@ -1,5 +1,6 @@
 #include <kernel/threads.hpp>
 #include <arch/x86/cpu.hpp>
+#include <cassert>
 #include <pthread.h>
 #include <map>
 #include <kprint>
