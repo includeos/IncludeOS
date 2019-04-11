@@ -114,11 +114,26 @@ Stat& Statman::get_by_name(const char* name)
 #endif
   for (auto& stat : this->m_stats)
   {
-    if (stat.unused() == false)
-    if (strncmp(stat.name(), name, Stat::MAX_NAME_LEN) == 0)
+    if (stat.unused() == false) {
+      if (strncmp(stat.name(), name, Stat::MAX_NAME_LEN) == 0)
         return stat;
+    }
   }
   throw std::out_of_range("No stat found with exact given name");
+}
+
+Stat& Statman::get_or_create(const Stat::Stat_type type, const std::string& name)
+{
+  try {
+    auto& stat = get_by_name(name.c_str());
+    if(type == stat.type())
+      return stat;
+  }
+  catch(const std::exception&) {
+    return create(type, name);
+  }
+
+  throw Stats_exception("Mismatch between stat type");
 }
 
 void Statman::free(void* addr)
