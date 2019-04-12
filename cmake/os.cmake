@@ -354,12 +354,18 @@ function(internal_os_add_config TARGET CONFIG_JSON)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json_${TARGET} --no-whole-archive)
 endfunction()
 
-#TODO fix nacl
 function(os_add_nacl TARGET FILENAME)
-  set(NACL_PATH ${CONAN_RES_DIRS_INCLUDEOS}/tools/NaCl)
+  find_program(PYTHON2_EXECUTABLE python)
+  if (PYTHON2_EXECUTABLE-NOTFOUND)
+    message(FATAL_ERROR "Python not found")
+  endif()
+  find_program(NACL_SCRIPT NaCl.py)
+  if (NACL_SCRIPT-NOTFOUND)
+    message(FATAL_ERROR "NaCl.py not found")
+  endif()
   add_custom_command(
      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
-     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${PYTHON3_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${PYTHON2_EXECUTABLE} ${NACL_SCRIPT} ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}
    )
    add_library(nacl_content STATIC ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp)
