@@ -83,6 +83,12 @@ void SystemLog::initialize()
   using namespace util::bitops;
   const uintptr_t syslog_area = (uintptr_t) get_system_log_loc();
   const uintptr_t lu_phys = os::mem::virt_to_phys((uintptr_t) kernel::liveupdate_storage_area());
+  // systemlogs physical range
+  os::mem::vmmap().assign_range({
+        lu_phys - MRB_AREA_SIZE,
+        lu_phys - 1,
+        "SystemLog physical"
+      });
   // move systemlog to high memory and unpresent physical
   os::mem::virtual_move(lu_phys - MRB_AREA_SIZE, MRB_AREA_SIZE,
                         syslog_area, "SystemLog");

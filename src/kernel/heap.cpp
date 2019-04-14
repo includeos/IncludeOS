@@ -44,7 +44,7 @@ uintptr_t kernel::heap_end() noexcept
 }
 
 size_t os::total_memuse() noexcept {
-  return kernel::heap_usage() + kernel::liveupdate_phys_size(kernel::heap_max()) + kernel::heap_begin();
+  return kernel::heap_usage() + kernel::state().liveupdate_size + kernel::heap_begin();
 }
 
 constexpr size_t heap_alignment = 4096;

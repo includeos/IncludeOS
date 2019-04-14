@@ -70,23 +70,8 @@ struct Plugin_desc {
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
-
 __attribute__((weak))
-size_t kernel::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
-  return 4096;
-};
-
-__attribute__((weak))
-size_t kernel::liveupdate_phys_loc(size_t phys_max) noexcept {
-  return phys_max - liveupdate_phys_size(phys_max);
-};
-
-__attribute__((weak))
-void kernel::setup_liveupdate(uintptr_t)
-{
-  // without LiveUpdate: storage location is at the last page?
-  kernel::state().liveupdate_loc = kernel::heap_max() & ~(uintptr_t) 0xFFF;
-}
+void kernel::setup_liveupdate(uintptr_t) {}
 
 const char* os::cmdline_args() noexcept {
   return kernel::cmdline();
