@@ -66,10 +66,7 @@ set(SRCS
   src/resume.cpp
   src/rollback.cpp
   src/elfscan.cpp
-  src/os.cpp
-
   src/serialize_tcp.cpp
-
 )
 if (NOT CMAKE_TESTING_ENABLED)
   list(APPEND SRCS

@@ -3,5 +3,5 @@
   "net" : [
     {"device" : "virtio"}
   ],
-  "mem" : 256
+  "mem" : 1024
 }

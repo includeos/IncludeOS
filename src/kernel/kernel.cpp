@@ -70,9 +70,6 @@ struct Plugin_desc {
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
-__attribute__((weak))
-void kernel::setup_liveupdate(uintptr_t) {}
-
 const char* os::cmdline_args() noexcept {
   return kernel::cmdline();
 }
