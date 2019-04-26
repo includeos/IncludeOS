@@ -36,6 +36,8 @@ namespace kernel {
     bool timestamps_ready      = false;
     bool is_live_updated       = false;
     uintptr_t liveupdate_loc   = 0;
+    uintptr_t liveupdate_phys  = 0;
+    uintptr_t liveupdate_size  = 0;
     uintptr_t heap_begin       = 0;
     uintptr_t heap_max         = default_max_mem;;
     uintptr_t memory_end       = default_max_mem;;
@@ -143,17 +145,14 @@ namespace kernel {
   uintptr_t softreset_memory_end(intptr_t boot_addr);
   void resume_softreset(intptr_t boot_addr);
 
-  /** Returns the amount of memory set aside for LiveUpdate */
-  size_t liveupdate_phys_size(size_t) noexcept;
-
-  /** Computes the physical location of LiveUpdate storage area */
-  uintptr_t liveupdate_phys_loc(size_t) noexcept;
-
   inline void* liveupdate_storage_area() noexcept {
     return (void*)state().liveupdate_loc;
   }
+  inline void* liveupdate_storage_end() noexcept {
+    return (void*) (state().liveupdate_loc + state().liveupdate_size);
+  }
 
-  void setup_liveupdate(uintptr_t phys = 0);
+  void setup_liveupdate();
 
   bool heap_ready();
 

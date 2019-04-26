@@ -10,7 +10,7 @@ conan_basic_setup()
 include(os)
 
 option(benchmark_mode "Optimizations for benchmarking" OFF)
-option(SERIAL_OUTPUT "Output information" ON)
+option(SERIAL_OUTPUT "Output information" OFF)
 if (benchmark_mode)
   add_definitions(-DBENCHMARK_MODE)
 endif()
@@ -24,10 +24,6 @@ os_add_executable(kernel_LiveUpdate "LiveUpdate integration test" ${SOURCES})
 os_add_drivers(kernel_LiveUpdate
   virtionet
   boot_logger
-)
-
-os_add_plugins(kernel_LiveUpdate
-  system_log
 )
 
 if (SERIAL_OUTPUT)
