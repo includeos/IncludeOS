@@ -152,7 +152,7 @@ namespace kernel {
     return (void*) (state().liveupdate_loc + state().liveupdate_size);
   }
 
-  void setup_liveupdate(uintptr_t phys = 0);
+  void setup_liveupdate();
 
   bool heap_ready();
 

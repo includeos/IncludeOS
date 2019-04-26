@@ -17,6 +17,7 @@ extern char _end;
 struct softreset_t
 {
   uint32_t  checksum;
+  uint32_t  liveupdate_size;
   uint64_t  liveupdate_loc;
   uint64_t  high_mem;
   KHz       cpu_freq;
@@ -58,12 +59,11 @@ void kernel::resume_softreset(intptr_t addr)
   data->checksum = csum_copy;
 
   /// restore known values
-  uintptr_t lu_phys = data->liveupdate_loc;
-  kernel::setup_liveupdate(lu_phys);
-  kernel::state().heap_max  = kernel::memory_end() - 1;
+  kernel::state().liveupdate_phys = data->liveupdate_loc;
+  kernel::state().liveupdate_size = data->liveupdate_size;
+  kernel::state().is_live_updated = true;
   kernel::state().cpu_khz = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
-  kernel::state().is_live_updated = true;
 
   /// call service-specific softreset handler
   softreset_service_handler((void*) data->extra, data->extra_len);
@@ -76,7 +76,8 @@ void* __os_store_soft_reset(void* extra, size_t extra_len)
   // store softreset data in low memory
   auto* data = (softreset_t*) SOFT_RESET_LOCATION;
   data->checksum    = 0;
-  data->liveupdate_loc = os::mem::virt_to_phys((uintptr_t) kernel::liveupdate_storage_area());
+  data->liveupdate_loc  = kernel::state().liveupdate_phys;
+  data->liveupdate_size = kernel::state().liveupdate_size;
   data->high_mem    = memory_end;
   data->cpu_freq    = os::cpu_freq();
   data->apic_ticks  = x86::apic_timer_get_ticks();
