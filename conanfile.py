@@ -1,5 +1,3 @@
-import shutil
-
 from conans import ConanFile, python_requires, CMake
 from conans.errors import ConanInvalidConfiguration
 
@@ -81,7 +79,7 @@ class IncludeOSConan(ConanFile):
         cmake.definitions['PLATFORM']=self.options.platform
         cmake.definitions['SMP']=self.options.smp
         cmake.configure(source_folder=self.source_folder)
-        return cmake;
+        return cmake
 
     def build(self):
         cmake=self._configure_cmake()
