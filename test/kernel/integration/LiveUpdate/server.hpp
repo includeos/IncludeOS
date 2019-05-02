@@ -26,14 +26,13 @@ void server(net::Inet& inet,
     {
       buffer->insert(buffer->end(), buf->begin(), buf->end());
     })
-    .on_disconnect(
-    net::tcp::Connection::DisconnectCallback::make_packed(
-    [buffer, callback] (auto conn, auto) {
+    .on_close(
+    net::tcp::Connection::CloseCallback::make_packed(
+    [buffer, callback] () {
       printf("* Blob size: %u b  stored at %p\n",
             (uint32_t) buffer->size(), buffer->data());
       callback(*buffer);
       delete buffer;
-      conn->close();
     }));
   }));
 }
