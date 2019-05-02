@@ -2,27 +2,20 @@
 
 # Put Liveupdate in conan editable mode
 
-1. Make sure you are in the liveupdate directory for the commands below to work.
+**NOTE:  Make sure you are in the IncludeOS src directory**
+1. Remove the version variable from the `conanfile.py`.
 ```
-cd <IncludeOS src>/lib/LiveUpdate
+awk '!/version = conan_tools/' lib/LiveUpdate/conanfile.py > temp && mv temp lib/LiveUpdate/conanfile.py
 ```
-2. Remove the version variable from the `conanfile.py`.
+1. Add editable package with correct layout
 ```
-awk '!/version = conan_tools/' conanfile.py > temp && mv temp conanfile.py
+conan editable add lib/LiveUpdate liveupdate/9.9.9@includeos/latest --layout lib/LiveUpdate/layout.txt
 ```
-3. Create a `build` directory in the LiveUpdate directory.
+1. Run Conan install
 ```
-mkdir build
+conan install -if lib/LiveUpdate/build lib/LiveUpdate
 ```
-4. Add editable package with correct layout
+1. Run Conan build
 ```
-conan editable add . liveupdate/9.9.9@includeos/latest --layout layout.txt
-```
-5. Run Conan install
-```
-conan install -if build .
-```
-6. Run Conan build
-```
-conan build -sf ../../ -bf build .
+conan build -sf . -bf lib/LiveUpdate/build lib/LiveUpdate
 ```
