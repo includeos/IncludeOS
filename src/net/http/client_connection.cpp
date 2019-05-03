@@ -137,8 +137,6 @@ namespace http {
         catch(...)
         { end_response({Error::INVALID}); }
       }
-      else
-        end_response();
     }
     else if(req_->method() == HEAD)
     {
@@ -228,7 +226,12 @@ namespace http {
       auto callback = std::move(on_response_);
       on_response_.reset();
       timer_.stop();
-      callback(Error::CLOSING, std::move(res_), *this);
+      if(res_ != nullptr and res_->headers_complete()) {
+        callback(Error::NONE, std::move(res_), *this);
+      }
+      else {
+        callback(Error::CLOSING, std::move(res_), *this);
+      }
     }
 
     client_.close(*this);
