@@ -80,7 +80,7 @@ def ping_test():
     cleanup()
 
 def run_dhclient(trigger_line):
-  route_output = subprocess.check_output(["route"])
+  route_output = subprocess.check_output(["route"]).decode("utf-8")
 
   if "10.0.0.0" not in route_output:
     subprocess.call(["sudo", "ip", "link", "set", "dev", "bridge43", "up"], timeout=thread_timeout)
@@ -103,7 +103,7 @@ def run_dhclient(trigger_line):
     print(dhclient)
 
     # gets ip of dhclient used to ping
-    check_dhclient_output(dhclient)
+    check_dhclient_output(dhclient.decode("utf-8"))
 
   except subprocess.CalledProcessError as exception:
     print(color.FAIL("<Test.py> dhclient FAILED threw exception:"))

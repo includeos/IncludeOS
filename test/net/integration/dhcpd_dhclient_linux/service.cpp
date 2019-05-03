@@ -39,6 +39,7 @@ void Service::start(const std::string&)
   IP4::addr pool_start{10,200,100,20};
   IP4::addr pool_end{10,200,100,30};
   server = std::make_unique<DHCPD>(inet.udp(), pool_start, pool_end);
+  server->listen();
 
   INFO("<Service>", "Service started");
 }
