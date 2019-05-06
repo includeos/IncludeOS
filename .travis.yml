@@ -16,10 +16,9 @@ before_cache:
   - brew cleanup
 
 cache:
-  ccache: true
   - directories:
     - $HOME/Library/Caches/Homebrew
-    
+
 jobs:
   include:
     - script:
