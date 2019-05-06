@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 #service
 project (service)
 
