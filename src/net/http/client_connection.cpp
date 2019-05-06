@@ -116,6 +116,7 @@ namespace http {
     // Assume we want some headers
     if(!header.is_empty())
     {
+      // Note: Content Length is not required
       if(header.has_field(header::Content_Length))
       {
         try
@@ -136,6 +137,15 @@ namespace http {
         }
         catch(...)
         { end_response({Error::INVALID}); }
+      }
+      // HTTP/1.1 7.2.2 Length: Any response message which must not include an entity body
+      // (such as the 1xx, 204, and 304 responses and any response to a HEAD request)
+      // is always terminated by the first empty line after the header fields
+      else if(const auto code = res_->status_code();
+        is_informational(code) or code == No_Content or code == Not_Modified
+        or req_->method() == HEAD)
+      {
+        end_response();
       }
     }
     else if(req_->method() == HEAD)
