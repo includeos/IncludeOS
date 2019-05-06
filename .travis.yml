@@ -12,6 +12,14 @@ addons:
     - nasm
     - llvm@6
 
+before_cache:
+  - brew cleanup
+
+cache:
+  ccache: true
+  - directories:
+    - $HOME/Library/Caches/Homebrew
+    
 jobs:
   include:
     - script:
@@ -21,14 +29,6 @@ jobs:
         - conan create lib/LiveUpdate includeos/latest -pr clang-6.0-macos-x86_64
       name: "clang-6.0-x86_64"
 
-before_cache:
-  - brew cleanup
-
-cache:
-  ccache: true
-  - directories:
-    - $HOME/Library/Caches/Homebrew
-    
 before_install:
   - git fetch --tags https://github.com/includeos/IncludeOS.git
 
