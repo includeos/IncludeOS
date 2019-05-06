@@ -296,26 +296,13 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
 void Connection::State::process_fin(Connection& tcp, const Packet_view& in) {
   debug2("<Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
   Expects(in.isset(FIN));
-  auto& tcb = tcp.tcb();
-  // Advance RCV.NXT over the FIN?
-  tcb.RCV.NXT++;
-  //auto fin = tcp_data_length();
-  //tcb.RCV.NXT += fin;
-  const auto snd_nxt = tcb.SND.NXT;
-  // empty the read buffer
-  if(tcp.read_request and tcp.read_request->size())
-    tcp.receive_disconnect();
-  // signal disconnect to the user
-  tcp.signal_disconnect(Disconnect::CLOSING);
-
-  // only ack FIN if user callback didn't result in a sent packet
-  if(tcb.SND.NXT == snd_nxt) {
-    debug2("<Connection::State::process_fin> acking FIN\n");
-    auto packet = tcp.outgoing_packet();
-    packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
-    tcp.transmit(std::move(packet));
+  tcp.update_fin(in);
+  if(tcp.should_handle_fin())
+  {
+    // do actual close proceedure
+    // printf("fin_seq=%u RCV.NXT=%u\n", tcp.fin_seq_, tcb.RCV.NXT);
+    tcp.handle_fin();
   }
-
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -998,7 +985,7 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_view& in) 
   }
 
   // 8. check FIN bit
-  if(UNLIKELY(in.isset(FIN))) {
+  if(UNLIKELY(in.isset(FIN) or tcp.should_handle_fin())) {
     tcp.set_state(Connection::CloseWait::instance());
     process_fin(tcp, in);
     return OK;
@@ -1048,7 +1035,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
   }
 
   // 8. check FIN
-  if(in.isset(FIN)) {
+  if(in.isset(FIN) or tcp.should_handle_fin()) {
     process_fin(tcp, in);
     debug2("<Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
     /*
@@ -1100,7 +1087,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
   }
 
   // 8. check FIN
-  if(in.isset(FIN)) {
+  if(in.isset(FIN) or tcp.should_handle_fin()) {
     process_fin(tcp, in);
     /*
       Enter the TIME-WAIT state.

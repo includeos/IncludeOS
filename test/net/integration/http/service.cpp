@@ -64,6 +64,18 @@ void Service::ready()
     printf("Sending request:\n%s\n", req.to_string().c_str());
   });
 
+  INFO("Basic_client", "HTTPS");
+
+  try
+  {
+    client_->get("https://www.google.com", {}, [](Error err, Response_ptr res, Connection&) {});
+    assert(false && "Basic Client should throw exception");
+  }
+  catch(const http::Client_error& err)
+  {
+    CHECKSERT(true, "Basic Client should throw exception on https URL");
+  }
+
   INFO("Basic_client", "Testing against local server");
 
   auto req = client_->create_request();
@@ -79,47 +91,7 @@ void Service::ready()
     printf("Received body: %s\n", res->body());
     CHECKSERT(res->body() == "/testing", "Received body: \"/testing\"");
 
-    using namespace std::chrono; // zzz...
-    Timers::oneshot(5s, [](auto) { printf("SUCCESS\n"); });
+    printf("SUCCESS\n");
   });
-
-
-  INFO("Basic_client", "Testing against Acorn");
-
-  const std::string acorn_url{"http://acorn2.unofficial.includeos.io/"};
-
-  client_->get(acorn_url, {},
-  [] (Error err, Response_ptr res, Connection&)
-  {
-    CHECK(!err, "Error: %s", err.to_string().c_str());
-    CHECK(res != nullptr, "Received response");
-    if(!err)
-      printf("Response:\n%s\n", res->to_string().c_str());
-      });
-
-  using namespace std::chrono;
-  Basic_client::Options options;
-  options.timeout = 3s;
-  client_->get(acorn_url + "api/dashboard/status", {},
-  [] (Error err, Response_ptr res, Connection&)
-  {
-    CHECK(!err, "Error: %s", err.to_string().c_str());
-    CHECK(res != nullptr, "Received response");
-    if(!err)
-      printf("Response:\n%s\n", res->to_string().c_str());
-  }, options);
-
-
-  INFO("Basic_client", "HTTPS");
-
-  try
-  {
-    client_->get("https://www.google.com", {}, [](Error err, Response_ptr res, Connection&) {});
-    assert(false && "Basic Client should throw exception");
-  }
-  catch(const http::Client_error& err)
-  {
-    CHECKSERT(true, "Basic Client should throw exception on https URL");
-  }
 
 }

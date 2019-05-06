@@ -319,6 +319,36 @@ void Connection::receive_disconnect() {
   }
 }
 
+void Connection::update_fin(const Packet_view& pkt)
+{
+  Expects(pkt.isset(FIN));
+  // should be no problem calling multiple times
+  // as long as fin do not change (which it absolutely shouldnt)
+  fin_recv_ = true;
+  fin_seq_  = pkt.end();
+}
+
+void Connection::handle_fin()
+{
+  // Advance RCV.NXT over the FIN
+  cb.RCV.NXT++;
+  const auto snd_nxt = cb.SND.NXT;
+
+  // empty the read buffer
+  //if(read_request and read_request->size())
+  //  receive_disconnect();
+
+  // signal disconnect to the user
+  signal_disconnect(Disconnect::CLOSING);
+
+  // only ack FIN if user callback didn't result in a sent packet
+  if(cb.SND.NXT == snd_nxt) {
+    debug2("<Connection::handle_fin> acking FIN\n");
+    auto packet = outgoing_packet();
+    packet->set_ack(cb.RCV.NXT).set_flag(ACK);
+    transmit(std::move(packet));
+  }
+}
 
 void Connection::segment_arrived(Packet_view& incoming)
 {

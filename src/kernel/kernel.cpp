@@ -154,9 +154,10 @@ void kernel::post_start()
                    && !CPUID::has_feature(CPUID::Feature::RDRAND);
 #endif
   if (unsafe) {
-    printf(" +--> WARNiNG: Environment unsafe for production\n");
+    printf(" +--> WARNING: No good random source found: RDRAND/RDSEED instructions not available.\n");
     if (is_for_production_use()) {
-      printf(" +--> Stop option enabled. Shutting down now...\n");
+      printf(" +--> FATAL: Random source check failed. Terminating.\n");
+      printf(" +-->        To disable this check, re-run cmake with \"-DFOR_PRODUCTION=OFF\".\n");
       os::shutdown();
       return;
     }

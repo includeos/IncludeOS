@@ -41,6 +41,13 @@ pipeline {
         }
       }
     }
+    stage('Export recipe') {
+      steps {
+        sh script: "conan export $SRC $USER/$CHAN_LATEST", label: "IncludeOS"
+        sh script: "conan export $SRC/src/chainload $USER/$CHAN_LATEST", label: "Chainloader"
+        sh script: "conan export $SRC/lib/LiveUpdate $USER/$CHAN_LATEST", label: "liveupdate"
+      }
+    }
     stage('build includeos') {
       parallel {
         stage('x86') {
@@ -128,7 +135,7 @@ pipeline {
 }
 
 def build_conan_package(String src, user_chan, profile, platform="") {
-  sh script: "platform=${platform}; conan create $src $user_chan -pr ${profile} \${platform:+-o platform=$platform}", label: "Build with profile: $profile"
+  sh script: "platform=${platform}; conan create --not-export $src $user_chan -pr ${profile} \${platform:+-o platform=$platform}", label: "Build with profile: $profile"
 }
 
 def upload_package(String package_name, channel) {

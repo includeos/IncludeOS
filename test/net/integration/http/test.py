@@ -39,7 +39,7 @@ _thread.start_new_thread(Client_test, ())
 import urllib.request, urllib.error, urllib.parse
 def Server_test(triggerline):
     res = urllib.request.urlopen("http://10.0.0.46:8080").read()
-    assert(res == "Hello")
+    assert(res.decode('utf-8') == "Hello")
 
 
 # Get an auto-created VM from the vmrunner

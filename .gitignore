@@ -54,3 +54,4 @@ IncludeOS_install
 lib/uplink/starbase/disk
 
 !Jenkinsfile
+!CHANGELOG
