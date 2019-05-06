@@ -3,6 +3,7 @@ osx_image: xcode10.2
 compiler:
   - clang
   - gcc
+  - python
 
 addons:
   homebrew:
@@ -26,6 +27,18 @@ jobs:
         - conan create . includeos/latest -pr clang-6.0-macos-x86_64
         - echo "BUILDING LiveUpdate"
         - conan create lib/LiveUpdate includeos/latest -pr clang-6.0-macos-x86_64
+        - conan install hello_world -pr clang-6.0-macos-x86_64
+        - source activate.sh
+        - cmake hello_world
+        - cmake --build .
+        - gtimeout 7 boot hello > hello_log.txt || true
+        - |
+          if grep -F "Running [ Hello world - OS included ]" hello_log.txt
+          then
+            echo "Hello World -  Success! :)"
+          else
+            echo "Failed :("
+          fi
       name: "clang-6.0-x86_64"
 
 before_install:
@@ -35,3 +48,10 @@ install:
   - conan config install https://github.com/includeos/conan_config.git
   - conan --version
   - clang --version
+  - pip install future
+
+before_script:
+  - git clone https://github.com/includeos/hello_world
+
+after_script:
+  - source deactivate.sh
