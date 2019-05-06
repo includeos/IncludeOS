@@ -15,8 +15,6 @@ addons:
 jobs:
   include:
     - script:
-        - export CC=/usr/local/opt/llvm\@6/bin/clang
-        - export CXX=/usr/local/opt/llvm\@6/bin/clang++
         - echo "BUILDING KERNEL"
         - conan create . includeos/latest -pr clang-6.0-macos-x86_64
         - echo "BUILDING LiveUpdate"
