@@ -44,7 +44,7 @@ uintptr_t kernel::heap_end() noexcept
 }
 
 size_t os::total_memuse() noexcept {
-  return kernel::heap_usage() + kernel::liveupdate_phys_size(kernel::heap_max()) + kernel::heap_begin();
+  return kernel::heap_usage() + kernel::state().liveupdate_size + kernel::heap_begin();
 }
 
 constexpr size_t heap_alignment = 4096;
@@ -68,7 +68,7 @@ void kernel::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept 
   kernel::state().heap_max   = memory_end - 1;
   kernel::state().heap_begin = util::bits::roundto<heap_alignment>(free_mem_begin);
   auto brk_end  = __init_brk(kernel::heap_begin(), __brk_max);
-
+  Expects(brk_end <= memory_end);
   __init_mmap(brk_end, memory_end);
   __heap_ready = true;
 }

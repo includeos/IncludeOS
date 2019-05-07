@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 from builtins import str
@@ -6,20 +6,15 @@ import sys
 import os
 import time
 import subprocess
-import subprocess32
 
 thread_timeout = 20
 
 from threading import Timer
-
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
-
 from vmrunner import vmrunner
 import socket
-
 from vmrunner.prettify import color
+
+thread_timeout = 40
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
@@ -74,7 +69,7 @@ def ping_test():
   try:
     command = ["ping", assigned_ip, "-c", str(ping_count), "-i", "0.2"]
     print(color.DATA(" ".join(command)))
-    print(subprocess32.check_output(command, timeout=thread_timeout))
+    print(subprocess.check_output(command, timeout=thread_timeout))
     ping_passed = True
   except Exception as e:
     print(color.FAIL("<Test.py> Ping FAILED Process threw exception:"))
@@ -85,20 +80,20 @@ def ping_test():
     cleanup()
 
 def run_dhclient(trigger_line):
-  route_output = subprocess.check_output(["route"])
+  route_output = subprocess.check_output(["route"]).decode("utf-8")
 
   if "10.0.0.0" not in route_output:
-    subprocess32.call(["sudo", "ifconfig", "bridge43", "10.0.0.1", "netmask", "255.255.0.0", "up"], timeout=thread_timeout)
+    subprocess.call(["sudo", "ip", "link", "set", "dev", "bridge43", "up"], timeout=thread_timeout)
     time.sleep(1)
 
   if "10.200.0.0" not in route_output:
-    subprocess32.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"], timeout=thread_timeout)
+    subprocess.call(["sudo", "ip", "route", "add", "10.200.0.0/16", "dev", "bridge43"], timeout=thread_timeout)
     print(color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0")
 
   print(color.INFO("<Test.py>"), "Running dhclient")
 
   try:
-    dhclient = subprocess32.check_output(
+    dhclient = subprocess.check_output(
         ["sudo", "dhclient", "bridge43", "-4", "-n", "-v"],
         stderr=subprocess.STDOUT,
         timeout=thread_timeout
@@ -108,7 +103,7 @@ def run_dhclient(trigger_line):
     print(dhclient)
 
     # gets ip of dhclient used to ping
-    check_dhclient_output(dhclient)
+    check_dhclient_output(dhclient.decode("utf-8"))
 
   except subprocess.CalledProcessError as exception:
     print(color.FAIL("<Test.py> dhclient FAILED threw exception:"))
@@ -127,4 +122,7 @@ def run_dhclient(trigger_line):
 vm.on_output("Service started", run_dhclient)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout).clean()

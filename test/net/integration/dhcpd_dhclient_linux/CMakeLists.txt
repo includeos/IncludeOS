@@ -1,35 +1,27 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+if (NOT DEFINED CONAN_DEPENDENCIES)
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+  if (NOT HAS_CONAN)
+    message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
+  endif()
+endif()
+conan_basic_setup()
 
-project(test_dhcp_server_dhclient)
+include(os)
 
-# Human-readable name of your service
-set(SERVICE_NAME "IncludeOS DHCP server test with Linux dhclient")
+os_add_executable(net_dhcpd_dhclient_linux "IncludeOS DHCP server test"  service.cpp)
 
-# Name of your service binary
-set(BINARY       "test_dhcp_server_dhclient")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES
-    service.cpp
-  )
-
-# DRIVERS / PLUGINS:
-
-set(DRIVERS
-  virtionet
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_plugins(net_dhcpd_dhclient_linux autoconf)
+os_add_drivers(net_dhcpd_dhclient_linux virtionet)
+os_add_stdout(net_dhcpd_dhclient_linux default_stdout)
 
 configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

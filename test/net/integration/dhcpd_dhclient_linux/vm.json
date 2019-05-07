@@ -1,6 +1,10 @@
 {
-  "image" : "test_dhcp_server_dhclient.img",
-  "net" : [{"device" : "virtio", "mac" : "c0:01:0a:00:00:2a"}],
-  "mem" : 128,
-  "intrusive" : "True"
+  "image": "test_dhcp_server_dhclient.img",
+  "net": [
+    {
+      "device": "virtio",
+      "mac": "c0:01:0a:00:00:2a"
+    }
+  ],
+  "mem": 128
 }

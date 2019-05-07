@@ -1,5 +1,3 @@
-import shutil
-
 from conans import ConanFile, python_requires, CMake
 from conans.errors import ConanInvalidConfiguration
 
@@ -38,19 +36,19 @@ class IncludeOSConan(ConanFile):
 
     no_copy_source=True
     def requirements(self):
-        self.requires("libcxx/[>=5.0]@includeos/stable")## do we need this or just headers
         self.requires("GSL/2.0.0@includeos/stable")
-        self.requires("libgcc/1.0@includeos/stable")
+        if not self.options.platform == "userspace":
+            self.requires("libcxx/[>=5.0]@includeos/stable")
+            self.requires("libgcc/1.0@includeos/stable")
 
         if self.settings.arch == "armv8":
             self.requires("libfdt/1.4.7@includeos/stable")
 
         if not self.options.platform == 'nano':
             self.requires("rapidjson/1.1.0@includeos/stable")
-            self.requires("http-parser/2.8.1@includeos/stable") #this one is almost free anyways
+            self.requires("http-parser/2.8.1@includeos/stable")
             self.requires("uzlib/v2.1.1@includeos/stable")
             self.requires("botan/2.8.0@includeos/stable")
-            self.requires("openssl/1.1.1@includeos/stable")
             self.requires("s2n/0.8@includeos/stable")
 
         if self.options.platform == 'solo5-hvt' or self.options.platform == 'solo5-spt':
@@ -63,6 +61,8 @@ class IncludeOSConan(ConanFile):
             self.options["solo5"].tenders='hvt'
         if self.options.platform == 'solo5-spt':
             self.options["solo5"].tenders='spt'
+        if self.options.platform == 'userspace':
+            self.options["s2n"].includeos=False
 
         del self.settings.compiler.libcxx
 
@@ -79,7 +79,7 @@ class IncludeOSConan(ConanFile):
         cmake.definitions['PLATFORM']=self.options.platform
         cmake.definitions['SMP']=self.options.smp
         cmake.configure(source_folder=self.source_folder)
-        return cmake;
+        return cmake
 
     def build(self):
         cmake=self._configure_cmake()

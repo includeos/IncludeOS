@@ -1,4 +1,3 @@
-
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
@@ -6,16 +5,9 @@ endif()
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (${CMAKE_VERSION} VERSION_LESS "3.12")
-  find_program(Python2 python2.7)
-  if (NOT Python2)
-    #brutal fallback
-    set(Python2_EXECUTABLE python)
-  else()
-    set(Python2_EXECUTABLE ${Python2})
-  endif()
-else()
-  find_package(Python2 COMPONENTS Interpreter)
+find_program(PYTHON3_EXECUTABLE python3)
+if (PYTHON3_EXECUTABLE-NOTFOUND)
+  message(FATAL_ERROR "python3 not found")
 endif()
 
 if (NOT DEFINED PLATFORM)
@@ -151,9 +143,16 @@ function(os_add_executable TARGET NAME)
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
   conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
-  target_link_libraries(${ELF_TARGET} ${LIBRARIES})
 
-
+  foreach(_LIB ${LIBRARIES})
+    get_filename_component(_PATH ${_LIB} DIRECTORY)
+    if (_PATH MATCHES ".*drivers" OR _PATH MATCHES ".*plugins" OR _PATH MATCHES ".*stdout")
+      message(STATUS "Whole Archive " ${_LIB})
+      os_link_libraries(${TARGET} --whole-archive ${_LIB} --no-whole-archive)
+    else()
+      target_link_libraries(${ELF_TARGET} ${_LIB})
+    endif()
+  endforeach()
 
   # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -290,7 +289,7 @@ function(os_add_memdisk TARGET DISK)
     REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND ${Python2_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND ${PYTHON3_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
@@ -331,10 +330,14 @@ function(os_diskbuilder TARGET FOLD)
   os_build_memdisk(${TARGET} ${FOLD})
 endfunction()
 
-function(os_install_certificates FOLDER)
-  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  message(STATUS "Install certificate bundle at ${FOLDER}")
-  file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
+function(os_add_ssl_certificates TARGET)
+  file(DOWNLOAD https://github.com/fwsGonzo/s2n_bundle/releases/download/v1/ca_bundle.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/certs)
+  execute_process(
+    COMMAND tar -xvf  ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz --strip-components=1 -C ${CMAKE_CURRENT_BINARY_DIR}/certs
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+  os_build_memdisk(${TARGET} ${CMAKE_CURRENT_BINARY_DIR}/certs)
 endfunction()
 
 
@@ -351,12 +354,18 @@ function(internal_os_add_config TARGET CONFIG_JSON)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json_${TARGET} --no-whole-archive)
 endfunction()
 
-#TODO fix nacl
 function(os_add_nacl TARGET FILENAME)
-  set(NACL_PATH ${CONAN_RES_DIRS_INCLUDEOS}/tools/NaCl)
+  find_program(PYTHON2_EXECUTABLE python)
+  if (PYTHON2_EXECUTABLE-NOTFOUND)
+    message(FATAL_ERROR "Python not found")
+  endif()
+  find_program(NACL_SCRIPT NaCl.py)
+  if (NACL_SCRIPT-NOTFOUND)
+    message(FATAL_ERROR "NaCl.py not found")
+  endif()
   add_custom_command(
      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
-     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME} | ${PYTHON2_EXECUTABLE} ${NACL_SCRIPT} ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}
    )
    add_library(nacl_content STATIC ${CMAKE_CURRENT_BINARY_DIR}/nacl_content.cpp)

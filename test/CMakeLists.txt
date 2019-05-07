@@ -293,12 +293,21 @@ if (COVERAGE)
   if (CMAKE_COMPILER_IS_GNUCXX)
     if (NOT DEFINED CODECOV_GCOV)
       find_program(CODECOV_GCOV gcov)
+      if (CODECOV_GCOV-NOTFOUND)
+        message(FATAL_ERROR "gcov not found")
+      endif()
     endif()
     if (NOT DEFINED CODECOV_LCOV)
       find_program(CODECOV_LCOV lcov)
+      if (CODECOV_LCOV-NOTFOUND)
+        message(FATAL_ERROR "lcov not found")
+      endif()
     endif()
     if (NOT DEFINED CODECOV_GENHTML)
       find_program(CODECOV_GENHTML genhtml)
+      if (CODECOV_GENHTML-NOTFOUND)
+        message(FATAL_ERROR "genhtml not found")
+      endif()
     endif()
 
     #run this command allways althoug it depends on all the sources beeing buildt
@@ -333,7 +342,7 @@ if (COVERAGE)
     #strip from report /test path /usr/lib and /usr/include.. TODO add more if neccesary eg */.conan/*
     add_custom_target(coverage_stripped
       COMMENT "Stripping default paths and test from report"
-      COMMAND ${CODECOV_LCOV} -q -r unstripped.info '*/test/*' '/usr/lib/*' '/usr/include/*'  -o ${CODECOV_OUTPUTFILE}
+      COMMAND ${CODECOV_LCOV} -q -r unstripped.info '*/.conan/*' '*/test/*' '/usr/lib/*' '/usr/include/*'  -o ${CODECOV_OUTPUTFILE}
       DEPENDS coverage_merged
       SOURCES unstripped.info
       BYPRODUCTS ${CODECOV_OUTPUTFILE}

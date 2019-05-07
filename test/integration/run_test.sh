@@ -7,4 +7,4 @@ arguments=$@
 source ${build_folder}/activate.sh
 #sudo prior to timeout. in case its needed inside
 sudo echo "sudo trigger"
-timeout -s 2 $timeout python3 -u test.py $arguments || echo "Test timed out"; sleep 1
+timeout -s 2 $timeout python3 -u test.py $arguments || echo "Test timed out in $timeout seconds"; sleep 1

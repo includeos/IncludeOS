@@ -204,7 +204,7 @@ void verify_integrity(){
 
   // Allocate across both 1_G and 2_MiB border
   uintptr_t near = 884_MiB + 4_KiB;
-  uintptr_t far_distance = 2_GiB;
+  uintptr_t far_distance = 1_GiB;
 
   mem::Map far;
   far.lin   = near + far_distance;
@@ -213,6 +213,9 @@ void verify_integrity(){
   far.size  = 100_MiB;
   far.page_sizes = mem::Map::any_size;
 
+  //#define HIGHMEM_LOCATION  (1ull << 45)
+  //const uintptr_t lu_phys = mem::virt_to_phys(HIGHMEM_LOCATION);
+  //mem::vmmap().erase(lu_phys);
   // Make room by resizing heap
   // TODO: This shouldn't be necessary
   auto heap_key = os::mem::vmmap().in_range(near);
@@ -382,7 +385,6 @@ void map_non_aligned(){
   Expects(errors == 1);
 
 }
-
 
 int main()
 {

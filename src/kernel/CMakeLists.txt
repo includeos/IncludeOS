@@ -12,7 +12,6 @@
     syscalls.cpp
     service_stub.cpp
     #scoped_profiler.cpp
-    system_log.cpp
 #    elf.cpp
   #  fiber.cpp
 #    profile.cpp
@@ -29,7 +28,9 @@ if (NOT CMAKE_TESTING_ENABLED)
   #  rdrand.cpp
     heap.cpp
     kernel.cpp
+    liveupdate.cpp
     rtc.cpp
+    system_log.cpp
   )
 endif()
 

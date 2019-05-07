@@ -91,7 +91,7 @@ set(TEST_LIST
   #gateway disabled as it needs nacl.. circular DEP issue
   #"gateway"   "50"    "net"
   #TODO move http to http library
-  #"http"      "20"    "net"
+  "http"      "20"    "net"
   "icmp"      "50"    "net"
   "icmp6"     "50"    "net"
   #TODO move to microlb with framework to test
@@ -106,10 +106,9 @@ set(TEST_LIST
   #TODO move websocket to http library
   "websocket" "20"    "net"
 
-  #TODO add a cmake variable to exclude these ?
   "dhclient" "20" "net"
   "dhcpd" "20" "net"
-  #dhcpd_dhclient_linux
+  "dhcpd_dhclient_linux" "60" "net"
 
   "block"     "40" "kernel"
   ##TODO check if context test is old and should be removed!!

@@ -139,7 +139,7 @@ namespace x86
     const long canary = rng_extract_uint64() & 0xFFFFFFFFFFFF00FFul;
     const long canary_idx = i;
     aux[i++].set_long(AT_RANDOM, canary);
-    kprintf("* Stack protector value: %#lx\n", canary);
+    //kprintf("* Stack protector value: %#lx\n", canary);
     // entropy slot
     aux[i++].set_ptr(AT_RANDOM, &aux[canary_idx].a_un.a_val);
     aux[i++].set_long(AT_NULL, 0);

@@ -9,7 +9,7 @@ extern "C" {
 #include "gic_regs.h"
 //#define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 
-#define GIC_TRACE 1
+//#define GIC_TRACE 0
 
 #if defined(GIC_TRACE)
   #define GIC_PRINT(type, fmt, ...) \
@@ -79,11 +79,11 @@ uint64_t fdt_load_size(const struct fdt_property *prop,int *offset,int size_cell
 void gic_init_fdt(const char * fdt,uint32_t fdt_offset)
 {
   const struct fdt_property *prop;
-  int addr_cells = 0, size_cells = 0, interrupt_cells = 0;
+  int addr_cells = 0, size_cells = 0;//, interrupt_cells = 0;
   size_cells = fdt_size_cells(fdt,fdt_offset);
   addr_cells = fdt_address_cells(fdt, fdt_offset);//fdt32_ld((const fdt32_t *)prop->data);
   //how to get ?
-  interrupt_cells=fdt_interrupt_cells(fdt,fdt_offset);
+  //interrupt_cells=fdt_interrupt_cells(fdt,fdt_offset);
 
   GIC_INFO("size_cells %d\n",size_cells);
   GIC_INFO("addr_cells %d\n",addr_cells);
@@ -97,9 +97,9 @@ void gic_init_fdt(const char * fdt,uint32_t fdt_offset)
     return;
   }
   int offset=0;
-  uint64_t len;
   uint64_t gicd;
   uint64_t gicc;
+  uint64_t len;
 
   gicd=fdt_load_addr(prop,&offset,addr_cells);
   GIC_DEBUG("gicd %016lx\r\n",gicd);
@@ -289,14 +289,34 @@ int gicd_probe_pending(int irq)
 
 int gicd_decode_irq()
 {
-  //worst ever way of decoding irq ?
-  //check if pending reg == 0 instead of each irq
   int irq_lines=32*((gic.gicd->type&0x1F )+1);
-  for (int i=0; i < irq_lines;i++)
-  {
-    if (gicd_probe_pending(i))
-      return i;
+  for (int reg=0; reg< (irq_lines+31)/32;reg++) {
+    uint32_t pending=gic.gicd->pending_set[reg];
+    if (pending) {
+      const int bit = __builtin_ffs(pending)-1;
+      return (32*reg)+bit;
+    }
   }
-  //irq max or negative value?
   return 0x3ff;
+}
+
+
+//TODO fix i really really do not like this
+void __arch_subscribe_irq(uint8_t irq)
+{
+    printf("subscribe irq %d\n",irq);
+//  assert(irq < IRQ_LINES);
+//  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, modern_interrupt_handler);
+}
+void __arch_install_irq(uint8_t irq, uintptr_t handler)
+{
+  printf("install irq %d\n",irq);
+//  assert(irq < IRQ_LINES);
+//  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, handler);
+}
+void __arch_unsubscribe_irq(uint8_t irq)
+{
+    printf("unsubscribe irq %d\n",irq);
+//  assert(irq < IRQ_LINES);
+//  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, unused_interrupt_handler);
 }

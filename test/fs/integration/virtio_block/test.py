@@ -1,13 +1,12 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 from builtins import str
 import sys
 import subprocess
-import subprocess32
 import os
 
 thread_timeout = 50
 
-subprocess32.call(['./image.sh'], timeout=thread_timeout)
+subprocess.call(['./image.sh'], timeout=thread_timeout)
 
 def cleanup():
   subprocess.call(['./cleanup.sh'])

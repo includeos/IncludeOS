@@ -681,6 +681,9 @@ private:
 
   Recv_window_getter recv_wnd_getter;
 
+  seq_t fin_seq_ = 0;
+  bool fin_recv_ = false;
+
   bool close_signaled_ = false;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
@@ -780,6 +783,12 @@ private:
   */
   void receive_disconnect();
 
+  void update_fin(const Packet_view& pkt);
+
+  bool should_handle_fin() const noexcept
+  { return fin_recv_ and static_cast<int32_t>(fin_seq_ - cb.RCV.NXT) == 0; }
+
+  void handle_fin();
 
   /// --- WRITING --- ///
 

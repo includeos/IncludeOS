@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 from future import standard_library
@@ -7,7 +7,6 @@ from builtins import str
 import sys
 import os
 import subprocess
-import subprocess32
 import _thread
 import time
 
@@ -36,7 +35,7 @@ def iperf_server():
 
 def iperf_client(o):
     print("Starting iperf client. Iperf output: ")
-    print(subprocess32.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size], timeout=thread_timeout))
+    print(subprocess.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size], timeout=thread_timeout))
     vmrunner.vms[0].exit(0, "Test completed without errors")
     return True
 

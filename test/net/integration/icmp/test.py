@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 from builtins import str
@@ -6,7 +6,6 @@ from builtins import range
 import sys
 import os
 import subprocess
-import subprocess32
 
 thread_timeout = 50
 
@@ -68,7 +67,7 @@ def start_icmp_test(trigger_line):
   # 2 Port unreachable
   print(color.INFO("<Test.py>"), "Performing Destination Unreachable (port) test")
   # Sending 1 udp packet to 10.0.0.45 to port 8080
-  udp_port_output = subprocess32.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"], timeout=thread_timeout).decode("utf-8")
+  udp_port_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"], timeout=thread_timeout).decode("utf-8")
   print(udp_port_output)
 
   # Validate content in udp_port_output:
@@ -81,7 +80,7 @@ def start_icmp_test(trigger_line):
   # 3 Protocol unreachable
   print(color.INFO("<Test.py>"), "Performing Destination Unreachable (protocol) test")
   # Sending 1 raw ip packet to 10.0.0.45 with protocol 16
-  rawip_protocol_output = subprocess32.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"], timeout=thread_timeout).decode("utf-8")
+  rawip_protocol_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"], timeout=thread_timeout).decode("utf-8")
   print(rawip_protocol_output)
 
   # Validate content in rawip_protocol_output:

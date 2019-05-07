@@ -89,6 +89,18 @@ namespace os::detail {
     MINFO("Initializing heap\n");
     auto main_mem = memory().allocate_largest();
     MINFO("Main memory detected as %zu b\n", main_mem.size);
+    memory().deallocate(main_mem.ptr, main_mem.size);
+
+#ifndef PLATFORM_x86_solo5
+    static const size_t SYSTEMLOG_SIZE = 65536;
+    const size_t LIU_SIZE = (main_mem.size / (100 / 25)) & ~0xfff;
+    auto liu_mem = memory().allocate_back(LIU_SIZE + SYSTEMLOG_SIZE);
+    kernel::state().liveupdate_phys = (uintptr_t) liu_mem.ptr + SYSTEMLOG_SIZE;
+    kernel::state().liveupdate_size = liu_mem.size - SYSTEMLOG_SIZE;
+#endif
+
+    // reallocate main memory from remainder
+    main_mem = memory().allocate_largest();
 
     const auto percent = main_mem.size / (100 / reserve_pct_max);
     const auto reserve = std::min(reserve_mem, percent);
@@ -97,12 +109,7 @@ namespace os::detail {
     memory().deallocate((void*)back, reserve_mem);
     MINFO("Reserving %zu b for machine use \n", reserve);
 
-#ifndef PLATFORM_x86_solo5
-    const auto liu_steal = main_mem.size / (100 / 25);
-    main_mem.size -= liu_steal;
-    main_mem.size &= ~(uintptr_t) 0xFFF;
-#endif
-    kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
+    kernel::init_heap((uintptr_t)main_mem.ptr,(uintptr_t)((char *)main_mem.ptr + main_mem.size));
   }
 
   const char* Machine::arch() { return Arch::name; }

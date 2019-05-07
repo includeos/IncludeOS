@@ -17,6 +17,9 @@
 #include <os.hpp>
 #include <kernel.hpp>
 
+bool os::is_booted() noexcept {
+  return kernel::is_booted();
+}
 const char* os::arch() noexcept {
   return Arch::name;
 }

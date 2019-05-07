@@ -117,6 +117,8 @@ public:
   Stat& get(const Stat* addr);
   // if you know the name of a statistic already
   Stat& get_by_name(const char* name);
+  // retrieve stat or create if it doesnt exists
+  Stat& get_or_create(const Stat::Stat_type type, const std::string& name);
   // free/delete stat based on address from stats counter
   void free(void* addr);
 

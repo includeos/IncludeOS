@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 from builtins import str
@@ -6,7 +6,6 @@ import sys
 import os
 import time
 import subprocess
-import subprocess32
 
 thread_timeout = 20
 
@@ -30,7 +29,7 @@ def DHCP_test(trigger_line):
   try:
     command = ["ping", "-c", str(ping_count), "-i", "0.2", ip_string.rstrip()]
     print(color.DATA(" ".join(command)))
-    print(subprocess32.check_output(command, timeout=thread_timeout))
+    print(subprocess.check_output(command, timeout=thread_timeout))
     print(color.INFO("<Test.py>"), "Number of ping tests passed: ", str(num_assigned_clients))
     if num_assigned_clients == 3:
       vm.exit(0,"<Test.py> Ping test for all 3 clients passed. Process returned 0 exit status")

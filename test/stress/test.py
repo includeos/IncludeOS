@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import division
 from __future__ import print_function
 from builtins import str
@@ -8,7 +8,6 @@ import sys
 import socket
 import time
 import subprocess
-import subprocess32
 import os
 
 from vmrunner import vmrunner
@@ -112,13 +111,13 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 # Fire a single burst of ICMP packets
 def ICMP_flood(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Ping-flooding requires sudo for optimal speed
-  res = subprocess32.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)], timeout=thread_timeout);
+  res = subprocess.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
 # Fire a single burst of HTTP requests
 def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
-  res = subprocess32.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)], timeout=thread_timeout);
+  res = subprocess.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
@@ -128,7 +127,7 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   command = ["sudo", "arping", "-q","-W", str(0.0001), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
   print(color.DATA(" ".join(command)))
   time.sleep(0.5)
-  res = subprocess32.check_call(command, timeout=thread_timeout);
+  res = subprocess.check_call(command, timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 

@@ -25,6 +25,36 @@ void cpu_print_current_el()
   kprintf("CurrentEL %08x\r\n",el);
 }
 
+char *get_tpidr()
+{
+  int el=cpu_get_current_el();
+  char *self;
+  switch(el)
+  {
+    case 0:
+     __asm__ __volatile__ ("mrs %0,tpidr_el0" : "=r"(self));
+     return self;
+    case 1:
+     __asm__ __volatile__ ("mrs %0,tpidr_el1" : "=r"(self));
+     return self;
+  }
+  return nullptr;
+}
+
+void set_tpidr(void *self)
+{
+  int el=cpu_get_current_el();
+  switch(el)
+  {
+    case 0:
+     __asm__ __volatile__ ("msr tpidr_el0,%0" : :"r"(self));
+     break;
+    case 1:
+     __asm__ __volatile__ ("msr tpidr_el1,%0" : :"r"(self));
+     break;
+  }
+}
+
 void cpu_fiq_enable()
 {
   asm volatile("msr DAIFClr,%0" ::"i"(DAIF_FIQ_BIT): "memory");

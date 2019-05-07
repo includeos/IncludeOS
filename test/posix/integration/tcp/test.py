@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 from future import standard_library
@@ -24,7 +24,7 @@ import platform
 if platform.system() == 'Darwin':
     subprocess.call(["sudo", "ifconfig", "bridge43", "alias", "10.0.0.4/24"])
 else:
-    subprocess.call(["sudo", "ifconfig", "bridge43:2", "10.0.0.4/24"])
+    subprocess.call(["sudo", "ip", "addr", "add", "10.0.0.4/24", "dev", "bridge43", "label", "bridge43:2"])
 
 # Tear down interface on exit
 @atexit.register
@@ -32,7 +32,7 @@ def tear_down():
     if platform.system() == 'Darwin':
         subprocess.call(["sudo", "ifconfig", "bridge43", "-alias", "10.0.0.4"])
     else:
-        subprocess.call(["sudo", "ifconfig", "bridge43:2", "down"])
+        subprocess.call(["sudo", "ip", "addr", "del", "10.0.0.4/24", "dev", "bridge43", "label", "bridge43:2"])
 
 
 S_HOST, S_PORT = '10.0.0.4', 4242

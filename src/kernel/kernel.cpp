@@ -70,24 +70,6 @@ struct Plugin_desc {
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
-
-__attribute__((weak))
-size_t kernel::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
-  return 4096;
-};
-
-__attribute__((weak))
-size_t kernel::liveupdate_phys_loc(size_t phys_max) noexcept {
-  return phys_max - liveupdate_phys_size(phys_max);
-};
-
-__attribute__((weak))
-void kernel::setup_liveupdate(uintptr_t)
-{
-  // without LiveUpdate: storage location is at the last page?
-  kernel::state().liveupdate_loc = kernel::heap_max() & ~(uintptr_t) 0xFFF;
-}
-
 const char* os::cmdline_args() noexcept {
   return kernel::cmdline();
 }
@@ -172,9 +154,10 @@ void kernel::post_start()
                    && !CPUID::has_feature(CPUID::Feature::RDRAND);
 #endif
   if (unsafe) {
-    printf(" +--> WARNiNG: Environment unsafe for production\n");
+    printf(" +--> WARNING: No good random source found: RDRAND/RDSEED instructions not available.\n");
     if (is_for_production_use()) {
-      printf(" +--> Stop option enabled. Shutting down now...\n");
+      printf(" +--> FATAL: Random source check failed. Terminating.\n");
+      printf(" +-->        To disable this check, re-run cmake with \"-DFOR_PRODUCTION=OFF\".\n");
       os::shutdown();
       return;
     }
