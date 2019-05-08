@@ -61,7 +61,7 @@ The following command will configure conan to use our build profiles and remote 
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 
-> If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our **prebuilt conan packages** on our **[includeos bintray/includeos](https://bintray.com/includeos)** at  https://bintray.com/includeos. 
+> If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our prebuilt conan packages in [bintray.com/includeos](https://bintray.com/includeos). 
 
 
 
@@ -109,7 +109,7 @@ If you are interested in editing/building our dependency packages on your own, y
 
 ## <a href="repositories_and_channels"></a> Managing dependencies
 
-Prebuilt conan packages are uploaded to our [includeos bintray repository](https://bintray.com/includeos/includeos).
+Prebuilt conan packages are uploaded to our [bintray repository](https://bintray.com/includeos/includeos).
 
 We upload to two channels:
 
