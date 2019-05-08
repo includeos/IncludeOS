@@ -379,27 +379,8 @@ void Connection::Closed::open(Connection& tcp, bool active) {
       auto packet = tcp.outgoing_packet();
       packet->set_seq(tcb.ISS).set_flag(SYN);
 
-      /*
-        Add MSS option.
-      */
-      tcp.add_option(Option::MSS, *packet);
-
-      // Window scaling
-      if(tcp.uses_window_scaling())
-      {
-        tcp.add_option(Option::WS, *packet);
-        packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
-      }
-      // Add timestamps
-      if(tcp.uses_timestamps())
-      {
-        tcp.add_option(Option::TS, *packet);
-      }
-
-      if(tcp.uses_SACK())
-      {
-        tcp.add_option(Option::SACK_PERM, *packet);
-      }
+      // Add all the options we wanna negotiate in the handshake.
+      tcp.add_syn_options(*packet);
 
       tcb.SND.UNA = tcb.ISS;
       tcb.SND.NXT = tcb.ISS+1;
@@ -675,24 +656,9 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_view& in) {
     auto packet = tcp.outgoing_packet();
     packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
 
-    /*
-      Add MSS option.
-      TODO: Send even if we havent received MSS option?
-    */
-    tcp.add_option(Option::MSS, *packet);
-
-    // This means WS was accepted in the SYN packet
-    if(tcb.SND.wind_shift > 0)
-    {
-      tcp.add_option(Option::WS, *packet);
-      packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
-    }
-
-    // SACK permitted
-    if(tcp.sack_perm == true)
-    {
-      tcp.add_option(Option::SACK_PERM, *packet);
-    }
+    // Options are now parsed so we should be able to
+    // add the negotiated options here
+    tcp.add_synack_options(*packet);
 
     tcp.transmit(std::move(packet));
     tcp.set_state(SynReceived::instance());
