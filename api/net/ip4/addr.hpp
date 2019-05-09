@@ -43,11 +43,16 @@ struct Addr {
   /**
    * Constructor
    *
-   * Create an IPv4 address object to represent the address <0.0.0.0>
+   * Create an IPv4 address object to represent 0.0.0.0
    */
-  constexpr Addr() noexcept
-    : whole{}
-  {}
+  constexpr Addr() noexcept = default;
+
+  /**
+   * Constructor
+   *
+   * Create an IPv4 address object by copying another
+   */
+  Addr(const Addr& other) = default;
 
   /**
    * Constructor
@@ -385,7 +390,7 @@ struct Addr {
   static const Addr addr_bcast;
 
   /* Data member */
-  uint32_t whole;
+  uint32_t whole = 0;
 } __attribute__((packed)); //< struct Addr
 
 static_assert(sizeof(Addr) == 4, "Must be 4 bytes in size");

@@ -33,9 +33,16 @@ namespace MAC {
  */
 union Addr {
   /**
-   * Default constructor
+   * Zero-initialized default constructor
    */
   constexpr Addr() noexcept : part{} {}
+
+  /**
+   * Constructor
+   *
+   * Create a MAC address object by copying another
+   */
+  Addr(const Addr& other) = default;
 
   /**
    * Constructor
@@ -236,7 +243,7 @@ union Addr {
 
 
   static constexpr const size_t PARTS_LEN {6}; //< Number of parts in a MAC address
-  uint8_t part[PARTS_LEN];                     //< The parts of the MAC address
+  uint8_t part[PARTS_LEN] = {0};               //< The parts of the MAC address
 
   struct {
     uint16_t minor;
