@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <ostream>
 #include <uri>
@@ -23,7 +24,7 @@
 #include <vector>
 #include <array>
 
-#include "../../mod/http-parser/http_parser.h"
+#include <http-parser/http_parser.h>
 
 namespace uri {
 
@@ -79,7 +80,9 @@ static inline util::sview updated_copy(const std::vector<char>& to_copy,
                                        util::csview view,
                                        const std::vector<char>& from_copy)
 {
-  return {to_copy.data() + (view.data() - from_copy.data()), view.size()};
+  // sometimes the source is empty, but we need a valid empty string
+  if (view.data() == nullptr) return {&to_copy.back(), 0};
+  return {&to_copy.data()[view.data() - from_copy.data()], view.size()};
 }
 
 ///////////////////////////////////////////////////////////////////////////////

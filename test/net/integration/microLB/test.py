@@ -1,9 +1,13 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import os
 import signal
 import sys
 import subprocess
-import thread
+import _thread
 import time
 import atexit
 
@@ -17,14 +21,15 @@ expected_string = "#" * 1024 * 1024 * 50
 
 def validateRequest(addr):
     response = requests.get('https://10.0.0.68:443', verify=False, timeout=5)
+    #print len(response.content)
     return (response.content) == str(addr) + expected_string
 
 # start nodeJS
-pro = subprocess.Popen(["nodejs", "server.js"], stdout=subprocess.PIPE)
+pro = subprocess.Popen(["node", "server.js"], stdout=subprocess.PIPE)
 
 requests_completed = False
 def startBenchmark(line):
-    print "<test.py> starting test "
+    print("<test.py> starting test ")
     assert validateRequest(6001)
     assert validateRequest(6002)
     assert validateRequest(6003)
@@ -34,7 +39,7 @@ def startBenchmark(line):
     assert validateRequest(6002)
     assert validateRequest(6003)
     assert validateRequest(6004)
-    print "Waiting for TCP MSL end..."
+    print("Waiting for TCP MSL end...")
     global requests_completed
     requests_completed = True
     return True
@@ -45,7 +50,7 @@ def mslEnded(line):
 
 @atexit.register
 def cleanup():
-    print "<test.py> Stopping node server"
+    print("<test.py> Stopping node server")
     # stop nodeJS
     pro.kill()
 
@@ -57,5 +62,8 @@ vm = vmrunner.vms[0]
 vm.on_output("MicroLB ready for test", startBenchmark)
 vm.on_output("TCP MSL ended", mslEnded)
 
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(60).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(20,image_name='net_microLB').clean()

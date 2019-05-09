@@ -1,43 +1,33 @@
-cmake_minimum_required(VERSION 2.8.9)
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+cmake_minimum_required(VERSION 3.0)
 project (service)
 
-option(benchmark_mode "Optimizations for benchmarking" OFF)
-if (benchmark_mode)
-  add_definitions(-DDRIFTING_BINARY)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-# Human-readable name of your service
-set(SERVICE_NAME "LiveUpdate integration test")
+include(os)
 
-# Name of your service binary
-set(BINARY       "service")
+option(benchmark_mode "Optimizations for benchmarking" OFF)
+option(SERIAL_OUTPUT "Output information" OFF)
+if (benchmark_mode)
+  add_definitions(-DBENCHMARK_MODE)
+endif()
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp test_boot.cpp
   )
+os_add_executable(kernel_LiveUpdate "LiveUpdate integration test" ${SOURCES})
 
-# DRIVERS / PLUGINS:
-set(DRIVERS
-    virtionet
-    boot_logger
-  )
+os_add_drivers(kernel_LiveUpdate
+  virtionet
+  boot_logger
+)
 
-set(PLUGINS
-    system_log
-  )
+if (SERIAL_OUTPUT)
+  os_add_stdout(kernel_LiveUpdate default_stdout)
+endif()
 
-# STATIC LIBRARIES:
-set(LIBRARIES
-  libliveupdate.a
-  )
-
-# disable serial output
-set(default_stdout OFF)
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -1,30 +1,22 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+  conan_basic_setup()
+else()
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_utsname)
-
-# Human-readable name of your service
-set(SERVICE_NAME "POSIX Threads test")
-
-# Name of your service binary
-set(BINARY       "test_pthread")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
     service.cpp
-    )
+  )
 
-# To add your own include paths:
-#set(LOCAL_INCLUDES ".")
+os_add_executable(posix_pthread "POSIX pthread test" ${SOURCES})
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_plugins(posix_pthread vfs)
+os_add_stdout(posix_pthread default_stdout)

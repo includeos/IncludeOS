@@ -1,21 +1,21 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project(service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_stresstest)
-
-set(SERVICE_NAME "Stress test")
-set(BINARY       "test_stresstest")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp
-  )
+)
 
-set(DRIVERS virtionet)
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_executable(stress "Stress test" ${SOURCES})
+os_add_stdout(stress default_stdout)
+os_add_drivers(stress virtionet)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -101,7 +101,7 @@ extern "C" void __cpu_exception(uintptr_t* regs, int error, uint32_t code){
   magic->last_error = error;
   magic->last_code = Pfault(code);
 
-  OS::reboot();
+  os::reboot();
 }
 
 template <typename E>
@@ -204,7 +204,7 @@ void verify_integrity(){
 
   // Allocate across both 1_G and 2_MiB border
   uintptr_t near = 884_MiB + 4_KiB;
-  uintptr_t far_distance = 2_GiB;
+  uintptr_t far_distance = 1_GiB;
 
   mem::Map far;
   far.lin   = near + far_distance;
@@ -213,10 +213,13 @@ void verify_integrity(){
   far.size  = 100_MiB;
   far.page_sizes = mem::Map::any_size;
 
+  //#define HIGHMEM_LOCATION  (1ull << 45)
+  //const uintptr_t lu_phys = mem::virt_to_phys(HIGHMEM_LOCATION);
+  //mem::vmmap().erase(lu_phys);
   // Make room by resizing heap
   // TODO: This shouldn't be necessary
-  auto heap_key = OS::memory_map().in_range(near);
-  OS::memory_map().resize(heap_key, 100_MiB);
+  auto heap_key = os::mem::vmmap().in_range(near);
+  os::mem::vmmap().resize(heap_key, 100_MiB);
 
   auto res = mem::map(far);
   Expects(res and res.size == far.size);
@@ -302,7 +305,7 @@ void memmap_vs_pml4()
 {
 
     printf("\n*** Memory map: ***\n");
-    auto& mmap = OS::memory_map();
+    auto& mmap = os::mem::vmmap();
     for (auto& r : mmap){
       std::cout << r.second.to_string() << "\n";
     }
@@ -310,7 +313,7 @@ void memmap_vs_pml4()
     int match = 0;
     const int ranges = 100;
     auto randz = randomz(ranges);
-    auto t1 = OS::nanos_since_boot();
+    auto t1 = os::nanos_since_boot();
     for (auto rz : randz)
     {
       if (mmap.in_range(rz)) {
@@ -321,11 +324,11 @@ void memmap_vs_pml4()
       }
 
     }
-    auto t = OS::nanos_since_boot() - t1;
+    auto t = os::nanos_since_boot() - t1;
     printf("Tested %i ranges in %li us. %i matches. \n", ranges, t, match);
 
     match = 0;
-    t1 = OS::nanos_since_boot();
+    t1 = os::nanos_since_boot();
     for (auto rz : randz)
     {
       auto* ent = __pml4->entry_r(rz);
@@ -336,7 +339,7 @@ void memmap_vs_pml4()
         //printf("__pml4: 0x%lx NO\n", rz);
       }
     }
-    t = OS::nanos_since_boot() - t1;
+    t = os::nanos_since_boot() - t1;
     printf("Tested %i ranges in %li ns. %i matches. \n", ranges, t, match);
 
 }
@@ -382,7 +385,6 @@ void map_non_aligned(){
   Expects(errors == 1);
 
 }
-
 
 int main()
 {

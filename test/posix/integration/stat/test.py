@@ -1,28 +1,21 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-print 'includeos_src: {0}'.format(includeos_src)
-sys.path.insert(0,includeos_src)
 from subprocess import call
 
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
-vm.cmake()
-
 num_outputs = 0
-
-def cleanup():
-  vm.clean()
 
 def increment(line):
   global num_outputs
   num_outputs += 1
-  print "num_outputs after increment: ", num_outputs
+  print("num_outputs after increment: ", num_outputs)
 
 def check_num_outputs(line):
   assert(num_outputs == 18)
@@ -51,7 +44,9 @@ vm.on_output("fstatat\(\) of file that exists is ok", increment)
 
 vm.on_output("All done!", check_num_outputs)
 
-vm.on_exit(cleanup)
-
 # Boot the VM, taking a timeout as parameter
-vm.boot(20)
+if len(sys.argv) > 1:
+    vm.boot(20,image_name=str(sys.argv[1]))
+else:
+    vm.cmake()
+    vm.boot(20,image_name='posix_stat').clean()

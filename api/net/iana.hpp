@@ -1,3 +1,18 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2018 IncludeOS AS, Oslo, Norway
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #pragma once
 
@@ -25,15 +40,20 @@ namespace net {
    * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
    */
   enum class Protocol : uint8_t {
-    HOPOPT     =  0,
+    HOPOPT     =  0, // Hop-by-Hop Options Header
     ICMPv4     =  1,
-    IPv4       =  4,  // IPv4 encapsulation
+    IPv4       =  4, // IPv4 encapsulation
     TCP        =  6,
     UDP        = 17,
-    IPv6       = 41,  // IPv6 encapsulation
+    IPv6       = 41, // IPv6 encapsulation
+    IPv6_ROUTE = 43, // Routing Header
+    IPv6_FRAG  = 44, // Fragment Header
+    RSVP       = 46, // Resource ReSerVation Protocol
+    ESP        = 50, // Encapsulating Security Payload
+    AH         = 51, // Authentication Header
     ICMPv6     = 58,
-    IPv6_NONXT = 59,
-    OPTSV6     = 60
+    IPv6_NONXT = 59, // No next header
+    OPTSV6     = 60  // Destination Options Header
   };
 
   /**

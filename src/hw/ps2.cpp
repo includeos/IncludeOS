@@ -19,7 +19,6 @@
 #include <hw/ioport.hpp>
 #include <arch.hpp>
 #include <kernel/events.hpp>
-#include <debug>
 
 #define PS2_DATA_PORT   0x60
 #define PS2_STATUS      0x64
@@ -45,95 +44,112 @@
 namespace hw
 {
   typedef void (*port_func)(uint8_t);
-  static bool      ps2_initialized = false;
   static port_func keyboard_write;
   static port_func mouse_write;
 
-  static inline void ps2_flush()
+  void KBM::flush_data()
   {
     while (hw::inb(PS2_STATUS) & 1)
       hw::inb(PS2_DATA_PORT);
   }
-
-  static void ctl_send(uint8_t cmd)
-  {
+  uint8_t KBM::read_status() {
+    return hw::inb(PS2_STATUS);
+  }
+  uint8_t KBM::read_data() {
+    while (not (hw::inb(PS2_STATUS) & 1));
+    return hw::inb(PS2_DATA_PORT);
+  }
+  void    KBM::write_cmd(uint8_t cmd) {
     while (hw::inb(PS2_STATUS) & 2);
     hw::outb(PS2_COMMAND, cmd);
     while (hw::inb(PS2_STATUS) & 2);
   }
-
-  static inline uint8_t read_data()
-  {
-    while (!(hw::inb(PS2_STATUS) & 1));
-    return hw::inb(PS2_DATA_PORT);
-  }
-  static inline uint8_t read_fast()
-  {
-    return hw::inb(PS2_DATA_PORT);
-  }
-  static void send_data(uint8_t cmd)
-  {
+  void    KBM::write_data(uint8_t data) {
     while (hw::inb(PS2_STATUS) & 2);
-    hw::outb(PS2_DATA_PORT, cmd);
+    hw::outb(PS2_DATA_PORT, data);
   }
-
-  static void write_port1(uint8_t val)
+  void KBM::write_port1(uint8_t data)
   {
-    uint8_t res = 0xFE;
+    uint8_t res = 0;
     while (res != 0xFA) {
-      send_data(val);
+      write_data(data);
       res = read_data();
     }
   }
-  static void write_port2(uint8_t val)
+  void KBM::write_port2(uint8_t data)
   {
-    uint8_t res = 0xFE;
+    uint8_t res = 0;
     while (res != 0xFA) {
-      ctl_send(0xD4);
-      send_data(val);
+      write_cmd(0xD4);
+      write_data(data);
       res = read_data();
     }
   }
 
-  int KBM::transform_vk(uint8_t scancode)
+  KBM::keystate_t KBM::process_vk()
   {
-    if (scancode == 0x0)
+    uint8_t scancode = m_queue.front();
+    //printf("Scancode: %02X\n", scancode);
+    keystate_t result;
+    result.pressed = (scancode & 0x80) == 0;
+    const int scancode7 = scancode & 0x7f;
+    // numbers
+    if (scancode7 > 0x1 && scancode7 <= 0x0A)
     {
-      return VK_UNKNOWN;
-    }
-    else if (scancode <= 0x0A)
-    {
-      return VK_ESCAPE + scancode - 1;
+      result.key = VK_ESCAPE + scancode7 - 1;
+      m_queue.pop_front();
     }
     else if (scancode == 0xE0)
     {
-      scancode = read_fast();
-      switch (scancode) {
-      case 0x48:
-        return VK_UP;
-      case 0x4B:
-        return VK_LEFT;
-      case 0x4D:
-        return VK_RIGHT;
-      case 0x50:
-        return VK_DOWN;
-      default:
-        return VK_UNKNOWN;
+      // multimedia keys (2-byte scancodes)
+      if (m_queue.size() < 2) {
+        result.key = VK_WAIT_MORE;
+        return result;
       }
+      scancode = m_queue.at(1);
+      result.pressed = (scancode & 0x80) == 0;
+      //printf("MM scancode: %02X\n", scancode);
+      switch (scancode & 0x7f) {
+      case 0x48:
+        result.key = VK_UP; break;
+      case 0x4B:
+        result.key = VK_LEFT; break;
+      case 0x4D:
+        result.key = VK_RIGHT; break;
+      case 0x50:
+        result.key = VK_DOWN; break;
+      default:
+        result.key = VK_UNKNOWN;
+      }
+      m_queue.pop_front();
+      m_queue.pop_front();
     }
-    switch (scancode) {
-    case 0x0E:
-      return VK_BACK;
-    case 0x0F:
-      return VK_TAB;
-    case 0x1C:
-      return VK_ENTER;
-    case 0x39:
-      return VK_SPACE;
+    else
+    {
+      // single-byte scancodes
+      switch (scancode7) {
+      case 0x0:
+        result.key = VK_UNKNOWN;
+      case 0x1:
+        result.key = VK_ESCAPE;
+      case 0x0E:
+        result.key = VK_BACK; break;
+      case 0x0F:
+        result.key = VK_TAB; break;
+      case 0x1C:
+        result.key = VK_ENTER; break;
+      case 0x39:
+        result.key = VK_SPACE; break;
+      case 0x2C:
+        result.key = VK_Z; break;
+      case 0x2D:
+        result.key = VK_X; break;
+      default:
+        result.key = VK_UNKNOWN;
+      }
+      m_queue.pop_front();
     }
-
-
-    return VK_UNKNOWN;
+    return result;
   }
   void KBM::handle_mouse(uint8_t scancode)
   {
@@ -144,11 +160,21 @@ namespace hw
   {
     return (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
   }
-  int KBM::get_kbd_vkey()
+  void KBM::kbd_process_data()
   {
-    uint8_t byte = read_fast();
-    // transform to virtual key
-    return transform_vk(byte);
+    // get new scancodes
+    while (hw::inb(PS2_STATUS) & 0x1) {
+      m_queue.push_back(hw::inb(PS2_DATA_PORT));
+    }
+    while (!m_queue.empty())
+    {
+      auto state = process_vk();
+      if (state.key == VK_WAIT_MORE) break;
+      // call handler
+      if (get().on_virtualkey) {
+        get().on_virtualkey(state.key, state.pressed);
+      }
+    }
   }
   uint8_t KBM::get_mouse_irq()
   {
@@ -157,110 +183,96 @@ namespace hw
 
   void KBM::init()
   {
-    if (ps2_initialized) return;
-    ps2_initialized = true;
+    get().internal_init();
+  }
+  void KBM::internal_init()
+  {
+    if (this->m_initialized) return;
+    this->m_initialized = true;
 
     // disable ports
-    ctl_send(CMD_DISABLE_PORT1);
-    ctl_send(CMD_DISABLE_PORT2);
-    ps2_flush();
+    //write_cmd(CMD_DISABLE_PORT1);
+    //write_cmd(CMD_DISABLE_PORT2);
+    //flush_data();
 
     // configure controller
-    ctl_send(0x20);
+    write_cmd(0x20);
     uint8_t config = read_data();
-    bool second_port = config & (1 << 5);
-    (void) second_port;
 
-    config |= 0x1 | 0x2; // enable interrupts
-    config &= ~(1 << 6);
+    // enable port1 and port2 interrupts
+    config |= 0x1 | 0x2;
+    // remove bit6: port1 translation
+    config &= ~0x40;
+    // dual channel with mouse
+    this->mouse_enabled = config & 0x20;
 
-    // write config
-    ctl_send(0x60);
-    send_data(config);
-
-    ps2_flush();
+    // write config back
+    write_cmd(0x60);
+    write_data(config);
+    flush_data();
 
     // enable port1
-    ctl_send(CMD_ENABLE_PORT1);
-
-    ps2_flush();
+    write_cmd(CMD_ENABLE_PORT1);
+    flush_data();
 
     // self-test (port1)
     write_port1(0xFF);
-    uint8_t selftest = read_data();
-    assert(selftest == 0xAA);
+    const uint8_t selftest = read_data();
+    assert(selftest == 0xAA && "PS/2 controller self-test");
 
     write_port1(DEV_IDENTIFY);
     uint8_t id1 = read_data();
 
     if (id1 == 0xAA || id1 == 0xAB) {
       // port1 is the keyboard
-      debug("keyboard on port1\n");
       keyboard_write = write_port1;
       mouse_write    = write_port2;
     }
     else {
       // port2 is the keyboard
-      debug("keyboard on port2\n");
       mouse_write    = write_port1;
       keyboard_write = write_port2;
     }
 
-    // enable keyboard
-    keyboard_write(0xF4);
-
-    // get and set scancode
+    // disable scanning
+    keyboard_write(0xF5);
+    // set scancode set 1
     keyboard_write(0xF0);
-    send_data(0x01);
+    write_data(0x01);
     keyboard_write(0xF0);
-    send_data(0x00);
+    write_data(0x00);
     uint8_t scanset = 0xFA;
     while (scanset == 0xFA) scanset = read_data();
+    assert(scanset == 0x1);
+    // enable scanning
+    keyboard_write(0xF4);
 
     // route and enable interrupt handlers
     const uint8_t KEYB_IRQ = get_kbd_irq();
-    const uint8_t MOUS_IRQ = get_mouse_irq();
-    assert(KEYB_IRQ != MOUS_IRQ);
-
     // need to route IRQs from IO APIC to BSP LAPIC
     __arch_enable_legacy_irq(KEYB_IRQ);
-    __arch_enable_legacy_irq(MOUS_IRQ);
 
-    /*
-    // reset and enable keyboard
-    send_data(0xF6);
-
-    // enable keyboard scancodes
-    send_data(0xF4);
-
-    // enable interrupts
-    //ctl_send(0x60, ctl_read(0x20) | 0x1 | 0x2);
-    */
+    if (this->mouse_enabled)
+    {
+      const uint8_t MOUS_IRQ = get_mouse_irq();
+      assert(KEYB_IRQ != MOUS_IRQ);
+      __arch_enable_legacy_irq(MOUS_IRQ);
+    }
   }
 
   KBM::KBM()
   {
-    this->on_virtualkey = [] (int) {};
-    this->on_mouse = [] (int,int,int) {};
+    internal_init();
 
-    if (ps2_initialized == false) {
-      KBM::init();
-    }
-
-    const uint8_t KEYB_IRQ = get_kbd_irq();
-    const uint8_t MOUS_IRQ = get_mouse_irq();
-
-    Events::get().subscribe(KEYB_IRQ,
+    Events::get().subscribe(KBM::get_kbd_irq(),
     [] {
-      int key = KBM::get_kbd_vkey();
-      // call handler
-      get().on_virtualkey(key);
+      get().kbd_process_data();
     });
-
-    Events::get().subscribe(MOUS_IRQ,
+    return;
+    // TODO: implement
+    Events::get().subscribe(KBM::get_mouse_irq(),
     [] {
-      get().handle_mouse(read_fast());
+      get().handle_mouse(read_data());
     });
   }
-
 }

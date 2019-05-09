@@ -29,9 +29,6 @@
 #include <rtc> // nanos_now (get_ts_value)
 #include <net/tcp/packet4_view.hpp>
 #include <net/tcp/packet6_view.hpp>
-#include <kernel/os.hpp>
-#include <util/bitops.hpp>
-#include <util/units.hpp>
 
 using namespace std;
 using namespace net;
@@ -140,8 +137,17 @@ bool TCP::close(const Socket& socket)
 
 void TCP::connect(Socket remote, ConnectCallback callback)
 {
-  auto addr = remote.address().is_v6()
-    ? Addr{inet_.ip6_addr()} : Addr{inet_.ip_addr()};
+  auto addr = [&]()->auto{
+    if(remote.address().is_v6())
+    {
+      auto dest = remote.address().v6();
+      return Addr{inet_.addr6_config().get_src(dest)};
+    }
+    else
+    {
+      return Addr{inet_.ip_addr()};
+    }
+  }();
 
   create_connection(bind(addr), remote, std::move(callback))->open(true);
 }
@@ -159,8 +165,17 @@ void TCP::connect(Socket local, Socket remote, ConnectCallback callback)
 
 Connection_ptr TCP::connect(Socket remote)
 {
-  auto addr = remote.address().is_v6()
-    ? Addr{inet_.ip6_addr()} : Addr{inet_.ip_addr()};
+  auto addr = [&]()->auto{
+    if(remote.address().is_v6())
+    {
+      auto dest = remote.address().v6();
+      return Addr{inet_.addr6_config().get_src(dest)};
+    }
+    else
+    {
+      return Addr{inet_.ip_addr()};
+    }
+  }();
 
   auto conn = create_connection(bind(addr), remote);
   conn->open(true);
@@ -190,7 +205,7 @@ void TCP::insert_connection(Connection_ptr conn)
       std::forward_as_tuple(conn));
 }
 
-void TCP::receive(net::Packet_ptr ptr)
+void TCP::receive4(net::Packet_ptr ptr)
 {
   auto ip4 = static_unique_ptr_cast<PacketIP4>(std::move(ptr));
   Packet4_view pkt{std::move(ip4)};
@@ -228,6 +243,7 @@ void TCP::receive(Packet_view& packet)
     return;
   }
 
+#if !defined(DISABLE_INET_CHECKSUMS)
   // Validate checksum
   if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
     PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
@@ -235,6 +251,7 @@ void TCP::receive(Packet_view& packet)
     drop(packet);
     return;
   }
+#endif
 
   // Stat increment bytes received
   (*bytes_rx_) += packet.tcp_data_length();
@@ -260,8 +277,6 @@ void TCP::receive(Packet_view& packet)
 
   // No open connection found, find listener for destination
   debug("<TCP::receive> No connection found - looking for listener..\n");
-  // TODO: Avoid creating a new connection if we're running out of memory.
-  // something like "mem avail" > (max_buffer_limit * 3) maybe
   auto listener_it = find_listener(dest);
 
   // Listener found => Create Listener
@@ -289,11 +304,10 @@ string TCP::to_string() const {
     str += l.first.to_string() + "\t" + std::to_string(l.second->syn_queue_size()) + "\n";
   }
   str +=
-  "\nCONNECTIONS:\nProto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
+  "\nCONNECTIONS:\nLocal\tRemote\tState\n";
   for(auto& con_it : connections_) {
     auto& c = *(con_it.second);
-    str += "tcp4\t \t \t \t \t"
-        + c.local().to_string() + "\t\t" + c.remote().to_string() + "\t\t"
+    str += c.local().to_string() + "\t" + c.remote().to_string() + "\t"
         + c.state().to_string() + "\n";
   }
   return str;
@@ -391,7 +405,7 @@ void TCP::transmit(tcp::Packet_view_ptr packet)
     network_layer_out6_(packet->release());
   }
   else {
-    network_layer_out_(packet->release());
+    network_layer_out4_(packet->release());
   }
 }
 
@@ -594,6 +608,13 @@ void TCP::queue_offer(Connection& conn)
 tcp::Address TCP::address() const noexcept
 { return inet_.ip_addr(); }
 
+uint16_t TCP::MSS(const Protocol ipv) const
+{
+  return ((ipv == Protocol::IPv6) ?
+    inet_.ip6_obj().MDDS() : network().MDDS())
+    - sizeof(tcp::Header);
+}
+
 IP4& TCP::network() const
 { return inet_.ip_obj(); }
 
@@ -642,3 +663,6 @@ TCP::Listeners::const_iterator TCP::cfind_listener(const Socket& socket) const
 
   return it;
 }
+
+
+

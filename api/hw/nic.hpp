@@ -20,6 +20,7 @@
 
 #include "mac_addr.hpp"
 #include <net/inet_common.hpp>
+#include "device.hpp"
 
 #define NIC_SENDQ_LIMIT_DEFAULT  4096
 #define NIC_BUFFER_LIMIT_DEFAULT 4096
@@ -29,7 +30,7 @@ namespace hw {
   /**
    *  A public interface Network cards
    */
-  class Nic {
+  class Nic : public Device {
   public:
     using upstream    = delegate<void(net::Packet_ptr)>;
     using downstream  = net::downstream_link;
@@ -48,11 +49,10 @@ namespace hw {
     virtual const char* driver_name() const = 0;
 
     /** Human-readable interface/device name (eg. eth0) */
-    virtual std::string device_name() const = 0;
+    virtual std::string device_name() const override = 0;
 
-    /** A readable name of the type of device @todo: move to a abstract Device? */
-    static const char* device_type()
-    { return "NIC"; }
+    Device::Type device_type() const noexcept override
+    { return Device::Type::Nic; }
 
     /** The mac address. */
     virtual const MAC::Addr& mac() const noexcept = 0;
@@ -89,7 +89,7 @@ namespace hw {
 
     virtual size_t transmit_queue_available() = 0;
 
-    virtual void deactivate() = 0;
+    virtual void deactivate() override = 0;
 
     /** Stats getters **/
     virtual uint64_t get_packets_rx() = 0;
@@ -100,7 +100,7 @@ namespace hw {
     virtual void move_to_this_cpu() = 0;
 
     /** Flush remaining packets if possible. **/
-    virtual void flush() = 0;
+    virtual void flush() override = 0;
 
     virtual ~Nic() {}
 
@@ -140,6 +140,9 @@ namespace hw {
 
     void transmit_queue_available_event(size_t packets)
     {
+      // early on its possible someone tries to transmit without subscribers
+      if (tqa_events_.empty()) return;
+
       // divide up fairly
       size_t div = packets / tqa_events_.size();
 

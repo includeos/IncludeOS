@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 
 using namespace net;
 
@@ -27,29 +27,29 @@ void Service::start()
   create_network_device(0, "10.0.0.0/24", "10.0.0.1");
 #endif
 
-  auto& inet = Inet::stack<0>();
+  auto& inet = Interfaces::get(0);
   inet.network_config({  10,  0,  0, 52 },    // IP
                       { 255, 255, 0,  0 },    // Netmask
                       {  10,  0,  0,  1 },    // Gateway
                       {   8,  8,  8,  8 }     // DNS
   );
 
-  inet.network_config6(
-       {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
-       64,                                                     // Prefix6
-       {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
-  );
+  inet.add_addr({"fe80::e823:fcff:fef4:85bd"});
+  ip6::Addr gateway{"fe80::e823:fcff:fef4:83e7"};
 
   printf("Service IPv4 address: %s, IPv6 address: %s\n",
           inet.ip_addr().str().c_str(), inet.ip6_addr().str().c_str());
 
+  const int wait = 10;
+
   // ping gateway
-  inet.icmp6().ping(inet.gateway6(), [](ICMP6_view pckt) {
+  inet.icmp6().ping(gateway, [](ICMP6_view pckt) {
+    //something is off with the fwd ?
     if (pckt)
       printf("Received packet from gateway\n%s\n", pckt.to_string().c_str());
     else
       printf("No reply received from gateway\n");
-  });
+  },wait);
 
 #if 0
   const int wait = 10;

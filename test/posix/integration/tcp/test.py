@@ -1,5 +1,9 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import sys
 import os
 import subprocess
@@ -7,7 +11,7 @@ import atexit
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-print 'includeos_src: {0}'.format(includeos_src)
+print('includeos_src: {0}'.format(includeos_src))
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
@@ -20,7 +24,7 @@ import platform
 if platform.system() == 'Darwin':
     subprocess.call(["sudo", "ifconfig", "bridge43", "alias", "10.0.0.4/24"])
 else:
-    subprocess.call(["sudo", "ifconfig", "bridge43:2", "10.0.0.4/24"])
+    subprocess.call(["sudo", "ip", "addr", "add", "10.0.0.4/24", "dev", "bridge43", "label", "bridge43:2"])
 
 # Tear down interface on exit
 @atexit.register
@@ -28,7 +32,7 @@ def tear_down():
     if platform.system() == 'Darwin':
         subprocess.call(["sudo", "ifconfig", "bridge43", "-alias", "10.0.0.4"])
     else:
-        subprocess.call(["sudo", "ifconfig", "bridge43:2", "down"])
+        subprocess.call(["sudo", "ip", "addr", "del", "10.0.0.4/24", "dev", "bridge43", "label", "bridge43:2"])
 
 
 S_HOST, S_PORT = '10.0.0.4', 4242
@@ -59,13 +63,16 @@ def TCP_recv(trigger_line):
   conn.close()
   return verify_recv(RECEIVED)
 
-import thread
+import _thread
 def TCP_connect_thread(trigger_line):
-  thread.start_new_thread(TCP_connect, ())
+  _thread.start_new_thread(TCP_connect, ())
 
 # Add custom event-handler
 vm.on_output("accept()", TCP_connect_thread)
 vm.on_output("Trigger TCP_recv", TCP_recv)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(10).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='posix_tcp').clean()

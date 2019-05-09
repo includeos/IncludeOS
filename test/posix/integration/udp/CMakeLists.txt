@@ -1,34 +1,24 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+  conan_basic_setup()
+else()
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+include(os)
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
-project (test_posix_udp)
-
-# Human-readable name of your service
-set(SERVICE_NAME "POSIX UDP Test Service")
-
-# Name of your service binary
-set(BINARY       "test_posix_udp")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
+    service.cpp
   )
 
-# DRIVERS / PLUGINS:
+#os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-set(DRIVERS
-  virtionet   # Virtio networking
-  )
+os_add_executable(posix_udp "POSIX UDP test" ${SOURCES})
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_drivers(posix_udp virtionet)
+os_add_stdout(posix_udp default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -1,35 +1,26 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project(test_vlan)
-
-# Human-readable name of your service
-set(SERVICE_NAME "IncludeOS VLAN test")
-
-# Name of your service binary
-set(BINARY       "test_vlan")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
     service.cpp
   )
 
-# DRIVERS / PLUGINS:
+os_add_config(net_vlan "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-set(DRIVERS
-  virtionet
-  vmxnet3
-  boot_logger
-  )
+os_add_executable(net_vlan "VLAN test" ${SOURCES})
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_plugins(net_vlan autoconf)
+os_add_drivers(net_vlan virtionet e1000 vmxnet3)
+os_add_stdout(net_vlan default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

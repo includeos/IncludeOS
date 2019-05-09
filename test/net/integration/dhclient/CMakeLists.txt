@@ -1,24 +1,20 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_dhcp)
+os_add_executable(net_dhclient "IncludeOS DHCP test"  service.cpp)
 
-MESSAGE(STATUS "IncludeOS prefix: " $ENV{INCLUDEOS_PREFIX})
+os_add_plugins(net_dhclient autoconf)
+os_add_drivers(net_dhclient virtionet)
+os_add_stdout(net_dhclient default_stdout)
 
-set(SERVICE_NAME "IncludeOS DHCP test")
-set(BINARY       "test_dhcp")
-set(MAX_MEM 128)
-set(SOURCES
-    service.cpp
-    )
-
-# Enable virtionet driver
-set(DRIVERS virtionet)
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

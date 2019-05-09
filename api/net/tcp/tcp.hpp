@@ -181,7 +181,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A network packet
      */
-    void receive(net::Packet_ptr);
+    void receive4(net::Packet_ptr);
 
     /**
      * @brief      Receive a Packet from the network layer (IP6)
@@ -197,8 +197,8 @@ namespace net {
      *
      * @param[in]  del   A downstream delegate
      */
-    void set_network_out(downstream del)
-    { network_layer_out_ = del; }
+    void set_network_out4(downstream del)
+    { network_layer_out4_ = del; }
 
     void set_network_out6(downstream del)
     { network_layer_out6_ = del; }
@@ -424,8 +424,7 @@ namespace net {
      *
      * @return     The MSS
      */
-    uint16_t MSS() const
-    { return network().MDDS() - sizeof(tcp::Header); }
+    uint16_t MSS(const Protocol) const;
 
     /**
      * @brief      Returns a string representation of the listeners and connections.
@@ -548,7 +547,7 @@ namespace net {
 
     Port_utils& ports_;
 
-    downstream  network_layer_out_;
+    downstream  network_layer_out4_;
     downstream  network_layer_out6_;
 
     /** Internal writeq - connections gets queued in the wait for packets and recvs offer */

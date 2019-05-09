@@ -21,7 +21,6 @@
 
 #include <os>
 #include <virtio/virtio.hpp>
-#include <hw/pci.hpp>
 #if !defined(__MACH__)
 #include <malloc.h>
 #else
@@ -56,8 +55,6 @@ void Virtio::Queue::init_queue(int size, char* buf)
   debug("\t * Queue used  @ 0x%lx \n ",(long)_queue.used);
 }
 
-#include <timers>
-
 /** Constructor */
 Virtio::Queue::Queue(const std::string& name,
                      uint16_t size, uint16_t q_index, uint16_t iobase)
@@ -68,7 +65,7 @@ Virtio::Queue::Queue(const std::string& name,
   // Allocate page-aligned size and clear it
   void* buffer = memalign(PAGE_SIZE, total_bytes);
   if (! buffer)
-    panic("Virtio queue could not allocate aligned queue area");
+    os::panic("Virtio queue could not allocate aligned queue area");
 
   memset(buffer, 0, total_bytes);
 
@@ -83,8 +80,6 @@ Virtio::Queue::Queue(const std::string& name,
 
   debug(" >> Virtio Queue %s setup complete. \n", qname.c_str());
 }
-
-
 
 /** Ported more or less directly from SanOS. */
 int Virtio::Queue::enqueue(gsl::span<Token> buffers)
@@ -170,12 +165,19 @@ void Virtio::Queue::disable_interrupts() {
 void Virtio::Queue::enable_interrupts() {
   _queue.avail->flags &= ~(1 << VIRTQ_AVAIL_F_NO_INTERRUPT);
 }
+bool Virtio::Queue::interrupts_enabled() const noexcept {
+  return (_queue.avail->flags & (1 << VIRTQ_AVAIL_F_NO_INTERRUPT)) == 0;
+}
 
+// this will force most of the implementation to not use PCI
+// and thus be more easily testable
+#include <hw/pci.hpp>
 void Virtio::Queue::kick()
 {
-#if defined(ARCH_x86)
   update_avail_idx();
-
+#if defined (PLATFORM_UNITTEST)
+  // do nothing here
+#elif defined(ARCH_x86)
   // Std. §3.2.1 pt. 4
   __arch_hw_barrier();
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){

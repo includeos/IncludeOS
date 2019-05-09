@@ -22,7 +22,7 @@
 #include <cassert>
 #include <cstring>
 #include <locale>
-#include <kernel/syscalls.hpp> // for panic()
+#include <os.hpp> // for panic()
 
 #include <info>
 #include <common>
@@ -57,7 +57,7 @@ namespace fs
           "Invalid sector size (%u) for FAT32 partition\n", sector_size);
       fprintf(stderr,
           "Are you initializing the correct partition?\n");
-      panic("FAT32: Invalid sector size");
+      os::panic("FAT32: Invalid sector size");
     }
 
     // Let's begin our incantation

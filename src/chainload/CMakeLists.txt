@@ -1,27 +1,20 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+project(chainloader C CXX)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
 set(ARCH i686)
-set(PLATFORM x86_nano)
+include(os)
 
 option(default_stdout "" OFF)
-
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
-project (chainloader)
-
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
-
-set(SERVICE_NAME "IncludeOS chainloader")
-set(BINARY       "chainloader")
 set(SOURCES
     service.cpp hotswap.cpp
   )
-#set(LOCAL_INCLUDES ".")
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY} DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos)
+os_add_executable(chainloader "IncludeOS chainloader" ${SOURCES})
+os_install(TARGETS chainloader DESTINATION bin)

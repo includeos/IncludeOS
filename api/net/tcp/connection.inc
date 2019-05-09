@@ -46,9 +46,8 @@ inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
 }
 
 inline buffer_t Connection::read_next() {
-  static buffer_t empty_buf{};
   if (UNLIKELY(read_request == nullptr)) {
-    return empty_buf;
+    return nullptr;
   }
   return read_request->read_next();
 }

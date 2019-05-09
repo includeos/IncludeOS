@@ -155,3 +155,16 @@ CASE("Test a periodic timer")
   Timers::stop(id);
   current_time = 0;
 }
+
+#include <util/timer.hpp>
+CASE("Test util timer")
+{
+  Timer timer{ [] () {} };
+  EXPECT(!timer.is_running());
+  timer.start( std::chrono::milliseconds(1), [] () {});
+  EXPECT(timer.is_running());
+  timer.restart( std::chrono::milliseconds(1), [] () {});
+  EXPECT(timer.is_running());
+  timer.stop();
+  EXPECT(!timer.is_running());
+}

@@ -27,8 +27,8 @@ CASE("memdisk properties")
   EXPECT(disk.fs_ready() == false);
   EXPECT(disk.name() == "memdisk0");
   EXPECT(disk.dev().size() == 0ull);
-  EXPECT(disk.dev().device_type() == "Block device");
-  EXPECT(disk.dev().driver_name() == "MemDisk");
+  EXPECT(disk.dev().device_type() == hw::Device::Type::Block);
+  EXPECT(disk.dev().driver_name() == std::string("MemDisk"));
   bool enumerated_partitions {false};
 
   disk.partitions(

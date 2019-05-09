@@ -27,6 +27,21 @@ Iface host2 {
     gateway: eth1.address
 }
 
+Iface vlan0_10 {
+  index: "c0:01:0a:00:00:2a",
+  vlan:  10,
+  address: 10.0.10.1,
+  netmask: 255.255.255.0
+}
+
+Iface vlan2_10 {
+  index: 2,
+  vlan:  10,
+  address: 10.0.10.10,
+  netmask: 255.255.255.0,
+  gateway: vlan0_10.address
+}
+
 Gateway gw [
     {
         net: 10.0.1.0,

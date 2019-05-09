@@ -3,7 +3,7 @@
 #include <cstdio>
 
 extern "C" {
-#include <solo5.h>
+#include <solo5/solo5.h>
 
 void __init_serial1() {}
 

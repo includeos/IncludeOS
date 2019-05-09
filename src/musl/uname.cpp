@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include <sys/utsname.h>
-#include <kernel/os.hpp>
+#include <os.hpp>
 
 static long sys_uname(struct utsname *buf) {
   if(UNLIKELY(buf == nullptr))
@@ -10,11 +10,11 @@ static long sys_uname(struct utsname *buf) {
 
   strcpy(buf->nodename, "IncludeOS-node");
 
-  strcpy(buf->release, OS::version());
+  strcpy(buf->release, os::version());
 
-  strcpy(buf->version, OS::version());
+  strcpy(buf->version, os::version());
 
-  strcpy(buf->machine, OS::arch());
+  strcpy(buf->machine, os::arch());
 
   return 0;
 }

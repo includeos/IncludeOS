@@ -2,6 +2,7 @@
 #include <fs/disk.hpp>
 #include <fs/memdisk.hpp>
 #include <util/sha1.hpp>
+#include <unistd.h>
 using namespace fs;
 
 static MemDisk* mdisk = nullptr;
@@ -10,11 +11,13 @@ static Disk_ptr disk = nullptr;
 CASE("Prepare custom memdisk")
 {
   const char* rootp(getenv("INCLUDEOS_SRC"));
-  std::string path;
-  if (rootp == nullptr) path = "..";
-  else path = std::string(rootp) + "/test";
-
-  path += "/memdisk.fat";
+  std::string path="memdisk.fat";
+  if (access(path.c_str(),F_OK) == -1)
+  {
+    if (rootp == nullptr) path = "..";
+    else path = std::string(rootp) + "/test";
+    path += "/memdisk.fat";
+  }
   auto* fp = fopen(path.c_str(), "rb");
   EXPECT(fp != nullptr);
   fseek(fp, 0L, SEEK_END);

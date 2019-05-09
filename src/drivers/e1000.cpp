@@ -19,7 +19,7 @@
 #include "e1000_defs.hpp"
 #include <kernel/events.hpp>
 #include <kernel/timers.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <hw/ioport.hpp>
 #include <info>
 #include <cassert>
@@ -321,7 +321,7 @@ void e1000::wait_millis(int millis)
     });
   Events::get().process_events();
   while (done_waiting == false) {
-    OS::halt();
+    os::halt();
     Events::get().process_events();
   }
 }

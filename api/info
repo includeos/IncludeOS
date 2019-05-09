@@ -33,7 +33,7 @@
 // Checkboxes - for initialization output and testing
 #define CHECK(TEST, TEXT, ...) printf("%16s[%s] " TEXT "\n","", TEST ? "x" : " ",  ##__VA_ARGS__)
 #define CHECKSERT(TEST, TEXT, ...) CHECK(TEST, TEXT, ##__VA_ARGS__), assert(TEST)
-#define FAIL(TEXT, ...)  printf("FAIL: " TEXT "\n", ##__VA_ARGS__); panic("FAIL")
+#define FAIL(TEXT, ...)  printf("FAIL: " TEXT "\n", ##__VA_ARGS__); os::panic("FAIL")
 
 // Undefine
 #else

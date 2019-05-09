@@ -34,7 +34,7 @@ function handleFile(path,request, response) {
   var size = parseInt(path.replace("/",""),10);
 
   if (size == 0) { 
-    size=1024*64; 
+    size=1024*64;
   }
   response.end(addr.toString() + dataString(size));
 }
@@ -63,7 +63,7 @@ function findHandler(path)
 
 function handleRequest(request, response){
   var parts = url.parse(request.url);
-  
+
   var route = findHandler(parts.pathname);
   if (route.func)
   {

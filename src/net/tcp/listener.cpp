@@ -73,6 +73,7 @@ void Listener::segment_arrived(Packet_view& packet) {
     // don't waste time if the packet does not have SYN
     if(UNLIKELY(not packet.isset(SYN) or packet.has_tcp_data()))
     {
+      TCPL_PRINT2("<Listener::segment_arrived> Packet did not have SYN - dropping\n");
       host_.send_reset(packet);
       return;
     }
@@ -81,8 +82,10 @@ void Listener::segment_arrived(Packet_view& packet) {
     host_.connection_attempts_++;
 
     // if we don't like this client, do nothing
-    if(UNLIKELY(on_accept_(packet.source()) == false))
+    if(UNLIKELY(on_accept_(packet.source()) == false)) {
+      TCPL_PRINT2("<Listener::segment_arrived> on_accept says NO\n");
       return;
+    }
 
     // remove oldest connection if queue is full
     TCPL_PRINT2("<Listener::segment_arrived> SynQueue: %u\n", syn_queue_.size());

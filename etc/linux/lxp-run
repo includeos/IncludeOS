@@ -1,82 +1,34 @@
 #!/bin/bash
 set -e
-export GPROF=${GPROF:-"OFF"}
-export PGO_EN=${PGO_EN:-"OFF"}
-export PGO_GEN=${PGO_GEN:-"OFF"}
-export DBG=${DBG:-"OFF"}
-export NUM_JOBS=${NUM_JOBS:--j8}
-scriptName="${0##*/}"
-
-function make_linux() {
-  pushd $INCLUDEOS_SRC/linux/build
-  cmake -DGPROF=$GPROF -DPGO_ENABLE=$PGO_EN -DPGO_GENERATE=$PGO_GEN -DDEBUGGING=$DBG -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX ..
-  make $NUM_JOBS install
-  popd
-}
+NUM_JOBS=${NUM_JOBS:--j8}
+RUN=${RUN:-"ON"}
+AS_ROOT=${AS_ROOT:-"OFF"}
 
 function make_service() {
   mkdir -p build
   pushd build
-  cmake -DGPROF=$GPROF -DPGO_ENABLE=$PGO_EN -DPGO_GENERATE=$PGO_GEN -DDEBUGGING=$DBG ..
+  cmake .. "$@"
   make $NUM_JOBS
   popd
 }
-
-function print_usage() {
-  cat <<EOF
-
-Synopsis
-$scriptName [-g profiler] [-d debugger]
-Build and run IncludeOS services for the Linux Userspace platform.
-
--g profiler
-    Profiler command
-    Default value: gprof
-
--d debugger
-    Debugger command
-    Default value: gdb
-
--n
-    No TAP networking, and no call to sudo
-
-Not fully implemented yet.
-EOF
-}
-
-if [ -z "$1" ]
-then
-  GPROF="OFF"
-  PGO_EN="OFF"
-  PGO_GEN="OFF"
-elif [ "$1" == "gprof" ]
-then
-  GPROF="ON"
-elif [ "$1" == "pgo-gen" ]
-then
-  GPROF="OFF"
-  PGO_EN="ON"
-  PGO_GEN="ON"
-elif [ "$1" == "pgo-use" ]
-then
-  GPROF="OFF"
-  PGO_EN="ON"
-  PGO_GEN="OFF"
-fi
 
 # check that at least there is a cmake script here
 if [ ! -f CMakeLists.txt ]; then
    echo "There must be at least a CMakeLists.txt in service folder"
    exit 1
 fi
+make_service "$@"
 
-make_linux
-make_service
-
-#sudo mknod /dev/net/tap c 10 200
-BINARY=build/"`cat build/binary.txt`"
-if [ $DBG = "ON" ]; then
-  sudo gdb $BINARY
-else
-  sudo $BINARY
+if [[ "$RUN" = "ON" ]]; then
+  #sudo mknod /dev/net/tap c 10 200
+  BINARY=build/"`cat build/binary.txt`"
+  # run with GDB
+  if [[ "$DBG" = "ON" ]]; then
+    BINARY="gdb $BINARY"
+  fi
+  # run as root with sudo
+  if [[ "$AS_ROOT" = "ON" ]]; then
+    BINARY="sudo $BINARY"
+  fi
+  $BINARY
 fi

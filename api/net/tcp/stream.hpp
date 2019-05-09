@@ -11,6 +11,7 @@ namespace net::tcp
    */
   class Stream final : public net::Stream {
   public:
+    static const uint16_t SUBID = 1;
     /**
      * @brief      Construct a Stream for a Connection ptr
      *
@@ -38,7 +39,15 @@ namespace net::tcp
     {
       m_tcp->on_connect(Connection::ConnectCallback::make_packed(
           [this, cb] (Connection_ptr conn)
-          { if(conn) cb(*this); }));
+          {
+            // this will ensure at least close is called if the connect fails
+            if (conn != nullptr) {
+              cb(*this);
+            }
+            else {
+              if (this->m_on_close) this->m_on_close();
+            }
+          }));
     }
 
     /**
@@ -203,8 +212,11 @@ namespace net::tcp
 
     int get_cpuid() const noexcept override;
 
-    size_t serialize_to(void* p) const override {
+    size_t serialize_to(void* p, const size_t) const override {
       return m_tcp->serialize_to(p);
+    }
+    uint16_t serialization_subid() const override {
+      return SUBID;
     }
 
     Stream* transport() noexcept override {

@@ -19,18 +19,19 @@
 
 #include <os>
 #include <list>
-#include <net/inet>
+#include <net/interfaces>
 
 using namespace net;
 
 void Service::start(const std::string&)
 {
-  net::Inet::ifconfig(10.0, [](bool timeout) {
+  static auto& inet = Interfaces::get(0);
+  inet.negotiate_dhcp(10.0, [](bool timeout) {
       if (timeout)
-        panic("DHCP timed out");
+        os::panic("DHCP timed out");
 
       INFO("DHCP test", "Got IP from DHCP");
-      printf("%s\n", net::Inet::stack<0>().ip_addr().str().c_str());
+      printf("%s\n", inet.ip_addr().str().c_str());
     });
   INFO("DHCP test", "Waiting for DHCP response\n");
 }

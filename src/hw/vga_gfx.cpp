@@ -1,6 +1,8 @@
 #include <hw/vga_gfx.hpp>
 #include <hw/ioport.hpp>
-#include <x86intrin.h>
+#if defined(__SSE2__)
+  #include <x86intrin.h>
+#endif
 #include <cassert>
 int   VGA_gfx::m_width  = 0;
 int   VGA_gfx::m_height = 0;
@@ -146,6 +148,24 @@ void VGA_gfx::set_palette(const uint32_t colors[256])
     hw::outb(0x3c9, (colors[c] >> 10) & 0x3F);
     hw::outb(0x3c9, (colors[c] >> 18) & 0x3F);
   }
+}
+void VGA_gfx::set_palette(const uint8_t idx, int r, int g, int b)
+{
+	// select color index
+	hw::outb(0x03c8, idx);
+	// write 18-bit color
+  hw::outb(0x3c9, r);
+  hw::outb(0x3c9, g);
+  hw::outb(0x3c9, b);
+}
+void VGA_gfx::set_pal24(const uint8_t idx, const uint32_t color)
+{
+	// select color index
+	hw::outb(0x03c8, idx);
+	// write 18-bit color
+	hw::outb(0x3c9, (color >>  2) & 0x3F);
+	hw::outb(0x3c9, (color >> 10) & 0x3F);
+	hw::outb(0x3c9, (color >> 18) & 0x3F);
 }
 
 void VGA_gfx::apply_default_palette()
@@ -415,19 +435,37 @@ void VGA_gfx::apply_default_palette()
 
 void VGA_gfx::clear(uint8_t clr)
 {
+#if defined(__SSE2__)
   const auto addr = (__m128i*) VGA_gfx::address();
   const auto end  = addr + VGA_gfx::size() / 16;
   const auto tmp = _mm_set1_epi8(clr);
-
-  for (auto* imm = addr; imm < end; imm++)
-    _mm_stream_si128(imm, tmp);
+  for (auto* imm = addr; imm < end; imm++) {
+		 _mm_stream_si128(imm, tmp);
+	}
+#else //dead slow fallback
+	const auto addr = (char*) VGA_gfx::address();
+	const auto end  = addr + VGA_gfx::size();
+	for (auto* imm = addr; imm < end; imm++) {
+		*imm=clr;
+	}
+#endif
 }
 void VGA_gfx::blit_from(const void* vsrc)
 {
+#if defined(__SSE2__)
   const auto addr = (__m128i*) VGA_gfx::address();
   const auto end  = addr + VGA_gfx::size() / 16;
   const auto src = (__m128i*) vsrc;
 
   for (intptr_t i = 0; i < end - addr; i++)
     _mm_stream_si128(&addr[i], src[i]);
+#else //dead slow fallback
+	const auto addr = (char*) VGA_gfx::address();
+	const auto end  = addr + VGA_gfx::size() ;
+	const auto src = (char*) vsrc;
+
+	for (intptr_t i = 0; i < end - addr; i++) {
+		addr[i]=src[i];
+	}
+#endif
 }

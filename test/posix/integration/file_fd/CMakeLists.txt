@@ -1,27 +1,29 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project(test_file_fd)
-
-set(SERVICE_NAME "File_fd test")
-set(BINARY       "test_file_fd")
 
 set(SOURCES
-    test_file_fd.cpp
-  )
+  test_file_fd.cpp
+)
 
-set(PLUGINS
-  vfs
-  )
+#os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-set_property(SOURCE test_file_fd.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unused-function ")
+os_add_executable(posix_file_fd "POSIX file descriptor test" ${SOURCES})
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_plugins(posix_file_fd vfs)
+os_add_stdout(posix_file_fd default_stdout)
 
-diskbuilder(disk disk.img)
+# Create memdisk from folder
+os_diskbuilder(posix_file_fd disk)
+
+configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

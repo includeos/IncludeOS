@@ -16,8 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/super_stack.hpp>
-#include <net/inet>
+#include <net/interfaces>
 
 using namespace net;
 
@@ -25,17 +24,18 @@ int pongs = 0;
 
 void verify() {
   static int i = 0;
-  if (++i == 9) printf("SUCCESS\n");
+  if (++i == 10) printf("SUCCESS\n");
 }
 
 inline void test_tcp_conntrack();
+inline void test_vlan();
 
 void Service::start()
 {
-  static auto& eth0   = Super_stack::get(0);
-  static auto& eth1   = Super_stack::get(1);
-  static auto& host1  = Super_stack::get(2);
-  static auto& host2  = Super_stack::get(3);
+  static auto& eth0   = Interfaces::get(0);
+  static auto& eth1   = Interfaces::get(1);
+  static auto& host1  = Interfaces::get(2);
+  static auto& host2  = Interfaces::get(3);
 
   INFO("Ping", "host1 => host2 (%s)", host2.ip_addr().to_string().c_str());
   host1.icmp().ping(host2.ip_addr(), [](auto reply) {
@@ -97,11 +97,14 @@ void Service::start()
   std::string udp_data{"yolo"};
   eth1.udp().bind().sendto(eth0.ip_addr(), 3333, udp_data.data(), udp_data.size());
 
-
   // some breathing room
-  Timers::oneshot(std::chrono::seconds(2), [](auto) {
+  Timers::oneshot(std::chrono::seconds(1), [](auto) {
+    test_vlan();
+  });
+  Timers::oneshot(std::chrono::seconds(3), [](auto) {
     test_tcp_conntrack();
   });
+
 }
 
 #include <net/tcp/tcp_conntrack.hpp>
@@ -109,13 +112,14 @@ void Service::start()
 
 void test_tcp_conntrack()
 {
+  INFO("TCP Conntrack", "Running TCP conntrack test");
   static std::vector<char> storage;
 
   // same rules still apply
-  static auto& eth0   = Super_stack::get(0);
-  static auto& eth1   = Super_stack::get(1);
-  static auto& host1  = Super_stack::get(2);
-  static auto& host2  = Super_stack::get(3);
+  static auto& eth0   = Interfaces::get(0);
+  static auto& eth1   = Interfaces::get(1);
+  static auto& host1  = Interfaces::get(2);
+  static auto& host2  = Interfaces::get(3);
 
   // retrieve the shared conntrack instance
   eth0.conntrack()->tcp_in = net::tcp::tcp4_conntrack;
@@ -176,4 +180,130 @@ void test_tcp_conntrack()
       });
     }
   });
+}
+
+#include <net/vlan_manager.hpp>
+#include <net/router.hpp>
+void test_vlan()
+{
+
+  //printf("Memory in use: %s Memory end: %#zx (%s) \n",
+  //    util::Byte_r(OS::heap_usage()).to_string().c_str(), OS::memory_end(),
+  //    util::Byte_r(OS::memory_end()).to_string().c_str());
+
+  const int id_start = 10;
+  const int id_end   = 110;
+  INFO("VLAN", "Run VLAN test from range %i to %i", id_start, id_end);
+
+  static Router<IP4> router;
+  Router<IP4>::Routing_table table;
+
+  // setup left side (100 connected VLAN)
+  // eth0
+  {
+    const int idx = 0;
+    auto& nic = Interfaces::get(idx).nic();
+    auto& manager = VLAN_manager::get(idx);
+    ip4::Addr netmask{255,255,255,0};
+    // 10.0.11.1 - 10.0.109.1 - first one (.10) created in NaCl
+    for(uint8_t id = id_start+1; id < id_end; id++)
+    {
+      ip4::Addr addr{10,0,id,1};
+      auto& vif = manager.add(nic, id);
+      auto& inet = Interfaces::create(vif, idx, id);
+
+      inet.network_config(addr, netmask, 0);
+
+      // setup routing for reply packets
+      inet.set_forward_delg(router.forward_delg());
+      table.push_back({{10,0,id,0}, netmask, 0, inet});
+    }
+    // manually setup forwarding for the poor NaCl created one
+    auto& inet = Interfaces::get(idx, id_start);
+    inet.set_forward_delg(router.forward_delg());
+    table.push_back({{10,0,id_start,0}, netmask, 0, inet});
+  }
+
+  // host1
+  {
+    const int idx = 2;
+    auto& nic = Interfaces::get(idx).nic();
+    auto& manager = VLAN_manager::get(idx);
+    // 10.0.11.10 - 10.0.109.10 - first one (.10) created in NaCl
+    ip4::Addr netmask{255,255,255,0};
+    for(uint8_t id = id_start+1; id < id_end; id++)
+    {
+      ip4::Addr addr{10,0,id,10};
+      auto& vif = manager.add(nic, id);
+      auto& inet = Interfaces::create(vif, idx, id);
+
+      inet.network_config(addr, netmask, Interfaces::get(0, id).ip_addr());
+    }
+  }
+
+  //printf("Memory in use: %s Memory end: %#zx (%s) \n",
+  //    util::Byte_r(OS::heap_usage()).to_string().c_str(), OS::memory_end(),
+  //    util::Byte_r(OS::memory_end()).to_string().c_str());
+
+  // setup right side (only 1)
+  // eth1
+  {
+    const int idx = 1;
+    auto& nic = Interfaces::get(idx).nic();
+    auto& manager = VLAN_manager::get(idx);
+    ip4::Addr addr{10,0,224,1};
+    ip4::Addr netmask{255,255,255,0};
+
+    const int id = 1337;
+    auto& vif = manager.add(nic, id);
+    auto& inet = Interfaces::create(vif, idx, id);
+
+    inet.network_config(addr, netmask, 0);
+
+    // setup routing
+    inet.set_forward_delg(router.forward_delg());
+    table.push_back({{10,0,224,0}, netmask, 0, inet});
+  }
+
+  // host2
+  {
+    const int idx = 3;
+    auto& nic = Interfaces::get(idx).nic();
+    auto& manager = VLAN_manager::get(idx);
+    ip4::Addr addr{10,0,224,10};
+    ip4::Addr netmask{255,255,255,0};
+
+    const int id = 1337;
+    auto& vif = manager.add(nic, id);
+    auto& inet = Interfaces::create(vif, idx, id);
+
+    inet.network_config(addr, netmask, Interfaces::get(1, id).ip_addr());
+  }
+
+  // assign our routing table
+  router.set_routing_table(std::move(table));
+
+  // recv TCP on host2
+  INFO("VLAN", "TCP host2.1337 => listen:4242");
+  static auto& host2 = Interfaces::get(3, 1337);
+  host2.tcp().listen(4242, [](auto conn)
+  {
+    printf("Incoming connection %s\n", conn->to_string().c_str());
+    static int i = 0;
+    if(++i == 100)
+      verify();
+  });
+
+  INFO("VLAN", "TCP host1.N => host2.1337 (%s:%i)", host2.ip_addr().to_string().c_str(), 4242);
+  // establish a connection from every VLAN through the router
+  for(uint8_t id = id_start; id < id_end; id++)
+  {
+    Timers::oneshot(std::chrono::milliseconds(10*(id-9)), [id](auto)
+    {
+      auto& host = Interfaces::get(2, id);
+      host.tcp().connect({host2.ip_addr(), 4242}, [](auto conn) {
+        assert(conn);
+      });
+    });
+  }
 }

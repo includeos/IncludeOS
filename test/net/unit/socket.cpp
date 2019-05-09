@@ -66,7 +66,56 @@ CASE("Sockets can be compared to each other")
   EXPECT_NOT( sock1 == empty );
 
   EXPECT( sock1 < sock2 );
-  EXPECT( sock1 < sock3 );
-  EXPECT( sock2 < sock3 );
-  EXPECT( sock3 > sock1 );
+  EXPECT( sock1 > sock3 );
+  EXPECT( sock2 > sock3 );
+  EXPECT( sock3 < sock1 );
+}
+
+#include <map>
+CASE("Sockets can be used in a map")
+{
+  Socket sock_any{ip4::Addr{0}, 68};
+
+  std::map<Socket, Socket> sockets;
+  auto it = sockets.emplace(
+    std::piecewise_construct,
+    std::forward_as_tuple(sock_any),
+    std::forward_as_tuple(sock_any));
+
+  EXPECT(it.second);
+
+  Socket sock6{ip6::Addr{"2001:840:f001:4b52::42"}, 53622};
+
+  auto v6 = sock_any.address().v6();
+  printf("%x %x %x %x\n", v6.i32[0], v6.i32[1], v6.i32[2], v6.i32[3]);
+  v6 = sock6.address().v6();
+  printf("%x %x %x %x\n", v6.i32[0], v6.i32[1], v6.i32[2], v6.i32[3]);
+
+  auto search = sockets.find(sock_any);
+  EXPECT(search->first == sock_any);
+  EXPECT(search->first != sock6);
+
+  EXPECT(sock_any != sock6);
+
+  EXPECT(sock_any < sock6);
+  EXPECT(not (sock6 < sock_any));
+
+  EXPECT(sock_any <= sock6);
+
+  EXPECT(not (sock_any > sock6));
+
+  EXPECT(sock6 > sock_any);
+  EXPECT(sock6 >= sock_any);
+
+  EXPECT(!(sock_any == sock6));
+
+  search = sockets.find(sock6);
+  EXPECT(search == sockets.end());
+
+  it = sockets.emplace(
+    std::piecewise_construct,
+    std::forward_as_tuple(sock6),
+    std::forward_as_tuple(sock6));
+
+  EXPECT(it.second);
 }

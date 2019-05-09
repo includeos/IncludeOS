@@ -1,28 +1,23 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+# Service
+project (rngesus)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (rng_jesus)
-
-# Human-readable name of your service
-set(SERVICE_NAME "RNG Test Service")
-
-# Name of your service binary
-set(BINARY       "rng_jesus")
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
-  )
+    service.cpp # ...add more here
+)
 
-#set(DRIVERS boot_logger)
+os_add_executable(kernel_rng "R.N.Geesus test" ${SOURCES})
+os_add_stdout(kernel_rng default_stdout)
+#os_add_drivers(service boot_logger)
+os_add_plugins(kernel_rng vfs)
 
-set(PLUGINS vfs)
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

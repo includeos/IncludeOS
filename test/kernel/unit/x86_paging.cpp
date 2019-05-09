@@ -337,7 +337,7 @@ void init_default_paging(uintptr_t exec_beg = 0xa00000, uintptr_t exec_end = 0xb
   // Initialize default paging (all except actually passing it to CPU)
   if (__pml4 != nullptr) {
     delete __pml4;
-    OS::memory_map().clear();
+    os::mem::vmmap().clear();
   }
   __arch_init_paging();
 }

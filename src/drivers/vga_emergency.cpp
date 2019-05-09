@@ -65,8 +65,9 @@ void keyboard_emergency_handler()
 {
   render_vga_text();
   using namespace hw;
-  int key = KBM::get_kbd_vkey();
-  switch (key)
+  /*
+  auto keystate = KBM::kbd_process_data();
+  switch (keystate.key)
   {
   case KBM::VK_UP:
       read_position = find_rev_nth(read_position-1, read_minpos, 1);
@@ -75,6 +76,7 @@ void keyboard_emergency_handler()
       read_position = find_nth(read_position+1, read_maxpos, 1);
       break;
   }
+  */
   // update
   current_eoi_mechanism();
 }
@@ -120,5 +122,5 @@ void panic_perform_inspection_procedure()
 static __attribute__((constructor))
 void hest()
 {
-  OS::add_stdout(emergency_logging);
+  os::add_stdout(emergency_logging);
 }

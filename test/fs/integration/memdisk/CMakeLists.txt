@@ -1,21 +1,22 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+project(memdisk)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_memdisk)
-
-set(SERVICE_NAME "Memdisk test")
-set(BINARY       "test_memdisk")
-set(MAX_MEM 64)
 set(SOURCES
     twosector.cpp
-  )
-#set(LOCAL_INCLUDES ".")
+)
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_executable(fs_memdisk "Memdisk filesystem test" ${SOURCES})
+os_add_stdout(fs_memdisk default_stdout)
 
-add_memdisk(sector2.disk)
+os_add_memdisk(fs_memdisk ${CMAKE_CURRENT_SOURCE_DIR}/sector2.disk)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

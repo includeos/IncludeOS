@@ -1,36 +1,29 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 if (DEFINED ENV{INCLUDEOS_THREADING})
   option(threading "" ENV{INCLUDEOS_THREADING})
 endif()
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-include_directories($ENV{INCLUDEOS_SRC}/src/include)
-
-project (test_fiber)
-
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
-
-set(SERVICE_NAME "Fibers test")
-set(BINARY       "test_fiber")
-set(MAX_MEM 128)
 set(SOURCES
-  service.cpp
-  )
-
+    service.cpp
+)
 if (threading)
-  set(SOURCES ${SOURCES} fiber_smp.cpp)
+  list(APPEND SOURCES fiber_smp.cpp)
 endif()
 
-set(DRIVERS
-  boot_logger
-  )
-#set(LOCAL_INCLUDES ".")
+os_add_executable(kernel_fiber "GRUB boot test" ${SOURCES})
+os_add_stdout(kernel_fiber default_stdout)
+os_add_drivers(kernel_fiber boot_logger)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

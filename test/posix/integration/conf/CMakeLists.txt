@@ -1,45 +1,31 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_conf)
-
-# Human-readable name of your service
-set(SERVICE_NAME "Configuration Test Service")
-
-# Name of your service binary
-set(BINARY       "test_conf")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
   test_sysconf.c
   test_pathconf.c
   test_pwd.c
-  )
+)
 
-# DRIVERS / PLUGINS:
+#os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-set(DRIVERS
-  # virtionet   # Virtio networking
-  # virtioblock # Virtio block device
-  # ... Others from IncludeOS/src/drivers
-  )
+os_add_executable(posix_conf "POSIX pathconf test" ${SOURCES})
 
-set(PLUGINS
-  vfs
-  )
+os_add_plugins(posix_conf vfs)
+os_add_stdout(posix_conf default_stdout)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+# Create memdisk from folder
+os_diskbuilder(posix_conf disk)
 
-diskbuilder(disk disk.img)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

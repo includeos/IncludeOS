@@ -21,7 +21,7 @@
 
 #include <net/dhcp/message.hpp>
 #include <net/dhcp/record.hpp>  // Status and Record
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 #include <map>
 
 namespace net {
@@ -38,12 +38,15 @@ namespace dhcp {
     static const uint8_t  MAX_NUM_OPTIONS = 30;       // max number of options in a message from a client
 
   public:
-    DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
+    DHCPD(UDP& udp, ip4::Addr pool_start, ip4::Addr pool_end,
       uint32_t lease = DEFAULT_LEASE, uint32_t max_lease = DEFAULT_MAX_LEASE, uint8_t pending = DEFAULT_PENDING);
 
     ~DHCPD() {
       socket_.close();
     }
+
+    // open on DHCP client port
+    void listen();
 
     void add_record(const Record& record)
     { records_.push_back(record); }
@@ -52,26 +55,26 @@ namespace dhcp {
 
     int get_record_idx(const Record::byte_seq& client_id) const noexcept;
 
-    int get_record_idx_from_ip(IP4::addr ip) const noexcept;
+    int get_record_idx_from_ip(ip4::Addr ip) const noexcept;
 
-    IP4::addr broadcast_address() const noexcept
+    ip4::Addr broadcast_address() const noexcept
     { return server_id_ | ( ~ netmask_); }
 
-    IP4::addr network_address(IP4::addr ip) const noexcept  // x.x.x.0
+    ip4::Addr network_address(ip4::Addr ip) const noexcept  // x.x.x.0
     { return ip & netmask_; }
 
     // Getters
 
-    IP4::addr server_id() const noexcept
+    ip4::Addr server_id() const noexcept
     { return server_id_; }
 
-    IP4::addr netmask() const noexcept
+    ip4::Addr netmask() const noexcept
     { return netmask_; }
 
-    IP4::addr router() const noexcept
+    ip4::Addr router() const noexcept
     { return router_; }
 
-    IP4::addr dns() const noexcept
+    ip4::Addr dns() const noexcept
     { return dns_; }
 
     uint32_t lease() const noexcept
@@ -83,13 +86,13 @@ namespace dhcp {
     uint8_t pending() const noexcept
     { return pending_; }
 
-    IP4::addr pool_start() const noexcept
+    ip4::Addr pool_start() const noexcept
     { return pool_start_; }
 
-    IP4::addr pool_end() const noexcept
+    ip4::Addr pool_end() const noexcept
     { return pool_end_; }
 
-    const std::map<IP4::addr, Status>& pool() const noexcept
+    const std::map<ip4::Addr, Status>& pool() const noexcept
     { return pool_; }
 
     const std::vector<Record>& records() const noexcept
@@ -97,16 +100,16 @@ namespace dhcp {
 
     // Setters
 
-    void set_server_id(IP4::addr server_id)
+    void set_server_id(ip4::Addr server_id)
     { server_id_ = server_id; }
 
-    void set_netmask(IP4::addr netmask)
+    void set_netmask(ip4::Addr netmask)
     { netmask_ = netmask; }
 
-    void set_router(IP4::addr router)
+    void set_router(ip4::Addr router)
     { router_ = router; }
 
-    void set_dns(IP4::addr dns)
+    void set_dns(ip4::Addr dns)
     { dns_ = dns; }
 
     void set_lease(uint32_t lease)
@@ -120,21 +123,19 @@ namespace dhcp {
 
   private:
     UDP::Stack& stack_;
-    UDPSocket& socket_;
-    IP4::addr pool_start_, pool_end_;
-    std::map<IP4::addr, Status> pool_;
+    udp::Socket& socket_;
+    ip4::Addr pool_start_, pool_end_;
+    std::map<ip4::Addr, Status> pool_;
 
-    IP4::addr server_id_;
-    IP4::addr netmask_, router_, dns_;
+    ip4::Addr server_id_;
+    ip4::Addr netmask_, router_, dns_;
     uint32_t lease_, max_lease_;
     uint8_t pending_;               // How long to consider an offered address in the pending state (seconds)
     std::vector<Record> records_;   // Temp - Instead of persistent storage
 
-    bool valid_pool(IP4::addr start, IP4::addr end) const;
+    bool valid_pool(ip4::Addr start, ip4::Addr end) const;
     void init_pool();
-    void update_pool(IP4::addr ip, Status new_status);
-
-    void listen();
+    void update_pool(ip4::Addr ip, Status new_status);
 
     void resolve(const Message* msg);
     void handle_request(const Message* msg);
@@ -146,13 +147,13 @@ namespace dhcp {
 
     bool valid_options(const Message* msg) const;
     Record::byte_seq get_client_id(const Message* msg) const;
-    IP4::addr get_requested_ip_in_opts(const Message* msg) const;
-    IP4::addr get_remote_netmask(const Message* msg) const;
-    IP4::addr inc_addr(IP4::addr ip) const
-    { return IP4::addr{htonl(ntohl(ip.whole) + 1)}; }
+    ip4::Addr get_requested_ip_in_opts(const Message* msg) const;
+    ip4::Addr get_remote_netmask(const Message* msg) const;
+    ip4::Addr inc_addr(ip4::Addr ip) const
+    { return ip4::Addr{htonl(ntohl(ip.whole) + 1)}; }
     bool on_correct_network(const Message* msg) const;
 
-    void clear_offered_ip(IP4::addr ip);
+    void clear_offered_ip(ip4::Addr ip);
     void clear_offered_ips();
 
     void print(const Message* msg) const;

@@ -23,7 +23,7 @@
 #include <cassert>
 #include <errno.h>
 #include <unistd.h>
-#include <net/inet>
+#include <net/interfaces>
 
 const uint16_t PORT = 1042;
 const uint16_t OUT_PORT = 4242;
@@ -31,9 +31,10 @@ const uint16_t BUFSIZE = 2048;
 
 int main()
 {
-  auto&& inet = net::Inet::ifconfig({  10,  0,  0, 58 },   // IP
-                                     { 255, 255, 0,  0 },   // Netmask
-                                     {  10,  0,  0,  3 });  // Gateway
+  auto&& inet = net::Interfaces::get(0);
+  inet.network_config({  10,  0,  0, 58 },   // IP
+                      { 255, 255, 0,  0 },   // Netmask
+                      {  10,  0,  0,  3 });  // Gateway
 
   INFO("UDP Socket", "bind(%u)", PORT);
 

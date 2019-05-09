@@ -1,7 +1,0 @@
-{
-  "net" : [
-    {"device" : "vmxnet3", "mac" : "c0:01:0a:00:00:2a"},
-    {"device" : "vmxnet3", "mac" : "c0:01:0a:00:00:2b"},
-    {"device" : "vmxnet3", "mac" : "c0:01:0a:00:00:2c"}
-  ]
-}

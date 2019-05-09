@@ -1,5 +1,4 @@
 {
-  "image" : "websocket.img",
   "net" : [{"device" : "virtio"}],
   "mem"   : 1024
 }

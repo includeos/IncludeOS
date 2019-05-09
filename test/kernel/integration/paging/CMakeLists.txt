@@ -1,31 +1,23 @@
-cmake_minimum_required(VERSION 2.8.9)
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+
+# Service
+project (pageprot)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (service)
+conan_basic_setup()
 
-# Human-readable name of your service
-set(SERVICE_NAME "Page protection test")
+include(os)
 
-# Name of your service binary
-set(BINARY       "service")
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp
-  )
+    service.cpp # ...add more here
+)
 
-# DRIVERS / PLUGINS:
-set(DRIVERS
-  boot_logger
-  )
+os_add_executable(kernel_paging "Page protection test" ${SOURCES})
+os_add_stdout(kernel_paging default_stdout)
+os_add_drivers(kernel_paging boot_logger)
+os_add_plugins(kernel_paging vfs)
 
-set(PLUGINS vfs)
-
-# STATIC LIBRARIES:
-set(LIBRARIES
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

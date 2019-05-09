@@ -29,6 +29,8 @@ set(MUSL_OBJECTS
   mkdir.cpp
   mkdirat.cpp
   mknodat.cpp
+  mlock.cpp
+  mprotect.cpp
   openat.cpp
   readlink.cpp
   rename.cpp
@@ -47,6 +49,5 @@ set(MUSL_OBJECTS
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})
-add_dependencies(musl_syscalls PrecompiledLibraries)
 
-install(TARGETS musl_syscalls DESTINATION includeos/${ARCH}/lib)
+install(TARGETS musl_syscalls DESTINATION lib)

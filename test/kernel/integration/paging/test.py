@@ -1,4 +1,6 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import socket
@@ -25,22 +27,22 @@ others = 0
 def booted(line):
     global boot_count
     boot_count += 1;
-    print "Booted ", boot_count,"/",expected_boots
+    print("Booted ", boot_count,"/",expected_boots)
 
 def exec_fail(line):
     global exec_fails
     exec_fails += 1;
-    print "Execute failure ", exec_fails, "/", expected_exec_fail
+    print("Execute failure ", exec_fails, "/", expected_exec_fail)
 
 def read_fail(line):
     global read_fails
     read_fails += 1
-    print "Page read fail ", read_fails, "/", expected_read_fail
+    print("Page read fail ", read_fails, "/", expected_read_fail)
 
 def write_fail(line):
     global write_fails
     write_fails += 1
-    print "Page write fail ", write_fails, "/", expected_write_fail
+    print("Page write fail ", write_fails, "/", expected_write_fail)
 
 def other(line):
     global others
@@ -57,12 +59,12 @@ def recorded_cases():
     return read_fails + write_fails + exec_fails + boot_count + others
 
 def done(line):
-    print "Test summary: "
-    print "VM boots: ", boot_count
-    print "Read fails: ", read_fails
-    print "Write fails: ", write_fails
-    print "Exec fails: ", exec_fails
-    print "Others: ", others
+    print("Test summary: ")
+    print("VM boots: ", boot_count)
+    print("Read fails: ", read_fails)
+    print("Write fails: ", write_fails)
+    print("Exec fails: ", exec_fails)
+    print("Others: ", others)
 
     if (read_fails == expected_read_fail and
         write_fails == expected_write_fail and
@@ -85,4 +87,7 @@ vm.on_output("2 READ protection PASSED", other)
 vm.on_output("3 EXECUTE protection 1/2 PASSED", other)
 vm.on_output("4 EXECUTE protection 2/2 PASSED", done)
 
-vm.cmake().boot(20).clean()
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(20,image_name='kernel_paging').clean()

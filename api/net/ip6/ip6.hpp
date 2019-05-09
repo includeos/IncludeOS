@@ -21,6 +21,7 @@
 #include "addr.hpp"
 #include "header.hpp"
 #include "packet_ip6.hpp"
+#include "addr_list.hpp"
 
 #include <common>
 #include <net/netfilter.hpp>
@@ -48,10 +49,11 @@ namespace net
     using IP_packet = PacketIP6;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
     using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
-    using downstream_ndp = delegate<void(Packet_ptr, IP6::addr)>;
+    using downstream_ndp = delegate<void(Packet_ptr, IP6::addr, MAC::Addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
+    using netmask = uint8_t;
 
     static const addr ADDR_ANY;
     static const addr ADDR_LOOPBACK;
@@ -120,12 +122,16 @@ namespace net
     void transmit(Packet_ptr);
     void ship(Packet_ptr, addr next_hop = IP6::ADDR_ANY, Conntrack::Entry_ptr ct = nullptr);
 
-    /**
-     * \brief
-     *
-     * Returns the IPv4 address associated with this interface
-     **/
-    const addr local_ip() const;
+    const ip6::Addr local_ip() const;
+
+    ip6::Addr_list& addr_list()
+    { return addr_list_; }
+
+    const ip6::Addr_list& addr_list() const
+    { return addr_list_; }
+
+    bool is_valid_source(const ip6::Addr& addr) const
+    { return addr_list_.has(addr); }
 
     /**
      * @brief      Determines if the packet is for me (this host).
@@ -161,6 +167,10 @@ namespace net
     Filter_chain<IP6>& output_chain()
     { return output_chain_; }
 
+    /*
+      Maximum Datagram Data Size
+    */
+    uint16_t MDDS() const;
 
     /**
      * Stats getters
@@ -181,12 +191,14 @@ namespace net
     IP_packet_ptr drop_invalid_out(IP_packet_ptr packet);
 
   private:
+    Stack& stack_;
+
+    ip6::Addr_list addr_list_;
+
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
     uint32_t& packets_dropped_;
-    Stack& stack_;
-
 
     /** Upstream delegates */
     upstream icmp_handler_ = nullptr;

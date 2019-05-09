@@ -1,37 +1,35 @@
-cmake_minimum_required(VERSION 2.8.9)
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+cmake_minimum_required(VERSION 3.0)
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
+
+#service
 project (service)
+include(os)
 
-# Human-readable name of your service
-set(SERVICE_NAME "Micro Load Balancer")
+os_add_config(net_microLB "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-# Name of your service binary
-set(BINARY       "microlb")
+os_add_executable(net_microLB "Configure test" service.cpp)
 
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES
-  service.cpp
-  )
+os_add_plugins(net_microLB autoconf vfs)
+os_add_drivers(net_microLB virtionet)
 
-# DRIVERS / PLUGINS:
-set(DRIVERS
-  virtionet
-  )
+os_add_stdout(net_microLB default_stdout)
 
-set(PLUGINS
-  )
+os_add_os_library(net_microLB microlb)
+os_add_os_library(net_microLB liveupdate)
 
-# STATIC LIBRARIES:
-set(LIBRARIES
-  libmicrolb.a
-  libliveupdate.a
-  )
+os_diskbuilder(net_microLB ${CMAKE_CURRENT_SOURCE_DIR}/drive)
 
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-diskbuilder(drive)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(server.js ${CMAKE_CURRENT_BINARY_DIR})

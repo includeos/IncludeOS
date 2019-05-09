@@ -1,4 +1,4 @@
-﻿// -*-C++-*-
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2017 Oslo and Akershus University College of Applied Sciences
@@ -26,25 +26,21 @@
 #include <ctime>
 #include <string>
 
-extern void __arch_init();
+
 extern void __arch_poweroff();
 extern void __arch_reboot();
 extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
 extern void __arch_system_deactivate();
-
 extern void __arch_install_irq(uint8_t, void(*)());
 extern void __arch_subscribe_irq(uint8_t);
 extern void __arch_unsubscribe_irq(uint8_t);
 extern void __arch_preempt_forever(void(*)());
-extern inline void __arch_read_memory_barrier() noexcept;
-extern inline void __arch_write_memory_barrier() noexcept;
 inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
-
 extern uint64_t __arch_system_time() noexcept;
 extern timespec __arch_wall_clock() noexcept;
-inline uint64_t __arch_cpu_cycles() noexcept;
+extern uint32_t __arch_rand32();
 
 inline void __arch_hw_barrier() noexcept {
   __sync_synchronize();
@@ -60,6 +56,8 @@ inline void __sw_barrier() noexcept
 #include "arch/x86_64.hpp"
 #elif defined(ARCH_i686)
 #include "arch/i686.hpp"
+#elif defined(ARCH_aarch64)
+#include "arch/aarch64.hpp"
 #else
 #error "Unsupported arch specified"
 #endif

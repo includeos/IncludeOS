@@ -4,7 +4,7 @@
 #include <openssl/ssl.h>
 #include <net/stream_buffer.hpp>
 
-//#define VERBOSE_OPENSSL 0
+//#define VERBOSE_OPENSSL 1
 #ifdef VERBOSE_OPENSSL
 #define TLS_PRINT(fmt, ...) printf("TLS_Stream");printf(fmt, ##__VA_ARGS__)
 #else
@@ -60,15 +60,14 @@ namespace openssl
       return m_transport.get();
     }
 
-    size_t serialize_to(void*) const override;
-
     void handle_read_congestion() override;
     void handle_write_congestion() override;
+
   private:
     void handle_data();
     int  decrypt(const void *data,int size);
     int  send_decrypted();
-    void tls_read(buffer_t);
+    bool tls_read(buffer_t);
     int  tls_perform_stream_write();
     int  tls_perform_handshake();
     bool handshake_completed() const noexcept;
@@ -81,11 +80,11 @@ namespace openssl
     };
     status_t status(int n) const noexcept;
     Stream_ptr m_transport = nullptr;
-    SSL*  m_ssl    = nullptr;
-    BIO*  m_bio_rd = nullptr;
-    BIO*  m_bio_wr = nullptr;
-    bool  m_busy = false;
-    bool  m_deferred_close = false;
+    SSL*   m_ssl    = nullptr;
+    BIO*   m_bio_rd = nullptr;
+    BIO*   m_bio_wr = nullptr;
+    int8_t m_busy = 0;
+    bool   m_deferred_close = false;
   };
 
 } // openssl

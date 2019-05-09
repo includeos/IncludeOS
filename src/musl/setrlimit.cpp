@@ -1,5 +1,4 @@
 #include "common.hpp"
-#include <kernel/syscalls.hpp>
 
 long sys_setrlimit(int /*resource*/, const struct rlimit* /*rlim*/)
 {

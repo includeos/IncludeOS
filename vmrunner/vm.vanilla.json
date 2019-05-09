@@ -1,6 +1,0 @@
-{
-  "description" : "Single virtio nic with vanilla cpu features",
-  "net" : [
-    {"device" : "virtio", "backend" : "tap" }
-  ]
-}

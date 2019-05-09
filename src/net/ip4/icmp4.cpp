@@ -153,7 +153,7 @@ namespace net {
     send_response(pckt_icmp4, ICMP_type::PARAMETER_PROBLEM, 0, error_pointer);
   }
 
-  void ICMPv4::timestamp_request(IP4::addr /* ip */) {
+  void ICMPv4::timestamp_request(ip4::Addr /* ip */) {
     // TODO
     // send_request(ip, ICMP_type::TIMESTAMP, 0, ...);
   }
@@ -163,27 +163,38 @@ namespace net {
     // send_response(req, ICMP_type::TIMESTAMP_REPLY, 0, ...);
   }
 
-  void ICMPv4::ping(IP4::addr ip)
+  void ICMPv4::ping(ip4::Addr ip)
   { send_request(ip, ICMP_type::ECHO, 0); }
 
-  void ICMPv4::ping(IP4::addr ip, icmp_func callback, int sec_wait)
+  void ICMPv4::ping(ip4::Addr ip, icmp_func callback, int sec_wait)
   { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
 
   void ICMPv4::ping(const std::string& hostname) {
-    inet_.resolve(hostname, [this] (IP4::addr a, Error err) {
-      if (!err and a != IP4::ADDR_ANY)
-        ping(a);
+    inet_.resolve(hostname, [this] (dns::Response_ptr res, Error err) {
+      if (!err)
+      {
+        auto addr = res->get_first_ipv4();
+        if(addr != 0)
+          ping(addr);
+      }
     });
   }
 
   void ICMPv4::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
-    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (IP4::addr a, Error err) {
-      if (!err and a != IP4::ADDR_ANY)
-        ping(a, callback, sec_wait);
+    inet_.resolve(hostname,
+      Inet::resolve_func::make_packed([this, callback, sec_wait]
+      (dns::Response_ptr res, Error err)
+    {
+      if (!err)
+      {
+        auto addr = res->get_first_ipv4();
+        if(addr != 0)
+          ping(addr, callback, sec_wait);
+      }
     }));
   }
 
-  void ICMPv4::send_request(IP4::addr dest_ip, ICMP_type type, ICMP_code code,
+  void ICMPv4::send_request(ip4::Addr dest_ip, ICMP_type type, ICMP_code code,
     icmp_func callback, int sec_wait, uint16_t sequence) {
 
     // Provision new IP4-packet

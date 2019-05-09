@@ -20,7 +20,6 @@
 #include <common>
 #include <hw/pci.hpp>
 #include <hw/pci_device.hpp>
-#include <kernel/syscalls.hpp>
 #include <hw/msi.hpp>
 
 /* PCI Register Config Space */
@@ -136,11 +135,11 @@ namespace hw {
             product_id());
       break;
     case PCI::classcode::NIC:
-      INFO2("+--[ %s, %s, %s (0x%x) ]",
+      INFO2("+--[ %s, %s, %s (%#x:%#x) ]",
             PCI::classcode_str(devtype_.classcode),
             PCI::vendor_str(vendor_id()),
             nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
-            devtype_.subclass);
+            this->vendor_id(), this->product_id());
       break;
     default:
       INFO2("+--[ %s, %s ]",

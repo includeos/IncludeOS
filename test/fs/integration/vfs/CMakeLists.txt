@@ -1,22 +1,25 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+project(vfs)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_vfs)
+os_add_executable(fs_vfs "VFS filesystem test" service.cpp)
+os_add_stdout(fs_vfs default_stdout)
+os_add_drivers(fs_vfs virtioblk)
+os_diskbuilder(fs_vfs memdisk)
 
-set(SERVICE_NAME "VFS test")
-set(BINARY       "test_vfs")
-set(MAX_MEM 128)
-set(SOURCES
-  service.cpp
-  )
+#do this code in cmake instead ?
+file(COPY memdisk DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY virtio1 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY virtio2 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY create_disk.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-set(DRIVERS virtioblk)
-
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-diskbuilder(memdisk)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(vm.json ${CMAKE_CURRENT_BINARY_DIR})

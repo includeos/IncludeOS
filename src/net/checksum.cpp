@@ -17,13 +17,10 @@
 
 #include <net/checksum.hpp>
 #include <net/util.hpp>
-
-#if defined(__AVX2__)
- #include <immintrin.h>
-#elif defined(__SSSE3__)
- #include <tmmintrin.h>
+#if defined(ARCH_x86_64) || defined(ARCH_i686)
+  #include <immintrin.h>
+  #include <x86intrin.h>
 #endif
-
 #include <cassert>
 #include <common>
 

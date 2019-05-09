@@ -20,13 +20,15 @@
 #ifndef NET_IP6_ICMPv6_HPP
 #define NET_IP6_ICMPv6_HPP
 
-#include "ndp.hpp"
 #include "packet_icmp6.hpp"
+#include <net/ip6/addr.hpp>
+#include <net/inet_common.hpp> // net::downstream
 #include <map>
 #include <timers>
 
 namespace net
 {
+  class Inet;
   /**
    *  User friendly ICMP packet (view) used in ping callback (icmp_func)
    */
@@ -46,7 +48,7 @@ namespace net
       type_{pckt.type()},
       code_{pckt.code()},
       checksum_{pckt.checksum()},
-      payload_{(const char*) pckt.payload().data(), (size_t) pckt.payload().size()}
+      payload_{(const char*) pckt.payload().data() +sizeof(icmp6::Packet::IdSe), (size_t) pckt.payload().size()-sizeof(icmp6::Packet::IdSe)}
     {}
 
     uint16_t id() const noexcept
@@ -55,10 +57,10 @@ namespace net
     uint16_t seq() const noexcept
     { return seq_; }
 
-    IP6::addr src() const noexcept
+    ip6::Addr src() const noexcept
     { return src_; }
 
-    IP6::addr dst() const noexcept
+    ip6::Addr dst() const noexcept
     { return dst_; }
 
     ICMP_type type() const noexcept
@@ -81,8 +83,8 @@ namespace net
   private:
     uint16_t      id_{0};
     uint16_t      seq_{0};
-    IP6::addr     src_{0,0,0,0};
-    IP6::addr     dst_{0,0,0,0};
+    ip6::Addr     src_{0,0,0,0};
+    ip6::Addr     dst_{0,0,0,0};
     ICMP_type     type_{ICMP_type::NO_REPLY};
     uint8_t       code_{0};
     uint16_t      checksum_{0};
@@ -96,9 +98,10 @@ namespace net
     using ICMP_code = ICMP6_error::ICMP_code;
 
   public:
-    using Stack = IP6::Stack;
+    using Stack = Inet;
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
     using icmp_func = delegate<void(ICMP6_view)>;
+    using Route_checker = delegate<bool(ip6::Addr)>;
 
     static const int SEC_WAIT_FOR_REPLY = 40;
 
@@ -114,15 +117,11 @@ namespace net
       network_layer_out_ = s;
     }
 
-    inline void set_ndp_linklayer_out(downstream_link s)
-    {
-       ndp_.set_linklayer_out(s);
-    }
+    void set_ndp_handler(upstream s)
+    { ndp_upstream_ = s; }
 
-    void ndp_transmit(Packet_ptr ptr, IP6::addr next_hop)
-    {
-        ndp_.transmit(std::move(ptr), next_hop);
-    }
+    void set_mld_handler(upstream s)
+    { mld_upstream_ = s; }
 
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
@@ -150,24 +149,24 @@ namespace net
      */
     void parameter_problem(Packet_ptr pckt, uint8_t error_pointer);
 
-    void timestamp_request(IP6::addr ip);
+    void timestamp_request(ip6::Addr ip);
     void timestamp_reply(icmp6::Packet& req);
 
-    void ping(IP6::addr ip);
-    void ping(IP6::addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+    void ping(ip6::Addr ip);
+    void ping(ip6::Addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
 
     void ping(const std::string& hostname);
     void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
-    Ndp& ndp() { return ndp_; }
 
   private:
     static int request_id_; // message identifier for messages originating from IncludeOS
     Stack& inet_;
-    Ndp    ndp_;
-    downstream network_layer_out_ =   nullptr;
+    downstream network_layer_out_ = nullptr;
+    upstream   ndp_upstream_      = nullptr;
+    upstream   mld_upstream_      = nullptr;
 
     inline bool is_full_header(size_t pckt_size)
-    { return (pckt_size >= sizeof(IP6::header) + icmp6::Packet::header_size()); }
+    { return (pckt_size >= sizeof(ip6::Header) + icmp6::Packet::header_size()); }
 
     struct ICMP_callback {
       using icmp_func = ICMPv6::icmp_func;
@@ -203,30 +202,12 @@ namespace net
      *  Find the ping-callback that this packet is a response to, execute it and erase the object
      *  from the ping_callbacks_ map
      */
-    inline void execute_ping_callback(icmp6::Packet& ping_response) {
-      // Find callback matching the reply
-      auto it = ping_callbacks_.find(std::make_pair(ping_response.id(), ping_response.sequence()));
-
-      if (it != ping_callbacks_.end()) {
-        it->second.callback(ICMP6_view{ping_response});
-        Timers::stop(it->second.timer_id);
-        ping_callbacks_.erase(it);
-      }
-    }
+    void execute_ping_callback(icmp6::Packet& ping_response);
 
     /** Remove ICMP_callback from ping_callbacks_ map when its timer timeouts */
-    inline void remove_ping_callback(Tuple key) {
-      auto it = ping_callbacks_.find(key);
+    void remove_ping_callback(Tuple key);
 
-      if (it != ping_callbacks_.end()) {
-        // Data back to user if no response found
-        it->second.callback(ICMP6_view{});
-        Timers::stop(it->second.timer_id);
-        ping_callbacks_.erase(it);
-      }
-    }
-
-    void send_request(IP6::addr dest_ip, ICMP_type type, ICMP_code code,
+    void send_request(ip6::Addr dest_ip, ICMP_type type, ICMP_code code,
       icmp_func callback = nullptr, int sec_wait = SEC_WAIT_FOR_REPLY, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */

@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #include <unistd.h>
+#include <stdarg.h>
+#include <boot/multiboot.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
@@ -42,8 +44,14 @@ void* aligned_alloc(size_t align, size_t size) {
 }
 #endif
 
+#ifndef LIKELY
+//#define LIKELY(X)   __builtin_expect(X, 1)
+//#define UNLIKELY(X) __builtin_expect(X, 0)
+#endif
+
 char _DISK_START_;
 char _DISK_END_;
+char _ELF_SYM_START_;
 
 /// RTC ///
 #include <rtc>
@@ -60,7 +68,7 @@ void Service::ready()
 }
 
 extern "C"
-void kprintf(char* format, ...)
+void kprintf(const char* format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -74,16 +82,13 @@ void kprint(char* str)
 printf("%s", str);
 }
 
-#include <kernel/os.hpp>
-void OS::start(unsigned, unsigned) {}
-void OS::default_stdout(const char*, size_t) {}
-void OS::event_loop() {}
-void OS::block() {}
-void OS::halt() {}
-void OS::resume_softreset(intptr_t) {}
-bool OS::is_softreset_magic(uint32_t) {
-  return true;
-}
+#include <os.hpp>
+#include <hal/machine.hpp>
+//void OS::start(unsigned, unsigned) {}
+//void os::default_stdout(const char*, size_t) {}
+void os::event_loop() {}
+void os::halt() noexcept {}
+void os::reboot() noexcept {}
 
 void __x86_init_paging(void*){};
 namespace x86 {
@@ -91,15 +96,7 @@ namespace paging {
   void invalidate(void* pageaddr){};
 }}
 
-__attribute__((constructor))
-void paging_test_init(){
-  extern uintptr_t __exec_begin;
-  extern uintptr_t __exec_end;
-  __exec_begin = 0xa00000;
-  __exec_end = 0xb0000b;
-}
-
-void OS::multiboot(unsigned) {}
+//void OS::multiboot(unsigned) {}
 
 #include <system_log>
 void SystemLog::initialize() {}
@@ -185,7 +182,15 @@ uint64_t __arch_system_time() noexcept {
 }
 #include <sys/time.h>
 timespec __arch_wall_clock() noexcept {
-  return timespec{0, 0};
+  return timespec{static_cast<long>(systime_override()), 0};
+}
+#include <random>
+uint32_t __arch_rand32()
+{
+  static std::random_device rd;
+  static std::mt19937_64 gen(rd());
+  static std::uniform_int_distribution<uint32_t> dis;
+  return dis(gen);
 }
 
 /// smp ///
@@ -214,28 +219,66 @@ bool rdrand32(uint32_t* result) {
   return true;
 }
 
-/// heap ///
-uintptr_t __brk_max = 0;
-uintptr_t OS::heap_begin() noexcept {
-  return 0;
+namespace os {
+  Machine& machine() noexcept {
+    static Machine* m = nullptr;
+    static const size_t memsize = 0x1000000;
+    if (UNLIKELY(m == nullptr)) {
+      void* memory = aligned_alloc(4096, memsize);
+      assert(memory != nullptr);
+      m = Machine::create(memory, memsize);
+    }
+    return *m;
+  }
+
+  const char* cmdline_args() noexcept {
+    return "unittests";
+  }
+
+  void print(const char* ptr, const size_t len) {
+    // print?
+  }
+
+  size_t total_memuse() noexcept {
+    return 0xff00ff00;
+  }
 }
 
-uintptr_t OS::memory_end_ = 1 << 30;
+uintptr_t __exec_begin = 0xa00000;
+uintptr_t __exec_end   = 0xb0000b;
 
-uintptr_t OS::heap_end() noexcept {
-  return memory_end_;
-}
+namespace kernel {
+  uintptr_t heap_begin() noexcept {
+    return 0;
+  }
 
-size_t OS::heap_usage() noexcept {
-  return OS::heap_end();
-}
+  uintptr_t heap_end() noexcept {
+    return 1 << 30;
+  }
 
-uintptr_t OS::heap_max() noexcept {
-  return -1;
-}
+  uintptr_t heap_max() noexcept {
+    return -1;
+  }
 
-size_t OS::total_memuse() noexcept {
-  return heap_end();
+  size_t heap_usage() noexcept {
+    return 0xff00ff00;
+  }
+
+  size_t total_memuse() noexcept {
+    return heap_end();
+  }
+
+  void init_heap(uintptr_t, size_t) noexcept {
+    INFO("TEST", "Initializing heap");
+  }
+
+  struct State {};
+
+
+  State& state() {
+    static State s{};
+    return s;
+  }
 }
 
 #endif

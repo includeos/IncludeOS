@@ -20,7 +20,8 @@
 
 #include <memory>
 #include <delegate>
-#include <hw/devices.hpp>
+#include <hw/nic.hpp>
+#include <hw/block_device.hpp>
 
 class Solo5_manager {
 public:

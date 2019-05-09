@@ -1,0 +1,10 @@
+[requires]
+uzlib/v2.1.1@includeos/stable
+http-parser/2.8.1@includeos/stable
+rapidjson/1.1.0@includeos/stable
+GSL/2.0.0@includeos/stable
+lest/1.33.5@includeos/stable
+
+[generators]
+virtualenv
+cmake

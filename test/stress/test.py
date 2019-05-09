@@ -1,14 +1,14 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
+from __future__ import division
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import sys
 import socket
 import time
 import subprocess
-import subprocess32
 import os
-
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 from vmrunner.prettify import color
@@ -50,14 +50,14 @@ def get_mem():
   try:
     # We expect this socket to allready be opened
     time.sleep(1)
-    sock_mem.send("memsize\n")
+    sock_mem.send("memsize\n".encode())
     received = sock_mem.recv(1000).rstrip()
 
   except Exception as e:
-    print color.FAIL(name_tag), "Python socket failed while getting memsize: ", e
+    print(color.FAIL(name_tag), "Python socket failed while getting memsize: ", e)
     return False
 
-  print color.INFO(name_tag),"Current VM memory usage reported as ", received
+  print(color.INFO(name_tag),"Current VM memory usage reported as ", received)
   return int(received)
 
 def get_mem_start():
@@ -69,7 +69,7 @@ def get_mem_start():
 def memory_increase(lead_time, expected_memuse = memuse_at_start):
   name_tag = "<" + test_name + "::memory_increase>"
   if lead_time:
-    print color.INFO(name_tag),"Checking for memory increase after a lead time of ",lead_time,"s."
+    print(color.INFO(name_tag),"Checking for memory increase after a lead time of ",lead_time,"s.")
     # Give the VM a chance to free up resources before asking
     time.sleep(lead_time)
 
@@ -80,10 +80,10 @@ def memory_increase(lead_time, expected_memuse = memuse_at_start):
     percent = float(increase) / expected_memuse
 
   if increase > acceptable_increase:
-    print color.WARNING(name_tag), "Memory increased by ", percent, "%."
-    print "(" , expected_memuse, "->", use, ",", increase,"b increase, but no increase expected.)"
+    print(color.WARNING(name_tag), "Memory increased by ", percent, "%.")
+    print("(" , expected_memuse, "->", use, ",", increase,"b increase, but no increase expected.)")
   else:
-    print color.OK(name_tag + "Memory constant, no leak detected")
+    print(color.OK(name_tag + "Memory constant, no leak detected"))
   return increase
 
 # Fire a single burst of UDP packets
@@ -102,7 +102,7 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
     for i in range(0, burst_size):
       sock.sendto(data, (HOST, PORT_FLOOD))
   except Exception as e:
-    print color.WARNING("<Test.py> Python socket timed out while sending. ")
+    print(color.WARNING("<Test.py> Python socket timed out while sending. "))
     return False
   sock.close()
   time.sleep(burst_interval)
@@ -111,13 +111,13 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 # Fire a single burst of ICMP packets
 def ICMP_flood(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Ping-flooding requires sudo for optimal speed
-  res = subprocess32.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)], timeout=thread_timeout);
+  res = subprocess.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
 # Fire a single burst of HTTP requests
 def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
-  res = subprocess32.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)], timeout=thread_timeout);
+  res = subprocess.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
@@ -125,9 +125,9 @@ def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Arping requires sudo, and we expect the bridge 'bridge43' to be present
   command = ["sudo", "arping", "-q","-W", str(0.0001), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
-  print color.DATA(" ".join(command))
+  print(color.DATA(" ".join(command)))
   time.sleep(0.5)
-  res = subprocess32.check_call(command, timeout=thread_timeout);
+  res = subprocess.check_call(command, timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
@@ -136,22 +136,22 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 def heap_ok(line):
     global heap_verified
     heap_verified = True
-    print color.INFO("Stresstest::heap_ok"), "VM reports heap is increasing and decreasing as expected"
+    print(color.INFO("Stresstest::heap_ok"), "VM reports heap is increasing and decreasing as expected")
 
 
 def crash_test(string):
-  print color.INFO("Opening persistent TCP connection for diagnostics")
+  print(color.INFO("Opening persistent TCP connection for diagnostics"))
   sock_mem.connect((HOST, PORT_MEM))
   mem_before = get_mem_start()
   if mem_before <= 0:
-      print color.FAIL("Initial memory reported as " + str(mem_before))
+      print(color.FAIL("Initial memory reported as " + str(mem_before)))
       return False
 
   if not heap_verified:
-      print color.FAIL("Heap behavior was not verified as expected. ")
+      print(color.FAIL("Heap behavior was not verified as expected. "))
       return False
 
-  print color.HEADER("Initial crash test")
+  print(color.HEADER("Initial crash test"))
   burst_size = BURST_SIZE * 10
 
   ARP_burst(burst_size, 0)
@@ -160,13 +160,13 @@ def crash_test(string):
   httperf(burst_size, 0)
   time.sleep(BURST_INTERVAL)
   mem_after = get_mem()
-  print color.INFO("Crash test complete. Memory in use: "), mem_after
+  print(color.INFO("Crash test complete. Memory in use: "), mem_after)
   return mem_after >= memuse_at_start
 
 # Fire several bursts, e.g. trigger a function that fires bursts, several times
 def fire_bursts(func, sub_test_name, lead_out = 3):
   name_tag = "<" + sub_test_name + ">"
-  print color.HEADER(test_name + " initiating "+sub_test_name)
+  print(color.HEADER(test_name + " initiating "+sub_test_name))
   membase_start = get_mem()
   mem_base = membase_start
 
@@ -176,7 +176,7 @@ def fire_bursts(func, sub_test_name, lead_out = 3):
   constant = 0
 
   for i in range(0,BURST_COUNT):
-    print color.INFO(name_tag), " Run ", i+1
+    print(color.INFO(name_tag), " Run ", i+1)
     memi = func()
     if memi > mem_base:
       memincrease =  memi - mem_base
@@ -192,19 +192,19 @@ def fire_bursts(func, sub_test_name, lead_out = 3):
     mem_base = memi
 
     if memincrease > acceptable_increase:
-      print color.WARNING(name_tag), "Memory increased by ",memincrease,"b, ",float(memincrease) / BURST_SIZE, "pr. packet \n"
+      print(color.WARNING(name_tag), "Memory increased by ",memincrease,"b, ",float(memincrease) / BURST_SIZE, "pr. packet \n")
     else:
-      print color.OK(name_tag), "Memory increase ",memincrease,"b \n"
+      print(color.OK(name_tag), "Memory increase ",memincrease,"b \n")
 
     # Memory can decrease, we don't care about that
     # if memincrease > 0:
     #  mem_base += memincrease
-  print color.INFO(name_tag),"Heap behavior: ", "+",increases, ", -",decreases, ", ==", constant
-  print color.INFO(name_tag),"Done. Checking for liveliness"
+  print(color.INFO(name_tag),"Heap behavior: ", "+",increases, ", -",decreases, ", ==", constant)
+  print(color.INFO(name_tag),"Done. Checking for liveliness")
   if memory_increase(lead_out, membase_start) > acceptable_increase:
-    print color.FAIL(sub_test_name + " failed ")
+    print(color.FAIL(sub_test_name + " failed "))
     return False
-  print color.PASS(sub_test_name + " succeeded ")
+  print(color.PASS(sub_test_name + " succeeded "))
   return True
 
 
@@ -230,12 +230,12 @@ vm = vmrunner.vms[0]
 
 # Check for vital signs after all the bombardment is done
 def check_vitals(string):
-  print color.INFO("Checking vital signs")
+  print(color.INFO("Checking vital signs"))
   mem = get_mem()
   diff = mem - memuse_at_start
-  pages = diff / PAGE_SIZE
-  print color.INFO("Memory use at test end:"), mem, "bytes"
-  print color.INFO("Memory difference from test start:"), memuse_at_start, "bytes (Diff:",diff, "b == ",pages, "pages)"
+  pages = old_div(diff, PAGE_SIZE)
+  print(color.INFO("Memory use at test end:"), mem, "bytes")
+  print(color.INFO("Memory difference from test start:"), memuse_at_start, "bytes (Diff:",diff, "b == ",pages, "pages)")
   sock_mem.close()
   vm.stop()
   wait_for_tw()
@@ -243,17 +243,17 @@ def check_vitals(string):
 
 # Wait for sockets to exit TIME_WAIT status
 def wait_for_tw():
-  print color.INFO("Waiting for sockets to clear TIME_WAIT stage")
+  print(color.INFO("Waiting for sockets to clear TIME_WAIT stage"))
   socket_limit = 11500
   time_wait_proc = 30000
   while time_wait_proc > socket_limit:
-    output = subprocess.check_output(('netstat', '-anlt'))
+    output = subprocess.check_output(('netstat', '-anlt')).decode("utf-8")
     output = output.split('\n')
     time_wait_proc = 0
     for line in output:
         if "TIME_WAIT" in line:
             time_wait_proc += 1
-    print color.INFO("There are {0} sockets in use, waiting for value to drop below {1}".format(time_wait_proc, socket_limit))
+    print(color.INFO("There are {0} sockets in use, waiting for value to drop below {1}".format(time_wait_proc, socket_limit)))
     time.sleep(7)
 
 # Add custom event-handlers
@@ -272,7 +272,10 @@ if len(sys.argv) > 3:
   BURST_COUNT = int(sys.argv[2])
   BURST_SIZE = int(sys.argv[3])
 
-print color.HEADER(test_name + " initializing")
-print color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
+print(color.HEADER(test_name + " initializing"))
+print(color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZE, "packets each")
 
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 4:
+    vm.boot(timeout=thread_timeout, image_name=str(sys.argv[4]))
+else:
+    vm.cmake().boot(thread_timeout).clean()

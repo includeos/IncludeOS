@@ -1,15 +1,12 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
+from __future__ import print_function
+from builtins import str
 import sys
 import os
 import subprocess
 import atexit
 
 thread_timeout = 60
-
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-print 'includeos_src: {0}'.format(includeos_src)
-sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
@@ -23,7 +20,7 @@ import platform
 if platform.system() == 'Darwin':
     subprocess.call(["sudo", "ifconfig", "bridge43", "alias", "10.0.0.2/24"])
 else:
-    subprocess.call(["sudo", "ifconfig", "bridge43:0", "10.0.0.2/24"])
+    subprocess.call(["sudo", "ip", "addr", "add", "10.0.0.2/24", "dev", "bridge43", "label", "bridge43:0"])
 
 # Tear down interface on exit
 @atexit.register
@@ -31,7 +28,7 @@ def tear_down():
     if platform.system() == 'Darwin':
         subprocess.call(["sudo", "ifconfig", "bridge43", "-alias", "10.0.0.2"])
     else:
-        subprocess.call(["sudo", "ifconfig", "bridge43:0", "down"])
+        subprocess.call(["sudo", "ip", "addr", "del", "10.0.0.2/24", "dev", "bridge43", "label", "bridge43:0"])
 
 UDP_IP = "10.0.0.2"
 UDP_PORT = 6514
@@ -94,10 +91,10 @@ end_msg = "Something special to close with"
 def increment():
   global num_received
   num_received += 1
-  print "num_received after increment: ", num_received
+  print("num_received after increment: ", num_received)
 
 def validate(data):
-  print "Received message: ", data
+  print("Received message: ", data)
   if num_received < len(pre_messages):
     assert pre_messages[num_received] in data and post_messages[num_received], "Message don't match"
   else:
@@ -105,10 +102,11 @@ def validate(data):
     post_messages[num_received - len(pre_messages)], "Message don't match"
 
 def start(line):
-    print "Waiting for UDP data"
+    print("Waiting for UDP data")
     while True:
         data, addr = sock.recvfrom(4096)
-        print "Received data"
+        data = data.decode("utf-8")
+        print("Received data")
         if end_msg not in data:
             validate(data)
             increment()
@@ -124,4 +122,7 @@ def end():
 vm.on_output("Service IP address is 10.0.0.47", start)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(thread_timeout).clean()
+if len(sys.argv) > 1:
+    vm.boot(thread_timeout,image_name=str(sys.argv[1]))
+else:
+    vm.cmake().boot(thread_timeout,image_name='posix_syslog_plugin').clean()

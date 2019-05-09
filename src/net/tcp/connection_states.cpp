@@ -296,26 +296,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
 void Connection::State::process_fin(Connection& tcp, const Packet_view& in) {
   debug2("<Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
   Expects(in.isset(FIN));
-  auto& tcb = tcp.tcb();
-  // Advance RCV.NXT over the FIN?
-  tcb.RCV.NXT++;
-  //auto fin = tcp_data_length();
-  //tcb.RCV.NXT += fin;
-  const auto snd_nxt = tcb.SND.NXT;
-  // empty the read buffer
-  if(tcp.read_request and tcp.read_request->size())
-    tcp.receive_disconnect();
-  // signal disconnect to the user
-  tcp.signal_disconnect(Disconnect::CLOSING);
-
-  // only ack FIN if user callback didn't result in a sent packet
-  if(tcb.SND.NXT == snd_nxt) {
-    debug2("<Connection::State::process_fin> acking FIN\n");
-    auto packet = tcp.outgoing_packet();
-    packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
-    tcp.transmit(std::move(packet));
-  }
-
+  tcp.update_fin(in);
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -398,27 +379,8 @@ void Connection::Closed::open(Connection& tcp, bool active) {
       auto packet = tcp.outgoing_packet();
       packet->set_seq(tcb.ISS).set_flag(SYN);
 
-      /*
-        Add MSS option.
-      */
-      tcp.add_option(Option::MSS, *packet);
-
-      // Window scaling
-      if(tcp.uses_window_scaling())
-      {
-        tcp.add_option(Option::WS, *packet);
-        packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
-      }
-      // Add timestamps
-      if(tcp.uses_timestamps())
-      {
-        tcp.add_option(Option::TS, *packet);
-      }
-
-      if(tcp.uses_SACK())
-      {
-        tcp.add_option(Option::SACK_PERM, *packet);
-      }
+      // Add all the options we wanna negotiate in the handshake.
+      tcp.add_syn_options(*packet);
 
       tcb.SND.UNA = tcb.ISS;
       tcb.SND.NXT = tcb.ISS+1;
@@ -694,24 +656,9 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_view& in) {
     auto packet = tcp.outgoing_packet();
     packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
 
-    /*
-      Add MSS option.
-      TODO: Send even if we havent received MSS option?
-    */
-    tcp.add_option(Option::MSS, *packet);
-
-    // This means WS was accepted in the SYN packet
-    if(tcb.SND.wind_shift > 0)
-    {
-      tcp.add_option(Option::WS, *packet);
-      packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
-    }
-
-    // SACK permitted
-    if(tcp.sack_perm == true)
-    {
-      tcp.add_option(Option::SACK_PERM, *packet);
-    }
+    // Options are now parsed so we should be able to
+    // add the negotiated options here
+    tcp.add_synack_options(*packet);
 
     tcp.transmit(std::move(packet));
     tcp.set_state(SynReceived::instance());
@@ -846,6 +793,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_view& in) {
       if(UNLIKELY(in.isset(FIN)))
       {
         process_fin(tcp, in);
+        tcp.handle_fin();
         tcp.set_state(Connection::CloseWait::instance());
         return OK;
       }
@@ -959,6 +907,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_view& in) 
   // 8. check FIN
   if(UNLIKELY(in.isset(FIN))) {
     process_fin(tcp, in);
+    tcp.handle_fin();
     tcp.set_state(Connection::CloseWait::instance());
     return OK;
   }
@@ -993,14 +942,30 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_view& in) 
   // 6. check URG - DEPRECATED
 
   // 7. proccess the segment text
-  if(in.has_tcp_data()) {
+  if(in.has_tcp_data())
+  {
     tcp.recv_data(in);
+
+    // special case for when if we had loss but now fixed it
+    if(UNLIKELY(tcp.should_handle_fin()))
+    {
+      tcp.set_state(Connection::CloseWait::instance());
+      tcp.handle_fin();
+      return OK;
+    }
   }
 
   // 8. check FIN bit
-  if(UNLIKELY(in.isset(FIN))) {
-    tcp.set_state(Connection::CloseWait::instance());
+  if(UNLIKELY(in.isset(FIN)))
+  {
     process_fin(tcp, in);
+    // if we have loss (SACK) the FIN could have arrived before
+    // all data is recv, so check if should handle this now or wait.
+    if(tcp.should_handle_fin())
+    {
+      tcp.set_state(Connection::CloseWait::instance());
+      tcp.handle_fin();
+    }
     return OK;
   }
 
@@ -1050,6 +1015,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
   // 8. check FIN
   if(in.isset(FIN)) {
     process_fin(tcp, in);
+    tcp.handle_fin();
     debug2("<Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
     /*
       If our FIN has been ACKed (perhaps in this segment), then
@@ -1102,6 +1068,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
   // 8. check FIN
   if(in.isset(FIN)) {
     process_fin(tcp, in);
+    tcp.handle_fin();
     /*
       Enter the TIME-WAIT state.
       Start the time-wait timer, turn off the other timers.

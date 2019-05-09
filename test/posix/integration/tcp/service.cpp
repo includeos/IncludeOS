@@ -23,7 +23,7 @@
 #include <cassert>
 #include <errno.h>
 #include <unistd.h>
-#include <net/inet>
+#include <net/interfaces>
 
 const uint16_t PORT = 1042;
 const uint16_t OUT_PORT = 4242;
@@ -31,9 +31,10 @@ const uint16_t BUFSIZE = 2048;
 
 int main()
 {
-  auto&& inet =  net::Inet::ifconfig({  10,  0,  0, 57 },   // IP
-                                     { 255, 255, 0,  0 },   // Netmask
-                                     {  10,  0,  0,  4 });  // Gateway
+  auto&& inet = net::Interfaces::get(0);
+  inet.network_config({  10,  0,  0, 57 },   // IP
+                      { 255, 255, 0,  0 },   // Netmask
+                      {  10,  0,  0,  4 });  // Gateway
 
   INFO("TCP Socket", "bind(%u)", PORT);
 
@@ -88,6 +89,9 @@ int main()
   CHECKSERT(res == 0, "No data received (closing)");
 
   res = shutdown(cfd, SHUT_RDWR);
+  CHECKSERT(res < 0, "Shutdown on closed socket fails");
+  res = close(cfd);
+  CHECKSERT(res == 0, "Close socket");
 
   // We cant see if the buffer now is empty without blocking the test
 
@@ -111,6 +115,9 @@ int main()
   const char *my_message = "Only hipsters uses POSIX";
   res = send(cfd, my_message, strlen(my_message), 0);
   CHECKSERT(res > 0, "Send works when connected (verified by script)");
+
+  res = close(cfd);
+  CHECKSERT(res == 0, "Closed client connection");
 
   return 0;
 }

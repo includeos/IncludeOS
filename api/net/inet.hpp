@@ -29,14 +29,16 @@
 #include "conntrack.hpp"
 
 #include "ip4/ip4.hpp"
-#include "ip4/udp.hpp"
 #include "ip4/icmp4.hpp"
 #include "ip4/arp.hpp"
 #include "ip6/ip6.hpp"
 #include "ip6/icmp6.hpp"
+#include "ip6/ndp.hpp"
+#include "ip6/slaac.hpp"
+#include "ip6/mld.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
-#include "super_stack.hpp"
+#include "udp/udp.hpp"
 
 namespace net {
 
@@ -49,20 +51,26 @@ namespace net {
     using Stack          = class Inet;
     using IP_packet_ptr  = IP4::IP_packet_ptr;
     using IP6_packet_ptr = IP6::IP_packet_ptr;
-    using IP_addr        = IP4::addr;
+    using IP_addr        = ip4::Addr;
+    using IP6_addr       = ip6::Addr;
 
-    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source,
+            Conntrack::Entry_ptr)>;
+    using Forward_delg6  = delegate<void(IP6_packet_ptr, Stack& source,
+            Conntrack::Entry_ptr)>;
     using Route_checker = delegate<bool(IP_addr)>;
+    using Route_checker6 = delegate<bool(IP6_addr)>;
     using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
     using IP6_packet_factory = delegate<IP6_packet_ptr(Protocol)>;
 
-    using resolve_func = delegate<void(IP4::addr, const Error&)>;
+    using resolve_func = dns::Client::Resolve_handler;
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
+    using slaac_timeout_func = delegate<void(bool complete)>;
 
     using Port_utils  = std::map<net::Addr, Port_util>;
-    using Vip4_list = std::vector<IP4::addr>;
-    using Vip6_list = std::vector<IP6::addr>;
+    using Vip4_list = std::vector<ip4::Addr>;
+    using Vip6_list = std::vector<ip6::Addr>;
 
     std::string ifname() const
     { return nic_.device_name(); }
@@ -73,31 +81,43 @@ namespace net {
     hw::Nic& nic() const
     { return nic_; }
 
-    IP4::addr ip_addr() const
-    { return ip4_addr_; }
+    ip4::Addr ip_addr() const
+    { return ip4_.address(); }
 
-    IP4::addr netmask() const
-    { return netmask_; }
+    ip4::Addr netmask() const
+    { return ip4_.networkmask(); }
 
-    IP4::addr gateway() const
-    { return gateway_; }
+    ip4::Addr gateway() const
+    { return ip4_.gateway(); }
 
-    IP4::addr dns_addr() const
+    ip4::Addr dns_addr() const
     { return dns_server_; }
 
-    IP4::addr broadcast_addr() const
-    { return ip4_addr_ | ( ~ netmask_); }
+    ip4::Addr broadcast_addr() const
+    { return ip4_.broadcast_addr(); }
 
-    const ip6::Addr& ip6_addr() const noexcept
-    { return ip6_addr_; }
+    ip6::Addr ip6_src(const ip6::Addr& dst) const
+    { return addr6_config().get_src(dst); }
+
+    ip6::Addr ip6_addr() const {
+      if(auto addr = ip6_global(); addr != ip6::Addr::addr_any)
+        return addr;
+      else return ip6_linklocal();
+    }
+
+    ip6::Addr ip6_linklocal() const
+    { return addr6_config().get_first_linklocal(); }
+
+    ip6::Addr ip6_global() const
+    { return addr6_config().get_first_unicast(); }
 
     uint8_t netmask6() const
-     { return ip6_prefix_; }
+    { return ndp_.static_prefix(); }
 
-    IP6::addr gateway6() const
-    { return ip6_gateway_; }
+    ip6::Addr gateway6() const
+    { return ndp_.static_gateway(); }
 
-    void cache_link_addr(IP4::addr ip, MAC::Addr mac);
+    void cache_link_addr(ip4::Addr ip, MAC::Addr mac);
     void flush_link_cache();
     void set_link_cache_flush_interval(std::chrono::minutes min);
 
@@ -106,8 +126,7 @@ namespace net {
     { return ip4_; }
 
     /** Get the IP6-object belonging to this stack */
-    IP6& ip6_obj()
-    { return ip6_; }
+    IP6& ip6_obj() { return ip6_; }
 
     /** Get the TCP-object belonging to this stack */
     TCP& tcp() { return tcp_; }
@@ -120,6 +139,13 @@ namespace net {
 
     /** Get the ICMP-object belonging to this stack */
     ICMPv6& icmp6() { return icmp6_; }
+
+    /** Get the NDP-object belonging to this stack */
+    Ndp& ndp() { return ndp_; }
+
+    /** Get the MLD-object belonging to this stack */
+    Mld& mld() { return mld_; }
+    //Mld2& mld2() { return mld2_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -170,10 +196,15 @@ namespace net {
       ip4_.set_packet_forwarding(fwd);
     }
 
+    void set_forward_delg6(Forward_delg6 fwd) {
+      ip6_.set_packet_forwarding(fwd);
+    }
+
     /**
      * Assign a delegate that checks if we have a route to a given IP
      */
     void set_route_checker(Route_checker delg);
+    void set_route_checker6(Route_checker6 delg);
 
     /**
      * Get the forwarding delegate used by this stack.
@@ -181,6 +212,8 @@ namespace net {
     Forward_delg forward_delg()
     { return ip4_.forward_delg(); }
 
+    Forward_delg6 forward_delg6()
+    { return ip6_.forward_delg(); }
 
     Packet_ptr create_packet() {
       return nic_.create_packet(nic_.frame_offset_link());
@@ -227,9 +260,9 @@ namespace net {
                  bool               force = false);
 
     void resolve(const std::string& hostname,
-                  IP4::addr         server,
-                  resolve_func      func,
-                  bool              force = false);
+                 net::Addr          server,
+                 resolve_func       func,
+                 bool               force = false);
 
     void set_domain_name(std::string domain_name)
     { this->domain_name_ = std::move(domain_name); }
@@ -237,14 +270,19 @@ namespace net {
     const std::string& domain_name() const
     { return this->domain_name_; }
 
-    void set_gateway(IP4::addr gateway)
+    void set_gateway(ip4::Addr gateway)
     {
-      this->gateway_ = gateway;
+      this->ip4_.set_gateway(gateway);
     }
 
-    void set_dns_server(IP4::addr server)
+    void set_dns_server(ip4::Addr server)
     {
       this->dns_server_ = server;
+    }
+
+    void set_dns_server6(ip6::Addr server)
+    {
+      this->dns_server6_ = server;
     }
 
     /**
@@ -257,14 +295,18 @@ namespace net {
      */
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
+    /* Automatic configuration of ipv6 address for inet */
+    void autoconf_v6(int retries = 1, slaac_timeout_func = nullptr,
+      uint64_t token = 0, bool use_token = false);
+
     bool is_configured() const
     {
-      return ip4_addr_ != 0;
+      return ip4_.address() != 0;
     }
 
     bool is_configured_v6() const
     {
-      return ip6_addr_ != IP6::ADDR_ANY;
+      return addr6_config().get_first_unicast() != ip6::Addr::addr_any;
     }
 
     // handler called after the network is configured,
@@ -280,24 +322,41 @@ namespace net {
     Inet& operator=(Inet) = delete;
     Inet operator=(Inet&&) = delete;
 
-    void network_config(IP4::addr addr,
-                        IP4::addr nmask,
-                        IP4::addr gateway,
-                        IP4::addr dns = IP4::ADDR_ANY);
+    void network_config(ip4::Addr addr,
+                        ip4::Addr nmask,
+                        ip4::Addr gateway,
+                        ip4::Addr dns = IP4::ADDR_ANY);
 
-    void network_config6(IP6::addr addr6 = IP6::ADDR_ANY,
+    void network_config6(ip6::Addr addr6 = IP6::ADDR_ANY,
                         uint8_t prefix6 = 0,
-                        IP6::addr gateway6 = IP6::ADDR_ANY);
+                        ip6::Addr gateway6 = IP6::ADDR_ANY);
 
-    void
-    reset_config()
+    void add_addr(const ip6::Addr& addr, uint8_t prefix = 64,
+                  uint32_t pref_lifetime  = ip6::Stateful_addr::infinite_lifetime,
+                  uint32_t valid_lifetime = ip6::Stateful_addr::infinite_lifetime);
+
+    ip6::Addr linklocal_addr() const noexcept
+    { return this->addr6_config().get_first_linklocal(); }
+
+    ip6::Addr_list& addr6_config() noexcept
+    { return this->ip6_.addr_list(); }
+
+    const ip6::Addr_list& addr6_config() const noexcept
+    { return this->ip6_.addr_list(); }
+
+    void reset_config()
     {
-      this->ip4_addr_ = IP4::ADDR_ANY;
-      this->gateway_ = IP4::ADDR_ANY;
-      this->netmask_ = IP4::ADDR_ANY;
-      //this->ip6_addr_ = IP6::ADDR_ANY;
-      //this->ip6_gateway_ = IP6::ADDR_ANY;
-      //this->ip6_prefix_ = 0;
+      this->ip4_.set_addr(IP4::ADDR_ANY);
+      this->ip4_.set_gateway(IP4::ADDR_ANY);
+      this->ip4_.set_netmask(IP4::ADDR_ANY);
+    }
+
+    void reset_config6()
+    {
+      this->ndp_.set_static_addr(IP6::ADDR_ANY);
+      this->ndp_.set_static_gateway(IP6::ADDR_ANY);
+      this->ndp_.set_static_prefix(0);
+
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -318,34 +377,6 @@ namespace net {
       return this->cpu_id;
     }
 
-    /** Return the stack on the given Nic */
-    template <int N = 0>
-    static auto&& stack()
-    {
-      return Super_stack::get(N);
-    }
-
-    /** Static IP config */
-    template <int N = 0>
-    static auto&& ifconfig(
-      IP4::addr addr,
-      IP4::addr nmask,
-      IP4::addr gateway,
-      IP4::addr dns = IP4::ADDR_ANY)
-    {
-      stack<N>().network_config(addr, nmask, gateway, dns);
-      return stack<N>();
-    }
-
-    /** DHCP config */
-    template <int N = 0>
-    static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
-    {
-      if (timeout > 0.0)
-          stack<N>().negotiate_dhcp(timeout, on_timeout);
-      return stack<N>();
-    }
-
     const Vip4_list virtual_ips() const noexcept
     { return vip4s_; }
 
@@ -353,21 +384,21 @@ namespace net {
     { return vip6s_; }
 
     /** Check if IP4 address is virtual loopback */
-    bool is_loopback(IP4::addr a) const
+    bool is_loopback(ip4::Addr a) const
     {
       return a.is_loopback()
         or std::find( vip4s_.begin(), vip4s_.end(), a) != vip4s_.end();
     }
 
     /** Check if IP6 address is virtual loopback */
-    bool is_loopback(IP6::addr a) const
+    bool is_loopback(ip6::Addr a) const
     {
       return a.is_loopback()
         or std::find( vip6s_.begin(), vip6s_.end(), a) != vip6s_.end();
     }
 
     /** add ip address as virtual loopback */
-    void add_vip(IP4::addr a)
+    void add_vip(ip4::Addr a)
     {
       if (not is_loopback(a)) {
         INFO("inet", "adding virtual ip address %s", a.to_string().c_str());
@@ -375,7 +406,7 @@ namespace net {
       }
     }
 
-    void add_vip(IP6::addr a)
+    void add_vip(ip6::Addr a)
     {
       if (not is_loopback(a)) {
         INFO("inet", "adding virtual ip6 address %s", a.to_string().c_str());
@@ -384,21 +415,21 @@ namespace net {
     }
 
     /** Remove IP address as virtual loopback */
-    void remove_vip(IP4::addr a)
+    void remove_vip(ip4::Addr a)
     {
       auto it = std::find(vip4s_.begin(), vip4s_.end(), a);
       if (it != vip4s_.end())
         vip4s_.erase(it);
     }
 
-    void remove_vip(IP6::addr a)
+    void remove_vip(ip6::Addr a)
     {
       auto it = std::find(vip6s_.begin(), vip6s_.end(), a);
       if (it != vip6s_.end())
         vip6s_.erase(it);
     }
 
-    IP4::addr get_source_addr(IP4::addr dest)
+    ip4::Addr get_source_addr(ip4::Addr dest)
     {
       if (dest.is_loopback())
         return {127,0,0,1};
@@ -409,7 +440,7 @@ namespace net {
       return ip_addr();
     }
 
-    IP6::addr get_source_addr(IP6::addr dest)
+    ip6::Addr get_source_addr(ip6::Addr dest)
     {
       if (dest.is_loopback())
         return ip6::Addr{0,0,0,1};
@@ -417,17 +448,18 @@ namespace net {
       if (is_loopback(dest))
         return dest;
 
-      return ip6_addr();
+      return ip6_src(dest);
     }
 
     bool is_valid_source(const Addr& addr) const
     { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
 
-    bool is_valid_source4(IP4::addr src) const
+    bool is_valid_source4(ip4::Addr src) const
     { return src == ip_addr(); }
 
-    bool is_valid_source6(const IP6::addr& src) const
-    { return src == ip6_addr() or src.is_multicast(); }
+    // @todo: is_multicast needs to be verified in mld
+    bool is_valid_source6(const ip6::Addr& src) const
+    { return ip6_.is_valid_source(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
     { return conntrack_; }
@@ -440,6 +472,9 @@ namespace net {
     Port_utils& udp_ports()
     { return udp_ports_; }
 
+    bool isRouter() const
+    { return false; }
+
     /** Initialize with ANY_ADDR */
     Inet(hw::Nic& nic);
 
@@ -449,14 +484,7 @@ namespace net {
     // delegates registered to get signalled about free packets
     std::vector<transmit_avail_delg> tqa;
 
-    IP4::addr ip4_addr_;
-    IP4::addr netmask_;
-    IP4::addr gateway_;
-    IP4::addr dns_server_;
-
-    IP6::addr ip6_addr_;
-    IP6::addr ip6_gateway_;
-    uint8_t   ip6_prefix_;
+    ip4::Addr dns_server_;
 
     Vip4_list vip4s_ = {{127,0,0,1}};
     Vip6_list vip6s_ = {{IP6::ADDR_LOOPBACK}};
@@ -464,6 +492,9 @@ namespace net {
     // This is the actual stack
     hw::Nic& nic_;
     Arp    arp_;
+    Ndp    ndp_;
+    Mld    mld_;
+    //Mld2   mld2_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;
@@ -477,17 +508,22 @@ namespace net {
     std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
-    DNSClient dns_;
+    dns::Client dns_;
     std::string domain_name_;
+    ip6::Addr dns_server6_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
+    std::unique_ptr<net::Slaac>    slaac_{};
 
     std::vector<on_configured_func> configured_handlers_;
 
     int   cpu_id;
     const uint16_t MTU_;
 
-    friend class Super_stack;
+    friend class Slaac;
+
+    void add_addr_autoconf(const ip6::Addr& addr, uint8_t prefix,
+      uint32_t pref_lifetime, uint32_t valid_lifetime);
   };
 }
 

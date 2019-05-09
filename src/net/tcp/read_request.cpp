@@ -219,13 +219,11 @@ namespace tcp {
   }
 
   buffer_t Read_request::read_next() {
-    static const buffer_t empty_buf {};
-    if (not complete_buffers.empty()) {
-      auto buf = complete_buffers.front();
-      complete_buffers.pop_front();
-      return buf;
-    }
-    return empty_buf;
+    if (UNLIKELY(complete_buffers.empty()))
+        return nullptr;
+    auto buf = std::move(complete_buffers.front());
+    complete_buffers.pop_front();
+    return buf;
   }
 
   void Read_request::reset(const seq_t seq)

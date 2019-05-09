@@ -1,19 +1,21 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project(service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_fat16)
+os_add_executable(fs_fat16 "FAT16 filesystem test" fat16.cpp)
+os_add_stdout(fs_fat16 default_stdout)
 
-set(SERVICE_NAME "FAT16 test")
-set(BINARY       "test_fat16")
-set(SOURCES
-    fat16.cpp
-  )
+os_diskbuilder(fs_fat16 disk)
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-diskbuilder(disk)
+configure_file(banana.ascii ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(vm.json ${CMAKE_CURRENT_BINARY_DIR})

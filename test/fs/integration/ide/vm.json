@@ -1,5 +1,4 @@
 {
-  "image"   : "test_ide.img",
   "drives"  : [{
     "file" : "../my.disk",
     "type" : "ide",

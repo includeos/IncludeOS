@@ -45,7 +45,7 @@ public:
   static const int VGA_WIDTH  {80};
   static const int VGA_HEIGHT {25};
 
-  OS::print_func get_print_handler() {
+  os::print_func get_print_handler() {
     return {this, &TextmodeVGA::write};
   }
 

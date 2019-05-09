@@ -23,7 +23,7 @@
 #endif
 
 #include <net/vlan_manager.hpp>
-#include <hw/devices.hpp>
+#include <hal/machine.hpp>
 
 namespace net {
 
@@ -38,6 +38,7 @@ VLAN_manager& VLAN_manager::get(int N)
   }
   else
   {
+    PRINT("<VLAN_manager> Creating VLAN manager for N=%i\n", N);
     auto ptr = std::unique_ptr<VLAN_manager>(new VLAN_manager);
     auto ok = managers.emplace(N, std::move(ptr));
     Expects(ok.second);
@@ -57,7 +58,7 @@ VLAN_manager::VLAN_interface& VLAN_manager::add(hw::Nic& link, const int id)
   auto* raw = vif.get();
 
   // register as a device (unnecessary?)
-  hw::Devices::register_device<hw::Nic>(std::move(vif));
+  os::machine().add<hw::Nic>(std::move(vif));
 
   auto it = links_.emplace(id, raw);
   Ensures(it.second && "Could not insert - ID is most likely already taken");

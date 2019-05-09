@@ -1,26 +1,22 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-option(threading "" OFF)
+#service
+project(service)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project (test_coro)
-
-
-set(SERVICE_NAME "Coroutines test")
-set(BINARY       "test_coro")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp
-  )
+)
 
-#set(DRIVERS virtionet)
-set(CAPABS "${CAPABS} -fcoroutines-ts ")
+os_add_executable(stl_coroutines "C++ coroutines test" ${SOURCES})
+os_add_stdout(stl_coroutines default_stdout)
 
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_compile_options(stl_coroutines PRIVATE "-fcoroutines-ts")
+configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

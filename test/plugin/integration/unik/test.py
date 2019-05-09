@@ -1,14 +1,17 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 
+from builtins import str
 import sys
 import os
-
-includeos_src = os.environ.get('INCLUDEOS_SRC',
-                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 
 # TODO: Implement a mockup of the Unik registration protocol on 10.0.0.56
 
-vmrunner.vms[0].cmake().boot(60).clean()
+vm=vmrunner.vms[0]
+
+if len(sys.argv) > 1:
+    vm.boot(image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(60,image_name="plugin_unik").clean()

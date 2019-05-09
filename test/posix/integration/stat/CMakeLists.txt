@@ -1,15 +1,15 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (posix)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
-project(test_posix_stat)
-
-set(SERVICE_NAME "Stat test")
-set(BINARY       "test_posix_stat")
+include(os)
 
 set(SOURCES
     test_stat_ftw.cpp
@@ -17,15 +17,13 @@ set(SOURCES
     stat_tests.cpp
   )
 
-set(DRIVERS
-  boot_logger
-)
+os_add_executable(posix_stat "POSIX file descriptor test" ${SOURCES})
 
-set(PLUGINS
-  vfs
-)
+os_add_drivers(posix_stat boot_logger)
+os_add_plugins(posix_stat vfs)
+os_add_stdout(posix_stat default_stdout)
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+# Create memdisk from folder
+os_diskbuilder(posix_stat disk)
 
-diskbuilder(disk)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -33,18 +33,18 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     is_ipv6_(local_.address().is_v6()),
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
-    cb{host_.window_size()},
+    cb{(is_ipv6_) ? default_mss_v6 : default_mss, host_.window_size()},
     read_request(nullptr),
     writeq(),
-    recv_wnd_getter{nullptr},
     on_connect_{std::move(callback)},
     on_disconnect_({this, &Connection::default_on_disconnect}),
     rtx_timer({this, &Connection::rtx_timeout}),
     timewait_dack_timer({this, &Connection::dack_timeout}),
+    recv_wnd_getter{nullptr},
     queued_(false),
     dack_{0},
     last_ack_sent_{cb.RCV.NXT},
-    smss_{host_.MSS()}
+    smss_{MSS()}
 {
   setup_congestion_control();
   //printf("<Connection> Created %p %s  ACTIVE: %u\n", this,
@@ -124,8 +124,8 @@ Connection_ptr Connection::retrieve_shared() {
 {
 }*/
 
-Connection::TCB::TCB(const uint32_t recvwin)
-  : SND{ 0, 0, default_window_size, 0, 0, 0, default_mss, 0, false },
+Connection::TCB::TCB(const uint16_t mss, const uint32_t recvwin)
+  : SND{ 0, 0, default_window_size, 0, 0, 0, mss, 0, false },
     ISS{(seq_t)4815162342},
     RCV{ 0, recvwin, 0, 0, 0 },
     IRS{0},
@@ -136,8 +136,8 @@ Connection::TCB::TCB(const uint32_t recvwin)
 {
 }
 
-Connection::TCB::TCB()
-  : Connection::TCB(default_window_size)
+Connection::TCB::TCB(const uint16_t mss)
+  : Connection::TCB(mss, default_window_size)
 {
 }
 
@@ -154,8 +154,12 @@ void Connection::reset_callbacks()
   }
 }
 
+uint16_t Connection::MSS() const noexcept {
+  return host_.MSS(ipv());
+}
+
 uint16_t Connection::MSDS() const noexcept {
-  return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
+  return std::min(MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
 size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) {
@@ -315,6 +319,36 @@ void Connection::receive_disconnect() {
   }
 }
 
+void Connection::update_fin(const Packet_view& pkt)
+{
+  Expects(pkt.isset(FIN));
+  // should be no problem calling multiple times
+  // as long as fin do not change (which it absolutely shouldnt)
+  fin_recv_ = true;
+  fin_seq_  = pkt.end();
+}
+
+void Connection::handle_fin()
+{
+  // Advance RCV.NXT over the FIN
+  cb.RCV.NXT++;
+  const auto snd_nxt = cb.SND.NXT;
+
+  // empty the read buffer
+  //if(read_request and read_request->size())
+  //  receive_disconnect();
+
+  // signal disconnect to the user
+  signal_disconnect(Disconnect::CLOSING);
+
+  // only ack FIN if user callback didn't result in a sent packet
+  if(cb.SND.NXT == snd_nxt) {
+    debug2("<Connection::handle_fin> acking FIN\n");
+    auto packet = outgoing_packet();
+    packet->set_ack(cb.RCV.NXT).set_flag(ACK);
+    transmit(std::move(packet));
+  }
+}
 
 void Connection::segment_arrived(Packet_view& incoming)
 {
@@ -360,10 +394,8 @@ Packet_view_ptr Connection::create_outgoing_packet()
   packet->set_source(local_);
   // Set Destination (remote)
   packet->set_destination(remote_);
-  uint32_t shifted = std::min<uint32_t>((cb.RCV.WND >> cb.RCV.wind_shift), default_window_size);
-  Ensures(shifted <= 0xffff);
 
-  packet->set_win(shifted);
+  packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
 
   if(cb.SND.TS_OK)
     packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.get_ts_recent());
@@ -794,7 +826,6 @@ void Connection::recv_data(const Packet_view& in)
     return;
    }
 
-
   // Keep track if a packet is being sent during the async read callback
   const auto snd_nxt = cb.SND.NXT;
 
@@ -987,11 +1018,17 @@ void Connection::retransmit() {
     packet->set_flag(ACK);
   }
   // If retransmission from either SYN-SENT or SYN-RCV, add SYN
-  if(UNLIKELY(is_state(SynSent::instance()) or is_state(SynReceived::instance())))
+  if(UNLIKELY(is_state(SynSent::instance())))
   {
     packet->set_flag(SYN);
-    packet->set_seq(cb.SND.UNA);
     syn_rtx_++;
+    add_syn_options(*packet);
+  }
+  else if(UNLIKELY(is_state(SynReceived::instance())))
+  {
+    packet->set_flag(SYN);
+    syn_rtx_++;
+    add_synack_options(*packet);
   }
   // If not, check if there is data and retransmit
   else if(writeq.size())
@@ -1362,7 +1399,7 @@ void Connection::add_option(Option::Kind kind, Packet_view& packet) {
   switch(kind) {
 
   case Option::MSS: {
-    packet.add_tcp_option<Option::opt_mss>(host_.MSS());
+    packet.add_tcp_option<Option::opt_mss>(MSS());
     debug2("<TCP::Connection::add_option@Option::MSS> Packet: %s - MSS: %u\n",
            packet.to_string().c_str(), ntohs(*(uint16_t*)(packet.tcp_options()+2)));
     break;
@@ -1386,6 +1423,53 @@ void Connection::add_option(Option::Kind kind, Packet_view& packet) {
   default:
     break;
   }
+}
+
+void Connection::add_syn_options(Packet_view& packet)
+{
+  Expects(packet.isset(SYN));
+  Expects(not packet.isset(ACK));
+  // Always MSS
+  add_option(Option::MSS, packet);
+
+  // Window scaling
+  if(uses_window_scaling())
+  {
+    add_option(Option::WS, packet);
+    //packet.set_win(std::min((uint32_t)default_window_size, cb.RCV.WND));
+  }
+  // Add timestamps
+  if(uses_timestamps())
+  {
+    add_option(Option::TS, packet);
+  }
+  // Use SACK
+  if(uses_SACK())
+  {
+    add_option(Option::SACK_PERM, packet);
+  }
+}
+
+void Connection::add_synack_options(Packet_view& packet)
+{
+  Expects(packet.isset(SYN));
+  Expects(packet.isset(ACK));
+  // Always MSS
+  add_option(Option::MSS, packet);
+
+  // This means WS was accepted in the SYN packet
+  if(cb.SND.wind_shift > 0)
+  {
+    add_option(Option::WS, packet);
+    packet.set_win(std::min((uint32_t)default_window_size, cb.RCV.WND));
+  }
+  // SACK permitted
+  if(sack_perm == true)
+  {
+    add_option(Option::SACK_PERM, packet);
+  }
+
+  // NOTE: Timestamp is already handled by create_outgoing_packet
 }
 
 bool Connection::uses_window_scaling() const noexcept

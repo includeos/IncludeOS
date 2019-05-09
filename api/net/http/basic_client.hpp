@@ -64,7 +64,7 @@ namespace http {
     };
 
   private:
-    using ResolveCallback = delegate<void(net::ip4::Addr, const net::Error&)>;
+    using ResolveCallback = net::Inet::resolve_func;
 
   public:
     explicit Basic_client(TCP& tcp, Request_handler on_send = nullptr);

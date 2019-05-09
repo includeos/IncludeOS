@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <arch/x86/cpu.hpp>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <common>
 #include <kprint>
 #include <errno.h>
@@ -26,7 +26,7 @@
 #define ARCH_GET_GS 0x1004
 
 #ifdef __x86_64__
-static int sys_prctl(int code, uintptr_t ptr)
+static long sys_prctl(int code, uintptr_t ptr)
 {
   switch(code){
   case ARCH_SET_GS:
@@ -40,9 +40,9 @@ static int sys_prctl(int code, uintptr_t ptr)
     x86::CPU::set_fs((void*)ptr);
     break;
   case ARCH_GET_GS:
-    panic("<arch_prctl> GET_GS called!\n");
+    os::panic("<arch_prctl> GET_GS called!\n");
   case ARCH_GET_FS:
-    panic("<arch_prctl> GET_FS called!\n");
+    os::panic("<arch_prctl> GET_FS called!\n");
   }
   return -EINVAL;
 }
@@ -60,5 +60,17 @@ uintptr_t syscall_entry(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3,
     kprintf("<syscall entry> no %lu (a1=%#lx a2=%#lx a3=%#lx a4=%#lx a5=%#lx) \n",
             n, a1, a2, a3, a4, a5);
   }
+  return 0;
+}
+
+extern "C"
+long syscall_SYS_set_thread_area(struct user_desc *u_info)
+{
+  if (UNLIKELY(!u_info)) return -EINVAL;
+#ifdef __x86_64__
+  x86::CPU::set_fs(u_info);
+#else
+  x86::CPU::set_gs(u_info);
+#endif
   return 0;
 }

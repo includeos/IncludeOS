@@ -31,28 +31,14 @@
 
 namespace net
 {
-  const ip6::Addr ip6::Addr::node_all_nodes(0xFF01, 0, 0, 0, 0, 0, 0, 1);
-  const ip6::Addr ip6::Addr::node_all_routers(0xFF01, 0, 0, 0, 0, 0, 0, 2);
-  const ip6::Addr ip6::Addr::node_mDNSv6(0xFF01, 0, 0, 0, 0, 0, 0, 0xFB);
-
-  const ip6::Addr ip6::Addr::link_unspecified(0, 0, 0, 0, 0, 0, 0, 0);
-  const ip6::Addr ip6::Addr::addr_any{ip6::Addr::link_unspecified};
-
-  const ip6::Addr ip6::Addr::link_all_nodes(0xFF02, 0, 0, 0, 0, 0, 0, 1);
-  const ip6::Addr ip6::Addr::link_all_routers(0xFF02, 0, 0, 0, 0, 0, 0, 2);
-  const ip6::Addr ip6::Addr::link_mDNSv6(0xFF02, 0, 0, 0, 0, 0, 0, 0xFB);
-
-  const ip6::Addr ip6::Addr::link_dhcp_servers(0xFF02, 0, 0, 0, 0, 0, 0x01, 0x02);
-  const ip6::Addr ip6::Addr::site_dhcp_servers(0xFF05, 0, 0, 0, 0, 0, 0x01, 0x03);
-
-  const IP6::addr IP6::ADDR_ANY(0, 0, 0, 0);
-  const IP6::addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
+  const ip6::Addr IP6::ADDR_ANY(0, 0, 0, 0);
+  const ip6::Addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
 
   IP6::IP6(Stack& inet) noexcept :
+  stack_            {inet},
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_tx").get_uint64()},
-  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip6.packets_dropped").get_uint32()},
-  stack_            {inet}
+  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip6.packets_dropped").get_uint32()}
   {}
 
   IP6::IP_packet_ptr IP6::drop(IP_packet_ptr ptr, Direction direction, Drop_reason reason) {
@@ -86,39 +72,16 @@ namespace net
   /* TODO: Check RFC */
   bool IP6::is_for_me(ip6::Addr dst) const
   {
-    return stack_.is_valid_source(dst)
+    return stack_.is_valid_source6(dst)
       or local_ip() == ADDR_ANY;
   }
 
-  Protocol IP6::ipv6_ext_header_receive(net::PacketIP6& packet)
-  {
-    auto reader = packet.layer_begin() + IP6_HEADER_LEN;
-    auto next_proto = packet.next_protocol();
-    uint16_t pl_off = IP6_HEADER_LEN;
-
-    while (next_proto != Protocol::IPv6_NONXT) {
-        if (next_proto == Protocol::HOPOPT) {
-            PRINT("HOP extension header\n");
-        } else if (next_proto == Protocol::OPTSV6) {
-        } else {
-            PRINT("Done parsing extension header, next proto: %d\n", next_proto);
-            packet.set_payload_offset(pl_off);
-            return next_proto;
-        }
-        auto& ext = *(ip6::ExtensionHeader*)reader;
-        auto ext_len = ext.size();
-        next_proto = ext.next();
-        pl_off += ext_len;
-        reader += ext_len;
-    }
-    packet.set_payload_offset(pl_off);
-    return next_proto;
-  }
   void PacketIP6::calculate_payload_offset()
   {
-    auto reader = this->layer_begin() + IP6_HEADER_LEN;
+    const ptrdiff_t size = this->data_end() - this->ext_hdr_start();
+    const auto* reader = this->ext_hdr_start();
     auto next_proto = this->next_protocol();
-    uint16_t pl_off = IP6_HEADER_LEN;
+    ssize_t pl_off = sizeof(ip6::Header);
 
     while (next_proto != Protocol::IPv6_NONXT)
     {
@@ -129,15 +92,22 @@ namespace net
             this->set_payload_offset(pl_off);
             return;
         }
-        auto& ext = *(ip6::ExtensionHeader*)reader;
-        next_proto = ext.next();
+        // bounds check
+        if (reader + sizeof(ip6::Extension_header) >= this->data_end())
+        {
+          break;
+        }
+        auto& ext = *(ip6::Extension_header*)reader;
+        next_proto = ext.proto();
         pl_off += ext.size();
         reader += ext.size();
     }
+    // bounds-check final payload offset
+    if (pl_off > size) pl_off = size;
     this->set_payload_offset(pl_off);
   }
 
-  void IP6::receive(Packet_ptr pckt, const bool /*link_bcast */)
+  void IP6::receive(Packet_ptr pckt, const bool link_bcast)
   {
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
     // this will calculate exthdr length and set payload correctly
@@ -178,9 +148,6 @@ namespace net
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack::Entry_ptr ct = nullptr;
-
-#if 0
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
@@ -188,7 +155,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     // Drop / forward if my ip address doesn't match dest.
     if(not is_for_me(packet->ip_dst()))
@@ -212,7 +178,6 @@ namespace net
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
-#if 0
     auto& conntrack = stack_.conntrack();
     if(conntrack) {
       ct = (ct != nullptr) ?
@@ -225,14 +190,8 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
-    auto next_proto = packet->next_protocol();
-    // Pass packet to it's respective protocol controller
-    if (packet->next_protocol() == Protocol::HOPOPT ||
-        packet->next_protocol() == Protocol::OPTSV6) {
-        next_proto = ipv6_ext_header_receive(*packet);
-    }
+    auto next_proto = packet->ip_protocol();
 
     switch (next_proto) {
     case Protocol::IPv6_NONXT:
@@ -243,7 +202,7 @@ namespace net
       icmp_handler_(std::move(packet));
       break;
     case Protocol::UDP:
-      //udp_handler_(std::move(packet));
+      udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
       tcp_handler_(std::move(packet));
@@ -270,15 +229,15 @@ namespace net
        be one of its own IP addresses (but not a broadcast or
        multicast address).
     */
-    if (UNLIKELY(not stack_.is_valid_source(packet->ip_src()))) {
+    if (UNLIKELY(not stack_.is_valid_source6(packet->ip_src()))) {
+      PRINT("<IP6> Drop bad source egress: src=%s list:\n%s\n",
+        packet->ip_src().to_string().c_str(), addr_list_.to_string().c_str());
       drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_source);
       return;
     }
 
     packet->make_flight_ready();
 
-    Conntrack::Entry_ptr ct = nullptr;
-#if 0
     /* OUTPUT */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
@@ -287,7 +246,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     if (forward_packet_) {
       forward_packet_(std::move(packet), stack_, ct);
@@ -296,7 +254,7 @@ namespace net
     ship(std::move(packet), IP6::ADDR_ANY, ct);
   }
 
-  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP6::ship(Packet_ptr pckt, ip6::Addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 
@@ -311,36 +269,29 @@ namespace net
     packet = drop_invalid_out(std::move(packet));
     if (packet == nullptr) return;
 
-    if (next_hop == IP6::ADDR_ANY) {
-        // Create local and target subnets
-        addr target = packet->ip_dst() & stack_.netmask6();
-        addr local  = stack_.ip6_addr() & stack_.netmask6();
+    if (next_hop == ip6::Addr::addr_any)
+    {
+      auto dst = packet->ip_dst();
+      next_hop = dst.is_linklocal() ? dst : stack_.ndp().next_hop(dst);
+      PRINT("<IP6> Nexthop for %s: %s\n", dst.to_string().c_str(), next_hop.to_string().c_str());
 
-        // Compare subnets to know where to send packet
-        next_hop = target == local ? packet->ip_dst() : stack_.gateway6();
-
-        PRINT("<IP6 TOP> Next hop for %s, (netmask %d, local IP: %s, gateway: %s) == %s\n",
-              packet->ip_dst().str().c_str(),
-              stack_.netmask6(),
-              stack_.ip6_addr().str().c_str(),
-              stack_.gateway6().str().c_str(),
-              next_hop.str().c_str());
-
-        if(UNLIKELY(next_hop == IP6::ADDR_ANY)) {
-          PRINT("<IP6> Next_hop calculated to 0 (gateway == %s), dropping\n",
-            stack_.gateway6().str().c_str());
-          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
-          return;
-        }
+      if(UNLIKELY(next_hop == ip6::Addr::addr_any)) {
+        PRINT("<IP6> Next_hop calculated to 0, dropping\n");
+        drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
+        return;
+      }
     }
 
     // Stat increment packets transmitted
     packets_tx_++;
 
-    ndp_out_(std::move(packet), next_hop);
+    ndp_out_(std::move(packet), next_hop, MAC::EMPTY);
   }
 
-    const ip6::Addr IP6::local_ip() const {
+  const ip6::Addr IP6::local_ip() const {
     return stack_.ip6_addr();
   }
+
+  uint16_t IP6::MDDS() const
+  { return stack_.MTU() - sizeof(ip6::Header); }
 }

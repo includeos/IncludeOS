@@ -1,6 +1,5 @@
 {
   "description" : "VM with 3 interfaces for load balancing",
-  "image" : "microlb.img",
   "net" : [
     {"device" : "virtio"},
     {"device" : "virtio"},

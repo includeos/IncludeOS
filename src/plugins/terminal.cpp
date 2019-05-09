@@ -18,9 +18,9 @@
 #include <rapidjson/document.h>
 #include <config>
 #include <info>
-#include <net/inet>
+#include <net/interfaces>
 #include <kernel/terminal.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 static int counter = 0;
 static std::unordered_map<int, Terminal> terms;
 
@@ -38,7 +38,7 @@ static auto& create_connection_from(net::tcp::Connection_ptr conn)
 }
 
 #ifdef USE_LIVEUPDATE
-#include "../../lib/LiveUpdate/liveupdate.hpp"
+#include "liveupdate.hpp"
 
 void store_terminal(liu::Storage& store, const liu::buffer_t*)
 {
@@ -52,7 +52,7 @@ void store_terminal(liu::Storage& store, const liu::buffer_t*)
 }
 void restore_terminal(const int TERM_NET, liu::Restore& restore)
 {
-  auto& inet = net::Super_stack::get(TERM_NET);
+  auto& inet = net::Interfaces::get(TERM_NET);
   while (!restore.is_end())
   {
     auto conn = restore.as_tcp_connection(inet.tcp());
@@ -75,7 +75,7 @@ static void spawn_terminal()
   const auto& obj = doc["terminal"];
   // terminal network interface
   const int TERM_NET  = obj["iface"].GetInt();
-  auto& inet = net::Super_stack::get(TERM_NET);
+  auto& inet = net::Interfaces::get(TERM_NET);
   // terminal TCP port
   const int TERM_PORT = obj["port"].GetUint();
   inet.tcp().listen(TERM_PORT,
@@ -98,5 +98,5 @@ static void spawn_terminal()
 
 __attribute__((constructor))
 static void feijfeifjeifjeijfei() {
-  OS::register_plugin(spawn_terminal, "Terminal plugin");
+  os::register_plugin(spawn_terminal, "Terminal plugin");
 }

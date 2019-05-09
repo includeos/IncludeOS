@@ -1,9 +1,9 @@
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/ws/connector.hpp>
 #include <http>
-#include <crash>
 #include <deque>
+#include <kernel/crash_context.hpp>
 
 struct alignas(SMP_ALIGN) HTTP_server
 {
@@ -84,7 +84,7 @@ void websocket_service(net::TCP& tcp, uint16_t port)
 
 void Service::start()
 {
-  auto& inet = net::Inet::ifconfig<>(0);
+  auto& inet = net::Interfaces::get(0);
   inet.network_config(
       {  10, 0,  0, 54 },  // IP
       { 255,255,255, 0 },  // Netmask

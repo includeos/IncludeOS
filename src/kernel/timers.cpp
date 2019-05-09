@@ -1,6 +1,6 @@
 #include <kernel/timers.hpp>
 
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/events.hpp>
 #include <kernel/rtc.hpp>
 #include <service>
@@ -76,10 +76,14 @@ struct alignas(SMP_ALIGN) timer_system
   // timers sorted by timestamp
   std::multimap<duration_t, Timers::id_t> scheduled;
   /** Stats */
-  int64_t*  oneshot_started = nullptr;
-  int64_t*  oneshot_stopped = nullptr;
-  uint32_t* periodic_started = nullptr;
-  uint32_t* periodic_stopped = nullptr;
+  union {
+    int64_t  i64 = 0;
+    uint32_t u32;
+  } dummy;
+  int64_t*  oneshot_started = &dummy.i64;
+  int64_t*  oneshot_stopped = &dummy.i64;
+  uint32_t* periodic_started = &dummy.u32;
+  uint32_t* periodic_stopped = &dummy.u32;
 };
 static SMP::Array<timer_system> systems;
 

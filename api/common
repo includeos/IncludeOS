@@ -38,8 +38,8 @@ static_assert(sizeof(void*) == 8, "Pointer must match arch");
 #include "debug"
 #include "info"
 
-#define LIKELY(x)       __builtin_expect(!!(x), 1)
-#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+// LIKELY/UNLIKELY
+#include "branch_prediction"
 
 #include <gsl/gsl>
 
@@ -57,7 +57,7 @@ static_assert(sizeof(void*) == 8, "Pointer must match arch");
 #include <smp>
 #endif
 
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 inline void __expect_fail(const char *expr, const char *file, int line, const char *func){
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
@@ -67,7 +67,7 @@ inline void __expect_fail(const char *expr, const char *file, int line, const ch
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
 #endif
-  panic(expr);
+  os::panic(expr);
 }
 
 #define Expects(x) ((void)((x) || (__expect_fail("Expects failed: "#x, __FILE__, __LINE__, __func__),0)))
@@ -75,4 +75,13 @@ inline void __expect_fail(const char *expr, const char *file, int line, const ch
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 
+namespace os {
+// parameter for noexcept specifier when bypassing noexcept for testing
+#if defined(TEST)
+  constexpr bool hard_noexcept = false;
+#else
+  constexpr bool hard_noexcept = true;
+#endif
+
+}
 #endif //< INCLUDEOS_COMMON_HEADER

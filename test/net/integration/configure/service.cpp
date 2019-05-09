@@ -16,16 +16,15 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
-#include <net/super_stack.hpp>
+#include <net/interfaces>
 #include <config>
 
 void Service::start()
 {
   using namespace net;
 
-  auto& stacks = Super_stack::inet().stacks();
-  CHECKSERT(stacks.size() == 6, "There are 6 interfaces");
+  auto& stacks = Interfaces::get();
+  CHECKSERT(stacks.size() == 7, "There are 7 interfaces");
 
   INFO("Test", "Verify eth0");
   CHECKSERT(stacks[0][0] != nullptr, "eth0 is initialized");
@@ -71,5 +70,19 @@ void Service::start()
     printf("SUCCESS\n");
   };
   eth5.on_config(verify_eth5);
+
+  // Verify config array and IPv6 config works
+  INFO("Test", "Verify eth6");
+  CHECKSERT(stacks[6][0] != nullptr, "eth6 is initialized");
+
+  auto& eth6 = *stacks[6][0];
+  CHECKSERT(eth6.ip_addr() == ip4::Addr(10,0,0,42), "IP address is 10.0.0.42");
+  CHECKSERT(eth6.netmask() == ip4::Addr(255,255,255,0), "Netmask is 255.255.255.0");
+  CHECKSERT(eth6.gateway() == ip4::Addr(10,0,0,1), "Gateway is 10.0.0.1");
+  CHECKSERT(eth6.dns_addr() == ip4::Addr(4,4,4,4), "DNS addr is 8.8.8.8");
+
+  CHECKSERT(not eth6.addr6_config().empty(), "addr6 config is not empty");
+  CHECKSERT(eth6.addr6_config().has(ip6::Addr{"fe80::1337"}), "addr6 config has fe80::1337");
+  CHECKSERT(eth6.addr6_config().has(ip6::Addr{"fe80::42"}), "addr6 config has fe80::42");
 
 }

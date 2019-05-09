@@ -1,25 +1,26 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
-project (test_main)
-
-set(SERVICE_NAME "Service with no Service::start, only main")
-set(BINARY       "test_main")
-set(MAX_MEM 128)
+include(os)
 
 option(NORMAL "" ON)
-
-
 if (NORMAL)
   set(SOURCES service.cpp)
 else()
   set(SOURCES main_no_params.cpp)
 endif()
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_executable(posix_main "POSIX main test" ${SOURCES})
+
+os_add_plugins(posix_main vfs)
+os_add_stdout(posix_main default_stdout)
+
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

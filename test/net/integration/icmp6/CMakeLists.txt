@@ -1,38 +1,33 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+#service
+project (service)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
 endif()
+conan_basic_setup()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include(os)
 
-project(test_icmp6)
-
-# Human-readable name of your service
-set(SERVICE_NAME "IncludeOS ICMP test")
-
-# Name of your service binary
-set(BINARY       "test_icmp6")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
     service.cpp
   )
 
+os_add_executable(net_icmp6 "ICMPv6 test" ${SOURCES})
+
+os_add_stdout(net_icmp6 default_stdout)
+
 # DRIVERS / PLUGINS:
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  set(DRIVERS
-      solo5net     # Virtio networking
+  os_add_drivers(net_icmp6
+      solo5net
     )
 else()
-  set(DRIVERS
+  os_add_drivers(net_icmp6
     virtionet
   )
 endif()
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

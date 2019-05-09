@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/os.hpp>
+#include <os.hpp>
 
 __attribute__((constructor))
 static void enable_timestamps()
 {
-  OS::enable_timestamps(true);
+  os::print_timestamps(true);
 }

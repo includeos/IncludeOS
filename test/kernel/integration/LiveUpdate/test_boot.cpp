@@ -1,5 +1,4 @@
-#include <kernel/os.hpp>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <liveupdate>
 #include <timers>
 #include <statman>
@@ -16,12 +15,12 @@ static char* blob_location = nullptr;
 
 static void boot_save(Storage& storage, const buffer_t* blob)
 {
-  timestamps.push_back(OS::nanos_since_boot());
+  timestamps.push_back(os::nanos_since_boot());
   storage.add_vector(0, timestamps);
   assert(blob != nullptr);
   // store binary blob for later
 #ifdef DRIFTING_BINARY
-  blob_location = (char*) OS::liveupdate_storage_area() - 0x200000 - blob->size();
+  blob_location = (char*) os::liveupdate_storage_area() - 0x200000 - blob->size();
   std::copy(blob->begin(), blob->end(), blob_location);
 
   storage.add<char*>(2, blob_location);
@@ -45,7 +44,7 @@ static void boot_resume_all(Restore& thing)
   timestamps = thing.as_vector<uint64_t>(); thing.go_next();
   // calculate time spent
   auto t1 = timestamps.back();
-  auto t2 = OS::nanos_since_boot();
+  auto t2 = os::nanos_since_boot();
   // set final time
   timestamps.back() = t2 - t1;
   // retrieve binary blob
@@ -70,7 +69,7 @@ LiveUpdate::storage_func begin_test_boot()
   if (LiveUpdate::resume("test", boot_resume_all))
   {
     // OS must be able to tell it was live updated each time
-    assert(OS::is_live_updated());
+    assert(LiveUpdate::os_is_liveupdated());
 
     if (timestamps.size() >= 30)
     {
@@ -94,7 +93,7 @@ LiveUpdate::storage_func begin_test_boot()
       using namespace std::chrono;
       Timers::oneshot(5ms,[] (int) {
         printf("SUCCESS\n");
-        SystemLog::print_to(OS::default_stdout);
+        SystemLog::print_to(os::default_stdout);
       });
       return nullptr;
     }

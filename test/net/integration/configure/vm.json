@@ -1,12 +1,12 @@
 {
-  "image" : "test_net_configure.img",
   "net" : [
     {"device" : "virtio", "mac" : "c0:01:0a:00:00:2a"},
     {"device" : "virtio", "mac" : "c0:01:0a:00:00:3a"},
     {"device" : "virtio", "mac" : "c0:01:0a:00:00:4a"},
     {"device" : "virtio", "mac" : "c0:01:0a:00:00:5a"},
     {"device" : "virtio", "mac" : "c0:01:0a:00:00:6a"},
-    {"device" : "virtio", "mac" : "c0:01:0a:00:00:7a"}
+    {"device" : "virtio", "mac" : "c0:01:0a:00:00:7a"},
+    {"device" : "virtio", "mac" : "c0:01:0a:00:00:8a"}
   ],
   "mem"   : 256
 }

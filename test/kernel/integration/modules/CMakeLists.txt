@@ -1,35 +1,22 @@
-cmake_minimum_required(VERSION 2.8.9)
-
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
+cmake_minimum_required(VERSION 3.0)
 
 set(ARCH i686)
 set(PLATFORM x86_nano)
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
 project (test_kprint)
 
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
+if (NOT HAS_CONAN)
+  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
+endif()
+conan_basic_setup()
 
-set(SERVICE_NAME "Kernel modules test")
-set(BINARY       "test_mods")
+include(os)
+
+MESSAGE(STATUS "CMake root: " ${INCLUDEOS_PREFIX})
+
 set(SOURCES
-    service.cpp hotswap.cpp
-  )
-#set(LOCAL_INCLUDES ".")
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-# Build the mod2 service and install to here, to use as a loadable module
-include(ExternalProject)
-ExternalProject_Add(mod2
-  PREFIX module
-  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/mod2
-  BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/mod2/build
-  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/mod2/build/seed ${CMAKE_CURRENT_BINARY_DIR}/
+    service.cpp
   )
 
-add_dependencies(service mod2)
+os_add_executable(kernel_modules "Kernel modules test" ${SOURCES})
