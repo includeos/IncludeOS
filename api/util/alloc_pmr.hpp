@@ -16,16 +16,17 @@
 
 #ifndef UTIL_ALLOC_PMR
 #define UTIL_ALLOC_PMR
-
-#if __has_include(<experimental/memory_resource>)
+#if __has_include(<memory_resource>)
+#include <memory_resource>
+#include <vector> // For pmr::vector
+#elif __has_include(<experimental/memory_resource>)
 #include <experimental/memory_resource>
 #include <experimental/vector>
 namespace std {
   namespace pmr = std::experimental::pmr;
 }
 #else
-#include <memory_resource>
-#include <vector> // For pmr::vector
+#error "No polymorphic resource support"
 #endif
 #include <delegate>
 extern void* aligned_alloc(size_t alignment, size_t size);
