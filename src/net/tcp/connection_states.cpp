@@ -296,26 +296,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
 void Connection::State::process_fin(Connection& tcp, const Packet_view& in) {
   debug2("<Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
   Expects(in.isset(FIN));
-  auto& tcb = tcp.tcb();
-  // Advance RCV.NXT over the FIN?
-  tcb.RCV.NXT++;
-  //auto fin = tcp_data_length();
-  //tcb.RCV.NXT += fin;
-  const auto snd_nxt = tcb.SND.NXT;
-  // empty the read buffer
-  if(tcp.read_request and tcp.read_request->size())
-    tcp.receive_disconnect();
-  // signal disconnect to the user
-  tcp.signal_disconnect(Disconnect::CLOSING);
-
-  // only ack FIN if user callback didn't result in a sent packet
-  if(tcb.SND.NXT == snd_nxt) {
-    debug2("<Connection::State::process_fin> acking FIN\n");
-    auto packet = tcp.outgoing_packet();
-    packet->set_ack(tcb.RCV.NXT).set_flag(ACK);
-    tcp.transmit(std::move(packet));
-  }
-
+  tcp.update_fin(in);
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -846,6 +827,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_view& in) {
       if(UNLIKELY(in.isset(FIN)))
       {
         process_fin(tcp, in);
+        tcp.handle_fin();
         tcp.set_state(Connection::CloseWait::instance());
         return OK;
       }
@@ -959,6 +941,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_view& in) 
   // 8. check FIN
   if(UNLIKELY(in.isset(FIN))) {
     process_fin(tcp, in);
+    tcp.handle_fin();
     tcp.set_state(Connection::CloseWait::instance());
     return OK;
   }
@@ -993,14 +976,30 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_view& in) 
   // 6. check URG - DEPRECATED
 
   // 7. proccess the segment text
-  if(in.has_tcp_data()) {
+  if(in.has_tcp_data())
+  {
     tcp.recv_data(in);
+
+    // special case for when if we had loss but now fixed it
+    if(UNLIKELY(tcp.should_handle_fin()))
+    {
+      tcp.set_state(Connection::CloseWait::instance());
+      tcp.handle_fin();
+      return OK;
+    }
   }
 
   // 8. check FIN bit
-  if(UNLIKELY(in.isset(FIN))) {
-    tcp.set_state(Connection::CloseWait::instance());
+  if(UNLIKELY(in.isset(FIN)))
+  {
     process_fin(tcp, in);
+    // if we have loss (SACK) the FIN could have arrived before
+    // all data is recv, so check if should handle this now or wait.
+    if(tcp.should_handle_fin())
+    {
+      tcp.set_state(Connection::CloseWait::instance());
+      tcp.handle_fin();
+    }
     return OK;
   }
 
@@ -1050,6 +1049,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
   // 8. check FIN
   if(in.isset(FIN)) {
     process_fin(tcp, in);
+    tcp.handle_fin();
     debug2("<Connection::FinWait1::handle> FIN isset. TCB:\n %s \n", tcp.tcb().to_string().c_str());
     /*
       If our FIN has been ACKed (perhaps in this segment), then
@@ -1102,6 +1102,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
   // 8. check FIN
   if(in.isset(FIN)) {
     process_fin(tcp, in);
+    tcp.handle_fin();
     /*
       Enter the TIME-WAIT state.
       Start the time-wait timer, turn off the other timers.

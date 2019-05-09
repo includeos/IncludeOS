@@ -128,6 +128,7 @@ namespace net {
     void set_ip_version(uint8_t ver) noexcept
     {
       Expects(ver < 0x10);
+      ip_header().version_ihl &= 0x0F;
       ip_header().version_ihl |= ver << 4;
     }
 
@@ -135,6 +136,7 @@ namespace net {
     void set_ihl(uint8_t ihl) noexcept
     {
       Expects(ihl < 0x10);
+      ip_header().version_ihl &= 0xF0;
       ip_header().version_ihl |= ihl;
     }
 
