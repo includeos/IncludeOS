@@ -152,7 +152,7 @@ namespace net {
     public:
       Router(Mld& ref) : mld_{ref} {}
     private:
-      [[maybe_unused]]Mld         &mld_;
+      Mld         &mld_;
       RouterMlist mlist_;
     };
 

@@ -76,7 +76,7 @@ namespace net::icmp6 {
       uint8_t  code;
       uint16_t checksum;
       uint8_t  payload[0];
-    }__attribute__((packed));
+    } __attribute__((aligned(2)));
 
   private:
     Header& header()
@@ -92,7 +92,7 @@ namespace net::icmp6 {
       uint32_t  len;
       uint8_t   zeros[3];
       uint8_t   next;
-    } __attribute__((packed));
+    } __attribute__((aligned(2)));
 
   public:
 
@@ -167,7 +167,7 @@ namespace net::icmp6 {
     uint16_t compute_checksum() const noexcept
     {
         uint16_t datalen = ip().payload_length();
-        pseudo_header phdr;
+        pseudo_header phdr __attribute__((aligned(2)));
 
         // ICMP checksum is done with a pseudo header
         // consisting of src addr, dst addr, message length (32bits)
