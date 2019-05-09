@@ -61,7 +61,7 @@ The following command will configure conan to use our build profiles and remote 
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 
-> If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our prebuilt conan packages in [bintray.com/includeos](https://bintray.com/includeos). 
+**Note:** If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our prebuilt conan packages in [bintray.com/includeos](https://bintray.com/includeos). 
 
 
 
@@ -116,7 +116,7 @@ We upload to two channels:
 - `stable`: this channel has all the stable packages.
 - `latest`: this channel will have the latest packages in development/test phase (including stable releases).
 
-> **Note:** We only guarantee that the **latest 10 packages** are kept in the `latest` channel. All `stable` packages will be kept in the stable channel unless proven unsafe. One suggested workaround is to copy packages into your own repository.
+**Note:** We only guarantee that the **latest 10 packages** are kept in the `latest` channel. All `stable` packages will be kept in the stable channel unless proven unsafe. One suggested workaround is to copy packages into your own repository.
 
 To set up our remote, we recommend following the steps listed in [Dependencies](#dependencies).
 
@@ -156,7 +156,7 @@ You can read more about how editable mode works in the [Conan documentation](htt
 
 Below we have written down a few steps to get you started with editable packages and IncludeOS.
 
-> **Note:** Currently this is an experimental feature on conan version 1.13 and they have mentioned that for future releases the feature is subject to breaking changes.
+**Note:** Currently this is an experimental feature on conan version 1.13 and they have mentioned that for future releases the feature is subject to breaking changes.
 
 Start by cloning the IncludeOS source code and create a `build` folder. You have to edit `etc/layout.txt` in the source code to point to the `build` folder you created, by updating the `build_dir` variable.
 
@@ -193,7 +193,7 @@ The layout will look similar to the example below. You only have to update `buil
   {{ build_dir }}
 
 ```
-> **Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases
+**Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases
 
 You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this has to match exactly.
 
