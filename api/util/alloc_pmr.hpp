@@ -115,7 +115,7 @@ namespace os::mem {
     }
 
     bool do_is_equal (const std::pmr::memory_resource& other) const noexcept override {
-      if (const auto* underlying = dynamic_cast<const Default_pmr*>(&other))
+      if (dynamic_cast<const Default_pmr*>(&other))
         return true;
       return false;
     }
