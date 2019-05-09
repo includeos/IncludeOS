@@ -330,16 +330,23 @@ function(os_diskbuilder TARGET FOLD)
   os_build_memdisk(${TARGET} ${FOLD})
 endfunction()
 
+# Add both standard certificate bundle and any specific certs provided as parameters
 function(os_add_ssl_certificates TARGET)
+  set(CERTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/certs)
+  file(MAKE_DIRECTORY ${CERTS_DIR})
+  foreach(CERTIFICATE ${ARGN})
+    get_filename_component(CERT ${CERTIFICATE} ABSOLUTE BASE_DIR ${CMAKE_BINARY_DIR})
+    message(STATUS "Adding certificate: ${CERT}")
+    file(COPY ${CERT} DESTINATION ${CERTS_DIR})
+  endforeach()
+  message(STATUS "Downloading ssl certificates")
   file(DOWNLOAD https://github.com/fwsGonzo/s2n_bundle/releases/download/v1/ca_bundle.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz)
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/certs)
   execute_process(
-    COMMAND tar -xvf  ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz --strip-components=1 -C ${CMAKE_CURRENT_BINARY_DIR}/certs
+    COMMAND tar -xf  ${CMAKE_CURRENT_BINARY_DIR}/certs.tgz --strip-components=1 -C ${CERTS_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
   os_build_memdisk(${TARGET} ${CMAKE_CURRENT_BINARY_DIR}/certs)
 endfunction()
-
 
 function(internal_os_add_config TARGET CONFIG_JSON)
   get_filename_component(FILENAME "${CONFIG_JSON}" NAME)
