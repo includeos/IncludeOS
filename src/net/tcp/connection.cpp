@@ -1461,7 +1461,7 @@ void Connection::add_synack_options(Packet_view& packet)
   if(cb.SND.wind_shift > 0)
   {
     add_option(Option::WS, packet);
-    //packet.set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
+    packet.set_win(std::min((uint32_t)default_window_size, cb.RCV.WND));
   }
   // SACK permitted
   if(sack_perm == true)
