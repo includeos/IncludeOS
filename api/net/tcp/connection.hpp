@@ -1212,6 +1212,9 @@ private:
   */
   void add_option(Option::Kind, Packet_view&);
 
+  void add_syn_options(Packet_view& pkt);
+  void add_synack_options(Packet_view& pkt);
+
 
 }; // < class Connection
 
