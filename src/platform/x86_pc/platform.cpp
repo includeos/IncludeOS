@@ -101,11 +101,13 @@ void __platform_init()
   extern kernel::ctor_t __driver_ctors_end;
   kernel::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
+  // Scan PCI buses
+  PCI_manager::init();
   // Initialize storage devices
-  PCI_manager::init(PCI::STORAGE);
+  PCI_manager::init_devices(PCI::STORAGE);
   kernel::state().block_drivers_ready = true;
   // Initialize network devices
-  PCI_manager::init(PCI::NIC);
+  PCI_manager::init_devices(PCI::NIC);
   // Print registered devices
   os::machine().print_devices();
 }
