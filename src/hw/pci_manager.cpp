@@ -21,9 +21,10 @@
 #include <stdexcept>
 #include <vector>
 
-#include <kernel/pci_manager.hpp>
+#include <hw/pci_manager.hpp>
 #include <hal/machine.hpp>
-#include <hw/pci_device.hpp>
+
+namespace hw {
 
 template <typename Driver>
 using Driver_entry = std::pair<uint32_t, Driver>;
@@ -158,4 +159,6 @@ void PCI_manager::register_nic(uint16_t vendor, uint16_t prod, NIC_driver factor
 void PCI_manager::register_blk(uint16_t vendor, uint16_t prod, BLK_driver factory)
 {
   blk_fact.emplace_back(driver_id(vendor, prod), factory);
+}
+
 }

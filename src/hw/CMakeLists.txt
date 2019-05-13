@@ -1,5 +1,6 @@
-﻿set(SRCS
+set(SRCS
     pci_device.cpp
+    pci_manager.cpp
     nic.cpp
     ps2.cpp
     serial.cpp

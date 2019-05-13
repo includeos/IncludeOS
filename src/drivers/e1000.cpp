@@ -686,10 +686,11 @@ void e1000::move_to_this_cpu()
   // TODO: implement me
 }
 
-#include <kernel/pci_manager.hpp>
+#include <hw/pci_manager.hpp>
 __attribute__((constructor))
 static void register_func()
 {
+  using namespace hw;
   // e1000
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100E, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100F, &e1000::new_instance);
