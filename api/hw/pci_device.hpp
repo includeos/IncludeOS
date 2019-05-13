@@ -107,6 +107,7 @@ namespace PCI {
     VENDOR_REALTEK = 0x10EC,
     VENDOR_VMWARE  = 0x15AD,
     VENDOR_SOLO5   = 0x5050,
+    VENDOR_QEMU    = 0x1B36
   };
 
   static inline const char* classcode_str(uint8_t code);
@@ -332,7 +333,8 @@ static const char* PCI::vendor_str(uint16_t code){
     {VENDOR_CIRRUS,  "Cirrus"},
     {VENDOR_VIRTIO,  "VirtIO"} ,
     {VENDOR_REALTEK, "REALTEK"},
-    {VENDOR_VMWARE,  "VMWare"}
+    {VENDOR_VMWARE,  "VMWare"},
+    {VENDOR_QEMU,    "QEMU"}
   };
 
   auto it = classcodes.find(code);

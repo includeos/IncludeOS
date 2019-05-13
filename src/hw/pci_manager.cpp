@@ -89,7 +89,7 @@ void PCI_manager::scan_bus(const int bus)
       hw::PCI_Device::class_revision_t devclass;
       devclass.reg = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
       const hw::PCI_Device::vendor_product_t vid{id};
-      INFO2("+--[ %s, %s (%#x) ]",
+      INFO2("+--[ %s, %s (%#06x) ]",
             PCI::classcode_str(devclass.classcode),
             PCI::vendor_str(vid.vendor), vid.product);
       if(devclass.classcode != PCI::BRIDGE)
@@ -131,6 +131,7 @@ void PCI_manager::init_devices(const uint8_t classcode)
         break;
       }
       default:
+        INFO2("|--[ %s ] (Unsupported type)", stored_dev.to_string().c_str());
         break;
     }
   }

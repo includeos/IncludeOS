@@ -231,7 +231,7 @@ namespace hw {
     int len = 0;
     switch (PCI::classcode(devtype_.classcode)) {
     case PCI::classcode::BRIDGE:
-      len = snprintf(buffer, sizeof(buffer), "%s, %s, %s (0x%x)",
+      len = snprintf(buffer, sizeof(buffer), "%s, %s, %s (%#06x)",
             PCI::classcode_str(classcode()),
             PCI::vendor_str(vendor_id()),
             (devtype_.subclass < bridge_subclasses.size()
@@ -239,7 +239,7 @@ namespace hw {
             devtype_.subclass);
       break;
     case PCI::classcode::NIC:
-      len = snprintf(buffer, sizeof(buffer), "%s, %s, %s (%#x:%#x)",
+      len = snprintf(buffer, sizeof(buffer), "%s, %s, %s (%#x:%#06x)",
             PCI::classcode_str(devtype_.classcode),
             PCI::vendor_str(vendor_id()),
             (devtype_.subclass < nic_subclasses.size()
@@ -249,7 +249,7 @@ namespace hw {
 
     case PCI::classcode::STORAGE:
     default:
-      len = snprintf(buffer, sizeof(buffer), "%s, %s (%#x:%#x)",
+      len = snprintf(buffer, sizeof(buffer), "%s, %s (%#x:%#06x)",
             PCI::classcode_str(devtype_.classcode),
             PCI::vendor_str(vendor_id()),
             vendor_id(), product_id());
