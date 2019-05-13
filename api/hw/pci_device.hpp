@@ -274,7 +274,7 @@ struct msix_t;
       };
     };
 
-    inline std::string to_string() const;
+    std::string to_string() const;
 
   private:
     // @brief The 3-part PCI address
@@ -338,18 +338,5 @@ static const char* PCI::vendor_str(uint16_t code){
   auto it = classcodes.find(code);
   return it == classcodes.end() ? "Unknown vendor" : it->second;
 }
-
-
-std::string hw::PCI_Device::to_string() const {
-  char buffer[512];
-  int len = snprintf(buffer, sizeof(buffer),
-          "%s %s (V %#x / P %#x)",
-          PCI::classcode_str(classcode()),
-          PCI::vendor_str((PCI::vendor_t)vendor_id()),
-          vendor_id(), product_id());
-  return std::string(buffer, len);
-}
-
-
 
 #endif //< HW_PCI_DEVICE_HPP
