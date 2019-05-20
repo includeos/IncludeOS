@@ -703,9 +703,9 @@ void vmxnet3::move_to_this_cpu()
   }
 }
 
-#include <kernel/pci_manager.hpp>
+#include <hw/pci_manager.hpp>
 __attribute__((constructor))
 static void register_func()
 {
-  PCI_manager::register_nic(PCI::VENDOR_VMWARE, PRODUCT_ID, &vmxnet3::new_instance);
+  hw::PCI_manager::register_nic(PCI::VENDOR_VMWARE, PRODUCT_ID, &vmxnet3::new_instance);
 }

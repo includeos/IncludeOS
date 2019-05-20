@@ -466,10 +466,10 @@ void VirtioNet::move_to_this_cpu()
 #endif
 }
 
-#include <kernel/pci_manager.hpp>
+#include <hw/pci_manager.hpp>
 
 /** Register VirtioNet's driver factory at the PCI_manager */
 __attribute__((constructor))
 void autoreg_virtionet() {
-  PCI_manager::register_nic(PCI::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
+  hw::PCI_manager::register_nic(PCI::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
 }

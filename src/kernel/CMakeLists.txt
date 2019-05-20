@@ -1,4 +1,4 @@
-﻿set(SRCS
+set(SRCS
     block.cpp
     cpuid.cpp
     elf.cpp
@@ -6,7 +6,6 @@
     fiber.cpp
     memmap.cpp
     multiboot.cpp
-    pci_manager.cpp
     os.cpp
     profile.cpp
     syscalls.cpp

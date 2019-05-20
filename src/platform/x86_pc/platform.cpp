@@ -24,10 +24,9 @@
 #include "smp.hpp"
 #include <arch/x86/gdt.hpp>
 #include <kernel/events.hpp>
-#include <kernel/pci_manager.hpp>
+#include <hw/pci_manager.hpp>
 #include <kernel.hpp>
 #include <os.hpp>
-#include <hw/pci_device.hpp>
 #include <info>
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
@@ -101,11 +100,13 @@ void __platform_init()
   extern kernel::ctor_t __driver_ctors_end;
   kernel::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
+  // Scan PCI buses
+  hw::PCI_manager::init();
   // Initialize storage devices
-  PCI_manager::init(PCI::STORAGE);
+  hw::PCI_manager::init_devices(PCI::STORAGE);
   kernel::state().block_drivers_ready = true;
   // Initialize network devices
-  PCI_manager::init(PCI::NIC);
+  hw::PCI_manager::init_devices(PCI::NIC);
   // Print registered devices
   os::machine().print_devices();
 }

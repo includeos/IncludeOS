@@ -43,18 +43,16 @@
 
 namespace hw {
 
-  static const char* bridge_subclasses[] {
+  static constexpr std::array<const char*,3> bridge_subclasses {
     "Host",
     "ISA",
     "Other"
   };
-  constexpr int SS_BR {sizeof(bridge_subclasses) / sizeof(const char*)};
 
-  static const char* nic_subclasses[] {
+  static constexpr std::array<const char*,2> nic_subclasses {
     "Ethernet",
     "Other"
   };
-  constexpr int SS_NIC {sizeof(nic_subclasses) / sizeof(const char*)};
 
   static unsigned long pci_size(const unsigned long base, const unsigned long mask) noexcept {
     // Find the significant bits
@@ -118,37 +116,6 @@ namespace hw {
 
     // device class info is coming from pci manager to save a PCI read
     this->devtype_.reg = devclass;
-
-    INFO2("|");
-    switch (PCI::classcode(devtype_.classcode)) {
-    case PCI::classcode::BRIDGE:
-      INFO2("+--[ %s, %s, %s (0x%x) ]",
-            PCI::classcode_str(classcode()),
-            PCI::vendor_str(vendor_id()),
-            bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
-            devtype_.subclass);
-      break;
-    case PCI::classcode::STORAGE:
-      INFO2("+--[ %s, %s (0x%x) ]",
-            PCI::classcode_str(devtype_.classcode),
-            PCI::vendor_str(vendor_id()),
-            product_id());
-      break;
-    case PCI::classcode::NIC:
-      INFO2("+--[ %s, %s, %s (%#x:%#x) ]",
-            PCI::classcode_str(devtype_.classcode),
-            PCI::vendor_str(vendor_id()),
-            nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
-            this->vendor_id(), this->product_id());
-      break;
-    default:
-      INFO2("+--[ %s, %s ]",
-            PCI::classcode_str(devtype_.classcode),
-            PCI::vendor_str(vendor_id()));
-    } //< switch (devtype_.classcode)
-
-    // bridges are different from other PCI devices
-    if (classcode() == PCI::classcode::BRIDGE) return;
   }
 
   uint32_t PCI_Device::read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept {
@@ -256,6 +223,39 @@ namespace hw {
   {
     auto stat = read16(PCI_STATUS_REG);
     return stat & (1 << 3);
+  }
+
+  std::string PCI_Device::to_string() const
+  {
+    char buffer[512];
+    int len = 0;
+    switch (PCI::classcode(devtype_.classcode)) {
+    case PCI::classcode::BRIDGE:
+      len = snprintf(buffer, sizeof(buffer), "%s, %s, %s (%#06x)",
+            PCI::classcode_str(classcode()),
+            PCI::vendor_str(vendor_id()),
+            (devtype_.subclass < bridge_subclasses.size()
+              ? bridge_subclasses[devtype_.subclass] : bridge_subclasses.back()),
+            devtype_.subclass);
+      break;
+    case PCI::classcode::NIC:
+      len = snprintf(buffer, sizeof(buffer), "%s, %s, %s (%#x:%#06x)",
+            PCI::classcode_str(devtype_.classcode),
+            PCI::vendor_str(vendor_id()),
+            (devtype_.subclass < nic_subclasses.size()
+              ? nic_subclasses[devtype_.subclass] : nic_subclasses.back()),
+            this->vendor_id(), this->product_id());
+      break;
+
+    case PCI::classcode::STORAGE:
+    default:
+      len = snprintf(buffer, sizeof(buffer), "%s, %s (%#x:%#06x)",
+            PCI::classcode_str(devtype_.classcode),
+            PCI::vendor_str(vendor_id()),
+            vendor_id(), product_id());
+    } //< switch (devtype_.classcode)
+
+    return std::string(buffer, len);
   }
 
 } //< namespace hw

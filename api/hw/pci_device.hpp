@@ -107,6 +107,7 @@ namespace PCI {
     VENDOR_REALTEK = 0x10EC,
     VENDOR_VMWARE  = 0x15AD,
     VENDOR_SOLO5   = 0x5050,
+    VENDOR_QEMU    = 0x1B36
   };
 
   static inline const char* classcode_str(uint8_t code);
@@ -274,7 +275,7 @@ struct msix_t;
       };
     };
 
-    inline std::string to_string() const;
+    std::string to_string() const;
 
   private:
     // @brief The 3-part PCI address
@@ -332,24 +333,12 @@ static const char* PCI::vendor_str(uint16_t code){
     {VENDOR_CIRRUS,  "Cirrus"},
     {VENDOR_VIRTIO,  "VirtIO"} ,
     {VENDOR_REALTEK, "REALTEK"},
-    {VENDOR_VMWARE,  "VMWare"}
+    {VENDOR_VMWARE,  "VMWare"},
+    {VENDOR_QEMU,    "QEMU"}
   };
 
   auto it = classcodes.find(code);
   return it == classcodes.end() ? "Unknown vendor" : it->second;
 }
-
-
-std::string hw::PCI_Device::to_string() const {
-  char buffer[512];
-  int len = snprintf(buffer, sizeof(buffer),
-          "%s %s (V %#x / P %#x)",
-          PCI::classcode_str(classcode()),
-          PCI::vendor_str((PCI::vendor_t)vendor_id()),
-          vendor_id(), product_id());
-  return std::string(buffer, len);
-}
-
-
 
 #endif //< HW_PCI_DEVICE_HPP
