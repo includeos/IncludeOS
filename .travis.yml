@@ -1,0 +1,38 @@
+os: osx
+osx_image: xcode10.2
+compiler:
+  - clang
+  - gcc
+
+addons:
+  homebrew:
+    packages:
+    - cmake
+    - conan
+    - nasm
+    - llvm@6
+
+before_cache:
+  - brew cleanup
+
+cache:
+  - directories:
+    - $HOME/Library/Caches/Homebrew
+
+jobs:
+  include:
+    - script:
+        - echo "BUILDING KERNEL"
+        - conan create . includeos/latest -pr clang-6.0-macos-x86_64
+        - echo "BUILDING LiveUpdate"
+        - conan create lib/LiveUpdate includeos/latest -pr clang-6.0-macos-x86_64
+      name: "clang-6.0-x86_64"
+
+before_install:
+  - git pull https://github.com/includeos/IncludeOS.git master
+  - git fetch --tags https://github.com/includeos/IncludeOS.git
+
+install:
+  - conan config install https://github.com/includeos/conan_config.git
+  - conan --version
+  - clang --version
