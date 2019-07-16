@@ -7,8 +7,9 @@ extern "C" {
 
 static long sys_sched_yield()
 {
-  __thread_yield();
-  return 0;
+    THPRINT("sched_yield() called on thread %ld\n", kernel::get_tid());
+    __thread_yield();
+    return 0;
 }
 
 extern "C"

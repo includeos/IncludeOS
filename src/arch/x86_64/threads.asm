@@ -16,7 +16,7 @@
 
 global __thread_yield:function
 global __thread_restore:function
-extern __thread_self_store
+extern __thread_suspend_and_yield
 
 ;; x86_64 / System V ABI calling convention
 %define arg0 rax
@@ -40,18 +40,14 @@ __thread_yield:
     push r14
     push r15
     ;; now save this thread
-    mov rdi, next_instruction
+    mov rdi, __thread_restore
     mov rsi, rsp ;; my stack
     ;; align stack
     sub rsp, 8
-    call __thread_self_store
-    ret
+    call __thread_suspend_and_yield
 
 __thread_restore:
     mov rsp, rsi
-    jmp next_instruction
-
-next_instruction:
     ;; restore saved registers
     pop r15
     pop r14

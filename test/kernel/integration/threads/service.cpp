@@ -23,7 +23,7 @@
 struct testdata
 {
   int depth     = 0;
-  const int max_depth = 40;
+  const int max_depth = 20;
 };
 
 extern "C" {
@@ -34,11 +34,9 @@ extern "C" {
     printf("test @ %p, test = %d\n", &test, test);
     assert(test == 2019);
 
-    printf("Yielding from thread1, expecting to be returned to mt sys clone\n");
+    printf("Yielding from thread1, expecting to be returned to main thread\n");
     sched_yield();
-    printf("Returned to thread1, expecting to exit to where mt yielded from\n");
-
-    //pthread_exit(NULL);
+    printf("Returned to thread1, expecting to exit to after main thread yield\n");
     return NULL;
   }
   static void* thread_function2(void* data)
@@ -54,6 +52,7 @@ extern "C" {
     data->depth++;
     printf("%ld: Thread depth %d / %d\n",
           kernel::get_thread()->tid, data->depth, data->max_depth);
+
     if (data->depth < data->max_depth)
     {
       pthread_t t;
@@ -66,6 +65,7 @@ extern "C" {
     printf("%ld: Thread yielding %d / %d\n",
            kernel::get_thread()->tid, data->depth, data->max_depth);
     sched_yield();
+
     printf("%ld: Thread exiting %d / %d\n",
            kernel::get_thread()->tid, data->depth, data->max_depth);
     data->depth--;
@@ -79,20 +79,31 @@ void Service::start()
   int y = 777;
   pthread_t t;
   int res;
-  printf("Calling pthread_create\n");
+/*
+  printf("*** Testing pthread_create and sched_yield...\n");
   res = pthread_create(&t, NULL, thread_function1, &x);
   if (res < 0) {
     printf("Failed to create thread!\n");
     return;
   }
+  printf("Yielding from main thread, expecting to return to thread1\n");
+  // return back to finish thread1
+  sched_yield();
+  printf("After yielding from main thread, looking good!\n");
+
   res = pthread_create(&t, NULL, thread_function2, &y);
   if (res < 0) {
     printf("Failed to create thread!\n");
     return;
   }
-  printf("Now testing recursive threads...\n");
+*/
+  printf("*** Now testing recursive threads...\n");
   static testdata rdata;
   recursive_function(&rdata);
+  // now we have to yield until all the detached children also exit
+  printf("*** Yielding until all children are dead!\n");
+  while (rdata.depth > 0) sched_yield();
+
   printf("SUCCESS\n");
   os::shutdown();
 }

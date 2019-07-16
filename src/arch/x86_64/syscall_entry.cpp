@@ -64,32 +64,34 @@ static void print_symbol(const void* addr)
 }
 
 extern "C"
-void* syscall_clone(void* next_instr,
+pid_t syscall_clone(void* next_instr,
                     unsigned long flags, void* stack,
                     void* ptid, void* ctid, void* newtls,
                     void* old_stack, void* callback)
 {
-    /*
-  kprintf("clone nexti:  "); print_symbol(next_instr);
-  kprintf("clone flags:  %#lx\n", flags);
-  kprintf("clone stack:  %p\n",  stack);
-  kprintf("clone parent: %p\n", ptid);
-  kprintf("clone child:  %p\n", ctid);
-  kprintf("clone tls:    %p\n", newtls);
-  kprintf("clone old stack: %p\n", old_stack);
-  kprintf("clone old tls: %p\n", kernel::get_thread_area());
-  kprintf("thread callback: "); print_symbol(callback);
-    */
+    auto* parent = kernel::get_thread();
 
-  auto* parent = kernel::get_thread();
-  parent->store_return(next_instr, old_stack);
+    auto* thread = kernel::thread_create(parent);
+#ifdef THREADS_DEBUG
+    kprintf("clone syscall creating thread %ld\n", thread->tid);
+    kprintf("-> nexti:  "); print_symbol(next_instr);
+    kprintf("-> flags:  %#lx\n", flags);
+    kprintf("-> stack:  %p\n",  stack);
+    kprintf("-> parent: %p\n", ptid);
+    kprintf("-> child:  %p\n", ctid);
+    kprintf("-> tls:    %p\n", newtls);
+    kprintf("-> old stack: %p\n", old_stack);
+    kprintf("-> old tls: %p\n", kernel::get_thread_area());
+    kprintf("-> callback: "); print_symbol(callback);
+#endif
 
-  // activate new TLS location
-  auto* thread = kernel::thread_create(parent);
-  thread->my_stack = stack;
-  thread->activate(newtls);
-  //kprintf("thread %ld return TLS: %p\n", thread->tid, (void*) thread->ret_tls);
-  return thread;
+    // suspend parent thread
+    parent->suspend(next_instr, old_stack);
+    // activate new TLS location
+    thread->my_stack = stack;
+    thread->activate(newtls);
+    //kprintf("thread %ld return TLS: %p\n", thread->tid, (void*) thread->ret_tls);
+    return thread->tid;
 }
 
 extern "C"

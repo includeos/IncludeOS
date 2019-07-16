@@ -104,6 +104,7 @@ __clone_helper:
     POPAQ
     PUSHAQ
     push rbp
+    push rax ;; store thread id
 
     ;; switch stack
     mov rsp, rsi
@@ -113,10 +114,10 @@ __clone_helper:
     jmp QWORD rcx
 
 __clone_return:
-    mov rax, rdx
     mov rbx, rdi
     mov rsp, rsi
 
+    pop rax ;; restore thread id
     pop rbp
     POPAQ
     ;;

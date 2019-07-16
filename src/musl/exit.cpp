@@ -19,10 +19,12 @@ static long sys_exit(int status)
   else {
     // exit from a thread
 #ifdef THREADS_DEBUG
+/*
     int64_t ptid = -1;
     if (t->parent != nullptr) ptid = t->parent->tid;
     THPRINT("thread_exit tid=%ld  parent=%p  ptid: %ld\n",
             t->tid, t->parent, ptid);
+*/
 #endif
     t->exit();
   }

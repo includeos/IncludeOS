@@ -27,8 +27,10 @@ namespace kernel
     void init(int tid);
     void yield();
     void exit();
+    void suspend(void* ret_instr, void* ret_stack);
     void activate(void* newtls);
-    void resume(int64_t ctid);
+    void resume();
+  private:
     void store_return(void* ret_instr, void* ret_stack);
     void libc_store_this();
   };
