@@ -16,7 +16,7 @@
 
 global __syscall_entry:function
 global __clone_helper:function
-global __clone_exit:function
+global __clone_return:function
 extern syscall_entry
 
 ;; x86_64 / System V ABI calling convention
@@ -112,7 +112,7 @@ __clone_helper:
     ;; return back
     jmp QWORD rcx
 
-__clone_exit:
+__clone_return:
     mov rax, rdx
     mov rbx, rdi
     mov rsp, rsi

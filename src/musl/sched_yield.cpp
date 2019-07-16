@@ -1,7 +1,13 @@
 #include "stub.hpp"
+#include <kernel/threads.hpp>
+
+extern "C" {
+  void __thread_yield();
+}
 
 static long sys_sched_yield()
 {
+  __thread_yield();
   return 0;
 }
 

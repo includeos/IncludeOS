@@ -32,6 +32,13 @@ extern "C" {
     printf("Inside thread function1, x = %d\n", *(int*) data);
     thread_local int test = 2019;
     printf("test @ %p, test = %d\n", &test, test);
+    assert(test == 2019);
+
+    printf("Yielding from thread1, expecting to be returned to mt sys clone\n");
+    sched_yield();
+    printf("Returned to thread1, expecting to exit to where mt yielded from\n");
+
+    //pthread_exit(NULL);
     return NULL;
   }
   static void* thread_function2(void* data)
@@ -56,11 +63,12 @@ extern "C" {
         return NULL;
       }
     }
+    printf("%ld: Thread yielding %d / %d\n",
+           kernel::get_thread()->tid, data->depth, data->max_depth);
+    sched_yield();
     printf("%ld: Thread exiting %d / %d\n",
            kernel::get_thread()->tid, data->depth, data->max_depth);
     data->depth--;
-    pthread_t t = pthread_self();
-    pthread_exit(&t);
     return NULL;
   }
 }

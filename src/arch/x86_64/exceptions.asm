@@ -98,7 +98,7 @@ SECTION .text
 
 ;; We don't have the previous stack pointer on stack
 ;; Make a best guess
-%define RSP_OFFS SZ_CALL_FRAME * 2 + ERRCODE_OFFS
+%define RSP_OFFS SZ_CALL_FRAME + 0x20
 
 save_cpu_regs:
     mov regs(RAX), rax
@@ -116,8 +116,7 @@ save_cpu_regs:
     mov regs(R14), r14
     mov regs(R15), r15
 
-    mov rax, rsp
-    add rax, RSP_OFFS
+    mov rax, QWORD [rsp + RSP_OFFS]
     mov regs(RSP), rax
     mov regs(RSI), rsi
     mov regs(RDI), rdi

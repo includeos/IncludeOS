@@ -1,16 +1,36 @@
 #pragma once
 #include <array>
+#include <vector>
+
+//#define THREADS_DEBUG 1
+#ifdef THREADS_DEBUG
+#define THPRINT(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#else
+#define THPRINT(fmt, ...) /* fmt */
+#endif
 
 namespace kernel
 {
   struct thread_t {
     thread_t* self;
+    thread_t* parent = nullptr;
     int64_t  tid;
-    void*    ret_instr;
-    void*    ret_stack;
-    uint64_t ret_tls;
+    void*    my_tls;
+    void*    my_stack;
+    // for returning to this thread
+    void*    stored_stack = nullptr;
+    void*    stored_nexti = nullptr;
+    bool     yielded = false;
+    // children, detached when exited
+    std::vector<thread_t*> children;
 
     void init(int tid);
+    void yield();
+    void exit();
+    void activate(void* newtls);
+    void resume(int64_t ctid);
+    void store_return(void* ret_instr, void* ret_stack);
+    void libc_store_this();
   };
 
   inline thread_t* get_thread()
@@ -26,8 +46,13 @@ namespace kernel
     return thread;
   }
 
-  thread_t* thread_create() noexcept;
-  void thread_exit() noexcept;
+  inline int64_t get_tid() {
+    return get_thread()->tid;
+  }
+
+  void* get_thread_area();
+
+  thread_t* thread_create(thread_t* parent) noexcept;
 
   void setup_main_thread() noexcept;
 }

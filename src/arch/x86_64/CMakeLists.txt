@@ -8,6 +8,7 @@ set(ARCH_OBJECTS
   exceptions.asm
   interrupts.asm
   fiber_asm.asm
+  threads.asm
   __syscall_entry.asm
   syscall_entry.cpp
   ist.cpp

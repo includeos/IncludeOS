@@ -11,14 +11,20 @@ __attribute__((noreturn))
 static long sys_exit(int status)
 {
   auto* t = kernel::get_thread();
-  if (t == 0) {
+  if (t->tid == 0) {
     const std::string msg = "Service exited with status " + std::to_string(status) + "\n";
     os::print(msg.data(), msg.size());
     __arch_poweroff();
   }
   else {
     // exit from a thread
-    kernel::thread_exit();
+#ifdef THREADS_DEBUG
+    int64_t ptid = -1;
+    if (t->parent != nullptr) ptid = t->parent->tid;
+    THPRINT("thread_exit tid=%ld  parent=%p  ptid: %ld\n",
+            t->tid, t->parent, ptid);
+#endif
+    t->exit();
   }
   __builtin_unreachable();
 }
