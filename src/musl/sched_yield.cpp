@@ -10,5 +10,5 @@ static long sys_sched_yield()
 
 extern "C"
 long syscall_SYS_sched_yield() {
-  return stubtrace(sys_sched_yield, "sched_yield");
+  return strace(sys_sched_yield, "sched_yield");
 }

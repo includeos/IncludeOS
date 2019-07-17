@@ -1,13 +1,11 @@
-#include "stub.hpp"
+#include "common.hpp"
+#include <kernel/threads.hpp>
 
 static long sys_gettid() {
-#ifndef INCLUDEOS_SINGLE_THREADED
-#warning "gettid not implemented for threaded IncludeOS"
-#endif
-  return 1;
+  return kernel::get_tid();
 }
 
 extern "C"
 long syscall_SYS_gettid() {
-  return stubtrace(sys_gettid, "gettid");
+  return strace(sys_gettid, "gettid");
 }

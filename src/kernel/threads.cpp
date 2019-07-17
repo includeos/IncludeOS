@@ -84,6 +84,7 @@ namespace kernel
 
   void thread_t::exit()
   {
+    const bool exiting_myself = (get_thread() == this);
     assert(this->parent != nullptr);
     // detach children
     for (auto* child : this->children) {
@@ -106,8 +107,11 @@ namespace kernel
     // free thread resources
     delete this;
     // resume parent thread
-    erase_suspension(next);
-    next->resume();
+    if (exiting_myself)
+    {
+        erase_suspension(next);
+        next->resume();
+    }
   }
 
   void thread_t::resume()
@@ -163,6 +167,12 @@ namespace kernel
 # else
     #error "Implement me"
 # endif
+  }
+
+  thread_t* get_thread(int64_t tid) {
+      auto it = threads.find(tid);
+      if (it == threads.end()) return nullptr;
+      return it->second;
   }
 }
 

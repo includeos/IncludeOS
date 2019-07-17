@@ -19,6 +19,7 @@
 #include <cassert>
 #include <pthread.h>
 #include <kernel/threads.hpp>
+#include <thread>
 
 struct testdata
 {
@@ -112,6 +113,23 @@ void Service::start()
   printf("*** Yielding until all children are dead!\n");
   while (rdata.depth > 0) sched_yield();
 
+/*
+    try {
+        std::thread cppthread(
+            [] (int a, long long b, std::string c) -> void {
+                printf("Hello from a C++ thread\n");
+                assert(a == 1);
+                assert(b == 2LL);
+                assert(c == std::string("test"));
+                printf("C++ thread arguments are OK, returning...\n");
+            },
+            1, 2L, std::string("test")
+        );
+    }
+    catch (std::exception& e) {
+        printf("Exception: %s\n", e.what());
+    }
+*/
   printf("SUCCESS\n");
   os::shutdown();
 }

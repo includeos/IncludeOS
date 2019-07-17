@@ -21,6 +21,8 @@ namespace kernel
     void*    stored_stack = nullptr;
     void*    stored_nexti = nullptr;
     bool     yielded = false;
+    // for waking up when exiting
+    void*    clear_child = nullptr;
     // children, detached when exited
     std::vector<thread_t*> children;
 
@@ -47,6 +49,8 @@ namespace kernel
     # endif
     return thread;
   }
+
+  thread_t* get_thread(int64_t tid); /* or nullptr */
 
   inline int64_t get_tid() {
     return get_thread()->tid;

@@ -85,6 +85,14 @@ pid_t syscall_clone(void* next_instr,
     kprintf("-> callback: "); print_symbol(callback);
 #endif
 
+    // flag for write child TID
+    if (flags & CLONE_CHILD_SETTID) {
+        *(pid_t*) ctid = thread->tid;
+    }
+    if (flags & CLONE_CHILD_CLEARTID) {
+        thread->clear_child = ctid;
+    }
+
     // suspend parent thread
     parent->suspend(next_instr, old_stack);
     // activate new TLS location
