@@ -74,13 +74,13 @@ __syscall_entry:
 
 __clone_helper:
     PUSHAQ
+    sub rsp, 0x8 ;; alignment
 
-    push rsp ;; alignment
-    ;; R9: thread callback
+    ;; R13: thread callback
     push r9
-    ;; RSP: old stack
+    ;; R12: old stack
     push rsp
-
+    ;; r11: temp nexti
     mov r11, rcx
     ;; R9:  TLS data
     mov r9, r8

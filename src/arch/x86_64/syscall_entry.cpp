@@ -90,7 +90,7 @@ pid_t syscall_clone(void* next_instr,
         *(pid_t*) ctid = thread->tid;
     }
     if (flags & CLONE_CHILD_CLEARTID) {
-        thread->clear_child = ctid;
+        thread->clear_tid = ctid;
     }
 
     // suspend parent thread
@@ -98,7 +98,6 @@ pid_t syscall_clone(void* next_instr,
     // activate new TLS location
     thread->my_stack = stack;
     thread->activate(newtls);
-    //kprintf("thread %ld return TLS: %p\n", thread->tid, (void*) thread->ret_tls);
     return thread->tid;
 }
 

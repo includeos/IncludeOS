@@ -113,23 +113,20 @@ void Service::start()
   printf("*** Yielding until all children are dead!\n");
   while (rdata.depth > 0) sched_yield();
 
-/*
-    try {
-        std::thread cppthread(
-            [] (int a, long long b, std::string c) -> void {
-                printf("Hello from a C++ thread\n");
-                assert(a == 1);
-                assert(b == 2LL);
-                assert(c == std::string("test"));
-                printf("C++ thread arguments are OK, returning...\n");
-            },
-            1, 2L, std::string("test")
-        );
-    }
-    catch (std::exception& e) {
-        printf("Exception: %s\n", e.what());
-    }
-*/
+    auto* cpp_thread = new std::thread(
+        [] (int a, long long b, std::string c) -> void {
+            printf("Hello from a C++ thread\n");
+            assert(a == 1);
+            assert(b == 2LL);
+            assert(c == std::string("test"));
+            printf("C++ thread arguments are OK, returning...\n");
+        },
+        1, 2L, std::string("test")
+    );
+    printf("Returned. Deleting the C++ thread\n");
+    cpp_thread->join();
+    delete cpp_thread;
+
   printf("SUCCESS\n");
   os::shutdown();
 }

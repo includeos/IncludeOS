@@ -99,6 +99,11 @@ namespace kernel
     }
     // temporary copy of parent thread pointer
     auto* next = this->parent;
+    // CLONE_CHILD_CLEARTID: set userspace TID value to zero
+    if (this->clear_tid) {
+        THPRINT("Clearing child value at %p\n", this->clear_tid);
+        *(pthread_t*) this->clear_tid = 0;
+    }
     // delete this thread
     auto it = threads.find(this->tid);
     assert(it != threads.end());

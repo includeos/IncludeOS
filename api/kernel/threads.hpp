@@ -21,8 +21,8 @@ namespace kernel
     void*    stored_stack = nullptr;
     void*    stored_nexti = nullptr;
     bool     yielded = false;
-    // for waking up when exiting
-    void*    clear_child = nullptr;
+    // address zeroed when exiting
+    void*    clear_tid = nullptr;
     // children, detached when exited
     std::vector<thread_t*> children;
 
