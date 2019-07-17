@@ -58,3 +58,7 @@ namespace kernel
 
   void setup_main_thread() noexcept;
 }
+
+extern "C" {
+  void __thread_yield();
+}

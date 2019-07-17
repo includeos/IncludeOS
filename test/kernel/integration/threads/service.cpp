@@ -33,17 +33,22 @@ extern "C" {
     thread_local int test = 2019;
     printf("test @ %p, test = %d\n", &test, test);
     assert(test == 2019);
-
-    printf("Yielding from thread1, expecting to be returned to main thread\n");
-    sched_yield();
-    printf("Returned to thread1, expecting to exit to after main thread yield\n");
     return NULL;
   }
   static void* thread_function2(void* data)
   {
     printf("Inside thread function2, x = %d\n", *(int*) data);
     thread_local int test = 2020;
-    printf("test @ %p, test = %d\n", &test, test);
+
+    printf("Locking already locked mutex now\n");
+    auto* mtx = (pthread_mutex_t*) data;
+    const int res = pthread_mutex_lock(mtx);
+    printf("Locking returned %d\n", res);
+
+    printf("Yielding from thread2, expecting to be returned to main thread\n");
+    sched_yield();
+    printf("Returned to thread2, expecting to exit to after main thread yield\n");
+
     pthread_exit(NULL);
   }
   static void* recursive_function(void* tdata)
@@ -76,27 +81,30 @@ extern "C" {
 void Service::start()
 {
   int x = 666;
-  int y = 777;
+  pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
   pthread_t t;
   int res;
-/*
+
   printf("*** Testing pthread_create and sched_yield...\n");
   res = pthread_create(&t, NULL, thread_function1, &x);
   if (res < 0) {
     printf("Failed to create thread!\n");
     return;
   }
-  printf("Yielding from main thread, expecting to return to thread1\n");
-  // return back to finish thread1
-  sched_yield();
-  printf("After yielding from main thread, looking good!\n");
 
-  res = pthread_create(&t, NULL, thread_function2, &y);
+  pthread_mutex_lock(&mtx);
+  res = pthread_create(&t, NULL, thread_function2, &mtx);
   if (res < 0) {
     printf("Failed to create thread!\n");
     return;
   }
-*/
+  pthread_mutex_unlock(&mtx);
+
+  printf("Yielding from main thread, expecting to return to thread2\n");
+  // return back to finish thread2
+  sched_yield();
+  printf("After yielding from main thread, looking good!\n");
+
   printf("*** Now testing recursive threads...\n");
   static testdata rdata;
   recursive_function(&rdata);

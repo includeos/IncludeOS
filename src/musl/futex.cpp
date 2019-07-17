@@ -1,6 +1,7 @@
 #include "stub.hpp"
 #include <errno.h>
 #include <kprint>
+#include <kernel/threads.hpp>
 
 #define FUTEX_WAIT 0
 #define FUTEX_WAKE 1
@@ -17,20 +18,14 @@
 
 extern void print_backtrace();
 
-static int sys_futex(int *uaddr, int /*futex_op*/, int val,
+static int sys_futex(int *uaddr, int futex_op, int val,
                       const struct timespec *timeout, int /*val3*/)
 {
-
-  if (*uaddr != val){
-    return EAGAIN;
-  } else {
-    *uaddr = 0;
+  if ((futex_op & 0xF) == FUTEX_WAIT)
+  {
+    THPRINT("FUTEX: Waiting for unlock... uaddr=%d val=%d\n", *uaddr, val);
+    while (*uaddr == val) __thread_yield();
   }
-
-  if (timeout == nullptr){
-    kprintf("No timeout\n");
-  }
-
   return 0;
 }
 

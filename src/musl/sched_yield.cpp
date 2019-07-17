@@ -1,10 +1,6 @@
 #include "stub.hpp"
 #include <kernel/threads.hpp>
 
-extern "C" {
-  void __thread_yield();
-}
-
 static long sys_sched_yield()
 {
     THPRINT("sched_yield() called on thread %ld\n", kernel::get_tid());
