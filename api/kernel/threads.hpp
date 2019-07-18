@@ -58,7 +58,7 @@ namespace kernel
 
   void* get_thread_area();
 
-  thread_t* thread_create(thread_t* parent) noexcept;
+  thread_t* thread_create(thread_t* parent, int flags, void* ctid, void* stack) noexcept;
 
   void setup_main_thread() noexcept;
 }

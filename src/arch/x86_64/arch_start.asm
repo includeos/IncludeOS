@@ -139,8 +139,6 @@ long_mode:
     extern _ELF_START_
     push rsp
     mov  rsp, _ELF_START_
-    push 0
-    push 0
     mov  rbp, rsp
 
     mov ecx, IA32_STAR

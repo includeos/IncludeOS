@@ -64,14 +64,14 @@ static void print_symbol(const void* addr)
 }
 
 extern "C"
-pid_t syscall_clone(void* next_instr,
+pthread_t syscall_clone(void* next_instr,
                     unsigned long flags, void* stack,
                     void* ptid, void* ctid, void* newtls,
                     void* old_stack, void* callback)
 {
     auto* parent = kernel::get_thread();
 
-    auto* thread = kernel::thread_create(parent);
+    auto* thread = kernel::thread_create(parent, flags, ctid, stack);
 #ifdef THREADS_DEBUG
     kprintf("clone syscall creating thread %ld\n", thread->tid);
     kprintf("-> nexti:  "); print_symbol(next_instr);
@@ -85,18 +85,9 @@ pid_t syscall_clone(void* next_instr,
     kprintf("-> callback: "); print_symbol(callback);
 #endif
 
-    // flag for write child TID
-    if (flags & CLONE_CHILD_SETTID) {
-        *(pid_t*) ctid = thread->tid;
-    }
-    if (flags & CLONE_CHILD_CLEARTID) {
-        thread->clear_tid = ctid;
-    }
-
     // suspend parent thread
     parent->suspend(next_instr, old_stack);
     // activate new TLS location
-    thread->my_stack = stack;
     thread->activate(newtls);
     return thread->tid;
 }

@@ -136,7 +136,8 @@ namespace kernel
       __builtin_unreachable();
   }
 
-  thread_t* thread_create(thread_t* parent) noexcept
+  thread_t* thread_create(thread_t* parent, int flags,
+                          void* ctid, void* stack) noexcept
   {
     const int tid = __sync_fetch_and_add(&thread_counter, 1);
     try {
@@ -144,6 +145,15 @@ namespace kernel
       thread->init(tid);
       thread->parent = parent;
       thread->parent->children.push_back(thread);
+      thread->my_stack = stack;
+
+      // flag for write child TID
+      if (flags & CLONE_CHILD_SETTID) {
+          *(pid_t*) ctid = thread->tid;
+      }
+      if (flags & CLONE_CHILD_CLEARTID) {
+          thread->clear_tid = ctid;
+      }
 
       threads.emplace(
             std::piecewise_construct,
