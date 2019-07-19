@@ -13,7 +13,7 @@ long sys_tkill(int tid, int /*sig*/)
     }
 
     auto* thread = kernel::get_thread(tid);
-    printf("TKILL on tid=%d where thread=%p\n", tid, thread);
+    THPRINT("TKILL on tid=%d where thread=%p\n", tid, thread);
     if (thread != nullptr) {
         thread->exit();
         return 0;

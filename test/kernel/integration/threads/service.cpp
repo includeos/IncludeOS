@@ -34,7 +34,8 @@ extern "C" {
     thread_local int test = 2019;
     printf("test @ %p, test = %d\n", &test, test);
     assert(test == 2019);
-    return NULL;
+    // this will cause a TKILL on this thread
+    throw std::runtime_error("Test");
   }
   static void* thread_function2(void* data)
   {
