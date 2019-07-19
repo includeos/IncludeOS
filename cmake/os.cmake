@@ -37,8 +37,6 @@ endif()
 
 
 set(NAME_STUB "${CONAN_INCLUDEOS_ROOT}/src/service_name.cpp")
-set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
-set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 
@@ -100,9 +98,9 @@ endif()
 # linker stuff
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS) # this removed -rdynamic from linker output
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS> ${CRTI} --start-group <LINK_LIBRARIES> --end-group ${CRTN}")
+  set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS> --start-group <LINK_LIBRARIES> --end-group")
 else()
-  set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -S -o <TARGET> <LINK_FLAGS> <OBJECTS> ${CRTI} --start-group <LINK_LIBRARIES> --end-group ${CRTN}")
+  set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -S -o <TARGET> <LINK_FLAGS> <OBJECTS> --start-group <LINK_LIBRARIES> --end-group")
 endif()
 
 set(CMAKE_SKIP_RPATH ON)
