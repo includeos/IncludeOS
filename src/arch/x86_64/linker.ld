@@ -27,7 +27,7 @@ SECTIONS
 
   .multiboot : {
       PROVIDE(_MULTIBOOT_START_ = .);
-      *(.multiboot)
+      KEEP(*(.multiboot))
    }
 
   .text ALIGN(0x1000):
@@ -49,9 +49,11 @@ SECTIONS
   }
 
 /**
- *  .preinit_array, .init_array, .fini_array
- *  from GNU LD default linker script
- */
+  *   Global constructors
+  *   Constructors are split into groups allowing the OS to use global ctors
+  *   before the OS itself is initialized, while delaying the calls to service constructors
+  *   until as much of the OS / C++ runtime as possible is ready.
+  */
 
   .preinit_array :
   {
@@ -59,13 +61,6 @@ SECTIONS
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN (__preinit_array_end = .);
   }
-
-/**
-  *   Global constructors
-  *   Constructors are split into groups allowing the OS to use global ctors
-  *   before the OS itself is initialized, while delaying the calls to service constructors
-  *   until as much of the OS / C++ runtime as possible is ready.
-  */
 
   /* OS / stdlib constructors */
   .init_array :
@@ -155,10 +150,6 @@ SECTIONS
     LONG (0);
   }
 
-  .gcc_except_table :
-  {
-    *(.gcc_except_table)
-  }
   _READONLY_END_ = .;
   .data :
   {

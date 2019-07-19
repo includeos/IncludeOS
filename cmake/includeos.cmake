@@ -32,7 +32,7 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
 
-set(CAPABS "${CAPABS} -g -fstack-protector-strong")
+set(CAPABS "${CAPABS} -g -fstack-protector-strong -ffunction-sections -fdata-sections")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro

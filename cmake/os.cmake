@@ -5,6 +5,13 @@ endif()
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(MINIMAL "Minimal build" OFF)
+if (MINIMAL)
+    set(STRIP_CMD strip --strip-all)
+else()
+    set(STRIP_CMD true)
+endif()
+
 find_program(PYTHON3_EXECUTABLE python3)
 if (PYTHON3_EXECUTABLE-NOTFOUND)
   message(FATAL_ERROR "python3 not found")
@@ -115,10 +122,12 @@ else()
 endif()
 
 # TODO: find a more proper way to get the linker.ld script ?
+set(LD_COMMON "-nostdlib --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE}")
+set(LD_COMMON "${LD_COMMON} --gc-sections")
 if("${ARCH}" STREQUAL "aarch64")
-  set(LDFLAGS "-nostdlib -m${ELF}elf --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE} ${PRE_BSS_SIZE}")
+  set(LDFLAGS "-m${ELF}elf ${LD_COMMON}")
 else()
-  set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE} ${PRE_BSS_SIZE}")
+  set(LDFLAGS "-melf_${ELF} ${LD_COMMON} ${PRE_BSS_SIZE}")
 endif()
 
 set(ELF_POSTFIX .elf.bin)
@@ -138,6 +147,8 @@ function(os_add_executable TARGET NAME)
   set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
   add_executable(${ELF_TARGET} ${ARGN} ${NAME_STUB})
   set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS SERVICE="${TARGET}" SERVICE_NAME="${NAME}")
+  target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
+  target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
   conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
@@ -154,9 +165,9 @@ function(os_add_executable TARGET NAME)
 
   # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(STRIP_LV )
+    set(LD_STRIP )
   else()
-    set(STRIP_LV ${CMAKE_STRIP} --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET})
+    set(LD_STRIP --strip-debug)
   endif()
   FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binary.txt
     "${TARGET}"
@@ -166,7 +177,7 @@ function(os_add_executable TARGET NAME)
     COMMENT "elf.syms"
     COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
     COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-    COMMAND ${STRIP_LV}
+    COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
     COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
     DEPENDS ${ELF_TARGET}
   )
