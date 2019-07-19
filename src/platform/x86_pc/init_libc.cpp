@@ -35,14 +35,14 @@ static void global_ctor_test(){
 extern "C"
 int kernel_main(int, char * *, char * *)
 {
-  PRATTLE("<kernel_main> libc initialization complete \n");
+  PRATTLE("<kernel_main> libc initialization complete\n");
   LL_ASSERT(global_ctors_ok == 42);
   kernel::state().libc_initialized = true;
 
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   LL_ASSERT(elf.is_ELF() && "ELF header intact");
 
-  PRATTLE("<kernel_main> OS start \n");
+  PRATTLE("<kernel_main> OS start\n");
 
   // setup main thread after global ctors
   kernel::setup_main_thread();
@@ -61,7 +61,7 @@ int kernel_main(int, char * *, char * *)
   // NOTE: because of page protection we can choose to stop checking here
   kernel_sanity_checks();
 
-  PRATTLE("<kernel_main> post start \n");
+  PRATTLE("<kernel_main> post start\n");
   // Initialize common subsystems and call Service::start
   kernel::post_start();
 
@@ -95,7 +95,7 @@ namespace x86
     PRATTLE("\tElf size: %zu \n", size);
     for (int i = 0; i < ehdr->e_phnum; i++)
     {
-      PRATTLE("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
+      PRATTLE("\tPhdr %i @ %p, va_addr: 0x%lx\n", i, &phdr[i], phdr[i].p_vaddr);
     }
   #endif
 

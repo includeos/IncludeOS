@@ -62,8 +62,8 @@ extern "C"
 __attribute__((no_sanitize("all")))
 void kernel_start(uint32_t magic, uint32_t addr)
 {
-  PRATTLE("\n//////////////////  IncludeOS kernel start ////////////////// \n");
-  PRATTLE("* Booted with magic 0x%x, grub @ 0x%x \n",
+  PRATTLE("\n//////////////////  IncludeOS kernel start //////////////////\n");
+  PRATTLE("* Booted with magic 0x%x, grub @ 0x%x\n",
           magic, addr);
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
@@ -83,13 +83,13 @@ void kernel_start(uint32_t magic, uint32_t addr)
   {
     memory_end = kernel::softreset_memory_end(addr);
   }
-  PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
+  PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx\n",
           free_mem_begin, memory_end);
 
-  PRATTLE("* Moving symbols. \n");
+  PRATTLE("* Moving symbols\n");
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-  PRATTLE("* Free mem moved to: %p \n", (void*) free_mem_begin);
+  PRATTLE("* Free mem moved to: %p\n", (void*) free_mem_begin);
 
   PRATTLE("* Init .bss\n");
   _init_bss();
