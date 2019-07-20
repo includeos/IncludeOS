@@ -182,7 +182,6 @@ void os::event_loop()
   __arch_poweroff();
 }
 
-
 void kernel::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
@@ -203,5 +202,4 @@ void kernel::legacy_boot()
         "EBDA"});
   memmap.assign_range({0x000A0000, 0x000FFFFF,
         "VGA/ROM"});
-
 }

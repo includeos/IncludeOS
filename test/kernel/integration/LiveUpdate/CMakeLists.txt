@@ -7,6 +7,8 @@ if (NOT HAS_CONAN)
 endif()
 conan_basic_setup()
 
+set(LIVEUPDATE_MB 32 CACHE STRING "")
+option(MINIMAL "" ON)
 include(os)
 
 option(benchmark_mode "Optimizations for benchmarking" OFF)

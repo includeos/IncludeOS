@@ -21,6 +21,7 @@ void kernel::setup_liveupdate()
 #endif
 
   const size_t size = kernel::state().liveupdate_size;
+  if (size == 0) return;
   PRATTLE("Setting up LiveUpdate from %p to %p, %zx\n",
           (void*) kernel::state().liveupdate_phys,
           (void*) kernel::state().liveupdate_loc, size);

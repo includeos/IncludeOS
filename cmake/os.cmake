@@ -12,6 +12,8 @@ else()
     set(STRIP_CMD true)
 endif()
 
+set(LIVEUPDATE_MB 0 CACHE STRING "Liveupdate size in MB")
+
 find_program(PYTHON3_EXECUTABLE python3)
 if (PYTHON3_EXECUTABLE-NOTFOUND)
   message(FATAL_ERROR "python3 not found")
@@ -146,7 +148,10 @@ endfunction()
 function(os_add_executable TARGET NAME)
   set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
   add_executable(${ELF_TARGET} ${ARGN} ${NAME_STUB})
-  set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS SERVICE="${TARGET}" SERVICE_NAME="${NAME}")
+  set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS
+            SERVICE="${TARGET}" SERVICE_NAME="${NAME}"
+            _LIVEUPDATE_MEMSIZE_=${LIVEUPDATE_MB})
+
   target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
   target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
 
