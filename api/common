@@ -62,7 +62,7 @@ inline void __expect_fail(const char *expr, const char *file, int line, const ch
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
 #endif
-  fprintf(stderr, "%s:%i:%s %s \n",file, line, func, expr);
+  fprintf(stderr, "%s:%i:%s\n>>> %s\n",file, line, func, expr);
   fflush(NULL);
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
