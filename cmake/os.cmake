@@ -11,6 +11,7 @@ if (MINIMAL)
 else()
     set(STRIP_CMD true)
 endif()
+option(ELF_SYMBOLS "Enable full backtrace" ON)
 
 set(LIVEUPDATE_MB 0 CACHE STRING "Liveupdate size in MB")
 
@@ -177,15 +178,24 @@ function(os_add_executable TARGET NAME)
   FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binary.txt
     "${TARGET}"
   )
-  add_custom_target(
-    ${TARGET} ALL
-    COMMENT "elf.syms"
-    COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
-    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-    COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-    COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
-    DEPENDS ${ELF_TARGET}
-  )
+  if (ELF_SYMBOLS)
+      add_custom_target(
+        ${TARGET} ALL
+        COMMENT "elf.syms"
+        COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
+        COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
+        DEPENDS ${ELF_TARGET}
+      )
+  else()
+      add_custom_target(
+        ${TARGET} ALL
+        COMMAND cp bin/${ELF_TARGET} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        DEPENDS ${ELF_TARGET}
+      )
+  endif()
 
   if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
     message(STATUS "using set config file ${JSON_CONFIG_FILE_${ELF_TARGET}}")
