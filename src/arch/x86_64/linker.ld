@@ -134,7 +134,7 @@ SECTIONS
   .memdisk :
   {
     _DISK_START_ = .;
-    *(.diskdata)
+    KEEP(*(.diskdata))
     _DISK_END_ = .;
   }
 
@@ -149,8 +149,8 @@ SECTIONS
     KEEP(*(.eh_frame))
     LONG (0);
   }
-
   _READONLY_END_ = .;
+
   .data :
   {
     _DATA_START_ = .;

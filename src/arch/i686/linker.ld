@@ -27,7 +27,7 @@ SECTIONS
 
   .multiboot : {
       PROVIDE(_MULTIBOOT_START_ = .);
-      *(.multiboot)
+      KEEP(*(.multiboot))
    }
 
   .text ALIGN(0x1000):
@@ -45,9 +45,11 @@ SECTIONS
   }
 
 /**
- *  .preinit_array, .init_array, .fini_array
- *  from GNU LD default linker script
- */
+  *   Global constructors
+  *   Constructors are split into groups allowing the OS to use global ctors
+  *   before the OS itself is initialized, while delaying the calls to service constructors
+  *   until as much of the OS / C++ runtime as possible is ready.
+  */
 
   .preinit_array :
   {
@@ -55,13 +57,6 @@ SECTIONS
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN (__preinit_array_end = .);
   }
-
-/**
-  *   Global constructors
-  *   Constructors are split into groups allowing the OS to use global ctors
-  *   before the OS itself is initialized, while delaying the calls to service constructors
-  *   until as much of the OS / C++ runtime as possible is ready.
-  */
 
   /* OS / stdlib constructors */
   .init_array :
@@ -113,8 +108,8 @@ SECTIONS
    KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
-
   _EXEC_END_ = .;
+
   _READONLY_START_ = .;
   .config ALIGN(0x1000) : {
     _CONFIG_JSON_START_ = .;
@@ -149,7 +144,7 @@ SECTIONS
   .memdisk :
   {
     _DISK_START_ = .;
-    *(.diskdata)
+    KEEP(*(.diskdata))
     _DISK_END_ = .;
   }
 
@@ -164,12 +159,8 @@ SECTIONS
     KEEP(*(.eh_frame))
     LONG (0);
   }
-
-  .gcc_except_table :
-  {
-    *(.gcc_except_table)
-  }
   _READONLY_END_ = .;
+
   .data :
   {
     _DATA_START_ = .;
