@@ -34,24 +34,21 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 #endif
 
-
-extern uintptr_t _end;
-
-
 using namespace util::bitops;
 using namespace util::literals;
-
-static inline multiboot_info_t* bootinfo(uint32_t addr)
-{
-  // NOTE: the address is 32-bit and not a pointer
-  return (multiboot_info_t*) (uintptr_t) addr;
-}
+extern uintptr_t _end;
 #if defined(ARCH_aarch64)
   uint32_t dummy[24];
   uintptr_t __multiboot_addr=(uintptr_t)&dummy[0];
 #else
   extern uint32_t __multiboot_addr;
 #endif
+
+static inline multiboot_info_t* bootinfo(uint32_t addr)
+{
+  // NOTE: the address is 32-bit and not a pointer
+  return (multiboot_info_t*) (uintptr_t) addr;
+}
 
 multiboot_info_t* kernel::bootinfo()
 {
@@ -70,7 +67,7 @@ uintptr_t _multiboot_memory_end(uintptr_t boot_addr) {
 // (e.g. multiboot's data area as offset to the _end symbol)
 uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
 {
-  auto* info = bootinfo(boot_addr);
+  const auto* info = bootinfo(boot_addr);
   uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
 
   debug("* Multiboot begin: 0x%x \n", info);
@@ -84,29 +81,29 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
 
     if (info->cmdline > multi_end) {
       auto* cmdline_ptr = (const char*) (uintptr_t) info->cmdline;
-      // Set free begin to after the cmdline string
-      multi_end = info->cmdline + strlen(cmdline_ptr) + 1;
+      // Set free begin to after the cmdline string,
+      // but only if the cmdline is placed after image end
+      const uintptr_t cmdline_end = info->cmdline + strlen(cmdline_ptr) + 1;
+      if (cmdline_end > multi_end) multi_end = cmdline_end;
     }
   }
 
   debug("* Multiboot end: 0x%x \n", multi_end);
-  if (info->mods_count == 0)
+  if (info->mods_count == 0) {
       return multi_end;
+  }
 
   auto* mods_list = (multiboot_module_t*) (uintptr_t) info->mods_addr;
   debug("* Module list @ %p \n",mods_list);
 
-  for (multiboot_module_t* mod = mods_list;
-       mod < mods_list + info->mods_count;
-       mod ++) {
-
+  for (auto* mod = mods_list; mod < mods_list + info->mods_count; mod ++)
+  {
     debug("\t * Module @ %#x \n", mod->mod_start);
     debug("\t * Args: %s \n ", (char*) (uintptr_t) mod->cmdline);
     debug("\t * End: %#x \n ", mod->mod_end);
 
     if (mod->mod_end > multi_end)
       multi_end = mod->mod_end;
-
   }
 
   debug("* Multiboot end: 0x%x \n", multi_end);
