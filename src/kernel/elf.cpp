@@ -378,6 +378,7 @@ void _move_elf_syms_location(const void* location, void* new_location)
   }
   // incoming header
   auto* hdr = (elfsyms_header*) location;
+#ifdef TRUST_BUT_VERIFY
   // verify CRC sanity check
   const uint32_t temp_hdr = hdr->sanity_check;
   hdr->sanity_check = 0;
@@ -411,6 +412,7 @@ void _move_elf_syms_location(const void* location, void* new_location)
     relocs.strsize = 0;
     return;
   }
+#endif
   // update header
   relocs.syms    = (ElfSym*) new_location;
   relocs.entries = hdr->symtab_entries;
@@ -478,12 +480,14 @@ void elf_protect_symbol_areas()
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
   if (size % os::mem::min_psize()) size += os::mem::min_psize() - (size & (os::mem::min_psize()-1));
+
+  INFO2("* Protecting syms %p to %p (size %#zx)\n", src, &src[size], size);
   if (size == 0) return;
+
   // create the ELF symbols & strings area
   os::mem::vmmap().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
 
-  INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);
   os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
 }
 #endif
