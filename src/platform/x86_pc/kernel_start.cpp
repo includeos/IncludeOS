@@ -32,7 +32,6 @@
 #endif
 
 extern "C" {
-  void __init_sanity_checks();
   void kernel_sanity_checks();
   void _init_bss();
   uintptr_t _move_symbols(uintptr_t loc);
@@ -65,15 +64,12 @@ void kernel_start(uint32_t magic, uint32_t addr)
   PRATTLE("\n//////////////////  IncludeOS kernel start //////////////////\n");
   PRATTLE("* Booted with magic 0x%x, grub @ 0x%x\n",
           magic, addr);
-  // generate checksums of read-only areas etc.
-  __init_sanity_checks();
-
   PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n", magic, addr);
 
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
-  uintptr_t memory_end     = kernel::memory_end();
+  uintptr_t memory_end = 0;
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);

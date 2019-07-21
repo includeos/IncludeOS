@@ -78,16 +78,16 @@ namespace kernel {
     return state().is_live_updated;
   }
 
-  inline const char* cmdline() {
+  inline const char* cmdline() noexcept {
     return state().cmdline;
   }
 
-  inline bool is_panicking() noexcept {
-    return state().panics > 0;
+  inline int panics() noexcept {
+    return state().panics;
   }
 
-  inline int panics() {
-    return state().panics;
+  inline bool is_panicking() noexcept {
+    return panics() > 0;
   }
 
   inline os::Panic_action panic_action() noexcept {
