@@ -7,8 +7,8 @@ set(SRCS
     memmap.cpp
     multiboot.cpp
     os.cpp
+    panic.cpp
     profile.cpp
-    syscalls.cpp
     service_stub.cpp
     #scoped_profiler.cpp
 #    elf.cpp
