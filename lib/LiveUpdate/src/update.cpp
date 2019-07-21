@@ -32,8 +32,8 @@
 #include <kernel/memory.hpp>
 #include <hw/nic.hpp> // for flushing
 
-#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
-//#define LPRINT(x, ...) /** x **/
+//#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
+#define LPRINT(x, ...) /** x **/
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
@@ -175,7 +175,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     // get offsets for the new service from program header
     auto* phdr = (Elf32_Phdr*) &binary[hdr->e_phoff];
     bin_data  = &binary[phdr->p_offset];
-    bin_len   = phdr->p_filesz;
+    bin_len   = expected_total;
     phys_base = (char*) (uintptr_t) phdr->p_paddr;
   }
   else {
@@ -191,7 +191,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     // get offsets for the new service from program header
     auto* phdr = (Elf64_Phdr*) &binary[ehdr->e_phoff];
     bin_data  = &binary[phdr->p_offset];
-    bin_len   = phdr->p_filesz;
+    bin_len   = expected_total;
     phys_base = (char*) phdr->p_paddr;
   }
 
@@ -274,7 +274,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
   /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, (void*) start_offset, sr_data);
+  ((decltype(&hotswap)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, (void*) (uintptr_t) start_offset, sr_data);
 }
 void LiveUpdate::restore_environment()
 {

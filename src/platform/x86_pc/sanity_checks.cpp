@@ -18,6 +18,7 @@
 #include <kernel/elf.hpp>
 #include <kprint>
 #include <os.hpp>
+//#define TRUST_BUT_VERIFY
 
 // Global constructors
 static int gconstr_value = 0;
