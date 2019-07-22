@@ -3,13 +3,10 @@
 ;; 
 ;;  Modification/rewrite of code found at osdev:
 ;;  http://wiki.osdev.org/ATA_read/write_sectors#Read_in_LBA_mode
-;;
 ;; 	Licence: ...assumed to be in public domain 
-;;
 ;;  @param EAX Logical Block Address of sector
 ;;  @param CL  Number of sectors to read
 ;;  @param EDI The address of buffer to put data obtained from disk
-;;
 ;;  @return None
 ;; =============================================================================
 ata_lba_read:

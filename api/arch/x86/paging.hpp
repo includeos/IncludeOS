@@ -1,19 +1,4 @@
 // -*-C++-*-
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2017 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #ifndef X86_PAGING_HPP
 #define X86_PAGING_HPP
@@ -823,18 +808,14 @@ private:
 };
 
 
-//
 // Page table types for 4-level x86 paging
-//
 using Pml1 = Page_table<4_KiB, void, x86_64, Flags::all & ~(Flags::huge | Flags::pdir)>;
 using Pml2 = Page_table<Pml1::range_size, Pml1>;
 using Pml3 = Page_table<Pml2::range_size, Pml2>;
 using Pml4 = Page_table<Pml3::range_size, Pml3, x86_64, Flags::all & ~Flags::huge>;
 
 
-//
 // Specializations for lowest level 4k page tables (e.g. leaf nodes)
-//
 
 template <>
 inline bool Pml1::is_page_dir(uintptr_t) noexcept
