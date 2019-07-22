@@ -31,7 +31,7 @@ void RNG::init()
     return;
   }
 #ifndef PLATFORM_x86_solo5
-  rng_reseed_init(fallback_entropy, 64*16);
+  rng_reseed_init(fallback_entropy, 10);
   return;
 #endif
   assert(0 && "No randomness fallback");
