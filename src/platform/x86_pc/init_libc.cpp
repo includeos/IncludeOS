@@ -10,6 +10,11 @@
 #include <util/elf_binary.hpp>
 #include <version.h>
 #include <kprint>
+//#define ENABLE_PROFILERS
+#include <profile>
+#ifdef ENABLE_PROFILERS
+static ScopedProfiler* pinit = nullptr;
+#endif
 
 //#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
@@ -35,6 +40,11 @@ static void global_ctor_test(){
 extern "C"
 int kernel_main(int, char * *, char * *)
 {
+#ifdef ENABLE_PROFILERS
+  delete pinit;
+#endif
+  {
+  PROFILE("Kernel main");
   PRATTLE("<kernel_main> libc initialization complete\n");
   LL_ASSERT(global_ctors_ok == 42);
   kernel::state().libc_initialized = true;
@@ -64,6 +74,7 @@ int kernel_main(int, char * *, char * *)
   PRATTLE("<kernel_main> post start\n");
   // Initialize common subsystems and call Service::start
   kernel::post_start();
+  }
 
   // Starting event loop from here allows us to profile OS::start
   os::event_loop();
@@ -165,6 +176,9 @@ namespace x86
 
     // GDB_ENTRY;
     PRATTLE("* Starting libc initialization\n");
+#ifdef ENABLE_PROFILERS
+	pinit = new ScopedProfiler("Init libc + gconstr");
+#endif
     __libc_start_main(kernel_main, argc, argv.data());
   }
 }

@@ -8,6 +8,8 @@
 
 #include "idt.hpp"
 #include "init_libc.hpp"
+//#define ENABLE_PROFILERS
+#include <profile>
 
 //#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
@@ -85,8 +87,11 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Begin portable HAL initialization
   __machine->init();
 
-  // TODO: Move more stuff into Machine::init
-  RNG::init();
+  {
+    PROFILE("RNG init")
+    // TODO: Move more stuff into Machine::init
+    RNG::init();
+  }
 
   PRATTLE("* Init syscalls\n");
   _init_syscalls();

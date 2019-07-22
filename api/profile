@@ -10,6 +10,14 @@
 #include <vector>
 #include <arch.hpp>
 
+#ifdef ENABLE_PROFILERS
+#define __PCONCAT(x,y) x ## y
+#define PCONCAT(x,y) __PCONCAT(x, y)
+#define PROFILE(name)  ScopedProfiler PCONCAT(sp, __COUNTER__){name};
+#else
+#define PROFILE(name) /* name */
+#endif
+
 struct Sample {
   uint32_t    samp; // samples
   void*       addr; // function address
@@ -115,8 +123,12 @@ class ScopedProfiler
     const char* name;
     std::string function_name;
     unsigned    num_samples;
-    uint64_t    cycles_average;
-    uint64_t    nanos_start;
+    uint64_t    cycles_total;
+    uint64_t    ticks_start;
+	
+	uint64_t cycles_average() const noexcept {
+		return this->cycles_total / this->num_samples;
+	}
   };
 
 
