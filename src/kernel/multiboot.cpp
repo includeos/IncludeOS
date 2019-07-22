@@ -6,8 +6,8 @@
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
 
-#define DEBUG_MULTIBOOT
-#if defined(DEBUG_MULTIBOOT)
+//#define DEBUG_MULTIBOOT
+#ifdef DEBUG_MULTIBOOT
 #undef debug
 #define debug(X,...)  kprintf(X,##__VA_ARGS__);
 #define MYINFO(X,...) kprintf("<Multiboot>" X "\n", ##__VA_ARGS__)
