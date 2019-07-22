@@ -9,6 +9,9 @@ add_definitions(-DARCH="${ARCH}")
 if (SMP)
   add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
+if (PROFILE)
+  add_definitions(-DENABLE_PROFILERS)
+endif()
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../api
