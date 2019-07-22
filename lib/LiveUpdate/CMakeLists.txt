@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 2.8.9)
-
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
 project(includeos C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (NOT ARCH)
+  set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+endif()
 
 if (NOT CMAKE_TESTING_ENABLED)
   if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
@@ -40,12 +42,6 @@ include_directories(
   include
   ../../src/include
 )
-
-
-
-if (NOT ARCH)
-  set(ARCH CMAKE_SYSTEM_PROCESSOR)
-endif()
 
 #do we need all of this*?
 add_definitions(-DARCH_${ARCH})
