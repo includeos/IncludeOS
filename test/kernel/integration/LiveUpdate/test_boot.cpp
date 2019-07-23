@@ -92,6 +92,8 @@ LiveUpdate::storage_func begin_test_boot()
 
       using namespace std::chrono;
       Timers::oneshot(5ms,[] (int) {
+		extern int16_t __startup_was_fast;
+		printf("Startup was fast: %d\n", __startup_was_fast);
         printf("SUCCESS\n");
         SystemLog::print_to(os::default_stdout);
       });

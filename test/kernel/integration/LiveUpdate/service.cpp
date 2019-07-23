@@ -1,6 +1,7 @@
 
 #include <os>
 #include <net/interfaces>
+#include <profile>
 #include <cstdio>
 #include "liu.hpp"
 
@@ -9,6 +10,8 @@ extern storage_func_t begin_test_boot();
 
 void Service::start()
 {
+	auto prof = ScopedProfiler::get_statistics(false);
+	printf("%s\n", prof.c_str());
 #ifdef BENCHMARK_MODE
   extern bool LIVEUPDATE_USE_CHEKSUMS;
   LIVEUPDATE_USE_CHEKSUMS = false;

@@ -1,5 +1,6 @@
 global __arch_start:function
 global __gdt64_base_pointer
+global __startup_was_fast
 global fast_kernel_start:function
 extern kernel_start
 extern __multiboot_magic
@@ -119,6 +120,7 @@ long_mode:
     mov gs, cx
     mov ss, cx
 
+resume_startup:
     ;; set up new stack for 64-bit
     extern _ELF_START_
     push rsp
@@ -150,12 +152,10 @@ long_mode:
 
 ;; this function can be jumped to directly from hotswap
 fast_kernel_start:
-    and  rsp, -16
-    mov  edi, eax
-    mov  esi, ebx
-    call kernel_start
-    cli
-    hlt
+	mov DWORD[__multiboot_magic], eax
+	mov DWORD[__multiboot_addr],  ebx
+	mov WORD [__startup_was_fast], 1
+	jmp resume_startup
 
 SECTION .data
 GDT64:
@@ -187,6 +187,8 @@ __gdt64_base_pointer:
 SECTION .rodata
 tls_table:
     dq   tls_table
+__startup_was_fast:
+	dw   0
 SECTION .bss
 smp_table:
     resw 8
