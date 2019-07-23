@@ -12,6 +12,7 @@ else()
     set(STRIP_CMD true)
 endif()
 option(ELF_SYMBOLS "Enable full backtrace" ON)
+option(PROFILE "Compile with startup profilers" OFF)
 
 set(LIVEUPDATE_MB 0 CACHE STRING "Liveupdate size in MB")
 
@@ -155,6 +156,9 @@ function(os_add_executable TARGET NAME)
 
   target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
   target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
+  if (PROFILE)
+	  target_compile_definitions(${ELF_TARGET} PRIVATE ENABLE_PROFILERS=1)
+  endif()
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
   conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)

@@ -10,8 +10,8 @@ extern storage_func_t begin_test_boot();
 
 void Service::start()
 {
-	auto prof = ScopedProfiler::get_statistics(false);
-	printf("%s\n", prof.c_str());
+//  auto prof = ScopedProfiler::get_statistics(false);
+//  printf("%s\n", prof.c_str());
 #ifdef BENCHMARK_MODE
   extern bool LIVEUPDATE_USE_CHEKSUMS;
   LIVEUPDATE_USE_CHEKSUMS = false;
@@ -23,7 +23,7 @@ void Service::start()
   if (liu::LiveUpdate::os_is_liveupdated() == false)
   {
     auto& inet = net::Interfaces::get(0);
-    inet.network_config({10,0,0,59}, {255,255,255,0}, {10,0,0,1});
+    inet.network_config({10,0,1,59}, {255,255,255,0}, {10,0,1,1});
     setup_liveupdate_server(inet, 666, func);
 
     // signal test.py that the server is up

@@ -108,7 +108,7 @@ struct storage_header
   void add_marker(uint16_t id);
   void add_int   (uint16_t id, int value);
   void add_string(uint16_t id, const std::string& data);
-  void add_buffer(uint16_t id, const char*, int);
+  void add_buffer(uint16_t id, const void*, int);
   storage_entry& add_struct(int16_t type, uint16_t id, int length);
   storage_entry& add_struct(int16_t type, uint16_t id, construct_func);
   void add_vector(uint16_t, const void*, size_t cnt, size_t esize);

@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(PROFILE "Compile with startup profilers" OFF)
+if (PROFILE)
+  add_definitions(-DENABLE_PROFILERS)
+endif()
+
 if (NOT ARCH)
   set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
 endif()

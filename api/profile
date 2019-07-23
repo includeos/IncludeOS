@@ -143,7 +143,7 @@ class ScopedProfiler
 
   // Use plain array for performance (cache locality)
   // Increase size if there is a need to profile more than 64 scopes
-  static std::array<Entry, 64> entries;
+  static std::array<Entry, 128> entries;
 };
 
 struct HeapDiag

@@ -24,7 +24,7 @@ set(SOURCES
 os_add_executable(kernel_LiveUpdate "LiveUpdate integration test" ${SOURCES})
 
 os_add_drivers(kernel_LiveUpdate
-  virtionet
+  vmxnet3
   boot_logger
 )
 

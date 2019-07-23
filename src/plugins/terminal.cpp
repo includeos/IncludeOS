@@ -24,7 +24,7 @@ static auto& create_connection_from(net::tcp::Connection_ptr conn)
 #ifdef USE_LIVEUPDATE
 #include "liveupdate.hpp"
 
-void store_terminal(liu::Storage& store, const liu::buffer_t*)
+void store_terminal(liu::Storage& store)
 {
   for (auto& kv : terms)
   {

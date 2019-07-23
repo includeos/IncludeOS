@@ -10,8 +10,8 @@ extern uintptr_t heap_end;
 
 namespace liu
 {
-  static const char* rollback_data;
-  static size_t      rollback_len;
+  static const uint8_t* rollback_data;
+  static size_t         rollback_len;
 
 void LiveUpdate::rollback_now(const char* reason)
 {
@@ -21,9 +21,8 @@ void LiveUpdate::rollback_now(const char* reason)
 	   rollback_data, (uint32_t) rollback_len, reason);
     try
     {
-      buffer_t vec(rollback_data, rollback_data + rollback_len);
       // run live update process
-      LiveUpdate::exec(vec);
+      LiveUpdate::exec(rollback_data, rollback_len);
     }
     catch (std::exception& err)
     {
@@ -39,14 +38,14 @@ void LiveUpdate::rollback_now(const char* reason)
   __builtin_unreachable();
 }
 
-const std::pair<const char*, size_t> get_rollback_location()
+const std::pair<const uint8_t*, size_t> get_rollback_location()
 {
   return {rollback_data, rollback_len};
 }
 
 void LiveUpdate::set_rollback_blob(const void* buffer, size_t len) noexcept
 {
-  rollback_data = (const char*) buffer;
+  rollback_data = (const uint8_t*) buffer;
   rollback_len  = len;
   os::on_panic(LiveUpdate::rollback_now);
 }
@@ -60,7 +59,7 @@ bool LiveUpdate::has_rollback_blob() noexcept
 void softreset_service_handler(const void* opaque, size_t length)
 {
   // make deep copy?
-  auto* data = new char[length];
+  auto* data = new uint8_t[length];
   memcpy(data, opaque, length);
   liu::rollback_data = data;
   liu::rollback_len  = length;

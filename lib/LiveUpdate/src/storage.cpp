@@ -44,13 +44,13 @@ void storage_header::add_string(uint16_t id, const std::string& data)
   assert(entry.checksum() == csum);
 #endif
 }
-void storage_header::add_buffer(uint16_t id, const char* buffer, int length)
+void storage_header::add_buffer(uint16_t id, const void* buffer, int length)
 {
   auto& entry = create_entry(TYPE_BUFFER, id, length);
-  memcpy(entry.vla, buffer, length);
+  memcpy(entry.vla, (const char*) buffer, length);
 #ifdef VERIFY_MEMORY
   /// verify memory
-  uint32_t csum = liu_crc32(buffer, length);
+  const uint32_t csum = liu_crc32(buffer, length);
   assert(entry.checksum() == csum);
 #endif
 }

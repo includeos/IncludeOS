@@ -155,13 +155,13 @@ std::string ScopedProfiler::get_statistics(bool sorted)
       const auto& entry = entries[i];
 
 	  const uint64_t tickdiff = entry.ticks_start - base_ticks;
-      double timst = ((double) tickdiff / Hz(os::cpu_freq()).count());
+      double timst = ((double) tickdiff / KHz(os::cpu_freq()).count());
       ss.width(10);
-      ss << timst * 1000.0 << " ms | ";
+      ss << timst << " ms | ";
 
-      double micros = (double) entry.cycles_average() / Hz(os::cpu_freq()).count();
+      double micros = (double) entry.cycles_average() / KHz(os::cpu_freq()).count();
       ss.width(10);
-      ss << micros * 1000.0 << " ms | ";
+      ss << micros << " ms | ";
 
       ss.width(7);
       ss << entry.num_samples << " | ";

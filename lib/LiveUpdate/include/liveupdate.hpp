@@ -19,7 +19,7 @@ namespace liu
 {
 struct Storage;
 struct Restore;
-typedef std::vector<char> buffer_t;
+typedef std::vector<uint8_t> buffer_t;
 
 /**
  * The beginning and the end of the LiveUpdate process is the exec() and resume() functions.
@@ -33,7 +33,7 @@ struct LiveUpdate
 {
   // The buffer_t parameter is the update blob (the new kernel) and can be null.
   // If the parameter is null, you can assume that it's currently not a live update.
-  typedef delegate<void(Storage&, const buffer_t*)> storage_func;
+  typedef delegate<void(Storage&)> storage_func;
   typedef delegate<void(Restore&)> resume_func;
 
   // Register a function to be called when serialization phase begins
@@ -44,8 +44,10 @@ struct LiveUpdate
   // Start a live update process, storing all user-defined data
   // If no storage functions are registered no state will be saved
   // If @storage_area is nullptr (default) it will be retrieved from OS
-  static void exec(const buffer_t& blob, void* storage_area = nullptr);
+  static void exec(const uint8_t* blob, size_t size, void* storage_area = nullptr);
   // Same as above, but including the partition [@key, func]
+  static void exec(const uint8_t* blob, size_t size, std::string key, storage_func func);
+  // Same as above, but using buffer_t instead of pointer, length
   static void exec(const buffer_t& blob, std::string key, storage_func func);
 
   // In the event that LiveUpdate::exec() fails,
@@ -55,6 +57,10 @@ struct LiveUpdate
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
   static buffer_t store();
+
+  // Returns the location and size of the executable during exec()
+  // To be used from inside the store callbacks to optionally save the binary
+  static std::pair<const uint8_t*, size_t> binary_blob() noexcept;
 
   // Returns true if there is stored data from before.
   // It performs an extensive validation process to make sure the data is

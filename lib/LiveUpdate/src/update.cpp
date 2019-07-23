@@ -16,6 +16,7 @@
 #include <os.hpp>
 #include <kernel/memory.hpp>
 #include <hw/nic.hpp> // for flushing
+#include <profile>
 
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
@@ -25,26 +26,28 @@ static const int ELF_MINIMUM = 164;
 // hotswapping functions
 extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
-extern "C" void  hotswap(char*, const char*, int, void*, void*);
+extern "C" void  hotswap(char*, const uint8_t*, int, void*, void*);
 extern "C" char  __hotswap_length;
-extern "C" void  hotswap64(char*, const char*, int, uint32_t, void*, void*);
+extern "C" void  hotswap64(char*, const uint8_t*, int, uint32_t, void*, void*);
 extern uint32_t  hotswap64_len;
 extern void      __x86_init_paging(void*);
 extern "C" void* __os_store_soft_reset(const void*, size_t);
 // kernel area
-extern char _ELF_START_;
-extern char _end;
+extern uint8_t _ELF_START_;
+extern uint8_t _end;
 // turn this off to reduce liveupdate times at the cost of extra checks
-bool LIVEUPDATE_USE_CHEKSUMS    = true;
+bool LIVEUPDATE_USE_CHEKSUMS    = false;
 // turn this om to zero-initialize all memory between new kernel and heap end
 bool LIVEUPDATE_ZERO_OLD_MEMORY = false;
 
 using namespace liu;
 
-static size_t update_store_data(void* location, const buffer_t*);
+static size_t update_store_data(void* location);
 
 // serialization callbacks
 static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbacks;
+static const uint8_t* liveupdate_blob_data = nullptr;
+static size_t         liveupdate_blob_size = 0;
 
 void LiveUpdate::register_partition(std::string key, storage_func callback)
 {
@@ -77,13 +80,18 @@ inline bool validate_header(const Class* hdr)
 void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
 {
   if (func != nullptr) LiveUpdate::register_partition(key, func);
-  LiveUpdate::exec(blob);
+  LiveUpdate::exec(blob.data(), blob.size());
+}
+void LiveUpdate::exec(const uint8_t* blob, size_t size, std::string key, storage_func func)
+{
+  if (func != nullptr) LiveUpdate::register_partition(key, func);
+  LiveUpdate::exec(blob, size);
 }
 
-void LiveUpdate::exec(const buffer_t& blob, void* location)
+void LiveUpdate::exec(const uint8_t* blob_data, size_t blob_size, void* location)
 {
   if (location == nullptr) location = kernel::liveupdate_storage_area();
-  LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
+  LPRINT("LiveUpdate::begin(%p, %p:%zu, ...)\n", location, blob_data, blob_size);
 #if defined(__includeos__)
   // 1. turn off interrupts
   asm volatile("cli");
@@ -96,13 +104,13 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // blobs are separated by at least one old kernel size and
   // some early heap allocations, which is at least 1mb, while
   // the copy mechanism just copies single bytes.
-  if (blob.size() < ELF_MINIMUM)
+  if (blob_size < ELF_MINIMUM)
       throw std::runtime_error("Buffer too small to be valid ELF");
-  const char* update_area  = blob.data();
-  char* storage_area = (char*) location;
+  const uint8_t* update_area  = blob_data;
+  uint8_t* storage_area = (uint8_t*) location;
 
   // validate not overwriting heap, kernel area and other things
-  if (storage_area < (char*) 0x200) {
+  if (storage_area < (uint8_t*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
 #if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
@@ -112,14 +120,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-  if (storage_area >= (char*) kernel::heap_begin() && storage_area < (char*) kernel::heap_end()) {
+  if (storage_area >= (uint8_t*) kernel::heap_begin() && storage_area < (uint8_t*) kernel::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
 #endif
 
   // search for ELF header
   LPRINT("* Looking for ELF header at %p\n", update_area);
-  const char* binary  = &update_area[0];
+  const auto* binary  = &update_area[0];
   const auto* hdr = (const Elf32_Ehdr*) binary;
   if (!validate_header<Elf32_Ehdr>(hdr))
   {
@@ -142,12 +150,13 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   extern void* find_kernel_start32(const Elf32_Ehdr* hdr);
   extern void* find_kernel_start64(const Elf64_Ehdr* hdr);
 
-  const char* bin_data  = nullptr;
+  const uint8_t* bin_data  = nullptr;
   int         bin_len   = 0;
   char*       phys_base = nullptr;
 
   if (hdr->e_ident[EI_CLASS] == ELFCLASS32)
   {
+    PROFILE("LiveUpdate: Scan ELF32");
     /// note: this assumes section headers are at the end
     expected_total =
         hdr->e_shnum * hdr->e_shentsize +
@@ -164,6 +173,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     phys_base = (char*) (uintptr_t) phdr->p_paddr;
   }
   else {
+    PROFILE("LiveUpdate: Scan ELF64");
     auto* ehdr = (Elf64_Ehdr*) hdr;
     /// note: this assumes section headers are at the end
     expected_total =
@@ -180,14 +190,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     phys_base = (char*) phdr->p_paddr;
   }
 
-  if (blob.size() < expected_total || expected_total < ELF_MINIMUM)
+  if (blob_size < expected_total || expected_total < ELF_MINIMUM)
   {
     fprintf(stderr,
         "*** There was a mismatch between blob length and expected ELF file size:\n");
     fprintf(stderr,
-        "EXPECTED: %u byte\n",  (uint32_t) expected_total);
+        "EXPECTED: %zu byte\n",  expected_total);
     fprintf(stderr,
-        "ACTUAL:   %u bytes\n", (uint32_t) blob.size());
+        "ACTUAL:   %zu bytes\n", blob_size);
     throw std::runtime_error("ELF file was incomplete");
   }
   LPRINT("* Validated ELF header\n");
@@ -195,9 +205,16 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // _start() entry point
   LPRINT("* Kernel entry is located at %#x\n", start_offset);
 
-  // save ourselves if function passed
-  update_store_data(storage_area, &blob);
+  liveupdate_blob_data = blob_data;
+  liveupdate_blob_size = blob_size;
+  {
+    PROFILE("LiveUpdate: Store user data");
+    // save ourselves if function passed
+    update_store_data(storage_area);
+  }
 
+{
+  PROFILE("LiveUpdate: Deactivate devices");
 #if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_KERNEL)
   // 2. flush all NICs
   for(auto& nic : os::machine().get<hw::Nic>())
@@ -208,16 +225,26 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 #endif
   // turn off devices that affect memory
   __arch_system_deactivate();
+}
 
   // store soft-resetting stuff
 #if defined(__includeos__)
+  void* sr_data = nullptr;
+{
+  PROFILE("Soft-reset store")
   extern const std::pair<const char*, size_t> get_rollback_location();
   const auto rollback = get_rollback_location();
   // we should store physical address of update location
   auto rb_phys = os::mem::virt_to_phys((uintptr_t) rollback.first);
-  void* sr_data = __os_store_soft_reset((void*) rb_phys, rollback.second);
+  sr_data = __os_store_soft_reset((void*) rb_phys, rollback.second);
+}
 #else
   void* sr_data = nullptr;
+#endif
+
+#ifdef ENABLE_PROFILERS
+  auto prof = ScopedProfiler::get_statistics(false);
+  printf("%s\n", prof.c_str());
 #endif
 
   // get offsets for the new service from program header
@@ -231,7 +258,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   LPRINT("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
 
 #ifdef PLATFORM_x86_solo5
-  solo5_exec(blob.data(), blob.size());
+  solo5_exec(blob_data, blob_size);
   throw std::runtime_error("solo5_exec returned");
 # elif defined(PLATFORM_UNITTEST)
   throw liveupdate_exec_success();
@@ -270,8 +297,8 @@ void LiveUpdate::restore_environment()
 }
 buffer_t LiveUpdate::store()
 {
-  char* location = (char*) kernel::liveupdate_storage_area();
-  size_t size = update_store_data(location, nullptr);
+  uint8_t* location = (uint8_t*) kernel::liveupdate_storage_area();
+  const size_t size = update_store_data(location);
   return buffer_t(location, location + size);
 }
 
@@ -287,7 +314,12 @@ size_t LiveUpdate::stored_data_length(const void* location)
   return storage->total_bytes();
 }
 
-size_t update_store_data(void* location, const buffer_t* blob)
+std::pair<const uint8_t*, size_t> LiveUpdate::binary_blob() noexcept
+{
+  return {liveupdate_blob_data, liveupdate_blob_size};
+}
+
+size_t update_store_data(void* location)
 {
   // create storage header in the fixed location
   new (location) storage_header();
@@ -300,7 +332,7 @@ size_t update_store_data(void* location, const buffer_t* blob)
     // create partition
     int p = storage->create_partition(pair.first);
     // run serialization process
-    pair.second(wrapper, blob);
+    pair.second(wrapper);
     // add end for partition
     storage->finish_partition(p);
   }
@@ -332,7 +364,7 @@ void Storage::add_buffer(uid id, const buffer_t& blob)
 }
 void Storage::add_buffer(uid id, const void* buf, size_t len)
 {
-  hdr.add_buffer(id, (const char*) buf, len);
+  hdr.add_buffer(id, buf, len);
 }
 void Storage::add_vector(uid id, const void* buf, size_t count, size_t esize)
 {

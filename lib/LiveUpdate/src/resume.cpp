@@ -7,6 +7,7 @@
 
 #include <os.hpp>
 #include <kernel.hpp>
+#include <profile>
 #include "storage.hpp"
 #include "serialize_tcp.hpp"
 #include <cstdio>
@@ -70,6 +71,7 @@ void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::r
 
 bool resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)
 {
+  PROFILE("LiveUpdate: Resume partition");
   if (key.empty())
       throw std::length_error("LiveUpdate partition key cannot be an empty string");
 
@@ -81,7 +83,10 @@ bool resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_f
   // resume wrapper
   Restore wrapper(storage.begin(p));
   // use registered functions when we can, otherwise, use normal
-  func(wrapper);
+  {
+    PROFILE("LiveUpdate: Resume callback");
+    func(wrapper);
+  }
 
   // wake all the slumbering IP stacks
   serialized_tcp::wakeup_ip_networks();
@@ -142,10 +147,9 @@ std::string Restore::as_string() const
 }
 buffer_t  Restore::as_buffer() const
 {
+  PROFILE("LiveUpdate: Restore::as_buffer");
   if (ent->type == TYPE_BUFFER) {
-      buffer_t buffer;
-      buffer.assign(ent->data(), ent->data() + ent->len);
-      return buffer;
+      return buffer_t{ent->data(), ent->data() + ent->len};
   }
   throw std::runtime_error("LiveUpdate: Restore::as_buffer() encountered incorrect type " + std::to_string(ent->type));
 }
