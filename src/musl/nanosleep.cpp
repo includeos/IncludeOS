@@ -1,9 +1,28 @@
 #include "common.hpp"
 #include <time.h>
+#include <timers>
+using namespace std::chrono;
 
-static long sys_nanosleep(const struct timespec */*req*/, struct timespec */*rem*/)
+static void nanosleep(nanoseconds nanos)
 {
-  return -ENOSYS;
+  bool ticked = false;
+
+  Timers::oneshot(nanos,
+  [&ticked] (int) {
+    ticked = true;
+  });
+
+  while (ticked == false) {
+    os::block();
+  }
+}
+
+static long sys_nanosleep(const struct timespec* req, struct timespec */*rem*/)
+{
+  if (req == nullptr) return -EINVAL;
+  auto nanos = nanoseconds(req->tv_sec * 1'000'000'000ull + req->tv_nsec);
+  nanosleep(nanos);
+  return 0;
 }
 
 extern "C"
