@@ -7,7 +7,7 @@
 #include <util/crc32.hpp>
 #include <cassert>
 #include <cstring>
-extern bool LIVEUPDATE_USE_CHEKSUMS;
+extern bool LIVEUPDATE_EXTRA_CHECKS;
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -39,7 +39,7 @@ int storage_header::find_partition(const char* key) const
       // the partition must have a valid name
       assert(part.name[0] != 0);
       // the partition should be fully consistent
-      if (LIVEUPDATE_USE_CHEKSUMS) {
+      if (LIVEUPDATE_EXTRA_CHECKS) {
         uint32_t chsum = part.generate_checksum(this->vla);
         if (part.crc != chsum)
         throw std::runtime_error("Invalid CRC in partition '" + std::string(key) + "'");
@@ -56,7 +56,7 @@ void storage_header::finish_partition(int p)
   // write length and crc
   auto& part = ptable.at(p);
   part.length = this->length - part.offset;
-  if (LIVEUPDATE_USE_CHEKSUMS) {
+  if (LIVEUPDATE_EXTRA_CHECKS) {
     part.crc = part.generate_checksum(this->vla);
   }
   else part.crc = 0;
@@ -66,7 +66,7 @@ void storage_header::zero_partition(int p)
   auto& part = ptable.at(p);
   memset(&this->vla[part.offset], 0, part.length);
   part = {};
-  if (LIVEUPDATE_USE_CHEKSUMS) {
+  if (LIVEUPDATE_EXTRA_CHECKS) {
     // NOTE: generate **NEW** checksum for header
     this->crc = generate_checksum();
   }

@@ -35,8 +35,9 @@ extern "C" void* __os_store_soft_reset(const void*, size_t);
 // kernel area
 extern uint8_t _ELF_START_;
 extern uint8_t _end;
-// turn this off to reduce liveupdate times at the cost of extra checks
-bool LIVEUPDATE_USE_CHEKSUMS    = false;
+// the internal checksums cover the main storage header and all partition headers
+// turning this on will checksum partition user data, which scales poorly
+bool LIVEUPDATE_EXTRA_CHECKS    = false;
 // turn this om to zero-initialize all memory between new kernel and heap end
 bool LIVEUPDATE_ZERO_OLD_MEMORY = false;
 
@@ -317,6 +318,12 @@ size_t LiveUpdate::stored_data_length(const void* location)
 std::pair<const uint8_t*, size_t> LiveUpdate::binary_blob() noexcept
 {
   return {liveupdate_blob_data, liveupdate_blob_size};
+}
+
+void LiveUpdate::enable_extra_checks(bool en) noexcept
+{
+  LIVEUPDATE_EXTRA_CHECKS = en;
+  // TODO: also enable destination zeroing?
 }
 
 size_t update_store_data(void* location)

@@ -95,6 +95,10 @@ struct LiveUpdate
   static void rollback_now(const char* reason);
   // Returns if the state in the OS has been set to being "liveupdated"
   static bool os_is_liveupdated() noexcept;
+  
+  // Enable/disable extra checksumming
+  // Note that internal headers are always checked
+  void enable_extra_checks(bool en) noexcept;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
