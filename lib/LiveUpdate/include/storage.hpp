@@ -98,8 +98,11 @@ struct storage_header
   uint32_t get_entries() const noexcept {
     return this->entries;
   }
+  uint32_t end_bytes() const noexcept {
+	  return max_length - sizeof(storage_entry);
+  }
 
-  storage_header();
+  storage_header(const size_t);
   int  create_partition(std::string key);
   int  find_partition(const char*) const;
   void finish_partition(int);
@@ -124,6 +127,7 @@ struct storage_header
   inline storage_entry&
   var_entry(int16_t type, uint16_t id, construct_func func);
 
+  void end_reached();
   void append_eof() noexcept {
     ((storage_entry*) &vla[length])->type = TYPE_END;
   }
@@ -141,6 +145,7 @@ private:
   mutable uint32_t crc = 0;
   uint32_t entries = 0;
   uint32_t length  = 0;
+  const uint32_t max_length;
   std::array<partition_header, 16> ptable;
   uint32_t partitions = 0;
   char     vla[0];
@@ -153,6 +158,10 @@ storage_header::create_entry(Args&&... args)
   // create entry
   auto* entry = (storage_entry*) &vla[length];
   new (entry) storage_entry(args...);
+  // check that we dont start writing into nowhere-land
+  if (this->length + entry->size() > end_bytes()) {
+	  this->end_reached();
+  }
   // next storage_entry will be this much further out:
   this->length += entry->size();
   this->entries++;
@@ -169,6 +178,9 @@ storage_header::var_entry(int16_t type, uint16_t id, construct_func func)
   new (entry) storage_entry(type, id, 0);
   // determine and set size of entry
   entry->len = func(entry->vla);
+  if (this->length + entry->size() > end_bytes()) {
+	  this->end_reached();
+  }
   // next storage_entry will be this much further out:
   this->length += entry->size();
   this->entries++;

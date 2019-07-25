@@ -19,20 +19,24 @@ namespace liu
 {
 static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
 
-bool LiveUpdate::is_resumable()
+static inline location_t resolve_default(location_t other)
 {
-  return is_resumable(kernel::liveupdate_storage_area());
+	if (other.first == nullptr || other.second == 0)
+		return { kernel::liveupdate_storage_area(), kernel::liveupdate_storage_size() };
+	return other;
 }
-bool LiveUpdate::is_resumable(const void* location)
+
+bool LiveUpdate::is_resumable(const location_t provided)
 {
-  return ((const storage_header*) location)->validate();
+  const auto location = resolve_default(provided);
+  return ((const storage_header*) location.first)->validate();
 }
 bool LiveUpdate::os_is_liveupdated() noexcept
 {
   return kernel::state().is_live_updated;
 }
 
-static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
+static bool resume_helper(location_t location, std::string key, LiveUpdate::resume_func func)
 {
   // check if an update has occurred
   if (!LiveUpdate::is_resumable(location))
@@ -40,33 +44,33 @@ static bool resume_helper(void* location, std::string key, LiveUpdate::resume_fu
 
   LPRINT("* Restoring data...\n");
   // restore connections etc.
-  return resume_begin(*(storage_header*) location, key.c_str(), func);
+  return resume_begin(*(storage_header*) location.first, key.c_str(), func);
 }
-bool LiveUpdate::resume(std::string key, resume_func func)
+bool LiveUpdate::resume(std::string key, resume_func func, location_t provided)
 {
-  void* location = kernel::liveupdate_storage_area();
+  const auto location = resolve_default(provided);
   /// memory sanity check
-  if (kernel::heap_end() >= (uintptr_t) location) {
+  if (kernel::heap_end() >= (uintptr_t) location.first) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (kernel::heap_end() - (uintptr_t) location));
+		     (long int) (kernel::heap_end() - (uintptr_t) location.first));
     throw std::runtime_error("LiveUpdate::resume(): Storage area inside heap");
   }
   return resume_helper(location, std::move(key), func);
 }
-bool LiveUpdate::partition_exists(const std::string& key, const void* area) noexcept
-{
-  if (area == nullptr) area = kernel::liveupdate_storage_area();
-
-  if (!LiveUpdate::is_resumable(area))
-    return false;
-
-  auto& storage = *(const storage_header*) area;
-  return (storage.find_partition(key.c_str()) != -1);
-}
-void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
+void LiveUpdate::resume_from_heap(std::string key, LiveUpdate::resume_func func, location_t location)
 {
   resume_helper(location, std::move(key), func);
+}
+bool LiveUpdate::partition_exists(const std::string& key, const location_t provided) noexcept
+{
+  const auto location = resolve_default(provided);
+
+  if (!LiveUpdate::is_resumable(location))
+    return false;
+
+  auto& storage = *(const storage_header*) location.first;
+  return (storage.find_partition(key.c_str()) != -1);
 }
 
 bool resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)

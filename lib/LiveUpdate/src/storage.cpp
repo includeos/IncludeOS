@@ -4,6 +4,7 @@
  *
 **/
 #include "storage.hpp"
+#include "liveupdate.hpp"
 #include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/memory.hpp>
@@ -18,8 +19,8 @@ inline uint32_t liu_crc32(const void* buf, size_t len)
 
 const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
 
-storage_header::storage_header()
-  : magic(LIVEUPD_MAGIC)
+storage_header::storage_header(const size_t maxlen)
+  : magic(LIVEUPD_MAGIC), max_length(maxlen)
 {
   //printf("%p --> %#llx\n", this, value);
 }
@@ -135,6 +136,10 @@ bool storage_header::validate() const noexcept
   if (this->crc != chsum) return false;
   return true;
 }
+void storage_header::end_reached()
+{
+  throw liu::liveupdate_end_reached();
+}
 
 uint32_t storage_header::generate_checksum() const noexcept
 {
@@ -160,8 +165,8 @@ void storage_header::try_zero() noexcept
 }
 void storage_header::zero()
 {
-  memset(this->vla, 0, this->length);
-  *this = {};
+  //memset(this->vla, 0, this->length);
+  new (this) storage_header(0);
   this->magic = 0;
 }
 

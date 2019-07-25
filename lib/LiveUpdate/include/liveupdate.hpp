@@ -19,11 +19,12 @@ namespace liu
 {
 struct Storage;
 struct Restore;
-typedef std::vector<uint8_t> buffer_t;
+using buffer_t = std::vector<uint8_t>;
+using location_t = std::pair<void*, size_t>;
 
 /**
  * The beginning and the end of the LiveUpdate process is the exec() and resume() functions.
- * exec() is called with a provided fixed memory location for where to store all serialized data,
+ * exec() is called with a provided binary blob that is the new executable code to live update to,
  * and after an update is_resumable, with the same fixed memory location, will return true.
  * resume() can then be called with this same location, and it will call handlers for each @id it finds,
  * unless no such handler is registered, in which case it just calls the default handler which is passed
@@ -31,8 +32,7 @@ typedef std::vector<uint8_t> buffer_t;
 **/
 struct LiveUpdate
 {
-  // The buffer_t parameter is the update blob (the new kernel) and can be null.
-  // If the parameter is null, you can assume that it's currently not a live update.
+  static constexpr location_t default_location { nullptr, 0 };
   typedef delegate<void(Storage&)> storage_func;
   typedef delegate<void(Restore&)> resume_func;
 
@@ -43,12 +43,12 @@ struct LiveUpdate
 
   // Start a live update process, storing all user-defined data
   // If no storage functions are registered no state will be saved
-  // If @storage_area is nullptr (default) it will be retrieved from OS
-  static void exec(const uint8_t* blob, size_t size, void* storage_area = nullptr);
+  // The default storage area is managed by the OS and is recommended
+  static void exec(const uint8_t* blob, size_t size, location_t = default_location);
   // Same as above, but including the partition [@key, func]
-  static void exec(const uint8_t* blob, size_t size, std::string key, storage_func func);
-  // Same as above, but using buffer_t instead of pointer, length
-  static void exec(const buffer_t& blob, std::string key, storage_func func);
+  static void exec(const uint8_t* blob, size_t size, std::string key, storage_func func, location_t = default_location);
+  // Same as above, but using buffer_t& instead of pointer, length
+  static void exec(const buffer_t& blob, std::string key, storage_func func, location_t = default_location);
 
   // In the event that LiveUpdate::exec() fails,
   // call this function in the C++ exception catch scope:
@@ -56,7 +56,7 @@ struct LiveUpdate
 
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
-  static buffer_t store();
+  static size_t store(location_t = default_location);
 
   // Returns the location and size of the executable during exec()
   // To be used from inside the store callbacks to optionally save the binary
@@ -65,25 +65,24 @@ struct LiveUpdate
   // Returns true if there is stored data from before.
   // It performs an extensive validation process to make sure the data is
   // complete and consistent
-  static bool is_resumable();
-  static bool is_resumable(const void* location);
+  static bool is_resumable(const location_t = default_location);
 
   // Restore existing state for a partition named @key.
   // Returns false if there was no such partition
   // Can throw lots of standard exceptions
-  static bool resume(std::string key, resume_func handler);
+  static bool resume(std::string key, resume_func handler, location_t = default_location);
+
+  // When explicitly resuming from heap, heap overrun checks are disabled
+  static void resume_from_heap(std::string key, resume_func, location_t);
 
   // Check whether a partition named @key exists at default update location.
   // When @storage_area is nullptr (default) the area is retrieved from OS
-  static bool partition_exists(const std::string& key, const void* storage_area = nullptr) noexcept;
-
-  // When explicitly resuming from heap, heap overrun checks are disabled
-  static void resume_from_heap(void* location, std::string key, resume_func);
+  static bool partition_exists(const std::string& key, location_t = default_location) noexcept;
 
   // Retrieve the recorded length, in bytes, of a valid storage area
   // Throws std::runtime_error when something bad happens
   // Never returns zero
-  static size_t stored_data_length(const void* storage_area = nullptr);
+  static size_t stored_data_length(location_t);
 
   // Set location of known good blob to rollback to if something happens
   static void set_rollback_blob(const void*, size_t) noexcept;
@@ -267,6 +266,14 @@ class liveupdate_exec_success : public std::exception
 public:
     const char* what() const throw() {
       return "LiveUpdate::exec() success";
+    }
+};
+
+class liveupdate_end_reached : public std::exception
+{
+public:
+    const char* what() const throw() {
+      return "LiveUpdate: end of storage area reached";
     }
 };
 

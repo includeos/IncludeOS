@@ -119,10 +119,6 @@ namespace kernel {
   /** Boot with no multiboot params */
   void legacy_boot();
 
-  //static constexpr int PAGE_SHIFT = 12;
-  //static
-
-
   void default_stdout(const char*, size_t);
 
   /** Resume stuff from a soft reset **/
@@ -131,10 +127,10 @@ namespace kernel {
   void resume_softreset(intptr_t boot_addr);
 
   inline void* liveupdate_storage_area() noexcept {
-    return (void*)state().liveupdate_loc;
+    return (void*) state().liveupdate_loc;
   }
-  inline void* liveupdate_storage_end() noexcept {
-    return (void*) (state().liveupdate_loc + state().liveupdate_size);
+  inline size_t liveupdate_storage_size() noexcept {
+    return state().liveupdate_size;
   }
 
   void setup_liveupdate();
