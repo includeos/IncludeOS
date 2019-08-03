@@ -70,7 +70,7 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
   kernel::state().cmdline = Service::binary_name();
 
   // Initialize stdout handlers
-  if(os_default_stdout) {
+  if (os_default_stdout) {
     os::add_stdout(&kernel::default_stdout);
   }
 
@@ -186,11 +186,9 @@ void kernel::legacy_boot()
     INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
     kernel::state().memory_end = 0x100000 + high_memory_size - 1;
   }
-
-  auto& memmap = os::mem::vmmap();
-  // No guarantees without multiboot, but we assume standard memory layout
-  memmap.assign_range({0x0009FC00, 0x0009FFFF,
-        "EBDA"});
-  memmap.assign_range({0x000A0000, 0x000FFFFF,
-        "VGA/ROM"});
+  // this can be set by softreset during live update
+  if (kernel::state().mmap_addr != nullptr)
+  {
+	  multiboot_mmap(kernel::state().mmap_addr, kernel::state().mmap_size);
+  }
 }

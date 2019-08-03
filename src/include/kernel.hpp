@@ -30,7 +30,9 @@ namespace kernel {
     int  panics                = 0;
     os::Panic_action panic_action {};
     util::KHz cpu_khz {-1};
-    //const uintptr_t elf_binary_size = 0;
+	// Memory Mapping buffer (stored for live updates)
+	void*    mmap_addr  = nullptr;
+	uint32_t mmap_size  = 0;
   };
 
   State& state() noexcept;
@@ -113,6 +115,7 @@ namespace kernel {
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   void multiboot(uint32_t boot_addr);
+  void multiboot_mmap(void* addr, size_t);
 
   multiboot_info_t* bootinfo();
 
