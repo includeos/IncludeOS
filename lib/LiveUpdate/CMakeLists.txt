@@ -93,6 +93,9 @@ if (NOT CMAKE_TESTING_ENABLED)
   add_dependencies(liveupdate hotswap64)
 endif()
 set_target_properties(liveupdate PROPERTIES PUBLIC_HEADER "include/liveupdate;include/liveupdate.hpp")
+target_compile_options(liveupdate PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+target_compile_options(liveupdate PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -fstack-protector>)
+target_compile_options(liveupdate PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-ffunction-sections -fdata-sections>)
 
 INSTALL(TARGETS liveupdate
         ARCHIVE DESTINATION lib

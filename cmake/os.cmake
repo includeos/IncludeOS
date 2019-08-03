@@ -156,6 +156,8 @@ function(os_add_executable TARGET NAME)
 
   target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
   target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
+  target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+
   if (PROFILE)
 	  target_compile_definitions(${ELF_TARGET} PRIVATE ENABLE_PROFILERS=1)
   endif()
