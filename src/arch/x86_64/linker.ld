@@ -25,11 +25,6 @@ SECTIONS
   }
   PROVIDE( _TEXT_END_ = . );
 
-  /* Global offset-table. For dynamic linking */
-  .got ALIGN(0x10) : {
-      *(.got*)
-  }
-
 /**
   *   Global constructors
   *   Constructors are split into groups allowing the OS to use global ctors
@@ -131,6 +126,10 @@ SECTIONS
     KEEP(*(.eh_frame))
     LONG (0);
   }
+  .gcc_except_table : {
+    *(.gcc_except_table*)
+  }
+
   _READONLY_END_ = .;
 
   .data :

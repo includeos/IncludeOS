@@ -156,7 +156,11 @@ function(os_add_executable TARGET NAME)
 
   target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
   target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
-  target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+  else()
+    target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdinc>)
+  endif()
 
   if (PROFILE)
 	  target_compile_definitions(${ELF_TARGET} PRIVATE ENABLE_PROFILERS=1)
