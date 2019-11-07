@@ -1,18 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2018 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #ifndef KERNEL_HPP
 #define KERNEL_HPP
@@ -45,7 +30,9 @@ namespace kernel {
     int  panics                = 0;
     os::Panic_action panic_action {};
     util::KHz cpu_khz {-1};
-    //const uintptr_t elf_binary_size = 0;
+	// Memory Mapping buffer (stored for live updates)
+	void*    mmap_addr  = nullptr;
+	uint32_t mmap_size  = 0;
   };
 
   State& state() noexcept;
@@ -78,16 +65,16 @@ namespace kernel {
     return state().is_live_updated;
   }
 
-  inline const char* cmdline() {
+  inline const char* cmdline() noexcept {
     return state().cmdline;
   }
 
-  inline bool is_panicking() noexcept {
-    return state().panics > 0;
+  inline int panics() noexcept {
+    return state().panics;
   }
 
-  inline int panics() {
-    return state().panics;
+  inline bool is_panicking() noexcept {
+    return panics() > 0;
   }
 
   inline os::Panic_action panic_action() noexcept {
@@ -128,15 +115,12 @@ namespace kernel {
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   void multiboot(uint32_t boot_addr);
+  void multiboot_mmap(void* addr, size_t);
 
   multiboot_info_t* bootinfo();
 
   /** Boot with no multiboot params */
   void legacy_boot();
-
-  //static constexpr int PAGE_SHIFT = 12;
-  //static
-
 
   void default_stdout(const char*, size_t);
 
@@ -146,10 +130,10 @@ namespace kernel {
   void resume_softreset(intptr_t boot_addr);
 
   inline void* liveupdate_storage_area() noexcept {
-    return (void*)state().liveupdate_loc;
+    return (void*) state().liveupdate_loc;
   }
-  inline void* liveupdate_storage_end() noexcept {
-    return (void*) (state().liveupdate_loc + state().liveupdate_size);
+  inline size_t liveupdate_storage_size() noexcept {
+    return state().liveupdate_size;
   }
 
   void setup_liveupdate();

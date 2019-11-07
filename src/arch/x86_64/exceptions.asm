@@ -1,19 +1,3 @@
-; This file is a part of the IncludeOS unikernel - www.includeos.org
-;
-; Copyright 2015 Oslo and Akershus University College of Applied Sciences
-; and Alfred Bratterud
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-;     http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS,
-; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-; See the License for the specific language governing permissions and
-; limitations under the License.
 [BITS 64]
 extern __cpu_exception
 
@@ -98,7 +82,7 @@ SECTION .text
 
 ;; We don't have the previous stack pointer on stack
 ;; Make a best guess
-%define RSP_OFFS SZ_CALL_FRAME * 2 + ERRCODE_OFFS
+%define RSP_OFFS SZ_CALL_FRAME + 0x20
 
 save_cpu_regs:
     mov regs(RAX), rax
@@ -116,8 +100,7 @@ save_cpu_regs:
     mov regs(R14), r14
     mov regs(R15), r15
 
-    mov rax, rsp
-    add rax, RSP_OFFS
+    mov rax, QWORD [rsp + RSP_OFFS]
     mov regs(RSP), rax
     mov regs(RSI), rsi
     mov regs(RDI), rdi

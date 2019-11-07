@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 2.8.9)
-
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
 project(includeos C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(PROFILE "Compile with startup profilers" OFF)
+if (PROFILE)
+  add_definitions(-DENABLE_PROFILERS)
+endif()
+
+if (NOT ARCH)
+  set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+endif()
 
 if (NOT CMAKE_TESTING_ENABLED)
   if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
@@ -40,12 +47,6 @@ include_directories(
   include
   ../../src/include
 )
-
-
-
-if (NOT ARCH)
-  set(ARCH CMAKE_SYSTEM_PROCESSOR)
-endif()
 
 #do we need all of this*?
 add_definitions(-DARCH_${ARCH})
@@ -92,6 +93,9 @@ if (NOT CMAKE_TESTING_ENABLED)
   add_dependencies(liveupdate hotswap64)
 endif()
 set_target_properties(liveupdate PROPERTIES PUBLIC_HEADER "include/liveupdate;include/liveupdate.hpp")
+target_compile_options(liveupdate PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+target_compile_options(liveupdate PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -fstack-protector>)
+target_compile_options(liveupdate PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-ffunction-sections -fdata-sections>)
 
 INSTALL(TARGETS liveupdate
         ARCHIVE DESTINATION lib

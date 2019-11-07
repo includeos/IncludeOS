@@ -1,19 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include <kernel/elf.hpp>
 #include <util/crc32.hpp>
@@ -235,7 +219,7 @@ uintptr_t Elf::resolve_addr(void* addr)
   return (uintptr_t) addr;
 }
 
-safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t length)
+safe_func_offset Elf::safe_resolve_symbol(const void* addr, char* buffer, size_t length)
 {
   return get_parser().getsym_safe((ElfAddr) addr, buffer, length);
 }
@@ -378,6 +362,7 @@ void _move_elf_syms_location(const void* location, void* new_location)
   }
   // incoming header
   auto* hdr = (elfsyms_header*) location;
+#ifdef TRUST_BUT_VERIFY
   // verify CRC sanity check
   const uint32_t temp_hdr = hdr->sanity_check;
   hdr->sanity_check = 0;
@@ -411,6 +396,7 @@ void _move_elf_syms_location(const void* location, void* new_location)
     relocs.strsize = 0;
     return;
   }
+#endif
   // update header
   relocs.syms    = (ElfSym*) new_location;
   relocs.entries = hdr->symtab_entries;
@@ -478,12 +464,14 @@ void elf_protect_symbol_areas()
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
   if (size % os::mem::min_psize()) size += os::mem::min_psize() - (size & (os::mem::min_psize()-1));
+
+  INFO2("* Protecting syms %p to %p (size %#zx)\n", src, &src[size], size);
   if (size == 0) return;
+
   // create the ELF symbols & strings area
   os::mem::vmmap().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
 
-  INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);
   os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
 }
 #endif

@@ -6,6 +6,7 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 project (includeos C CXX)
 
 option(SMP "Compile with SMP (multiprocessing)" OFF)
+option(PROFILE "Compile with startup profilers" OFF)
 
 #Are we executing cmake from conan or locally
 #if locally then pull the deps from conanfile.py

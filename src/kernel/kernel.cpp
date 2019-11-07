@@ -1,19 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include <os.hpp>
 #include <kernel.hpp>
@@ -25,14 +9,8 @@
 #include <util/fixed_vector.hpp>
 #include <system_log>
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
-
 //#define ENABLE_PROFILERS
-#ifdef ENABLE_PROFILERS
 #include <profile>
-#define PROFILE(name)  ScopedProfiler __CONCAT(sp, __COUNTER__){name};
-#else
-#define PROFILE(name) /* name */
-#endif
 
 using namespace util;
 
@@ -48,9 +26,9 @@ inline static bool is_for_production_use() {
   return &__for_production_use == (char*) 0x2000;
 }
 
-kernel::State __kern_state;
 kernel::State& kernel::state() noexcept {
-  return __kern_state;
+    static kernel::State state;
+    return state;
 }
 
 util::KHz os::cpu_freq() {
@@ -99,44 +77,43 @@ void kernel::post_start()
   // Enable timestamps (if present)
   kernel::state().timestamps_ready = true;
 
-  // LiveUpdate needs some initialization, although only if present
-  kernel::setup_liveupdate();
+  {
+	PROFILE("LiveUpdate and SystemLog");
+    // LiveUpdate needs some initialization, although only if present
+    kernel::setup_liveupdate();
 
-  // Initialize the system log if plugin is present.
-  // Dependent on the liveupdate location being set
-  SystemLog::initialize();
-
-  MYINFO("Initializing RNG");
-  PROFILE("RNG init");
-  RNG::get().init();
+    // Initialize the system log if plugin is present.
+    // Dependent on the liveupdate location being set
+    SystemLog::initialize();
+  }
 
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
-#ifndef __MACH__
   // Custom initialization functions
   MYINFO("Initializing plugins");
-  kernel::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
-#endif
+  {
+	PROFILE("Plugin constructors");
+    kernel::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
 
-  // Run plugins
-  PROFILE("Plugins init");
-  for (auto plugin : plugins) {
-    INFO2("* Initializing %s", plugin.name);
-    plugin.func();
+    // Run plugins
+    for (auto plugin : plugins) {
+      INFO2("* Initializing %s", plugin.name);
+      plugin.func();
+    }
   }
 
   MYINFO("Running service constructors");
   FILLINE('-');
-  // the boot sequence is over when we get to plugins/Service::start
-  kernel::state().boot_sequence_passed = true;
+  {
+	PROFILE("Service constructors");
+    // the boot sequence is over when we get to plugins/Service::start
+    kernel::state().boot_sequence_passed = true;
 
-#ifndef __MACH__
     // Run service constructors
-  kernel::run_ctors(&__service_ctors_start, &__service_ctors_end);
-#endif
+    kernel::run_ctors(&__service_ctors_start, &__service_ctors_end);
+  }
 
-  PROFILE("Service::start");
   // begin service start
   FILLINE('=');
   printf(" IncludeOS %s (%s / %u-bit)\n",
@@ -165,7 +142,10 @@ void kernel::post_start()
   }
 
   // service program start
-  Service::start();
+  {
+	PROFILE("Service::start");
+    Service::start();
+  }
 }
 
 void os::add_stdout(os::print_func func)

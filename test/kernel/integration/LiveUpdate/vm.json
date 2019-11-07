@@ -1,7 +1,7 @@
 {
   "description" : "VM with interface for testing LiveUpdate",
   "net" : [
-    {"device" : "virtio"}
+    {"device" : "vmxnet3"}
   ],
-  "mem" : 1024
+  "mem" : 128
 }

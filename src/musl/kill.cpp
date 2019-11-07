@@ -1,19 +1,28 @@
 #include "common.hpp"
 #include <sys/types.h>
+#include <kernel/threads.hpp>
 
-int sys_kill(pid_t /*pid*/, int /*sig*/) {
+long sys_kill(pid_t /*pid*/, int /*sig*/) {
   os::panic("KILL called");
 }
 
-int sys_tkill(int /*tid*/, int /*sig*/) {
-#ifndef INCLUDEOS_SINGLE_THREADED
-#   warning "tkill not implemented for threaded IncludeOS"
-#endif
-  os::panic("TKILL called");
+long sys_tkill(int tid, int /*sig*/)
+{
+    if (tid == 0) {
+        os::panic("TKILL on main thread");
+    }
+
+    auto* thread = kernel::get_thread(tid);
+    THPRINT("TKILL on tid=%d where thread=%p\n", tid, thread);
+    if (thread != nullptr) {
+        thread->exit();
+        return 0;
+    }
+    return -EINVAL;
 }
 
-int sys_tgkill(int /*tgid*/, int /*tid*/, int /*sig*/) {
-  os::panic("TGKILL called");
+long sys_tgkill(int /*tgid*/, int tid, int sig) {
+  return sys_tkill(tid, sig);
 }
 
 extern "C"

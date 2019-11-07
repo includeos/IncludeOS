@@ -1,43 +1,33 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2018 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include <hal/machine.hpp>
 #include <util/units.hpp>
 #include <kernel.hpp>
 #include <os>
 
-#ifndef INFO_MACHINE
+//#define INFO_MACHINE
+#ifdef INFO_MACHINE
 #ifndef USERSPACE_KERNEL
 #define MINFO(fmt, ...) kprintf("[ Machine ] " fmt, ##__VA_ARGS__)
 #else
 #define MINFO(fmt, ...) printf("[ Machine ] " fmt, ##__VA_ARGS__)
 #endif
+#else
+#define MINFO(...) /* */
 #endif
 
 using namespace util;
 
 // Reserve some machine memory for e.g. devices
 // (can still be used by heap as fallback).
-static constexpr size_t reserve_mem = 1_MiB;
+static constexpr size_t reserve_mem = 1_KiB;
 
 // Max percent of memory reserved by machine
 static constexpr int  reserve_pct_max = 10;
 static_assert(reserve_pct_max > 0 and reserve_pct_max < 90);
 
 namespace os {
+    __attribute__((weak))
+    uintptr_t liveupdate_memory_size_mb = 0;
 
   Machine::Memory& Machine::memory() noexcept {
     return impl->memory();
@@ -78,12 +68,9 @@ namespace os::detail {
         (void*) bits::align(Memory::align, (uintptr_t)raw_mem),
         size - (bits::align(Memory::align, (uintptr_t)raw_mem) - (uintptr_t)raw_mem)
       },
-      ptr_alloc_(mem_), parts_(ptr_alloc_), device_types_(mem_)
-  {
-#ifndef USERSPACE_KERNEL
-    kprintf("[%s %s] constructor \n", arch(), name());
-#endif
-  }
+      ptr_alloc_(mem_), parts_(ptr_alloc_), device_types_(mem_) {
+          
+      }
 
   void Machine::init() {
     MINFO("Initializing heap\n");
@@ -93,7 +80,7 @@ namespace os::detail {
 
 #ifndef PLATFORM_x86_solo5
     static const size_t SYSTEMLOG_SIZE = 65536;
-    const size_t LIU_SIZE = (main_mem.size / (100 / 25)) & ~0xfff;
+    const size_t LIU_SIZE = os::liveupdate_memory_size_mb * 1024 * 1024;
     auto liu_mem = memory().allocate_back(LIU_SIZE + SYSTEMLOG_SIZE);
     kernel::state().liveupdate_phys = (uintptr_t) liu_mem.ptr + SYSTEMLOG_SIZE;
     kernel::state().liveupdate_size = liu_mem.size - SYSTEMLOG_SIZE;
@@ -102,14 +89,13 @@ namespace os::detail {
     // reallocate main memory from remainder
     main_mem = memory().allocate_largest();
 
-    const auto percent = main_mem.size / (100 / reserve_pct_max);
-    const auto reserve = std::min(reserve_mem, percent);
-    main_mem.size -= reserve;
-    auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve;
+    MINFO("Reserving %zu b for machine use\n", reserve_mem);
+    main_mem.size -= reserve_mem;
+    auto back = (uintptr_t)main_mem.ptr + main_mem.size - reserve_mem;
+    MINFO("Deallocating %zu b from back of machine\n", reserve_mem);
     memory().deallocate((void*)back, reserve_mem);
-    MINFO("Reserving %zu b for machine use \n", reserve);
 
-    kernel::init_heap((uintptr_t)main_mem.ptr,(uintptr_t)((char *)main_mem.ptr + main_mem.size));
+    kernel::init_heap((uintptr_t) main_mem.ptr, (uintptr_t) main_mem.ptr + main_mem.size);
   }
 
   const char* Machine::arch() { return Arch::name; }

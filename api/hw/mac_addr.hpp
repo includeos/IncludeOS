@@ -1,19 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #pragma once
 #ifndef HW_MAC_ADDR_HPP
@@ -33,9 +17,16 @@ namespace MAC {
  */
 union Addr {
   /**
-   * Default constructor
+   * Zero-initialized default constructor
    */
   constexpr Addr() noexcept : part{} {}
+
+  /**
+   * Constructor
+   *
+   * Create a MAC address object by copying another
+   */
+  Addr(const Addr& other) = default;
 
   /**
    * Constructor
@@ -236,7 +227,7 @@ union Addr {
 
 
   static constexpr const size_t PARTS_LEN {6}; //< Number of parts in a MAC address
-  uint8_t part[PARTS_LEN];                     //< The parts of the MAC address
+  uint8_t part[PARTS_LEN] = {0};               //< The parts of the MAC address
 
   struct {
     uint16_t minor;

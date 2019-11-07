@@ -1,21 +1,6 @@
-; This file is a part of the IncludeOS unikernel - www.includeos.org
-;
-; Copyright 2015 Oslo and Akershus University College of Applied Sciences
-; and Alfred Bratterud
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-;
-;     http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS,
-; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-; See the License for the specific language governing permissions and
-; limitations under the License.
 global __arch_start:function
 global __gdt64_base_pointer
+global __startup_was_fast
 global fast_kernel_start:function
 extern kernel_start
 extern __multiboot_magic
@@ -135,12 +120,11 @@ long_mode:
     mov gs, cx
     mov ss, cx
 
+resume_startup:
     ;; set up new stack for 64-bit
     extern _ELF_START_
     push rsp
     mov  rsp, _ELF_START_
-    push 0
-    push 0
     mov  rbp, rsp
 
     mov ecx, IA32_STAR
@@ -168,12 +152,10 @@ long_mode:
 
 ;; this function can be jumped to directly from hotswap
 fast_kernel_start:
-    and  rsp, -16
-    mov  edi, eax
-    mov  esi, ebx
-    call kernel_start
-    cli
-    hlt
+	mov DWORD[__multiboot_magic], eax
+	mov DWORD[__multiboot_addr],  ebx
+	mov WORD [__startup_was_fast], 1
+	jmp resume_startup
 
 SECTION .data
 GDT64:
@@ -202,8 +184,11 @@ __gdt64_base_pointer:
     dw $ - GDT64 - 1             ; Limit.
     dq GDT64                     ; Base.
 
-SECTION .bss
+SECTION .rodata
 tls_table:
     dq   tls_table
+__startup_was_fast:
+	dw   0
+SECTION .bss
 smp_table:
     resw 8

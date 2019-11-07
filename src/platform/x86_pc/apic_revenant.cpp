@@ -88,8 +88,8 @@ void revenant_main(int cpu)
   SMP::global_unlock();
   // initialize exceptions before asserts
   x86::idt_initialize_for_cpu(cpu);
-  assert(cpu == SMP::cpu_id());
-  assert(stack >= this_stack_end && stack < this_stack);
+  Expects(cpu == SMP::cpu_id());
+  Expects(stack >= this_stack_end && stack < this_stack);
 
 #ifdef ARCH_x86_64
   // interrupt stack tables

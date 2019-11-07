@@ -7,6 +7,8 @@ if (NOT HAS_CONAN)
 endif()
 conan_basic_setup()
 
+set(LIVEUPDATE_MB 32 CACHE STRING "")
+option(MINIMAL "" ON)
 include(os)
 
 option(benchmark_mode "Optimizations for benchmarking" OFF)
@@ -22,7 +24,7 @@ set(SOURCES
 os_add_executable(kernel_LiveUpdate "LiveUpdate integration test" ${SOURCES})
 
 os_add_drivers(kernel_LiveUpdate
-  virtionet
+  vmxnet3
   boot_logger
 )
 

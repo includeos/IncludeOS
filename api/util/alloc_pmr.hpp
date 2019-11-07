@@ -1,31 +1,17 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2018 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #ifndef UTIL_ALLOC_PMR
 #define UTIL_ALLOC_PMR
-
-#if __has_include(<experimental/memory_resource>)
+#if __has_include(<memory_resource>)
+#include <memory_resource>
+#include <vector> // For pmr::vector
+#elif __has_include(<experimental/memory_resource>)
 #include <experimental/memory_resource>
 #include <experimental/vector>
 namespace std {
   namespace pmr = std::experimental::pmr;
 }
 #else
-#include <memory_resource>
-#include <vector> // For pmr::vector
+#error "No polymorphic resource support"
 #endif
 #include <delegate>
 extern void* aligned_alloc(size_t alignment, size_t size);
@@ -115,7 +101,7 @@ namespace os::mem {
     }
 
     bool do_is_equal (const std::pmr::memory_resource& other) const noexcept override {
-      if (const auto* underlying = dynamic_cast<const Default_pmr*>(&other))
+      if (dynamic_cast<const Default_pmr*>(&other))
         return true;
       return false;
     }

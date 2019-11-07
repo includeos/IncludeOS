@@ -1,19 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #pragma once
 #ifndef NET_IP4_ADDR_HPP
@@ -43,11 +27,16 @@ struct Addr {
   /**
    * Constructor
    *
-   * Create an IPv4 address object to represent the address <0.0.0.0>
+   * Create an IPv4 address object to represent 0.0.0.0
    */
-  constexpr Addr() noexcept
-    : whole{}
-  {}
+  constexpr Addr() noexcept = default;
+
+  /**
+   * Constructor
+   *
+   * Create an IPv4 address object by copying another
+   */
+  Addr(const Addr& other) = default;
 
   /**
    * Constructor
@@ -385,7 +374,7 @@ struct Addr {
   static const Addr addr_bcast;
 
   /* Data member */
-  uint32_t whole;
+  uint32_t whole = 0;
 } __attribute__((packed)); //< struct Addr
 
 static_assert(sizeof(Addr) == 4, "Must be 4 bytes in size");

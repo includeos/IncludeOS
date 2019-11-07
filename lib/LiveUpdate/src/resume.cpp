@@ -1,18 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2017 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
@@ -22,6 +7,7 @@
 
 #include <os.hpp>
 #include <kernel.hpp>
+#include <profile>
 #include "storage.hpp"
 #include "serialize_tcp.hpp"
 #include <cstdio>
@@ -33,20 +19,24 @@ namespace liu
 {
 static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
 
-bool LiveUpdate::is_resumable()
+static inline location_t resolve_default(location_t other)
 {
-  return is_resumable(kernel::liveupdate_storage_area());
+	if (other.first == nullptr || other.second == 0)
+		return { kernel::liveupdate_storage_area(), kernel::liveupdate_storage_size() };
+	return other;
 }
-bool LiveUpdate::is_resumable(const void* location)
+
+bool LiveUpdate::is_resumable(const location_t provided)
 {
-  return ((const storage_header*) location)->validate();
+  const auto location = resolve_default(provided);
+  return ((const storage_header*) location.first)->validate();
 }
 bool LiveUpdate::os_is_liveupdated() noexcept
 {
   return kernel::state().is_live_updated;
 }
 
-static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
+static bool resume_helper(location_t location, std::string key, LiveUpdate::resume_func func)
 {
   // check if an update has occurred
   if (!LiveUpdate::is_resumable(location))
@@ -54,37 +44,38 @@ static bool resume_helper(void* location, std::string key, LiveUpdate::resume_fu
 
   LPRINT("* Restoring data...\n");
   // restore connections etc.
-  return resume_begin(*(storage_header*) location, key.c_str(), func);
+  return resume_begin(*(storage_header*) location.first, key.c_str(), func);
 }
-bool LiveUpdate::resume(std::string key, resume_func func)
+bool LiveUpdate::resume(std::string key, resume_func func, location_t provided)
 {
-  void* location = kernel::liveupdate_storage_area();
+  const auto location = resolve_default(provided);
   /// memory sanity check
-  if (kernel::heap_end() >= (uintptr_t) location) {
+  if (kernel::heap_end() >= (uintptr_t) location.first) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (kernel::heap_end() - (uintptr_t) location));
+		     (long int) (kernel::heap_end() - (uintptr_t) location.first));
     throw std::runtime_error("LiveUpdate::resume(): Storage area inside heap");
   }
   return resume_helper(location, std::move(key), func);
 }
-bool LiveUpdate::partition_exists(const std::string& key, const void* area) noexcept
-{
-  if (area == nullptr) area = kernel::liveupdate_storage_area();
-
-  if (!LiveUpdate::is_resumable(area))
-    return false;
-
-  auto& storage = *(const storage_header*) area;
-  return (storage.find_partition(key.c_str()) != -1);
-}
-void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
+void LiveUpdate::resume_from_heap(std::string key, LiveUpdate::resume_func func, location_t location)
 {
   resume_helper(location, std::move(key), func);
+}
+bool LiveUpdate::partition_exists(const std::string& key, const location_t provided) noexcept
+{
+  const auto location = resolve_default(provided);
+
+  if (!LiveUpdate::is_resumable(location))
+    return false;
+
+  auto& storage = *(const storage_header*) location.first;
+  return (storage.find_partition(key.c_str()) != -1);
 }
 
 bool resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)
 {
+  PROFILE("LiveUpdate: Resume partition");
   if (key.empty())
       throw std::length_error("LiveUpdate partition key cannot be an empty string");
 
@@ -96,7 +87,10 @@ bool resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_f
   // resume wrapper
   Restore wrapper(storage.begin(p));
   // use registered functions when we can, otherwise, use normal
-  func(wrapper);
+  {
+    PROFILE("LiveUpdate: Resume callback");
+    func(wrapper);
+  }
 
   // wake all the slumbering IP stacks
   serialized_tcp::wakeup_ip_networks();
@@ -157,10 +151,9 @@ std::string Restore::as_string() const
 }
 buffer_t  Restore::as_buffer() const
 {
+  PROFILE("LiveUpdate: Restore::as_buffer");
   if (ent->type == TYPE_BUFFER) {
-      buffer_t buffer;
-      buffer.assign(ent->data(), ent->data() + ent->len);
-      return buffer;
+      return buffer_t{ent->data(), ent->data() + ent->len};
   }
   throw std::runtime_error("LiveUpdate: Restore::as_buffer() encountered incorrect type " + std::to_string(ent->type));
 }

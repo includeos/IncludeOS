@@ -1,34 +1,19 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include <profile>
 #include <common>
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-//#include <kernel/os.hpp>
 #include <os.hpp>
 #include <kernel/rtc.hpp>
+#include <util/units.hpp>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
 #include <sstream>
 
 decltype(ScopedProfiler::guard)   ScopedProfiler::guard   = Guard::NOT_SELECTED;
-decltype(ScopedProfiler::entries) ScopedProfiler::entries = {};
+decltype(ScopedProfiler::entries) ScopedProfiler::entries;
+static uint64_t base_ticks = 0;
 
 void ScopedProfiler::record()
 {
@@ -68,6 +53,7 @@ void ScopedProfiler::record()
                   "rdtsc\n\t"
                   : "=A" (tick_start));
   }
+  if (base_ticks == 0) base_ticks = tick_start;
 }
 
 ScopedProfiler::~ScopedProfiler()
@@ -91,13 +77,7 @@ ScopedProfiler::~ScopedProfiler()
                   : "=A" (tick));
   }
 
-  uint64_t nanos_start = RTC::nanos_now();
-
-  static uint64_t base_nanos = 0;
-  if (base_nanos == 0) base_nanos = nanos_start;
-  nanos_start -= base_nanos;
-
-  uint64_t cycles = tick - tick_start;
+  const uint64_t cycles = tick - this->tick_start;
   auto function_address = __builtin_return_address(0);
 
   // Find an entry that matches this function_address
@@ -106,7 +86,7 @@ ScopedProfiler::~ScopedProfiler()
     if (entry.function_address == function_address)
     {
       // Update the entry
-      entry.cycles_average = ((entry.cycles_average * entry.num_samples) + cycles) / (entry.num_samples + 1);
+      entry.cycles_total += cycles;
       entry.num_samples += 1;
       return;
     }
@@ -117,16 +97,16 @@ ScopedProfiler::~ScopedProfiler()
     if (entry.function_address == 0)
     {
       // Use this unused entry
-      char symbol_buffer[4096];
+      char symbol_buffer[8192];
       const auto symbols = Elf::safe_resolve_symbol(function_address,
                                                     symbol_buffer,
                                                     sizeof(symbol_buffer));
       entry.name = this->name;
       entry.function_address = function_address;
       entry.function_name = symbols.name;
-      entry.cycles_average = cycles;
-      entry.nanos_start = nanos_start;
-      entry.num_samples = 1;
+	  entry.num_samples = 1;
+      entry.cycles_total = cycles;
+	  entry.ticks_start = this->tick_start;
       return;
     }
   }
@@ -163,23 +143,25 @@ std::string ScopedProfiler::get_statistics(bool sorted)
       // Make sure to keep unused entries last (only sort used entries)
       std::sort(entries.begin(), entries.begin() + num_entries, [](const Entry& a, const Entry& b)
       {
-        return a.cycles_average > b.cycles_average;
+        return a.cycles_average() < b.cycles_average();
       });
     }
 
     // Add each entry
     ss.setf(std::ios_base::fixed);
-    for (auto i = 0u; i < num_entries; i++)
+    for (unsigned i = 0; i < num_entries; i++)
     {
+      using namespace util;
       const auto& entry = entries[i];
 
-      double timst = entry.nanos_start / 1.0e6;
+	  const uint64_t tickdiff = entry.ticks_start - base_ticks;
+      double timst = ((double) tickdiff / KHz(os::cpu_freq()).count());
       ss.width(10);
       ss << timst << " ms | ";
 
-      double micros = entry.cycles_average / os::cpu_freq().count();
+      double micros = (double) entry.cycles_average() / KHz(os::cpu_freq()).count();
       ss.width(10);
-      ss << micros / 1000.0 << " ms | ";
+      ss << micros << " ms | ";
 
       ss.width(7);
       ss << entry.num_samples << " | ";

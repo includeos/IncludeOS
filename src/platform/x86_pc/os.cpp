@@ -1,19 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
@@ -27,16 +11,9 @@
 #include <kprint>
 #include <service>
 #include <cstdio>
-#include <cinttypes>
 #include "cmos.hpp"
-
 //#define ENABLE_PROFILERS
-#ifdef ENABLE_PROFILERS
 #include <profile>
-#define PROFILE(name)  ScopedProfiler __CONCAT(sp, __COUNTER__){name};
-#else
-#define PROFILE(name) /* name */
-#endif
 
 extern "C" void* get_cpu_esp();
 extern uintptr_t _start;
@@ -93,7 +70,7 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
   kernel::state().cmdline = Service::binary_name();
 
   // Initialize stdout handlers
-  if(os_default_stdout) {
+  if (os_default_stdout) {
     os::add_stdout(&kernel::default_stdout);
   }
 
@@ -106,10 +83,13 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
   // PAGING //
-  PROFILE("Enable paging");
-  __arch_init_paging();
+  {
+    PROFILE("Enable paging");
+    __arch_init_paging();
+  }
 
   // BOOT METHOD //
+  {
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -122,6 +102,7 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
     kernel::legacy_boot();
   }
   assert(kernel::memory_end() != 0);
+  }
 
   MYINFO("Total memory detected as %s ", util::Byte_r(kernel::memory_end()).to_string().c_str());
 
@@ -129,12 +110,15 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
   kernel::state().heap_max = kernel::memory_end() - 1;
   assert(kernel::heap_begin() != 0x0 and kernel::heap_max() != 0x0);
 
-  PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = os::mem::vmmap();
   INFO2("Assigning fixed memory ranges (Memory map)");
+
   // protect symbols early on (the calculation is complex so not doing it here)
-  elf_protect_symbol_areas();
+  {
+    PROFILE("Protect symbols");
+    elf_protect_symbol_areas();
+  }
 
 #if defined(ARCH_x86_64)
   // protect the basic pagetable used by LiveUpdate and any other
@@ -154,15 +138,22 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
         "Dynamic memory", kernel::heap_usage });
 
   MYINFO("Virtual memory map");
-  for (const auto& entry : memmap)
-      INFO2("%s", entry.second.to_string().c_str());
+  {
+    PROFILE("Print memory map");
+    for (const auto& entry : memmap)
+        INFO2("%s", entry.second.to_string().c_str());
+  }
 
-  PROFILE("Platform init");
-  __platform_init();
+  {
+    PROFILE("Platform init");
+  	__platform_init();
+  }
 
-  PROFILE("RTC init");
   // Realtime/monotonic clock
-  RTC::init();
+  {
+    PROFILE("RTC init");
+    RTC::init();
+  }
 }
 
 extern void __arch_poweroff();
@@ -182,7 +173,6 @@ void os::event_loop()
   __arch_poweroff();
 }
 
-
 void kernel::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
@@ -196,12 +186,9 @@ void kernel::legacy_boot()
     INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
     kernel::state().memory_end = 0x100000 + high_memory_size - 1;
   }
-
-  auto& memmap = os::mem::vmmap();
-  // No guarantees without multiboot, but we assume standard memory layout
-  memmap.assign_range({0x0009FC00, 0x0009FFFF,
-        "EBDA"});
-  memmap.assign_range({0x000A0000, 0x000FFFFF,
-        "VGA/ROM"});
-
+  // this can be set by softreset during live update
+  if (kernel::state().mmap_addr != nullptr)
+  {
+	  multiboot_mmap(kernel::state().mmap_addr, kernel::state().mmap_size);
+  }
 }

@@ -1,18 +1,3 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2017 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
@@ -113,8 +98,11 @@ struct storage_header
   uint32_t get_entries() const noexcept {
     return this->entries;
   }
+  uint32_t end_bytes() const noexcept {
+	  return max_length - sizeof(storage_entry);
+  }
 
-  storage_header();
+  storage_header(const size_t);
   int  create_partition(std::string key);
   int  find_partition(const char*) const;
   void finish_partition(int);
@@ -123,7 +111,7 @@ struct storage_header
   void add_marker(uint16_t id);
   void add_int   (uint16_t id, int value);
   void add_string(uint16_t id, const std::string& data);
-  void add_buffer(uint16_t id, const char*, int);
+  void add_buffer(uint16_t id, const void*, int);
   storage_entry& add_struct(int16_t type, uint16_t id, int length);
   storage_entry& add_struct(int16_t type, uint16_t id, construct_func);
   void add_vector(uint16_t, const void*, size_t cnt, size_t esize);
@@ -139,6 +127,7 @@ struct storage_header
   inline storage_entry&
   var_entry(int16_t type, uint16_t id, construct_func func);
 
+  void end_reached();
   void append_eof() noexcept {
     ((storage_entry*) &vla[length])->type = TYPE_END;
   }
@@ -156,6 +145,7 @@ private:
   mutable uint32_t crc = 0;
   uint32_t entries = 0;
   uint32_t length  = 0;
+  const uint32_t max_length;
   std::array<partition_header, 16> ptable;
   uint32_t partitions = 0;
   char     vla[0];
@@ -168,6 +158,10 @@ storage_header::create_entry(Args&&... args)
   // create entry
   auto* entry = (storage_entry*) &vla[length];
   new (entry) storage_entry(args...);
+  // check that we dont start writing into nowhere-land
+  if (this->length + entry->size() > end_bytes()) {
+	  this->end_reached();
+  }
   // next storage_entry will be this much further out:
   this->length += entry->size();
   this->entries++;
@@ -184,6 +178,9 @@ storage_header::var_entry(int16_t type, uint16_t id, construct_func func)
   new (entry) storage_entry(type, id, 0);
   // determine and set size of entry
   entry->len = func(entry->vla);
+  if (this->length + entry->size() > end_bytes()) {
+	  this->end_reached();
+  }
   // next storage_entry will be this much further out:
   this->length += entry->size();
   this->entries++;

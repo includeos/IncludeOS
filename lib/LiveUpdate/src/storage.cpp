@@ -1,31 +1,16 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2017 IncludeOS AS, Oslo, Norway
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
  *
 **/
 #include "storage.hpp"
+#include "liveupdate.hpp"
 #include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/memory.hpp>
 #include <util/crc32.hpp>
 #include <cassert>
 //#define VERIFY_MEMORY
-extern bool LIVEUPDATE_USE_CHEKSUMS;
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -34,8 +19,8 @@ inline uint32_t liu_crc32(const void* buf, size_t len)
 
 const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
 
-storage_header::storage_header()
-  : magic(LIVEUPD_MAGIC)
+storage_header::storage_header(const size_t maxlen)
+  : magic(LIVEUPD_MAGIC), max_length(maxlen)
 {
   //printf("%p --> %#llx\n", this, value);
 }
@@ -59,13 +44,13 @@ void storage_header::add_string(uint16_t id, const std::string& data)
   assert(entry.checksum() == csum);
 #endif
 }
-void storage_header::add_buffer(uint16_t id, const char* buffer, int length)
+void storage_header::add_buffer(uint16_t id, const void* buffer, int length)
 {
   auto& entry = create_entry(TYPE_BUFFER, id, length);
-  memcpy(entry.vla, buffer, length);
+  memcpy(entry.vla, (const char*) buffer, length);
 #ifdef VERIFY_MEMORY
   /// verify memory
-  uint32_t csum = liu_crc32(buffer, length);
+  const uint32_t csum = liu_crc32(buffer, length);
   assert(entry.checksum() == csum);
 #endif
 }
@@ -140,20 +125,20 @@ void storage_header::finalize()
       throw std::runtime_error("Magic field invalidated during store process");
   // add end if missing
   if (this->length == 0) this->add_end();
-  if (LIVEUPDATE_USE_CHEKSUMS)
-    // generate checksum for header
-    this->crc = generate_checksum();
-  else
-    this->crc = 0;
+  // generate checksum for header
+  this->crc = generate_checksum();
 }
 bool storage_header::validate() const noexcept
 {
   if (this->magic != LIVEUPD_MAGIC) return false;
-  if (LIVEUPDATE_USE_CHEKSUMS == false) return true;
 
   uint32_t chsum = generate_checksum();
   if (this->crc != chsum) return false;
   return true;
+}
+void storage_header::end_reached()
+{
+  throw liu::liveupdate_end_reached();
 }
 
 uint32_t storage_header::generate_checksum() const noexcept
@@ -180,8 +165,8 @@ void storage_header::try_zero() noexcept
 }
 void storage_header::zero()
 {
-  memset(this->vla, 0, this->length);
-  *this = {};
+  //memset(this->vla, 0, this->length);
+  new (this) storage_header(0);
   this->magic = 0;
 }
 

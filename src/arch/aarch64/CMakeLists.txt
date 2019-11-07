@@ -3,13 +3,9 @@
 
 ### aarch64 arch specific ###
 set(ARCH_OBJECTS
-#  gdt_asm.asm
-#  profile_intr.asm
-#  apic_asm.asm
-  arch_start.asm
-  exceptions.asm
-#  interrupts.asm
-#  fiber.asm
+    arch_start.asm
+    exceptions.asm
+    threads.asm
 )
 set(ARCH_SOURCES
   paging.cpp

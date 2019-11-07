@@ -1,7 +1,7 @@
 ![IncludeOS Logo](./etc/logo.png)
 ================================================
 
-**IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud and on real HW. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
+**IncludeOS** is a minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud and on real hardware. Starting a program with `#include <os>` will include a tiny operating system into your service during link-time.
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
@@ -14,14 +14,13 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 ## <a name="features"></a> Key features
 
-* **Extreme memory footprint**: A minimal bootable 64-bit web server, including operating system components and anything needed from the C/C++ standard libraries is currently 2.5 MB.
+* **Extreme memory footprint**: A tiny bootable C++17 hello world is currently 900 KB and needs only 5 MB RAM on x86_64.
 * **KVM, VirtualBox and VMWare support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization), available on most modern x86 CPUs. IncludeOS will run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), and VMWare [ESXi](https://www.vmware.com/products/esxi-and-esx.html)/[Fusion](https://www.vmware.com/products/fusion.html) which means that you can run your IncludeOS service on Linux, Microsoft Windows and macOS, as well as on cloud providers such as [Google Compute Engine](http://www.includeos.org/blog/2017/includeos-on-google-compute-engine.html), [OpenStack](https://www.openstack.org/) and VMWare [vcloud](https://www.vmware.com/products/vcloud-suite.html).
 * **Instant boot:** IncludeOS on Qemu/kvm boots in about 300ms but IBM Research has also integrated IncludeOS with [Solo5/uKVM](https://github.com/Solo5/solo5), providing boot times as low as 10 milliseconds.
 * **Modern C++ support**
-    * Full C++11/14/17 language support with [clang](http://clang.llvm.org) 5 and later.
+    * Full C++11/14/17 language support with [clang](http://clang.llvm.org) 6 and later.
     * Standard C++ library (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/).
     * Exceptions and stack unwinding (currently using [libgcc](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html)).
-    * *Note:* Certain language features, such as threads and filestreams are currently missing backend support but is beeing worked on.
 * **Standard C library** using [musl libc](http://www.musl-libc.org/).
 * **Virtio and vmxnet3 Network drivers** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. vmxnet3 is the VMWare equivalent.
 * **A highly modular TCP/IP-stack**.
@@ -61,7 +60,7 @@ The following command will configure conan to use our build profiles and remote 
 $ conan config install https://github.com/includeos/conan_config.git
 ```
 
-**Note:** If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our prebuilt conan packages in [bintray.com/includeos](https://bintray.com/includeos). 
+**Note:** If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our prebuilt conan packages in [bintray.com/includeos](https://bintray.com/includeos).
 
 
 

@@ -7,8 +7,8 @@ set(SRCS
     memmap.cpp
     multiboot.cpp
     os.cpp
+    panic.cpp
     profile.cpp
-    syscalls.cpp
     service_stub.cpp
     #scoped_profiler.cpp
 #    elf.cpp
@@ -16,8 +16,9 @@ set(SRCS
 #    profile.cpp
     terminal.cpp
     timers.cpp
+    threads.cpp
+    #tls.cpp
     rng.cpp
-    tls.cpp
     vga.cpp
     context.cpp
     #context_asm.asm

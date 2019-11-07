@@ -1,21 +1,3 @@
-/**
- * This file is a part of the IncludeOS unikernel - www.includeos.org
- *
- * Copyright 2015 Oslo and Akershus University College of Applied Sciences
- * and Alfred Bratterud
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http: *www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-**/
 ENTRY(_start)
 
 SECTIONS
@@ -27,7 +9,7 @@ SECTIONS
 
   .multiboot : {
       PROVIDE(_MULTIBOOT_START_ = .);
-      *(.multiboot)
+      KEEP(*(.multiboot))
    }
 
   .text ALIGN(0x1000):
@@ -43,15 +25,12 @@ SECTIONS
   }
   PROVIDE( _TEXT_END_ = . );
 
-  /* Global offset-table. For dynamic linking */
-  .got ALIGN(0x10) : {
-      *(.got*)
-  }
-
 /**
- *  .preinit_array, .init_array, .fini_array
- *  from GNU LD default linker script
- */
+  *   Global constructors
+  *   Constructors are split into groups allowing the OS to use global ctors
+  *   before the OS itself is initialized, while delaying the calls to service constructors
+  *   until as much of the OS / C++ runtime as possible is ready.
+  */
 
   .preinit_array :
   {
@@ -59,13 +38,6 @@ SECTIONS
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN (__preinit_array_end = .);
   }
-
-/**
-  *   Global constructors
-  *   Constructors are split into groups allowing the OS to use global ctors
-  *   before the OS itself is initialized, while delaying the calls to service constructors
-  *   until as much of the OS / C++ runtime as possible is ready.
-  */
 
   /* OS / stdlib constructors */
   .init_array :
@@ -139,7 +111,7 @@ SECTIONS
   .memdisk :
   {
     _DISK_START_ = .;
-    *(.diskdata)
+    KEEP(*(.diskdata))
     _DISK_END_ = .;
   }
 
@@ -154,12 +126,12 @@ SECTIONS
     KEEP(*(.eh_frame))
     LONG (0);
   }
-
-  .gcc_except_table :
-  {
-    *(.gcc_except_table)
+  .gcc_except_table : {
+    *(.gcc_except_table*)
   }
+
   _READONLY_END_ = .;
+
   .data :
   {
     _DATA_START_ = .;
