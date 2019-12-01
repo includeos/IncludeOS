@@ -56,9 +56,14 @@ namespace kernel
     return get_thread()->tid;
   }
 
+  int64_t get_last_thread_id() noexcept;
+
   void* get_thread_area();
+  void  set_thread_area(void*);
 
   thread_t* thread_create(thread_t* parent, int flags, void* ctid, void* stack) noexcept;
+
+  void resume(int64_t tid);
 
   void setup_main_thread() noexcept;
 }

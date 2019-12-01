@@ -6,9 +6,11 @@
 #include "pit.hpp"
 #include <os.hpp>
 #include <kernel/events.hpp>
+#include <kernel/threads.hpp>
 #include <malloc.h>
 #include <algorithm>
 #include <cstring>
+#include <thread>
 
 extern "C" {
   extern char _binary_apic_boot_bin_start;
@@ -28,26 +30,6 @@ struct apic_boot {
   uint32_t  stack_base;
   uint32_t  stack_size;
 };
-
-struct __libc {
-  int can_do_threads;
-  int threaded;
-  int secure;
-  volatile int threads_minus_1;
-  size_t* auxv;
-};
-extern struct __libc __libc;
-//extern "C" struct __libc *__libc_loc(void) __attribute__((const));
-//#define __libc (*__libc_loc())
-
-static inline void musl_override_glob_locks()
-{
-  printf("__libc.can_do_threads: %d  __libc.threaded: %d\n",
-        __libc.can_do_threads, __libc.threaded);
-  printf("__libc.threads_minus_1: %d -> %d\n",
-        __libc.threads_minus_1, 1);
-  __libc.threads_minus_1 = 1;
-}
 
 namespace x86
 {
@@ -91,10 +73,22 @@ void init_SMP()
   // reset barrier
   smp_main.boot_barrier.reset(1);
 
-  // enable global locks on musl
-  musl_override_glob_locks();
-
   auto& apic = x86::APIC::get();
+  // massage musl to create a main thread for each AP
+  for (const auto& cpu : ACPI::get_cpus())
+  {
+	  if (cpu.id == apic.get_id()) continue;
+	  //printf("Creating main thread for CPU %d\n", cpu.id);
+	  // thread should immediately yield
+	  auto* t = new std::thread(&revenant_thread_main, cpu.id);
+	  const long tid = kernel::get_last_thread_id();
+	  //printf("Back at the main thread, last thread: %ld\n", tid);
+	  // store thread info in SMP structure
+	  auto& system = smp_system.at(cpu.id);
+	  system.main_thread = t;
+	  system.main_thread_id = tid;
+  }
+
   // turn on CPUs
   INFO("SMP", "Initializing APs");
   for (const auto& cpu : ACPI::get_cpus())

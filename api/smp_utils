@@ -40,12 +40,12 @@ private:
 
 struct minimal_barrier_t
 {
-  void inc()
+  void increment() noexcept
   {
     __sync_fetch_and_add(&val, 1);
   }
 
-  void spin_wait(int max)
+  void spin_wait(int max) noexcept
   {
     asm("mfence");
     while (this->val < max) {
@@ -53,7 +53,7 @@ struct minimal_barrier_t
     }
   }
 
-  void reset(int val)
+  void reset(int val) noexcept
   {
     asm volatile("mfence");
     this->val = val;

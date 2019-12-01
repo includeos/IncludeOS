@@ -4,19 +4,15 @@
 #include "clocks.hpp"
 #include "idt.hpp"
 #include <kernel/events.hpp>
-//#include <kernel/os.hpp>
-#include <os.hpp>
 #include <kernel/rng.hpp>
-#include <kprint>
+#include <kernel/threads.hpp>
+#include <os.hpp>
 
 namespace x86 {
   extern void initialize_cpu_tables_for_cpu(int);
   smp_stuff smp_main;
   SMP::Array<smp_system_stuff> smp_system;
 }
-
-extern "C" void*  get_cpu_esp();
-extern "C" void   lapic_exception_handler();
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 using namespace x86;
@@ -73,56 +69,68 @@ static void revenant_task_handler()
   }
 }
 
+void revenant_thread_main(int cpu)
+{
+	int stack;
+	while (SMP::cpu_id() != cpu) {
+		INFO2("AP %d yielding from revenant main", cpu);
+		sched_yield();
+	}
+
+    // show we are online, and verify CPU ID is correct
+    SMP::global_lock();
+    INFO2("AP %d started at %p", SMP::cpu_id(), &stack);
+    SMP::global_unlock();
+    Expects(cpu == SMP::cpu_id());
+
+	auto& ev = Events::get(cpu);
+	ev.init_local();
+	// subscribe to task and timer interrupts
+	ev.subscribe(0, revenant_task_handler);
+	ev.subscribe(1, APIC_Timer::start_timers);
+	// enable interrupts
+	asm volatile("sti");
+	// init timer system
+	APIC_Timer::init();
+	// initialize clocks
+	Clocks::init();
+	// seed RNG
+	RNG::get().init();
+
+	// allow programmers to do stuff on each core at init
+    SMP::init_task();
+
+    // signal that the revenant has started
+    smp_main.boot_barrier.increment();
+
+    SMP::global_lock();
+    x86::smp_main.initialized_cpus.push_back(cpu);
+    SMP::global_unlock();
+    while (true)
+    {
+      Events::get().process_events();
+      os::halt();
+    }
+    __builtin_unreachable();
+}
+
 void revenant_main(int cpu)
 {
   uintptr_t this_stack = smp_main.stack_base + cpu * smp_main.stack_size;
-  uintptr_t this_stack_end = this_stack - smp_main.stack_size;
   // enable Local APIC
   x86::APIC::get().smp_enable();
   // setup GDT & per-cpu feature
   x86::initialize_cpu_tables_for_cpu(cpu);
-  // show we are online, and verify CPU ID is correct
-  SMP::global_lock();
-  auto stack = (uintptr_t) get_cpu_esp();
-  INFO2("AP %d started at %p", SMP::cpu_id(), (void*) this_stack);
-  SMP::global_unlock();
   // initialize exceptions before asserts
   x86::idt_initialize_for_cpu(cpu);
-  Expects(cpu == SMP::cpu_id());
-  Expects(stack >= this_stack_end && stack < this_stack);
 
 #ifdef ARCH_x86_64
   // interrupt stack tables
   ist_initialize_for_cpu(cpu, this_stack);
 #endif
 
-  auto& ev = Events::get(cpu);
-  ev.init_local();
-  // subscribe to task and timer interrupts
-  ev.subscribe(0, revenant_task_handler);
-  ev.subscribe(1, APIC_Timer::start_timers);
-  // enable interrupts
-  asm volatile("sti");
-  // init timer system
-  APIC_Timer::init();
-  // initialize clocks
-  Clocks::init();
-  // seed RNG
-  RNG::get().init();
-
-  // allow programmers to do stuff on each core at init
-  SMP::init_task();
-
-  // signal that the revenant has started
-  smp_main.boot_barrier.inc();
-
-  SMP::global_lock();
-  x86::smp_main.initialized_cpus.push_back(cpu);
-  SMP::global_unlock();
-  while (true)
-  {
-    Events::get().process_events();
-    os::halt();
-  }
+  // resume APs main thread
+  auto& system = PER_CPU(smp_system);
+  kernel::resume(system.main_thread_id);
   __builtin_unreachable();
 }

@@ -103,7 +103,11 @@ long syscall_SYS_set_thread_area(void* u_info)
   //kprintf("<SYS_set_thread_area> set to %p\n", u_info);
   if (UNLIKELY(!u_info)) return -EINVAL;
 #ifdef __x86_64__
-  x86::CPU::set_fs(u_info);
+#	ifdef PLATFORM_x86_solo5
+		solo5_set_tls_base((uintptr_t) u_info);
+#	else
+  		x86::CPU::set_fs(u_info);
+#	endif
 #else
   x86::CPU::set_gs(u_info);
 #endif

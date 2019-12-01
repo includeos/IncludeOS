@@ -39,6 +39,10 @@ namespace kernel
       }
   }
 
+  int64_t get_last_thread_id() noexcept {
+	  return thread_counter-1;
+  }
+
   void thread_t::init(int tid)
   {
     this->self = this;
@@ -62,7 +66,7 @@ namespace kernel
     this->my_tls = newtls;
     // store ourselves in the guarded libc structure
     this->libc_store_this();
-    syscall_SYS_set_thread_area(this->my_tls);
+    set_thread_area(this->my_tls);
   }
 
   void thread_t::suspend(void* ret_instr, void* ret_stack)
@@ -125,12 +129,12 @@ namespace kernel
             this->tid, this->my_tls, this->stored_nexti, this->stored_stack);
       // NOTE: the RAX return value here is CHILD thread id, not this
       if (this->yielded == false) {
-          syscall_SYS_set_thread_area(this->my_tls);
+          set_thread_area(this->my_tls);
           __clone_return(this->stored_nexti, this->stored_stack);
       }
       else {
           this->yielded = false;
-          syscall_SYS_set_thread_area(this->my_tls);
+          set_thread_area(this->my_tls);
           __thread_restore(this->stored_nexti, this->stored_stack);
       }
       __builtin_unreachable();
@@ -184,10 +188,21 @@ namespace kernel
 # endif
   }
 
+  void set_thread_area(void* new_area) {
+	  syscall_SYS_set_thread_area(new_area);
+  }
+
   thread_t* get_thread(int64_t tid) {
       auto it = threads.find(tid);
       if (it == threads.end()) return nullptr;
       return it->second;
+  }
+
+  void resume(int64_t tid)
+  {
+	  auto* thread = get_thread(tid);
+	  assert(thread);
+	  thread->resume();
   }
 }
 

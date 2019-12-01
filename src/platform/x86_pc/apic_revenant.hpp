@@ -8,8 +8,10 @@
 #include <deque>
 #include <membitmap>
 #include <vector>
+#include <thread>
 
 extern "C" void revenant_main(int);
+extern void revenant_thread_main(int cpu);
 
 namespace x86 {
 struct smp_task {
@@ -26,12 +28,10 @@ struct smp_stuff
   uintptr_t stack_base;
   uintptr_t stack_size;
   minimal_barrier_t boot_barrier;
-  uint32_t  bmp_storage[1] = {0};
   std::vector<int> initialized_cpus {0};
-  MemBitmap bitmap{&bmp_storage[0], 1};
+  std::array<uint32_t, 8> bmp_storage = {0};
+  MemBitmap bitmap{bmp_storage.data(), bmp_storage.size()};
 };
-
-
 extern smp_stuff smp_main;
 
 struct smp_system_stuff
@@ -40,7 +40,10 @@ struct smp_system_stuff
   spinlock_t flock = 0;
   std::vector<smp_task> tasks;
   std::vector<SMP::done_func> completed;
-  bool work_done;
+  bool work_done = false;
+  // main thread on this vCPU
+  std::thread* main_thread = nullptr;
+  long         main_thread_id = 0;
 };
  extern SMP::Array<smp_system_stuff> smp_system;
 }
