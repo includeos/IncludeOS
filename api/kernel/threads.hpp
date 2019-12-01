@@ -1,5 +1,7 @@
 #pragma once
 #include <array>
+#include <deque>
+#include <map>
 #include <vector>
 
 //#define THREADS_DEBUG 1
@@ -14,7 +16,7 @@ namespace kernel
   struct Thread {
     Thread* self;
     Thread* parent = nullptr;
-    int64_t  tid;
+    long  tid;
     void*    my_tls;
     void*    my_stack;
     // for returning to this Thread
@@ -37,9 +39,23 @@ namespace kernel
     void libc_store_this();
   };
 
-  struct Thread_manager
+  struct ThreadManager
   {
+	  std::map<long, kernel::Thread*> threads;
+	  std::deque<Thread*> suspended;
+	  Thread main_thread;
 
+	  static ThreadManager& get() noexcept;
+	  static ThreadManager& get(int cpu);
+
+	  void migrate(long tid, int cpu);
+
+	  void insert_thread(Thread* thread);
+	  void erase_thread_safely(Thread* thread);
+
+	  void erase_suspension(Thread* t);
+	  void suspend(Thread* t) { suspended.push_back(t); }
+	  Thread* wakeup_next();
   };
 
   inline Thread* get_thread()
@@ -55,20 +71,20 @@ namespace kernel
     return Thread;
   }
 
-  Thread* get_thread(int64_t tid); /* or nullptr */
+  Thread* get_thread(long tid); /* or nullptr */
 
-  inline int64_t get_tid() {
+  inline long get_tid() {
     return get_thread()->tid;
   }
 
-  int64_t get_last_thread_id() noexcept;
+  long get_last_thread_id() noexcept;
 
   void* get_thread_area();
   void  set_thread_area(void*);
 
   Thread* thread_create(Thread* parent, int flags, void* ctid, void* stack) noexcept;
 
-  void resume(int64_t tid);
+  void resume(long tid);
 
   void setup_main_thread() noexcept;
 }

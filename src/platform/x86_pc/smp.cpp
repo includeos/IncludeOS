@@ -87,6 +87,7 @@ void init_SMP()
 	  auto& system = smp_system.at(cpu.id);
 	  system.main_thread = t;
 	  system.main_thread_id = tid;
+	  kernel::ThreadManager::get().migrate(tid, cpu.id);
   }
 
   // turn on CPUs

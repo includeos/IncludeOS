@@ -1,9 +1,8 @@
 #include <kernel/threads.hpp>
 #include <arch/x86/cpu.hpp>
-#include <kprint>
+#include <smp>
 #include <cassert>
 #include <deque>
-#include <map>
 #include <pthread.h>
 
 extern "C" {
@@ -21,26 +20,21 @@ struct libc_internal {
 
 namespace kernel
 {
-  static int64_t thread_counter = 1;
-  static std::map<int64_t, kernel::Thread*> threads;
-  static std::deque<Thread*> suspended;
-  static Thread main_thread;
+  static long thread_counter = 1;
 
-  static void erase_suspension(Thread* t)
-  {
-      for (auto it = suspended.begin(); it != suspended.end();)
-      {
-          if (*it == t) {
-              it = suspended.erase(it);
-          }
-          else {
-              ++it;
-          }
-      }
+  inline long generate_new_thread_id() noexcept {
+	  return __sync_fetch_and_add(&thread_counter, 1);
+  }
+  long get_last_thread_id() noexcept {
+	  return thread_counter-1;
   }
 
-  int64_t get_last_thread_id() noexcept {
-	  return thread_counter-1;
+  SMP::Array<ThreadManager> thread_managers;
+  ThreadManager& ThreadManager::get() noexcept {
+	  return PER_CPU(thread_managers);
+  }
+  ThreadManager& ThreadManager::get(int cpu) {
+	  return thread_managers.at(cpu);
   }
 
   void Thread::init(int tid)
@@ -73,14 +67,12 @@ namespace kernel
   {
       this->store_return(ret_instr, ret_stack);
       // add to suspended (NB: can throw)
-      suspended.push_back(this);
+      ThreadManager::get().suspend(this);
   }
   void Thread::yield()
   {
       // resume a waiting Thread
-      assert(!suspended.empty());
-      auto* next = suspended.front();
-      suspended.pop_front();
+	  auto* next = ThreadManager::get().wakeup_next();
       // resume next Thread
       this->yielded = true;
       next->resume();
@@ -92,7 +84,7 @@ namespace kernel
     assert(this->parent != nullptr);
     // detach children
     for (auto* child : this->children) {
-        child->parent = &main_thread;
+        child->parent = &ThreadManager::get().main_thread;
     }
     // remove myself from parent
     auto& pcvec = this->parent->children;
@@ -109,16 +101,13 @@ namespace kernel
         *(pthread_t*) this->clear_tid = 0;
     }
     // delete this Thread
-    auto it = threads.find(this->tid);
-    assert(it != threads.end());
-    assert(it->second == this);
-    threads.erase(it);
+	ThreadManager::get().erase_thread_safely(this);
     // free Thread resources
     delete this;
     // resume parent Thread
     if (exiting_myself)
     {
-        erase_suspension(next);
+        ThreadManager::get().erase_suspension(next);
         next->resume();
     }
   }
@@ -143,27 +132,24 @@ namespace kernel
   Thread* thread_create(Thread* parent, int flags,
                           void* ctid, void* stack) noexcept
   {
-    const int tid = __sync_fetch_and_add(&thread_counter, 1);
+    const int tid = generate_new_thread_id();
     try {
-      auto* Thread = new struct Thread;
-      Thread->init(tid);
-      Thread->parent = parent;
-      Thread->parent->children.push_back(Thread);
-      Thread->my_stack = stack;
+      auto* thread = new struct Thread;
+      thread->init(tid);
+      thread->parent = parent;
+      thread->parent->children.push_back(thread);
+      thread->my_stack = stack;
 
       // flag for write child TID
       if (flags & CLONE_CHILD_SETTID) {
-          *(pid_t*) ctid = Thread->tid;
+          *(pid_t*) ctid = thread->tid;
       }
       if (flags & CLONE_CHILD_CLEARTID) {
-          Thread->clear_tid = ctid;
+          thread->clear_tid = ctid;
       }
 
-      threads.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(tid),
-            std::forward_as_tuple(Thread));
-      return Thread;
+	  ThreadManager::get().insert_thread(thread);
+      return thread;
     }
     catch (...) {
       return nullptr;
@@ -173,6 +159,7 @@ namespace kernel
   void setup_main_thread() noexcept
   {
       int stack_value;
+	  auto& main_thread = ThreadManager::get().main_thread;
       main_thread.init(0);
       main_thread.my_stack = (void*) &stack_value;
       // allow exiting in main Thread
@@ -192,17 +179,60 @@ namespace kernel
 	  syscall_SYS_set_thread_area(new_area);
   }
 
-  Thread* get_thread(int64_t tid) {
+  Thread* get_thread(long tid) {
+	  auto& threads = ThreadManager::get().threads;
       auto it = threads.find(tid);
       if (it == threads.end()) return nullptr;
       return it->second;
   }
 
-  void resume(int64_t tid)
+  void resume(long tid)
   {
 	  auto* Thread = get_thread(tid);
 	  assert(Thread);
 	  Thread->resume();
+  }
+
+  void ThreadManager::migrate(long tid, int cpu)
+  {
+	  auto* thread = get_thread(tid);
+	  assert(thread != nullptr);
+	  this->erase_thread_safely(thread);
+	  ThreadManager::get(cpu).insert_thread(thread);
+  }
+  void ThreadManager::insert_thread(Thread* thread)
+  {
+	  threads.emplace(
+			std::piecewise_construct,
+			std::forward_as_tuple(thread->tid),
+			std::forward_as_tuple(thread));
+  }
+  void ThreadManager::erase_thread_safely(Thread* thread)
+  {
+	  assert(thread != nullptr);
+	  auto it = threads.find(thread->tid);
+	  assert(it != threads.end());
+	  assert(it->second == thread);
+	  threads.erase(it);
+  }
+  Thread* ThreadManager::wakeup_next()
+  {
+	  assert(!suspended.empty());
+	  auto* next = suspended.front();
+	  suspended.pop_front();
+	  return next;
+  }
+  void ThreadManager::erase_suspension(Thread* t)
+  {
+      for (auto it = suspended.begin(); it != suspended.end();)
+      {
+          if (*it == t) {
+              it = suspended.erase(it);
+          }
+          else {
+              ++it;
+          }
+      }
   }
 }
 
@@ -210,7 +240,7 @@ extern "C"
 void __thread_suspend_and_yield(void* next_instr, void* stack)
 {
     // don't go through the ardous yielding process when alone
-    if (kernel::suspended.empty()) return;
+    if (kernel::ThreadManager::get().suspended.empty()) return;
     // suspend current Thread
     auto* Thread = kernel::get_thread();
     Thread->suspend(next_instr, stack);
