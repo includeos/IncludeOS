@@ -16,17 +16,17 @@ extern "C" {
 struct libc_internal {
   void* self;
   void* dtv;
-  kernel::thread_t* kthread;
+  kernel::Thread* kthread;
 };
 
 namespace kernel
 {
   static int64_t thread_counter = 1;
-  static std::map<int64_t, kernel::thread_t*> threads;
-  static std::deque<thread_t*> suspended;
-  static thread_t main_thread;
+  static std::map<int64_t, kernel::Thread*> threads;
+  static std::deque<Thread*> suspended;
+  static Thread main_thread;
 
-  static void erase_suspension(thread_t* t)
+  static void erase_suspension(Thread* t)
   {
       for (auto it = suspended.begin(); it != suspended.end();)
       {
@@ -43,25 +43,25 @@ namespace kernel
 	  return thread_counter-1;
   }
 
-  void thread_t::init(int tid)
+  void Thread::init(int tid)
   {
     this->self = this;
     this->tid  = tid;
   }
 
-  void thread_t::libc_store_this()
+  void Thread::libc_store_this()
   {
     auto* s = (libc_internal*) this->my_tls;
     s->kthread = this;
   }
-  void thread_t::store_return(void* ret_instr, void* ret_stack)
+  void Thread::store_return(void* ret_instr, void* ret_stack)
   {
-    THPRINT("thread %ld storing return point %p with stack %p\n",
+    THPRINT("Thread %ld storing return point %p with stack %p\n",
             this->tid, ret_instr, ret_stack);
     this->stored_nexti = ret_instr;
     this->stored_stack = ret_stack;
   }
-  void thread_t::activate(void* newtls)
+  void Thread::activate(void* newtls)
   {
     this->my_tls = newtls;
     // store ourselves in the guarded libc structure
@@ -69,24 +69,24 @@ namespace kernel
     set_thread_area(this->my_tls);
   }
 
-  void thread_t::suspend(void* ret_instr, void* ret_stack)
+  void Thread::suspend(void* ret_instr, void* ret_stack)
   {
       this->store_return(ret_instr, ret_stack);
       // add to suspended (NB: can throw)
       suspended.push_back(this);
   }
-  void thread_t::yield()
+  void Thread::yield()
   {
-      // resume a waiting thread
+      // resume a waiting Thread
       assert(!suspended.empty());
       auto* next = suspended.front();
       suspended.pop_front();
-      // resume next thread
+      // resume next Thread
       this->yielded = true;
       next->resume();
   }
 
-  void thread_t::exit()
+  void Thread::exit()
   {
     const bool exiting_myself = (get_thread() == this);
     assert(this->parent != nullptr);
@@ -101,21 +101,21 @@ namespace kernel
             pcvec.erase(it); break;
         }
     }
-    // temporary copy of parent thread pointer
+    // temporary copy of parent Thread pointer
     auto* next = this->parent;
     // CLONE_CHILD_CLEARTID: set userspace TID value to zero
     if (this->clear_tid) {
         THPRINT("Clearing child value at %p\n", this->clear_tid);
         *(pthread_t*) this->clear_tid = 0;
     }
-    // delete this thread
+    // delete this Thread
     auto it = threads.find(this->tid);
     assert(it != threads.end());
     assert(it->second == this);
     threads.erase(it);
-    // free thread resources
+    // free Thread resources
     delete this;
-    // resume parent thread
+    // resume parent Thread
     if (exiting_myself)
     {
         erase_suspension(next);
@@ -123,11 +123,11 @@ namespace kernel
     }
   }
 
-  void thread_t::resume()
+  void Thread::resume()
   {
       THPRINT("Returning to tid=%ld tls=%p nexti=%p stack=%p\n",
             this->tid, this->my_tls, this->stored_nexti, this->stored_stack);
-      // NOTE: the RAX return value here is CHILD thread id, not this
+      // NOTE: the RAX return value here is CHILD Thread id, not this
       if (this->yielded == false) {
           set_thread_area(this->my_tls);
           __clone_return(this->stored_nexti, this->stored_stack);
@@ -140,30 +140,30 @@ namespace kernel
       __builtin_unreachable();
   }
 
-  thread_t* thread_create(thread_t* parent, int flags,
+  Thread* thread_create(Thread* parent, int flags,
                           void* ctid, void* stack) noexcept
   {
     const int tid = __sync_fetch_and_add(&thread_counter, 1);
     try {
-      auto* thread = new thread_t;
-      thread->init(tid);
-      thread->parent = parent;
-      thread->parent->children.push_back(thread);
-      thread->my_stack = stack;
+      auto* Thread = new struct Thread;
+      Thread->init(tid);
+      Thread->parent = parent;
+      Thread->parent->children.push_back(Thread);
+      Thread->my_stack = stack;
 
       // flag for write child TID
       if (flags & CLONE_CHILD_SETTID) {
-          *(pid_t*) ctid = thread->tid;
+          *(pid_t*) ctid = Thread->tid;
       }
       if (flags & CLONE_CHILD_CLEARTID) {
-          thread->clear_tid = ctid;
+          Thread->clear_tid = ctid;
       }
 
       threads.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(tid),
-            std::forward_as_tuple(thread));
-      return thread;
+            std::forward_as_tuple(Thread));
+      return Thread;
     }
     catch (...) {
       return nullptr;
@@ -175,7 +175,7 @@ namespace kernel
       int stack_value;
       main_thread.init(0);
       main_thread.my_stack = (void*) &stack_value;
-      // allow exiting in main thread
+      // allow exiting in main Thread
       main_thread.activate(get_thread_area());
   }
 
@@ -192,7 +192,7 @@ namespace kernel
 	  syscall_SYS_set_thread_area(new_area);
   }
 
-  thread_t* get_thread(int64_t tid) {
+  Thread* get_thread(int64_t tid) {
       auto it = threads.find(tid);
       if (it == threads.end()) return nullptr;
       return it->second;
@@ -200,9 +200,9 @@ namespace kernel
 
   void resume(int64_t tid)
   {
-	  auto* thread = get_thread(tid);
-	  assert(thread);
-	  thread->resume();
+	  auto* Thread = get_thread(tid);
+	  assert(Thread);
+	  Thread->resume();
   }
 }
 
@@ -211,11 +211,11 @@ void __thread_suspend_and_yield(void* next_instr, void* stack)
 {
     // don't go through the ardous yielding process when alone
     if (kernel::suspended.empty()) return;
-    // suspend current thread
-    auto* thread = kernel::get_thread();
-    thread->suspend(next_instr, stack);
-    // resume some other thread
-    thread->yield();
+    // suspend current Thread
+    auto* Thread = kernel::get_thread();
+    Thread->suspend(next_instr, stack);
+    // resume some other Thread
+    Thread->yield();
 }
 
 extern "C"

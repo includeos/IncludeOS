@@ -11,20 +11,20 @@
 
 namespace kernel
 {
-  struct thread_t {
-    thread_t* self;
-    thread_t* parent = nullptr;
+  struct Thread {
+    Thread* self;
+    Thread* parent = nullptr;
     int64_t  tid;
     void*    my_tls;
     void*    my_stack;
-    // for returning to this thread
+    // for returning to this Thread
     void*    stored_stack = nullptr;
     void*    stored_nexti = nullptr;
     bool     yielded = false;
     // address zeroed when exiting
     void*    clear_tid = nullptr;
     // children, detached when exited
-    std::vector<thread_t*> children;
+    std::vector<Thread*> children;
 
     void init(int tid);
     void yield();
@@ -37,20 +37,25 @@ namespace kernel
     void libc_store_this();
   };
 
-  inline thread_t* get_thread()
+  struct Thread_manager
   {
-    thread_t* thread;
+
+  };
+
+  inline Thread* get_thread()
+  {
+    Thread* Thread;
     # ifdef ARCH_x86_64
-        asm("movq %%fs:(0x10), %0" : "=r" (thread));
+        asm("movq %%fs:(0x10), %0" : "=r" (Thread));
     # elif defined(ARCH_i686)
-        asm("movq %%gs:(0x08), %0" : "=r" (thread));
+        asm("movq %%gs:(0x08), %0" : "=r" (Thread));
     # else
         #error "Implement me?"
     # endif
-    return thread;
+    return Thread;
   }
 
-  thread_t* get_thread(int64_t tid); /* or nullptr */
+  Thread* get_thread(int64_t tid); /* or nullptr */
 
   inline int64_t get_tid() {
     return get_thread()->tid;
@@ -61,7 +66,7 @@ namespace kernel
   void* get_thread_area();
   void  set_thread_area(void*);
 
-  thread_t* thread_create(thread_t* parent, int flags, void* ctid, void* stack) noexcept;
+  Thread* thread_create(Thread* parent, int flags, void* ctid, void* stack) noexcept;
 
   void resume(int64_t tid);
 
