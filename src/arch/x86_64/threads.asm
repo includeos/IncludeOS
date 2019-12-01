@@ -29,9 +29,13 @@ __thread_yield:
     ;; align stack
     sub rsp, 8
     call __thread_suspend_and_yield
+	;; restore early (no yield happened)
+	add rsp, 8
+	jmp __thread_restore2
 
 __thread_restore:
     mov rsp, rsi
+__thread_restore2:
     ;; restore saved registers
     pop r15
     pop r14
