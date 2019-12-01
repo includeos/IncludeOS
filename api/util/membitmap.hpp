@@ -19,7 +19,7 @@ public:
   static const int CHUNK_SIZE = sizeof(word) * 8;
 
   MemBitmap() = default;
-  MemBitmap(void* location, index_t chunks)
+  MemBitmap(void* location, size_t chunks)
     : _chunks(chunks)
   {
     _data = (word*) location;
