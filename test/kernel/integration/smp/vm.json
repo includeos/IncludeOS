@@ -1,4 +1,4 @@
 {
   "image" : "service.img",
-  "smp" : 16
+  "smp" : 4
 }

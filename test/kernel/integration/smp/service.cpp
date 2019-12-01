@@ -98,26 +98,69 @@ void SMP::init_task()
   Events::get().subscribe(IRQ, random_irq_handler);
 }
 
+#include <smp_utils>
+static struct {
+	std::vector<std::string> buffers;
+	spinlock_t spinner;
+	minimal_barrier_t barry;
+} messages;
+
+__attribute__((format (printf, 1, 2)))
+static int smpprintf(const char* fmt, ...) {
+	char buffer[4096];
+	// printf format -> buffer
+	va_list va;
+	va_start(va, fmt);
+	int len = vsnprintf(buffer, sizeof(buffer), fmt, va);
+	va_end(va);
+	// serialized append buffer
+	scoped_spinlock { messages.spinner };
+	messages.buffers.emplace_back(buffer, buffer + len);
+	// return message length
+	return len;
+}
+
+#include <thread>
+static void task_main(int cpu)
+{
+	smpprintf("CPU %d (%d) running task \n", cpu, SMP::cpu_id());
+	messages.barry.increment();
+}
+
 void Service::start()
 {
+#ifdef INCLUDEOS_SMP_ENABLE
+  printf("SMP is enabled\n");
+#else
+  static_assert(false, "SMP is not enabled");
+#endif
 
-  for (const auto& i : SMP::active_cpus())
+  for (const int i : SMP::active_cpus())
   {
-    SMP::global_lock();
-    printf("CPU %i active \n", i);
-    SMP::global_unlock();
+    smpprintf("CPU %i active \n", i);
 
-    SMP::add_task([i]{
-        SMP::global_lock();
-        printf("CPU %i, id %i running task \n", i, SMP::cpu_id());
-        SMP::global_unlock();
-      }, i);
+    SMP::add_task(
+	[cpu = i] {
+		//auto* t = new std::thread(&task_main, i);
+		//t->join();
+		smpprintf("CPU %d (%d) running task \n", cpu, SMP::cpu_id());
+		messages.barry.increment();
+    }, i);
 
     SMP::signal(i);
   }
   // trigger interrupt
-  SMP::broadcast(IRQ);
+  SMP::signal();
+
+  // wait for idiots to finish
+  messages.barry.spin_wait(SMP::cpu_count());
+  for (const auto& msg : messages.buffers) {
+	  printf("%.*s", (int) msg.size(), msg.data());
+  }
+  messages.buffers.clear();
+
+  printf("SUCCESS\n");
 
   // the rest
-  smp_advanced_test();
+  //smp_advanced_test();
 }
