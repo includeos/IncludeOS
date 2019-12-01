@@ -1,4 +1,3 @@
-
 #include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/cpuid.hpp>
@@ -205,3 +204,6 @@ void os::print_timestamps(const bool enabled)
 {
   kernel::state().timestamps = enabled;
 }
+
+#include <kernel/mrspinny.hpp>
+struct struct_spinny mr_spinny {};

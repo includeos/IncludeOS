@@ -6,7 +6,7 @@
 #include <os>
 #include <kernel/memory.hpp>
 #include <kernel.hpp>
-#include <kprint>
+#include <kernel/mrspinny.hpp>
 
 using Alloc = os::mem::Raw_allocator;
 static Alloc* alloc;
@@ -61,6 +61,7 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
     return MAP_FAILED;
   }
 
+  scoped_spinlock { mr_spinny.memory };
   auto* res = kalloc(length);
 
   if (UNLIKELY(res == nullptr))
