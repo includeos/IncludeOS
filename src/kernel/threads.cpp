@@ -39,10 +39,15 @@ namespace kernel
 	  return thread_managers.at(cpu);
   }
 
-  void Thread::init(long tid)
+  void Thread::init(long tid, Thread* parent, void* stack)
   {
-    this->self = this;
-    this->tid  = tid;
+    this->tid = tid;
+	this->parent = parent;
+	this->my_stack = stack;
+	if (this->parent) {
+		this->parent->children.push_back(this);
+	}
+
   }
 
   void Thread::libc_store_this()
@@ -84,10 +89,10 @@ namespace kernel
     for (auto* child : this->children) {
         child->parent = ThreadManager::get().main_thread;
     }
-    // remove myself from parent
-	this->detach();
-    // temporary copy of parent Thread pointer
+    // temporary copy of parent thread pointer
     auto* next = this->parent;
+    // remove myself from parent
+    this->detach();
     // CLONE_CHILD_CLEARTID: set userspace TID value to zero
     if (this->clear_tid) {
         THPRINT("Clearing child value at %p\n", this->clear_tid);
@@ -145,10 +150,7 @@ namespace kernel
     const long tid = generate_new_thread_id();
     try {
       auto* thread = new struct Thread;
-      thread->init(tid);
-      thread->parent = parent;
-      thread->parent->children.push_back(thread);
-      thread->my_stack = stack;
+      thread->init(tid, parent, stack);
 
       // flag for write child TID
       if (flags & CLONE_CHILD_SETTID) {
@@ -171,8 +173,7 @@ namespace kernel
 		int stack_value;
 		if (tid == 0)
 		{
-			core0_main_thread.init(0);
-			core0_main_thread.my_stack = (void*) &stack_value;
+			core0_main_thread.init(0, nullptr, (void*) &stack_value);
 			// allow exiting in main thread
 			core0_main_thread.activate(get_thread_area());
 			// make threadmanager0 use this main thread
@@ -209,9 +210,9 @@ namespace kernel
 
   void resume(long tid)
   {
-	  auto* Thread = get_thread(tid);
-	  assert(Thread);
-	  Thread->resume();
+	  auto* thread = get_thread(tid);
+	  assert(thread);
+	  thread->resume();
   }
 
   void ThreadManager::migrate(long tid, int cpu)

@@ -14,9 +14,8 @@
 namespace kernel
 {
   struct Thread {
-    Thread* self;
-    Thread* parent = nullptr;
     long    tid;
+    Thread* parent;
     void*   my_tls;
     void*   my_stack;
     // for returning to this Thread
@@ -28,7 +27,7 @@ namespace kernel
     // children, detached when exited
     std::vector<Thread*> children;
 
-    void init(long tid);
+    void init(long tid, Thread* parent, void* stack);
     void yield();
     void exit();
     void suspend(void* ret_instr, void* ret_stack);
