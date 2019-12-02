@@ -47,6 +47,7 @@ void smp_advanced_test()
       if (SMP::cpu_count() == 1)
           printf("SUCCESS\n");
     }
+	SMP::global_lock();
     volatile void* test = calloc(4, 128u);
     assert(test);
     __sw_barrier();
@@ -54,6 +55,7 @@ void smp_advanced_test()
     assert(test);
     __sw_barrier();
     free((void*) test);
+	SMP::global_unlock();
   });
 
   // have one CPU enter an event loop
@@ -80,37 +82,19 @@ void smp_advanced_test()
 
 #include <smp_utils>
 static struct {
-	std::vector<std::string> buffers;
-	spinlock_t spinner;
 	minimal_barrier_t barry;
 } messages;
-
-__attribute__((format (printf, 1, 2)))
-static int smpprintf(const char* fmt, ...) {
-	char buffer[4096];
-	// printf format -> buffer
-	va_list va;
-	va_start(va, fmt);
-	int len = vsnprintf(buffer, sizeof(buffer), fmt, va);
-	va_end(va);
-	// serialized append buffer
-	scoped_spinlock { messages.spinner };
-	messages.buffers.emplace_back(buffer, buffer + len);
-	// return message length
-	return len;
-}
-
 
 static void random_irq_handler()
 {
   SMP::global_lock();
   irq_times++;
   bool done = (irq_times == SMP::cpu_count()-1);
-  SMP::global_unlock();
 
   if (done) {
-    smpprintf("Random IRQ handler called %d times\n", irq_times);
+    printf("Random IRQ handler called %d times\n", irq_times);
   }
+  SMP::global_unlock();
 }
 
 static const uint8_t IRQ = 110;
@@ -120,14 +104,13 @@ void SMP::init_task()
 }
 
 #include <thread>
-extern "C" void kprintf(const char* format, ...);
 #include <kernel/threads.hpp>
-extern "C" ssize_t write(int, const void*, size_t);
-extern "C" void __serial_print1(const char* cstr);
 __attribute__((noinline))
 static void task_main(int cpu)
 {
-	kprintf("CPU %d running task\n", SMP::cpu_id());
+	SMP::global_lock();
+	printf("CPU %d TID %ld running task\n", SMP::cpu_id(), kernel::get_tid());
+	SMP::global_unlock();
 }
 
 void Service::start()
@@ -143,17 +126,12 @@ void Service::start()
 	// adding work and signalling CPU=0 is the same as broadcasting to
 	// all active CPUs, and giving work to the first free CPU
 	if (i == 0) continue; // we don't want to do that here, for this test
-    printf("CPU %d active\n", i);
 
     SMP::add_task(
 	[cpu = i] {
-		__serial_print1("__serial_print1 works\n");
-		const char buffer[] = "os::print works\n";
-		os::default_stdout(buffer, sizeof(buffer)-1);
-		os::print(buffer, sizeof(buffer)-1);
 		auto* t = new std::thread(&task_main, cpu);
 		t->join();
-		smpprintf("CPU %d running task (thread=%p)\n", SMP::cpu_id(), kernel::get_thread());
+
 		messages.barry.increment();
     }, i);
 
@@ -162,16 +140,9 @@ void Service::start()
 
   // wait for idiots to finish
   messages.barry.spin_wait(SMP::cpu_count()-1);
-  for (const auto& msg : messages.buffers) {
-	  printf("%.*s", (int) msg.size(), msg.data());
-  }
-  messages.buffers.clear();
 
   // trigger interrupt
-  SMP::broadcast(IRQ);
-
-  printf("SUCCESS\n");
-
+  //SMP::broadcast(IRQ+32);
   // the rest
-  //smp_advanced_test();
+  smp_advanced_test();
 }
