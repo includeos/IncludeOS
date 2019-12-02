@@ -71,6 +71,9 @@ void Service::start()
   pthread_t t;
   int res;
 
+  printf("*** Testing yielding from single-threaded...\n");
+  sched_yield(); // should return immediately
+
   printf("*** Testing pthread_create and sched_yield...\n");
   res = pthread_create(&t, NULL, thread_function1, &x);
   if (res < 0) {
