@@ -19,7 +19,7 @@ extern "C" {
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
-static const uint32_t  REV_STACK_SIZE = 1 << 19; // 512kb
+static const uint32_t  REV_STACK_SIZE = 1 << 14; // 16kb
 static_assert((BOOTLOADER_LOCATION & 0xfff) == 0, "Must be page-aligned");
 
 struct apic_boot {
