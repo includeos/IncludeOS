@@ -204,8 +204,8 @@ namespace kernel
   Thread* get_thread(long tid) {
 	  auto& threads = ThreadManager::get().threads;
       auto it = threads.find(tid);
-      if (it == threads.end()) return nullptr;
-      return it->second;
+      if (it != threads.end()) return it->second;
+	  return nullptr;
   }
 
   void resume(long tid)

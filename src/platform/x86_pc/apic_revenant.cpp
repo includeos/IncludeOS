@@ -3,6 +3,7 @@
 #include "apic_timer.hpp"
 #include "clocks.hpp"
 #include "idt.hpp"
+#include "init_libc.hpp"
 #include <kernel/events.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/threads.hpp>
@@ -127,6 +128,12 @@ void revenant_main(int cpu)
 #ifdef ARCH_x86_64
   // interrupt stack tables
   ist_initialize_for_cpu(cpu, this_stack);
+
+  const uint64_t star_kernel_cs = 8ull << 32;
+  const uint64_t star_user_cs   = 8ull << 48;
+  const uint64_t star = star_kernel_cs | star_user_cs;
+  x86::CPU::write_msr(IA32_STAR, star);
+  x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
 #endif
 
   auto& system = PER_CPU(smp_system);

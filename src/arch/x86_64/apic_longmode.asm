@@ -3,6 +3,14 @@ extern __gdt64_base_pointer
 extern revenant_main
 
 %define P4_TAB    0x1000
+;; Extended Feature Enable Register (MSR)
+%define IA32_EFER_MSR 0xC0000080
+;; EFER Longmode bit
+%define LONGMODE_ENABLE 0x100
+;; EFER Execute Disable bit
+%define NX_ENABLE 0x800
+;; EFER Syscall enable bit
+%define SYSCALL_ENABLE 0x1
 
 [BITS 32]
 __apic_trampoline:
@@ -17,10 +25,10 @@ __apic_trampoline:
     or  eax, 1 << 5
     mov cr4, eax
 
-    ;; enable long mode
-    mov ecx, 0xC0000080          ; EFER MSR
+	;; enable long mode
+    mov ecx, IA32_EFER_MSR
     rdmsr
-    or  eax, 1 << 8              ; Long Mode bit
+    or  eax, (LONGMODE_ENABLE | NX_ENABLE | SYSCALL_ENABLE)
     wrmsr
 
     ;; enable paging
