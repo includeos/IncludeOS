@@ -74,7 +74,7 @@ void revenant_thread_main(int cpu)
 {
 	int stack;
 	while (SMP::cpu_id() != cpu) {
-		INFO2("AP %d yielding from revenant main", cpu);
+		THPRINT("AP %d yielding from revenant main", cpu);
 		sched_yield();
 	}
 

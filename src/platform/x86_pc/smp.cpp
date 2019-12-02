@@ -78,11 +78,9 @@ void init_SMP()
   for (const auto& cpu : ACPI::get_cpus())
   {
 	  if (cpu.id == apic.get_id()) continue;
-	  //printf("Creating main thread for CPU %d\n", cpu.id);
 	  // thread should immediately yield
 	  auto* t = new std::thread(&revenant_thread_main, cpu.id);
 	  const long tid = kernel::get_last_thread_id();
-	  //printf("Back at the main thread, last thread: %ld\n", tid);
 	  // store thread info in SMP structure
 	  auto& system = smp_system.at(cpu.id);
 	  system.main_thread = t;
