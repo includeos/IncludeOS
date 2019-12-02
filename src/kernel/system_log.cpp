@@ -20,7 +20,7 @@ struct Log_buffer {
 static FixedRingBuffer<16384> temp_mrb;
 #define MRB_AREA_SIZE (65536) // 64kb
 #define MRB_LOG_SIZE  (MRB_AREA_SIZE - sizeof(MemoryRingBuffer) - sizeof(Log_buffer))
-#define VIRTUAL_MOVE
+//#define VIRTUAL_MOVE
 static MemoryRingBuffer* mrb = nullptr;
 static inline RingBuffer* get_mrb()
 {
@@ -33,7 +33,7 @@ inline static char* get_system_log_loc()
 #if defined(ARCH_x86_64) && defined(VIRTUAL_MOVE)
   return (char*) ((1ull << 45) - MRB_AREA_SIZE);
 #else
-  return (char*) kernel::liveupdate_storage_area() - MRB_AREA_SIZE;
+  return (char*) kernel::state().liveupdate_phys - MRB_AREA_SIZE;
 #endif
 }
 inline static auto* get_ringbuffer_data()
