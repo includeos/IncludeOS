@@ -230,11 +230,14 @@ namespace kernel
 		  thread->detach();
 	  }
 	  this->erase_thread_safely(thread);
+	  this->erase_suspension(thread);
 	  auto& tman = ThreadManager::get(cpu);
 	  tman.insert_thread(thread);
 	  // attach this thread to the managers main thread
 	  if (tman.main_thread) {
 	  	thread->attach(tman.main_thread);
+		// add to suspended list (since not a main thread)
+		tman.suspended.push_back(thread);
 	  }
   }
   void ThreadManager::insert_thread(Thread* thread)
