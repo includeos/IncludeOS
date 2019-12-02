@@ -129,8 +129,10 @@ void revenant_main(int cpu)
   ist_initialize_for_cpu(cpu, this_stack);
 #endif
 
-  // resume APs main thread
   auto& system = PER_CPU(smp_system);
+  // setup main thread
+  kernel::setup_main_thread(system.main_thread_id);
+  // resume APs main thread
   kernel::resume(system.main_thread_id);
   __builtin_unreachable();
 }
