@@ -72,15 +72,17 @@ static void revenant_task_handler()
 
 void revenant_thread_main(int cpu)
 {
-	int stack;
-	while (SMP::cpu_id() != cpu) {
-		THPRINT("AP %d yielding from revenant main", cpu);
-		sched_yield();
-	}
+	sched_yield();
+	uintptr_t this_stack = smp_main.stack_base + cpu * smp_main.stack_size;
+
+#ifdef ARCH_x86_64
+  // interrupt stack tables
+  ist_initialize_for_cpu(cpu, this_stack);
+#endif
 
     // show we are online, and verify CPU ID is correct
     SMP::global_lock();
-    INFO2("AP %d started at %p", SMP::cpu_id(), &stack);
+    INFO2("AP %d started at %p", SMP::cpu_id(), (void*) this_stack);
     SMP::global_unlock();
     Expects(cpu == SMP::cpu_id());
 
@@ -117,7 +119,6 @@ void revenant_thread_main(int cpu)
 
 void revenant_main(int cpu)
 {
-  uintptr_t this_stack = smp_main.stack_base + cpu * smp_main.stack_size;
   // enable Local APIC
   x86::APIC::get().smp_enable();
   // setup GDT & per-cpu feature
@@ -126,9 +127,6 @@ void revenant_main(int cpu)
   x86::idt_initialize_for_cpu(cpu);
 
 #ifdef ARCH_x86_64
-  // interrupt stack tables
-  ist_initialize_for_cpu(cpu, this_stack);
-
   const uint64_t star_kernel_cs = 8ull << 32;
   const uint64_t star_user_cs   = 8ull << 48;
   const uint64_t star = star_kernel_cs | star_user_cs;
