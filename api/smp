@@ -38,11 +38,6 @@ public:
   // Return the indices of all initialized CPU cores
   static const std::vector<int>& active_cpus();
 
-  static int active_cpus(int index){
-    return active_cpus().at(index);
-  }
-
-
   // implement this function to execute something on all APs at init
   static void init_task();
 
@@ -68,22 +63,6 @@ public:
   static void global_lock()   noexcept;
   static void global_unlock() noexcept;
 };
-
-//#define SMP_DEBUG 1
-
-// SMP serialized print helpers
-#define SMP_ALWAYS_PRINT(fmt, ...) \
-    SMP::global_lock();     \
-    printf(fmt, ##__VA_ARGS__); \
-    SMP::global_unlock();
-
-#ifdef SMP_DEBUG
-#define SMP_PRINT(fmt, ...) SMP_ALWAYS_PRINT(fmt, ##__VA_ARGS__)
-#define CPULOG(X,...) SMP_PRINT("[C%i]" X,SMP::cpu_id(),##__VA_ARGS__)
-#else
-#define SMP_PRINT(fmt, ...) /** fmt **/
-#define CPULOG(X,...) ;
-#endif
 
 #include <array>
 #ifdef INCLUDEOS_SMP_ENABLE
