@@ -36,8 +36,8 @@ extern smp_stuff smp_main;
 
 struct smp_system_stuff
 {
-  spinlock_t tlock = 0;
-  spinlock_t flock = 0;
+  smp_spinlock tlock;
+  smp_spinlock flock;
   std::vector<smp_task> tasks;
   std::vector<SMP::done_func> completed;
   bool work_done = false;

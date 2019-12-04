@@ -18,7 +18,7 @@ struct Log_buffer {
 };
 
 static FixedRingBuffer<16384> temp_mrb;
-static spinlock_t syslog_spinner = 0;
+static smp_spinlock syslog_lock;
 #define MRB_AREA_SIZE (65536) // 64kb
 #define MRB_LOG_SIZE  (MRB_AREA_SIZE - sizeof(MemoryRingBuffer) - sizeof(Log_buffer))
 //#define VIRTUAL_MOVE
@@ -63,21 +63,21 @@ void SystemLog::clear_flags()
 
 void SystemLog::write(const char* buffer, size_t length)
 {
-  lock(syslog_spinner);
+  syslog_lock.lock();
   size_t free = get_mrb()->free_space();
   if (free < length) {
     get_mrb()->discard(length - free);
   }
   get_mrb()->write(buffer, length);
-  unlock(syslog_spinner);
+  syslog_lock.unlock();
 }
 
 std::vector<char> SystemLog::copy()
 {
-  lock(syslog_spinner);
+  syslog_lock.lock();
   const auto* buffer = get_mrb()->sequentialize();
   std::vector<char> copy {buffer, buffer + get_mrb()->size()};
-  unlock(syslog_spinner);
+  syslog_lock.unlock();
   return copy;
 }
 

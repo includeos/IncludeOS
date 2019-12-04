@@ -124,9 +124,9 @@ void init_SMP()
       smp_main.bitmap.atomic_reset(next);
       // get jobs from other CPU
       std::vector<smp_done_func> done;
-      lock(smp_system[next].flock);
+      smp_system[next].flock.lock();
       smp_system[next].completed.swap(done);
-      unlock(smp_system[next].flock);
+      smp_system[next].flock.unlock();
 
       // execute all tasks
       for (auto& func : done) func();
@@ -175,9 +175,9 @@ void SMP::init_task()
 void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
-  lock(smp_system[cpu].tlock);
+  smp_system[cpu].tlock.lock();
   smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
-  unlock(smp_system[cpu].tlock);
+  smp_system[cpu].tlock.unlock();
 #else
   assert(cpu == 0);
   task(); done();
@@ -186,9 +186,9 @@ void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 void SMP::add_task(smp_task_func task, int cpu)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
-  lock(smp_system[cpu].tlock);
+  smp_system[cpu].tlock.lock();
   smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
-  unlock(smp_system[cpu].tlock);
+  smp_system[cpu].tlock.unlock();
 #else
   assert(cpu == 0);
   task();
@@ -199,9 +199,9 @@ void SMP::add_bsp_task(smp_done_func task)
 #ifdef INCLUDEOS_SMP_ENABLE
   // queue job
   auto& system = PER_CPU(smp_system);
-  lock(system.flock);
+  system.flock.lock();
   system.completed.push_back(std::move(task));
-  unlock(system.flock);
+  system.flock.unlock();
   // set this CPU bit
   smp_main.bitmap.atomic_set(SMP::cpu_id());
   // call home
@@ -239,13 +239,13 @@ void SMP::unicast(int cpu, uint8_t irq)
   x86::APIC::get().send_ipi(cpu, IRQ_BASE + irq);
 }
 
-static spinlock_t __global_lock = 0;
+static smp_spinlock g_global_lock;
 
 void SMP::global_lock() noexcept
 {
-  lock(__global_lock);
+  g_global_lock.lock();
 }
 void SMP::global_unlock() noexcept
 {
-  unlock(__global_lock);
+  g_global_lock.unlock();
 }

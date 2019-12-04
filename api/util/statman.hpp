@@ -138,9 +138,7 @@ public:
   Statman();
 private:
   std::deque<Stat> m_stats;
-#ifdef INCLUDEOS_SMP_ENABLE
-  mutable spinlock_t stlock = 0;
-#endif
+  mutable smp_spinlock stlock;
   ssize_t find_free_stat() const noexcept;
   uint32_t& unused_stats();
 

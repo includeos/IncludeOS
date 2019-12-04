@@ -30,11 +30,13 @@ size_t brk_bytes_free() {
 
 static uintptr_t sys_brk(void* addr)
 {
-  scoped_spinlock { mr_spinny.memory };
+  mr_spinny.memory.lock();
   if (addr == nullptr
       or (uintptr_t)addr > brk_begin +  brk_max
       or (uintptr_t)addr < brk_begin) {
-    return brk_current_end;
+    uintptr_t retval = brk_current_end;
+    mr_spinny.memory.unlock();
+    return retval;
   }
 
   brk_current_end = (uintptr_t)addr;
@@ -44,7 +46,9 @@ static uintptr_t sys_brk(void* addr)
     brk_initialized = brk_current_end;
   }
 
-  return brk_current_end;
+  uintptr_t retval = brk_current_end;
+  mr_spinny.memory.unlock();
+  return retval;
 }
 
 extern "C"

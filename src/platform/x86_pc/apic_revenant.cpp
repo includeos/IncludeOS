@@ -21,10 +21,10 @@ using namespace x86;
 static bool revenant_task_doer(smp_system_stuff& system)
 {
   // grab hold on task list
-  lock(system.tlock);
+  system.tlock.lock();
 
   if (system.tasks.empty()) {
-    unlock(system.tlock);
+    system.tlock.unlock();
     // try again
     return false;
   }
@@ -33,7 +33,7 @@ static bool revenant_task_doer(smp_system_stuff& system)
   std::vector<smp_task> tasks;
   system.tasks.swap(tasks);
 
-  unlock(system.tlock);
+  system.tlock.unlock();
 
   for (auto& task : tasks)
   {
@@ -44,9 +44,9 @@ static bool revenant_task_doer(smp_system_stuff& system)
     if (task.done)
     {
       // NOTE: specifically pushing to 'smp' here, and not 'system'
-      lock(PER_CPU(smp_system).flock);
+      PER_CPU(smp_system).flock.lock();
       PER_CPU(smp_system).completed.push_back(std::move(task.done));
-      unlock(PER_CPU(smp_system).flock);
+      PER_CPU(smp_system).flock.unlock();
       // signal home
       PER_CPU(smp_system).work_done = true;
     }

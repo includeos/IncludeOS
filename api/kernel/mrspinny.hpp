@@ -2,7 +2,6 @@
 #include <smp_utils>
 
 struct struct_spinny {
-	spinlock_t memory = 0;
-	
+	smp_spinlock memory;
 };
 extern struct_spinny mr_spinny;

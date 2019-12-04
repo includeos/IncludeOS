@@ -28,17 +28,17 @@ uintptr_t __init_mmap(uintptr_t addr_begin, size_t size)
 extern "C" __attribute__((weak))
 void* kalloc(size_t size) {
   Expects(kernel::heap_ready());
-  lock(mr_spinny.memory);
+  mr_spinny.memory.lock();
   auto* data = alloc->allocate(size);
-  unlock(mr_spinny.memory);
+  mr_spinny.memory.unlock();
   return data;
 }
 
 extern "C" __attribute__((weak))
 void kfree (void* ptr, size_t size) {
-  lock(mr_spinny.memory);
+  mr_spinny.memory.lock();
   alloc->deallocate(ptr, size);
-  unlock(mr_spinny.memory);
+  mr_spinny.memory.unlock();
 }
 
 size_t mmap_bytes_used() {

@@ -68,10 +68,8 @@ namespace net
     int                   index = -1;
     std::vector<uint8_t*> available_;
     std::vector<uint8_t*> pools_;
-#ifdef INCLUDEOS_SMP_ENABLE
     // has strict alignment reqs, so put at end
-    spinlock_t           plock = 0;
-#endif
+    smp_spinlock          plock;
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;
     BufferStore& operator=(BufferStore&)  = delete;
@@ -82,10 +80,9 @@ namespace net
   {
     auto* buff = (uint8_t*) addr;
     if (LIKELY(this->is_valid(buff))) {
-#ifdef INCLUDEOS_SMP_ENABLE
-      scoped_spinlock spinlock(this->plock);
-#endif
+      plock.lock();
       this->available_.push_back(buff);
+      plock.unlock();
       return;
     }
     throw std::runtime_error("Buffer did not belong");
