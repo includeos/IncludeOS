@@ -2,7 +2,6 @@
 #include <arch/x86/cpu.hpp>
 #include <smp>
 #include <cassert>
-#include <deque>
 #include <pthread.h>
 #include <kprint>
 
@@ -43,6 +42,7 @@ namespace kernel
   {
     this->tid = tid;
 	this->parent = parent;
+	this->my_cpu   = SMP::cpu_id();
 	this->my_stack = stack;
 	if (this->parent) {
 		this->parent->children.push_back(this);
@@ -211,8 +211,11 @@ namespace kernel
   void resume(long tid)
   {
 	  auto* thread = get_thread(tid);
+	  if (thread != nullptr) {
+	  	thread->resume();
+	  }
+	  kprintf("Could not resume thread, missing: %ld\n", tid);
 	  assert(thread);
-	  thread->resume();
   }
 
   void ThreadManager::migrate(long tid, int cpu)
@@ -225,12 +228,14 @@ namespace kernel
 	  // can't migrate the thread you are in
 	  auto* current = get_thread();
 	  assert(current != thread && "Can't migrate current thread");
-	  // start migration
+	  // remove from old thread manager
 	  if (thread->parent != nullptr) {
 		  thread->detach();
 	  }
 	  this->erase_thread_safely(thread);
 	  this->erase_suspension(thread);
+	  // insert into new thread manager
+	  thread->my_cpu = cpu;
 	  auto& tman = ThreadManager::get(cpu);
 	  tman.insert_thread(thread);
 	  // attach this thread to the managers main thread

@@ -16,6 +16,7 @@ namespace kernel
   struct Thread {
     long    tid;
     Thread* parent;
+    int     my_cpu;
     void*   my_tls;
     void*   my_stack;
     // for returning to this Thread
