@@ -3,7 +3,6 @@
 #include <smp>
 #include <cassert>
 #include <pthread.h>
-#include <kprint>
 
 extern "C" {
   void __thread_yield();
@@ -214,8 +213,8 @@ namespace kernel
 	  if (thread != nullptr) {
 	  	thread->resume();
 	  }
-	  kprintf("Could not resume thread, missing: %ld\n", tid);
-	  assert(thread);
+	  THPRINT("Could not resume thread, missing: %ld\n", tid);
+	  assert(thread && "Could not find thread id");
   }
 
   void ThreadManager::migrate(long tid, int cpu)
