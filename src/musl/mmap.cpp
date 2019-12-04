@@ -28,12 +28,17 @@ uintptr_t __init_mmap(uintptr_t addr_begin, size_t size)
 extern "C" __attribute__((weak))
 void* kalloc(size_t size) {
   Expects(kernel::heap_ready());
-  return alloc->allocate(size);
+  lock(mr_spinny.memory);
+  auto* data = alloc->allocate(size);
+  unlock(mr_spinny.memory);
+  return data;
 }
 
 extern "C" __attribute__((weak))
 void kfree (void* ptr, size_t size) {
+  lock(mr_spinny.memory);
   alloc->deallocate(ptr, size);
+  unlock(mr_spinny.memory);
 }
 
 size_t mmap_bytes_used() {
@@ -61,7 +66,6 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
     return MAP_FAILED;
   }
 
-  scoped_spinlock { mr_spinny.memory };
   auto* res = kalloc(length);
 
   if (UNLIKELY(res == nullptr))

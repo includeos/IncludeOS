@@ -2,7 +2,7 @@
 #include <string.h>
 #include <os.hpp>
 #include <errno.h>
-#include <kprint>
+#include <kernel/mrspinny.hpp>
 
 static uintptr_t brk_begin        = 0;
 static uintptr_t brk_current_end  = 0;
@@ -30,6 +30,7 @@ size_t brk_bytes_free() {
 
 static uintptr_t sys_brk(void* addr)
 {
+  scoped_spinlock { mr_spinny.memory };
   if (addr == nullptr
       or (uintptr_t)addr > brk_begin +  brk_max
       or (uintptr_t)addr < brk_begin) {

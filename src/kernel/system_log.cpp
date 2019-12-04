@@ -63,19 +63,22 @@ void SystemLog::clear_flags()
 
 void SystemLog::write(const char* buffer, size_t length)
 {
-  scoped_spinlock { syslog_spinner };
+  lock(syslog_spinner);
   size_t free = get_mrb()->free_space();
   if (free < length) {
     get_mrb()->discard(length - free);
   }
   get_mrb()->write(buffer, length);
+  unlock(syslog_spinner);
 }
 
 std::vector<char> SystemLog::copy()
 {
-  scoped_spinlock { syslog_spinner };
+  lock(syslog_spinner);
   const auto* buffer = get_mrb()->sequentialize();
-  return {buffer, buffer + get_mrb()->size()};
+  std::vector<char> copy {buffer, buffer + get_mrb()->size()};
+  unlock(syslog_spinner);
+  return copy;
 }
 
 void SystemLog::initialize()
