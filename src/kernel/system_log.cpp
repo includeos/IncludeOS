@@ -3,7 +3,7 @@
 #include <os.hpp>
 #include <kernel/memory.hpp>
 #include <ringbuffer>
-#include <kprint>
+#include <smp>
 
 struct Log_buffer {
   uint64_t magic;
@@ -18,6 +18,7 @@ struct Log_buffer {
 };
 
 static FixedRingBuffer<16384> temp_mrb;
+static spinlock_t syslog_spinner = 0;
 #define MRB_AREA_SIZE (65536) // 64kb
 #define MRB_LOG_SIZE  (MRB_AREA_SIZE - sizeof(MemoryRingBuffer) - sizeof(Log_buffer))
 //#define VIRTUAL_MOVE
@@ -62,6 +63,7 @@ void SystemLog::clear_flags()
 
 void SystemLog::write(const char* buffer, size_t length)
 {
+  scoped_spinlock { syslog_spinner };
   size_t free = get_mrb()->free_space();
   if (free < length) {
     get_mrb()->discard(length - free);
@@ -71,6 +73,7 @@ void SystemLog::write(const char* buffer, size_t length)
 
 std::vector<char> SystemLog::copy()
 {
+  scoped_spinlock { syslog_spinner };
   const auto* buffer = get_mrb()->sequentialize();
   return {buffer, buffer + get_mrb()->size()};
 }
