@@ -109,7 +109,8 @@ __attribute__((noinline))
 static void task_main(int cpu)
 {
 	SMP::global_lock();
-	printf("CPU %d TID %ld running task\n", SMP::cpu_id(), kernel::get_tid());
+	printf("CPU %d (%d) TID %ld running task\n",
+			SMP::cpu_id(), cpu, kernel::get_tid());
 	SMP::global_unlock();
 }
 
@@ -132,6 +133,22 @@ void Service::start()
 		auto* t = new std::thread(&task_main, cpu);
 		t->join();
 
+		const char TC = kernel::get_tid() & 0xFF;
+		volatile void* test = calloc(4, 128u);
+	    assert(test);
+	    __sw_barrier();
+		for (int i = 0; i < 128; i++) {
+			((char*)test)[i] = TC;
+		}
+		__sw_barrier();
+	    test = realloc((void*) test, 128u);
+	    assert(test);
+	    __sw_barrier();
+		for (int i = 0; i < 128; i++) {
+			assert(((char*)test)[i] == TC);
+		}
+	    free((void*) test);
+
 		messages.barry.increment();
     }, i);
 
@@ -142,7 +159,7 @@ void Service::start()
   messages.barry.spin_wait(SMP::cpu_count()-1);
 
   // trigger interrupt
-  //SMP::broadcast(IRQ+32);
+  SMP::broadcast(IRQ);
   // the rest
   smp_advanced_test();
 }
