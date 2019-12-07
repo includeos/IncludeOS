@@ -49,7 +49,7 @@ struct minimal_barrier_t
     }
   }
 
-  void reset(int val) noexcept
+  void reset(int val = 0) noexcept
   {
     asm volatile("mfence");
     this->val = val;

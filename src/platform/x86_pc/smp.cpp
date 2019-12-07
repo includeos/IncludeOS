@@ -85,7 +85,9 @@ void init_SMP()
 	  auto& system = smp_system.at(cpu.id);
 	  system.main_thread = t;
 	  system.main_thread_id = tid;
-	  kernel::ThreadManager::get().migrate(tid, cpu.id);
+	  // migrate thread to its CPU
+	  auto* kthread = kernel::ThreadManager::get().detach(tid);
+	  kernel::ThreadManager::get(cpu.id).attach(kthread);
   }
 
   // turn on CPUs

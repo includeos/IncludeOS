@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <delegate>
 #include <deque>
 #include <map>
 #include <vector>
@@ -16,7 +17,6 @@ namespace kernel
   struct Thread {
     long    tid;
     Thread* parent;
-    int     my_cpu;
     void*   my_tls;
     void*   my_stack;
     // for returning to this Thread
@@ -32,10 +32,11 @@ namespace kernel
     void yield();
     void exit();
     void suspend(void* ret_instr, void* ret_stack);
-    void activate(void* newtls);
+    void set_tls(void* newtls);
     void resume();
 	void detach();
 	void attach(Thread* parent);
+	void stack_push(uintptr_t value);
   private:
     void libc_store_this();
   };
@@ -45,17 +46,23 @@ namespace kernel
 	  std::map<long, kernel::Thread*> threads;
 	  std::deque<Thread*> suspended;
 	  Thread* main_thread = nullptr;
+	  Thread* next_migration_thread = nullptr;
+
+	  delegate<Thread*(ThreadManager&, Thread*)> on_new_thread = nullptr;
 
 	  static ThreadManager& get() noexcept;
 	  static ThreadManager& get(int cpu);
 
-	  void migrate(long tid, int cpu);
+	  Thread* detach(long tid);
+	  void attach(Thread* thread);
 
+	  bool has_thread(long tid) const noexcept { return threads.find(tid) != threads.end(); }
 	  void insert_thread(Thread* thread);
 	  void erase_thread_safely(Thread* thread);
 
 	  void erase_suspension(Thread* t);
 	  void suspend(Thread* t) { suspended.push_back(t); }
+	  void finish_migration_to(Thread* next);
 	  Thread* wakeup_next();
   };
 
@@ -88,6 +95,7 @@ namespace kernel
   void resume(long tid);
 
   void setup_main_thread(long tid = 0) noexcept;
+  void setup_automatic_thread_multiprocessing();
 }
 
 extern "C" {

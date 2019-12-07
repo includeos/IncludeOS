@@ -3,13 +3,16 @@
 #include <smp>
 #include <cassert>
 #include <pthread.h>
+#include <kprint>
 
 extern "C" {
   void __thread_yield();
   void __thread_restore(void* nexti, void* stack);
-  void __clone_return(void* nexti, void* stack);
+  void __clone_return(void* stack);
+  long __migrate_resume(void* stack);
   long syscall_SYS_set_thread_area(void* u_info);
 }
+static constexpr bool PRIORITIZE_PARENT = true;
 
 struct libc_internal {
   void* self;
@@ -41,25 +44,26 @@ namespace kernel
   {
     this->tid = tid;
 	this->parent = parent;
-	this->my_cpu   = SMP::cpu_id();
 	this->my_stack = stack;
 	if (this->parent) {
 		this->parent->children.push_back(this);
 	}
-
   }
-
+  void Thread::stack_push(uintptr_t value)
+  {
+	this->my_stack = (void*) ((uintptr_t) this->my_stack - sizeof(uintptr_t));
+	*((uintptr_t*) this->my_stack) = value;
+  }
   void Thread::libc_store_this()
   {
     auto* s = (libc_internal*) this->my_tls;
     s->kthread = this;
   }
-  void Thread::activate(void* newtls)
+  void Thread::set_tls(void* newtls)
   {
     this->my_tls = newtls;
     // store ourselves in the guarded libc structure
     this->libc_store_this();
-    set_thread_area(this->my_tls);
   }
 
   void Thread::suspend(void* ret_instr, void* ret_stack)
@@ -73,20 +77,21 @@ namespace kernel
   }
   void Thread::yield()
   {
+	  this->yielded = true;
       // resume a waiting thread
 	  auto* next = ThreadManager::get().wakeup_next();
       // resume next thread
-      this->yielded = true;
       next->resume();
   }
 
   void Thread::exit()
   {
     const bool exiting_myself = (get_thread() == this);
+	auto& tman = ThreadManager::get();
     assert(this->parent != nullptr);
     // detach children
     for (auto* child : this->children) {
-        child->parent = ThreadManager::get().main_thread;
+        child->parent = tman.main_thread;
     }
     // temporary copy of parent thread pointer
     auto* next = this->parent;
@@ -98,14 +103,21 @@ namespace kernel
         *(pid_t*) this->clear_tid = 0;
     }
     // delete this thread
-	ThreadManager::get().erase_thread_safely(this);
+	tman.erase_thread_safely(this);
     // free thread resources
     delete this;
     // resume parent thread
     if (exiting_myself)
     {
-        ThreadManager::get().erase_suspension(next);
-        next->resume();
+		if constexpr (PRIORITIZE_PARENT) {
+			// only resume this thread if its on this CPU
+			if (tman.has_thread(next->tid)) {
+				tman.erase_suspension(next);
+				next->resume();
+			}
+		}
+		next = tman.wakeup_next();
+		next->resume();
     }
   }
   void Thread::detach()
@@ -133,7 +145,7 @@ namespace kernel
       // NOTE: the RAX return value here is CHILD thread id, not this
       if (this->yielded == false) {
           set_thread_area(this->my_tls);
-          __clone_return(this->stored_nexti, this->stored_stack);
+          __clone_return(this->stored_stack);
       }
       else {
           this->yielded = false;
@@ -173,8 +185,9 @@ namespace kernel
 		if (tid == 0)
 		{
 			core0_main_thread.init(0, nullptr, (void*) &stack_value);
+			ThreadManager::get(0).insert_thread(&core0_main_thread);
 			// allow exiting in main thread
-			core0_main_thread.activate(get_thread_area());
+			core0_main_thread.set_tls(get_thread_area());
 			// make threadmanager0 use this main thread
 			// NOTE: don't use SMP-aware function here
 			ThreadManager::get(0).main_thread = &core0_main_thread;
@@ -185,6 +198,33 @@ namespace kernel
 			assert(main_thread->parent == nullptr);
 			ThreadManager::get().main_thread = main_thread;
 		}
+  }
+  void setup_automatic_thread_multiprocessing()
+  {
+	  ThreadManager::get().on_new_thread =
+	  [] (ThreadManager& man, Thread* thread) -> Thread* {
+		  auto* kthread = man.detach(thread->tid);
+		  SMP::add_task(
+		  [kthread] () {
+#ifdef THREADS_DEBUG
+			  SMP::global_lock();
+			  THPRINT("CPU %d resuming migrated thread %ld (RIP=%p, Stack=%p)\n",
+			  		SMP::cpu_id(), kthread->tid,
+					(void*) kthread->stored_nexti,
+					(void*) kthread->my_stack);
+			  SMP::global_unlock();
+#endif
+			  // attach this thread on this core
+			  ThreadManager::get().attach(kthread);
+			  // set kthread as the next thread after yield
+			  ThreadManager::get().finish_migration_to(kthread);
+			  // NOTE: returns here!!
+		  }, nullptr);
+		  // signal that work exists in the global queue
+		  SMP::signal();
+		  // indicate that the thread has been detached
+		  return nullptr;
+	  };
   }
 
   void* get_thread_area()
@@ -217,7 +257,7 @@ namespace kernel
 	  assert(thread && "Could not find thread id");
   }
 
-  void ThreadManager::migrate(long tid, int cpu)
+  Thread* ThreadManager::detach(long tid)
   {
 	  auto* thread = get_thread(tid);
 	  // can't migrate missing thread
@@ -233,15 +273,16 @@ namespace kernel
 	  }
 	  this->erase_thread_safely(thread);
 	  this->erase_suspension(thread);
+	  // return the free, detached thread
+	  return thread;
+  }
+  void ThreadManager::attach(Thread* thread)
+  {
 	  // insert into new thread manager
-	  thread->my_cpu = cpu;
-	  auto& tman = ThreadManager::get(cpu);
-	  tman.insert_thread(thread);
+	  this->insert_thread(thread);
 	  // attach this thread to the managers main thread
-	  if (tman.main_thread) {
-	  	thread->attach(tman.main_thread);
-		// add to suspended list (since not a main thread)
-		tman.suspended.push_back(thread);
+	  if (this->main_thread) {
+		thread->attach(this->main_thread);
 	  }
   }
   void ThreadManager::insert_thread(Thread* thread)
@@ -278,22 +319,46 @@ namespace kernel
           }
       }
   }
+  void ThreadManager::finish_migration_to(Thread* thread)
+  {
+	  // special migration-yield to next thread
+	  this->next_migration_thread = thread;
+	  __thread_yield(); // NOTE: function returns!!
+  }
 }
 
 extern "C"
 void __thread_suspend_and_yield(void* next_instr, void* stack)
 {
-    // don't go through the ardous yielding process when alone
-    if (kernel::ThreadManager::get().suspended.empty()) {
+	auto& man = kernel::ThreadManager::get();
+	// don't go through the ardous yielding process when alone
+	if (man.suspended.empty() && man.next_migration_thread == nullptr) {
 		THPRINT("Nothing to yield to. Returning... nexti=%p stack=%p\n",
-              next_instr, stack);
+			  next_instr, stack);
 		return;
 	}
-    // suspend current thread
-    auto* thread = kernel::get_thread();
-    thread->suspend(next_instr, stack);
-    // resume some other thread
-    thread->yield();
+	// suspend current thread
+	auto* thread = kernel::get_thread();
+	thread->suspend(next_instr, stack);
+	thread->yielded = true;
+
+	if (man.next_migration_thread == nullptr)
+	{
+	    // resume some other thread
+	    thread->yield();
+	}
+	else
+	{
+		// resume migrated thread
+		auto* kthread = man.next_migration_thread;
+		man.next_migration_thread = nullptr;
+		// resume the thread on this core
+		kernel::set_thread_area(kthread->my_tls);
+		assert(kernel::get_thread() == kthread);
+
+		__migrate_resume(kthread->my_stack);
+	}
+	__builtin_unreachable();
 }
 
 extern "C"

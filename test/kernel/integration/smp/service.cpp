@@ -34,7 +34,7 @@ void smp_advanced_test()
     if (PER_CPU(testing).value == SMP::cpu_id())
         __sync_fetch_and_or(&job, 1 << i);
   },
-  [i] {
+  [] {
     // job completion
     completed++;
 
@@ -113,6 +113,14 @@ static void task_main(int cpu)
 			SMP::cpu_id(), cpu, kernel::get_tid());
 	SMP::global_unlock();
 }
+static void multiprocess_task(int cpu)
+{
+	SMP::global_lock();
+	printf("CPU %d (%d) TID %ld running automatic multi-processing task\n",
+			SMP::cpu_id(), cpu, kernel::get_tid());
+	SMP::global_unlock();
+	messages.barry.increment();
+}
 
 void Service::start()
 {
@@ -156,7 +164,34 @@ void Service::start()
   }
 
   // wait for idiots to finish
+  SMP::global_lock();
+  printf("Waiting for %zu tasks from TID=%ld\n",
+  		SMP::cpu_count()-1, kernel::get_tid());
+  SMP::global_unlock();
   messages.barry.spin_wait(SMP::cpu_count()-1);
+  messages.barry.reset();
+
+  // threads will now be migrated to free CPUs
+  kernel::setup_automatic_thread_multiprocessing();
+
+  std::vector<std::thread*> mpthreads;
+  for (unsigned i = 0; i < SMP::active_cpus().size() - 1; i++)
+  {
+	mpthreads.push_back(
+	  new std::thread(&multiprocess_task, i)
+  	);
+  }
+
+  SMP::global_lock();
+  printf("Waiting for %zu multi-processing threads from TID=%ld\n",
+  		mpthreads.size(), kernel::get_tid());
+  SMP::global_unlock();
+  messages.barry.spin_wait(mpthreads.size());
+
+  printf("Joining %zu threads\n", mpthreads.size());
+  for (auto* t : mpthreads) {
+    t->join();
+  }
 
   // trigger interrupt
   SMP::broadcast(IRQ);

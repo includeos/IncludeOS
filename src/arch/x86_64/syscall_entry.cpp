@@ -8,6 +8,7 @@
 
 extern "C" {
   long syscall_SYS_set_thread_area(void* u_info);
+  void __clone_return(void* stack);
 }
 
 #define ARCH_SET_GS 0x1001
@@ -70,11 +71,31 @@ pthread_t syscall_clone(void* next_instr,
     kprintf("-> callback: "); print_symbol(callback);
 #endif
 
-    // suspend parent thread
-    parent->suspend(next_instr, old_stack);
-    // activate new TLS location
-    thread->activate(newtls);
-    return thread->tid;
+	// set TLS location (and set self)
+    thread->set_tls(newtls);
+
+	auto& tman = kernel::ThreadManager::get();
+	if (tman.on_new_thread != nullptr) {
+		// push 8 values onto new stack, as the old stack will get
+		// used immediately by the returning thread
+		constexpr int STV = 8;
+		for (int i = 0; i < STV; i++) {
+			thread->stack_push(*((uintptr_t*) old_stack + STV + 1 - i));
+		}
+		// potentially get child stolen by migration callback
+		thread = tman.on_new_thread(tman, thread);
+	}
+
+	if (thread) {
+		// suspend parent thread
+		parent->suspend(next_instr, old_stack);
+		// continue on child
+		kernel::set_thread_area(thread->my_tls);
+		return thread->tid;
+	}
+	// continue with parent
+	__clone_return(old_stack);
+	__builtin_unreachable();
 }
 
 extern "C"
