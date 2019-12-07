@@ -96,8 +96,6 @@ namespace x86
     auto& ist = lm_ist.at(cpu);
     std::memset(&ist.tss, 0, sizeof(AMD64_TSS));
 
-	// have to do this for now
-	// FIXME: find out why we need to do this
     auto st = create_stack(INTR_SIZE, "Intr stack");
     ist.tss.ist1 = (uintptr_t) st.sp;
     ist.intr = st.phys;
@@ -114,12 +112,11 @@ namespace x86
     ist.tss.rsp1 = stack;
     ist.tss.rsp2 = stack;
 
-    static smp_spinlock gdtspinner;
-    gdtspinner.lock();
     auto tss_addr = (uintptr_t) &ist.tss;
 
     // entry #3 in the GDT is the Task selector
-    auto* tgd = (AMD64_TS*) &__gdt64_base_pointer.location[8 * 3];
+    const int task_offset = 8 * (3 + cpu);
+    auto* tgd = (AMD64_TS*) &__gdt64_base_pointer.location[task_offset];
     memset(tgd, 0, sizeof(AMD64_TS));
     tgd->td_type = 0x9;
     tgd->td_present = 1;
@@ -128,7 +125,6 @@ namespace x86
     tgd->td_lobase  = tss_addr & 0xFFFFFF;
     tgd->td_hibase  = tss_addr >> 24;
 
-    __amd64_load_tr(8 * 3);
-    gdtspinner.unlock();
+    __amd64_load_tr(task_offset);
   }
 }
