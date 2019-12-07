@@ -36,6 +36,12 @@ __apic_trampoline:
     or  eax, 1 << 31
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
+	;; retrieve CPU id -> rbx
+    mov eax, 1
+    cpuid
+    shr ebx, 24
+	;; TODO: load a proper GDT here instead of a shared one
+
     ;; load 64-bit GDT
     lgdt [__gdt64_base_pointer]
     jmp  0x8:long_mode ;; 0x8 = code seg
@@ -52,10 +58,6 @@ long_mode:
 
     ;; align stack
     and  rsp, -16
-    ;; retrieve CPU id
-    mov rax, 1
-    cpuid
-    shr rbx, 24
     ;; geronimo!
     mov rdi, rbx
     call revenant_main

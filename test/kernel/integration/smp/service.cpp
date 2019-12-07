@@ -113,11 +113,11 @@ static void task_main(int cpu)
 			SMP::cpu_id(), cpu, kernel::get_tid());
 	SMP::global_unlock();
 }
-static void multiprocess_task(int cpu)
+static void multiprocess_task(int task)
 {
 	SMP::global_lock();
-	printf("CPU %d (%d) TID %ld running automatic multi-processing task\n",
-			SMP::cpu_id(), cpu, kernel::get_tid());
+	printf("CPU %d TASK %d TID %ld running automatic multi-processing task\n",
+			SMP::cpu_id(), task, kernel::get_tid());
 	SMP::global_unlock();
 	messages.barry.increment();
 }

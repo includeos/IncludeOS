@@ -92,7 +92,7 @@ namespace kernel
 
   void resume(long tid);
 
-  void setup_main_thread(long tid = 0) noexcept;
+  Thread* setup_main_thread(long tid = 0);
   void setup_automatic_thread_multiprocessing();
 }
 

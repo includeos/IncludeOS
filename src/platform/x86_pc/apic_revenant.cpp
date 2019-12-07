@@ -135,8 +135,8 @@ void revenant_main(int cpu)
 
   auto& system = PER_CPU(smp_system);
   // setup main thread
-  kernel::setup_main_thread(system.main_thread_id);
+  auto* kthread = kernel::setup_main_thread(system.main_thread_id);
   // resume APs main thread
-  kernel::resume(system.main_thread_id);
+  kthread->resume();
   __builtin_unreachable();
 }

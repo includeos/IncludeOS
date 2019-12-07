@@ -60,19 +60,17 @@ static stack create_stack_virt(size_t size, const char* name)
   stacks_begin += util::bits::roundto<4096>(size) + GUARD_SIZE;
 
   // Align stack pointer to bottom of stack minus a pop
-  auto sp = map.lin + size - 8;
-  sp &= ~uintptr_t(0xf);
+  auto sp = map.lin + size;
 
   // Force page fault if mapped area isn't writable
-  ((char*)sp)[0] = '!';
+  ((char*)sp)[-1] = '!';
 
   return {(void*) sp, phys};
 }
 static stack create_stack_simple(size_t size, const char* /*name*/)
 {
   auto* phys = (char*)memalign(4096, size);
-  uintptr_t sp = (uintptr_t) phys + size - 8;
-  sp &= ~uintptr_t(0xf);
+  uintptr_t sp = (uintptr_t) phys + size;
   return {(void*) sp, phys};
 }
 
@@ -95,8 +93,11 @@ namespace x86
     if (cpu > 0) create_stack = create_stack_simple;
 
     auto& ist = lm_ist.at(cpu);
-    memset(&ist.tss, 0, sizeof(AMD64_TSS));
+    std::memset(&ist.tss, 0, sizeof(AMD64_TSS));
 
+	// have to do this for now
+	// FIXME: find out why we need to do this
+SMP::global_lock();
     auto st = create_stack(INTR_SIZE, "Intr stack");
     ist.tss.ist1 = (uintptr_t) st.sp;
     ist.intr = st.phys;
@@ -126,5 +127,6 @@ namespace x86
     tgd->td_hibase  = tss_addr >> 24;
 
     __amd64_load_tr(8 * 3);
+SMP::global_unlock();
   }
 }

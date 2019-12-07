@@ -132,16 +132,15 @@ namespace kernel
 
   void Thread::resume()
   {
-      THPRINT("Returning to tid=%ld tls=%p stack=%p\n",
-            this->tid, this->my_tls, this->stored_stack);
+      set_thread_area(this->my_tls);
+      THPRINT("Returning to tid=%ld tls=%p stack=%p thread=%p\n",
+            this->tid, this->my_tls, this->stored_stack, get_thread());
       // NOTE: the RAX return value here is CHILD thread id, not this
       if (this->yielded == false) {
-          set_thread_area(this->my_tls);
           __clone_return(this->stored_stack);
       }
       else {
           this->yielded = false;
-          set_thread_area(this->my_tls);
           __thread_restore(this->stored_stack);
       }
       __builtin_unreachable();
@@ -171,7 +170,7 @@ namespace kernel
     }
   }
 
-  void setup_main_thread(long tid) noexcept
+  Thread* setup_main_thread(long tid)
   {
 		int stack_value;
 		if (tid == 0)
@@ -183,12 +182,14 @@ namespace kernel
 			// make threadmanager0 use this main thread
 			// NOTE: don't use SMP-aware function here
 			ThreadManager::get(0).main_thread = &core0_main_thread;
+			return &core0_main_thread;
 		}
 		else
 		{
 			auto* main_thread = get_thread(tid);
-			assert(main_thread->parent == nullptr);
+			assert(main_thread->parent == nullptr && "Must be a detached thread");
 			ThreadManager::get().main_thread = main_thread;
+			return main_thread;
 		}
   }
   void setup_automatic_thread_multiprocessing()
@@ -243,6 +244,7 @@ namespace kernel
 	  auto* thread = get_thread(tid);
 	  if (thread != nullptr) {
 	  	thread->resume();
+		__builtin_unreachable();
 	  }
 	  THPRINT("Could not resume thread, missing: %ld\n", tid);
 	  assert(thread && "Could not find thread id");
@@ -325,7 +327,8 @@ void __thread_suspend_and_yield(void* stack)
 	auto& man = kernel::ThreadManager::get();
 	// don't go through the ardous yielding process when alone
 	if (man.suspended.empty() && man.next_migration_thread == nullptr) {
-		THPRINT("Nothing to yield to. Returning... stack=%p\n", stack);
+		THPRINT("Nothing to yield to. Returning... thread=%p stack=%p\n",
+				kernel::get_thread(), stack);
 		return;
 	}
 	// suspend current thread (yielded)
