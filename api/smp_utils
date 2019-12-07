@@ -4,61 +4,35 @@
 #ifndef API_SMP_UTILS_HEADER
 #define API_SMP_UTILS_HEADER
 
-#include <arch.hpp>
-
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef unsigned int spinlock_t __attribute__((aligned(128)));
 
 struct smp_spinlock
 {
-  smp_spinlock() = default;
-
-#ifdef INCLUDEOS_SMP_ENABLE
-  inline void lock() {
-    while (!__sync_bool_compare_and_swap(&m_value, 0, 1)) {
-      while (m_value) asm("pause");
-    }
-  }
-  inline void unlock() {
-    __sync_lock_release(&m_value, 0);
-  }
-#else
-  inline void lock() {}
-  inline void unlock() {}
-#endif
+  void lock();
+  void unlock();
 
 private:
-  spinlock_t m_value;
+  volatile spinlock_t m_value = 0;
 };
 
-/// x86-related locking stuff ///
-#if defined(ARCH_x86)
-
-struct minimal_barrier_t
+struct smp_barrier
 {
   void increment() noexcept
   {
     __sync_fetch_and_add(&val, 1);
   }
 
-  void spin_wait(int max) noexcept
-  {
-    asm("mfence"); // TODO: fences are standard now
-    while (this->val < max) {
-      asm("pause; nop;");
-    }
-  }
+  void spin_wait(int max) noexcept;
 
   void reset(int val = 0) noexcept
   {
-    asm volatile("mfence");
+    __sync_synchronize();
     this->val = val;
   }
 
 private:
   volatile int val = 0;
 };
-
-#endif // arch
 
 #endif // hdr

@@ -27,7 +27,7 @@ struct smp_stuff
 {
   uintptr_t stack_base;
   uintptr_t stack_size;
-  minimal_barrier_t boot_barrier;
+  smp_barrier boot_barrier;
   std::vector<int> initialized_cpus {0};
   std::array<uint32_t, 8> bmp_storage = {0};
   MemBitmap bitmap{bmp_storage.data(), bmp_storage.size()};

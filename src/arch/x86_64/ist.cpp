@@ -12,6 +12,7 @@
 #endif
 
 extern "C" void __amd64_load_tr(uint16_t);
+extern "C" void* kalloc(size_t size);
 
 struct gdtr64 {
   uint16_t limit;
@@ -45,7 +46,7 @@ static stack create_stack_virt(size_t size, const char* name)
   static uintptr_t stacks_begin = stack_area + GUARD_SIZE;
 
   // Allocate physical memory
-  auto* phys = (char*)memalign(4096, size);
+  auto* phys = (char*) kalloc(size);
   IST_PRINT("* Creating stack '%s' @ %p (%p phys) \n",
          name, (void*)stacks_begin, phys);
 
@@ -69,7 +70,7 @@ static stack create_stack_virt(size_t size, const char* name)
 }
 static stack create_stack_simple(size_t size, const char* /*name*/)
 {
-  auto* phys = (char*)memalign(4096, size);
+  auto* phys = (char*) kalloc(size);
   uintptr_t sp = (uintptr_t) phys + size;
   return {(void*) sp, phys};
 }
@@ -97,7 +98,6 @@ namespace x86
 
 	// have to do this for now
 	// FIXME: find out why we need to do this
-SMP::global_lock();
     auto st = create_stack(INTR_SIZE, "Intr stack");
     ist.tss.ist1 = (uintptr_t) st.sp;
     ist.intr = st.phys;
@@ -114,6 +114,8 @@ SMP::global_lock();
     ist.tss.rsp1 = stack;
     ist.tss.rsp2 = stack;
 
+    static smp_spinlock gdtspinner;
+    gdtspinner.lock();
     auto tss_addr = (uintptr_t) &ist.tss;
 
     // entry #3 in the GDT is the Task selector
@@ -127,6 +129,6 @@ SMP::global_lock();
     tgd->td_hibase  = tss_addr >> 24;
 
     __amd64_load_tr(8 * 3);
-SMP::global_unlock();
+    gdtspinner.unlock();
   }
 }

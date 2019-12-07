@@ -82,7 +82,7 @@ void smp_advanced_test()
 
 #include <smp_utils>
 static struct {
-	minimal_barrier_t barry;
+	smp_barrier barry;
 } messages;
 
 static void random_irq_handler()
