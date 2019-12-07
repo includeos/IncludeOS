@@ -183,15 +183,14 @@ void Service::start()
   }
 
   SMP::global_lock();
-  printf("Waiting for %zu multi-processing threads from TID=%ld\n",
-  		mpthreads.size(), kernel::get_tid());
-  SMP::global_unlock();
-  messages.barry.spin_wait(mpthreads.size());
-
   printf("Joining %zu threads\n", mpthreads.size());
+  SMP::global_unlock();
+
   for (auto* t : mpthreads) {
     t->join();
   }
+  // the dead threads should have already made this barrier complete!
+  messages.barry.spin_wait(SMP::cpu_count()-1);
 
   // trigger interrupt
   SMP::broadcast(IRQ);
