@@ -75,14 +75,6 @@ namespace kernel
       // add to suspended (NB: can throw)
       ThreadManager::get().suspend(this);
   }
-  void Thread::yield()
-  {
-	  this->yielded = true;
-      // resume a waiting thread
-	  auto* next = ThreadManager::get().wakeup_next();
-      // resume next thread
-      next->resume();
-  }
 
   void Thread::exit()
   {
@@ -216,7 +208,7 @@ namespace kernel
 #endif
 			  // attach this thread on this core
 			  ThreadManager::get().attach(kthread);
-			  // set kthread as the next thread after yield
+			  // resume kthread after yielding this thread
 			  ThreadManager::get().finish_migration_to(kthread);
 			  // NOTE: returns here!!
 		  }, nullptr);
@@ -344,8 +336,10 @@ void __thread_suspend_and_yield(void* next_instr, void* stack)
 
 	if (man.next_migration_thread == nullptr)
 	{
-	    // resume some other thread
-	    thread->yield();
+		// resume some other thread
+		auto* next = man.wakeup_next();
+		// resume next thread
+		next->resume();
 	}
 	else
 	{
@@ -359,11 +353,4 @@ void __thread_suspend_and_yield(void* next_instr, void* stack)
 		__migrate_resume(kthread->my_stack);
 	}
 	__builtin_unreachable();
-}
-
-extern "C"
-long syscall_SYS_sched_setscheduler(pid_t /*pid*/, int /*policy*/,
-                          const struct sched_param* /*param*/)
-{
-  return 0;
 }

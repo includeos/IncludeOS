@@ -29,7 +29,6 @@ namespace kernel
     std::vector<Thread*> children;
 
     void init(long tid, Thread* parent, void* stack);
-    void yield();
     void exit();
     void suspend(void* ret_instr, void* ret_stack);
     void set_tls(void* newtls);
