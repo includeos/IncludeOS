@@ -58,7 +58,7 @@ pthread_t syscall_clone(void* next_instr,
     auto* parent = kernel::get_thread();
 
     auto* thread = kernel::thread_create(parent, flags, ctid, stack);
-#ifdef THREADS_DEBUG
+#ifdef VERBOSE_CLONE_SYSCALL
     kprintf("clone syscall creating thread %ld\n", thread->tid);
     kprintf("-> nexti:  "); print_symbol(next_instr);
     kprintf("-> flags:  %#lx\n", flags);
@@ -87,8 +87,8 @@ pthread_t syscall_clone(void* next_instr,
 	}
 
 	if (thread) {
-		// suspend parent thread
-		parent->suspend(next_instr, old_stack);
+		// suspend parent thread (not yielded)
+		parent->suspend(false, old_stack);
 		// continue on child
 		kernel::set_thread_area(thread->my_tls);
 		return thread->tid;

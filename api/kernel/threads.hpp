@@ -7,7 +7,7 @@
 
 //#define THREADS_DEBUG 1
 #ifdef THREADS_DEBUG
-#define THPRINT(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define THPRINT(fmt, ...) { SMP::global_lock(); kprintf(fmt, ##__VA_ARGS__); SMP::global_unlock(); }
 #else
 #define THPRINT(fmt, ...) /* fmt */
 #endif
@@ -21,7 +21,6 @@ namespace kernel
     void*   my_stack;
     // for returning to this Thread
     void*   stored_stack = nullptr;
-    void*   stored_nexti = nullptr;
     bool    yielded = false;
     // address zeroed when exiting
     void*   clear_tid = nullptr;
@@ -30,7 +29,7 @@ namespace kernel
 
     void init(long tid, Thread* parent, void* stack);
     void exit();
-    void suspend(void* ret_instr, void* ret_stack);
+    void suspend(bool yielded, void* ret_stack);
     void set_tls(void* newtls);
     void resume();
 	void detach();

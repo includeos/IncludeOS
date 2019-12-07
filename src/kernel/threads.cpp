@@ -7,7 +7,7 @@
 
 extern "C" {
   void __thread_yield();
-  void __thread_restore(void* nexti, void* stack);
+  void __thread_restore(void* stack);
   void __clone_return(void* stack);
   long __migrate_resume(void* stack);
   long syscall_SYS_set_thread_area(void* u_info);
@@ -66,11 +66,11 @@ namespace kernel
     this->libc_store_this();
   }
 
-  void Thread::suspend(void* ret_instr, void* ret_stack)
+  void Thread::suspend(bool yielded, void* ret_stack)
   {
-	  THPRINT("Thread %ld storing return point %p with stack %p\n",
-              this->tid, ret_instr, ret_stack);
-      this->stored_nexti = ret_instr;
+	  THPRINT("Thread %ld suspended, yielded=%d stack=%p\n",
+              this->tid, yielded, ret_stack);
+	  this->yielded = yielded;
       this->stored_stack = ret_stack;
       // add to suspended (NB: can throw)
       ThreadManager::get().suspend(this);
@@ -98,7 +98,7 @@ namespace kernel
 	tman.erase_thread_safely(this);
     // free thread resources
     delete this;
-    // resume parent thread
+    // NOTE: cannot deref this after this
     if (exiting_myself)
     {
 		if constexpr (PRIORITIZE_PARENT) {
@@ -132,8 +132,8 @@ namespace kernel
 
   void Thread::resume()
   {
-      THPRINT("Returning to tid=%ld tls=%p nexti=%p stack=%p\n",
-            this->tid, this->my_tls, this->stored_nexti, this->stored_stack);
+      THPRINT("Returning to tid=%ld tls=%p stack=%p\n",
+            this->tid, this->my_tls, this->stored_stack);
       // NOTE: the RAX return value here is CHILD thread id, not this
       if (this->yielded == false) {
           set_thread_area(this->my_tls);
@@ -142,7 +142,7 @@ namespace kernel
       else {
           this->yielded = false;
           set_thread_area(this->my_tls);
-          __thread_restore(this->stored_nexti, this->stored_stack);
+          __thread_restore(this->stored_stack);
       }
       __builtin_unreachable();
   }
@@ -200,9 +200,8 @@ namespace kernel
 		  [kthread] () {
 #ifdef THREADS_DEBUG
 			  SMP::global_lock();
-			  THPRINT("CPU %d resuming migrated thread %ld (RIP=%p, Stack=%p)\n",
+			  THPRINT("CPU %d resuming migrated thread %ld (stack=%p)\n",
 			  		SMP::cpu_id(), kthread->tid,
-					(void*) kthread->stored_nexti,
 					(void*) kthread->my_stack);
 			  SMP::global_unlock();
 #endif
@@ -319,20 +318,19 @@ namespace kernel
   }
 }
 
+// called from __thread_yield assembly, cannot return
 extern "C"
-void __thread_suspend_and_yield(void* next_instr, void* stack)
+void __thread_suspend_and_yield(void* stack)
 {
 	auto& man = kernel::ThreadManager::get();
 	// don't go through the ardous yielding process when alone
 	if (man.suspended.empty() && man.next_migration_thread == nullptr) {
-		THPRINT("Nothing to yield to. Returning... nexti=%p stack=%p\n",
-			  next_instr, stack);
+		THPRINT("Nothing to yield to. Returning... stack=%p\n", stack);
 		return;
 	}
-	// suspend current thread
+	// suspend current thread (yielded)
 	auto* thread = kernel::get_thread();
-	thread->suspend(next_instr, stack);
-	thread->yielded = true;
+	thread->suspend(true, stack);
 
 	if (man.next_migration_thread == nullptr)
 	{
