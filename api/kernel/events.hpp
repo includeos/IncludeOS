@@ -49,17 +49,12 @@ public:
   Events() = default;
 
 private:
-  Events(Events&) = delete;
-  Events(Events&&) = delete;
-  Events& operator=(Events&&) = delete;
-  Events& operator=(Events&) = delete;
-
   event_callback callbacks[NUM_EVENTS];
   std::array<uint64_t, NUM_EVENTS> received_array;
   std::array<uint64_t, NUM_EVENTS> handled_array;
 
-  std::array<bool, NUM_EVENTS>  event_subs;
-  std::array<bool, NUM_EVENTS>  event_pend;
+  std::array<bool, NUM_EVENTS>  event_subs {};
+  std::array<bool, NUM_EVENTS>  event_pend {};
   // using deque because vector resize causes invalidation of ranged for
   // when something subscribes during processing of events
   std::deque<uint8_t> sublist;

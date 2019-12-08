@@ -6,7 +6,6 @@
 #include <kernel/cpuid.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/service.hpp>
-#include <kernel/threads.hpp>
 #include <util/elf_binary.hpp>
 #include <version.h>
 #include <kprint>
@@ -53,9 +52,6 @@ int kernel_main(int, char * *, char * *)
   LL_ASSERT(elf.is_ELF() && "ELF header intact");
 
   PRATTLE("<kernel_main> OS start\n");
-
-  // setup main thread after global ctors
-  kernel::setup_main_thread();
 
   // Initialize early OS, platform and devices
 #if defined(PLATFORM_x86_pc)

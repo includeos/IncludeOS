@@ -34,7 +34,8 @@ struct alignas(SMP_ALIGN) smp_deferred_kick
   std::vector<VirtioNet*> devs;
   uint8_t irq;
 };
-static std::array<smp_deferred_kick, SMP_MAX_CORES> deferred_devs;
+static std::vector<smp_deferred_kick> deferred_devs;
+SMP_RESIZE_GCTOR(deferred_devs);
 #endif
 
 using namespace net;

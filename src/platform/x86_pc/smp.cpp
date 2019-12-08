@@ -37,10 +37,10 @@ namespace x86
 void init_SMP()
 {
   const uint32_t CPUcount = ACPI::get_cpus().size();
-  if (CPUcount <= 1) return;
-  assert(CPUcount <= SMP_MAX_CORES);
   // avoid heap usage during AP init
   x86::smp_main.initialized_cpus.reserve(CPUcount);
+  x86::smp_system.resize(CPUcount);
+  if (CPUcount <= 1) return;
 
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;
@@ -77,7 +77,7 @@ void init_SMP()
   // massage musl to create a main thread for each AP
   for (const auto& cpu : ACPI::get_cpus())
   {
-	  if (cpu.id == apic.get_id()) continue;
+	  if (cpu.id == apic.get_id() || cpu.id >= CPUcount) continue;
 	  // thread should immediately yield
 	  auto* t = new std::thread(&revenant_thread_main, cpu.id);
 	  const long tid = kernel::get_last_thread_id();
@@ -94,7 +94,7 @@ void init_SMP()
   INFO("SMP", "Initializing APs");
   for (const auto& cpu : ACPI::get_cpus())
   {
-    if (cpu.id == apic.get_id()) continue;
+    if (cpu.id == apic.get_id() || cpu.id >= CPUcount) continue;
     debug("-> CPU %u ID %u  fl 0x%x\n",
           cpu.cpu, cpu.id, cpu.flags);
     apic.ap_init(cpu.id);
@@ -105,7 +105,7 @@ void init_SMP()
   INFO("SMP", "Starting APs");
   for (const auto& cpu : ACPI::get_cpus())
   {
-    if (cpu.id == apic.get_id()) continue;
+    if (cpu.id == apic.get_id() || cpu.id >= CPUcount) continue;
     // Send SIPI with start page at BOOTLOADER_LOCATION
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
@@ -144,28 +144,14 @@ void init_SMP()
 using namespace x86;
 
 /// implementation of the SMP interface ///
-int SMP::cpu_id() noexcept
-{
-#ifdef INCLUDEOS_SMP_ENABLE
-  int cpuid;
-#ifdef ARCH_x86_64
-  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
-#elif defined(ARCH_i686)
-  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
-#else
-  #error "Implement me?"
-#endif
-  return cpuid;
-#else
-  return 0;
-#endif
-}
-
 int SMP::cpu_count() noexcept {
   return x86::smp_main.initialized_cpus.size();
 }
 const std::vector<int>& SMP::active_cpus() {
   return x86::smp_main.initialized_cpus;
+}
+size_t SMP::early_cpu_total() noexcept {
+	return ACPI::get_cpus().size();
 }
 
 __attribute__((weak))
@@ -176,29 +162,18 @@ void SMP::init_task()
 
 void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
-#ifdef INCLUDEOS_SMP_ENABLE
   smp_system[cpu].tlock.lock();
   smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
   smp_system[cpu].tlock.unlock();
-#else
-  assert(cpu == 0);
-  task(); done();
-#endif
 }
 void SMP::add_task(smp_task_func task, int cpu)
 {
-#ifdef INCLUDEOS_SMP_ENABLE
   smp_system[cpu].tlock.lock();
   smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
   smp_system[cpu].tlock.unlock();
-#else
-  assert(cpu == 0);
-  task();
-#endif
 }
 void SMP::add_bsp_task(smp_done_func task)
 {
-#ifdef INCLUDEOS_SMP_ENABLE
   // queue job
   auto& system = PER_CPU(smp_system);
   system.flock.lock();
@@ -208,14 +183,10 @@ void SMP::add_bsp_task(smp_done_func task)
   smp_main.bitmap.atomic_set(SMP::cpu_id());
   // call home
   x86::APIC::get().send_bsp_intr();
-#else
-  task();
-#endif
 }
 
 void SMP::signal(int cpu)
 {
-#ifdef INCLUDEOS_SMP_ENABLE
   // broadcast that there is work to do
   // 0: Broadcast to everyone except BSP
   if (cpu == 0)
@@ -223,9 +194,6 @@ void SMP::signal(int cpu)
   // 1-xx: Unicast specific vCPU
   else
       x86::APIC::get().send_ipi(cpu, 0x20);
-#else
-  (void) cpu;
-#endif
 }
 void SMP::signal_bsp()
 {

@@ -24,7 +24,7 @@ struct alignas(SMP_ALIGN) pv_eoi
 {
   uint32_t eoi_word = 0;
 };
-static SMP::Array<pv_eoi> exitless_eoi;
+static std::array<pv_eoi, 256> exitless_eoi;
 
 extern "C"
 void kvm_pv_eoi()

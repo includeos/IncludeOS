@@ -8,6 +8,7 @@
 #include "smp.hpp"
 #include <arch/x86/gdt.hpp>
 #include <kernel/events.hpp>
+#include <kernel/threads.hpp>
 #include <hw/pci_manager.hpp>
 #include <kernel.hpp>
 #include <os.hpp>
@@ -25,11 +26,14 @@ struct alignas(64) smp_table
   int cpuid;
   /** put more here **/
 };
-static SMP::Array<smp_table> cpu_tables;
+static std::vector<smp_table> cpu_tables;
 
 namespace x86 {
   void initialize_cpu_tables_for_cpu(int cpu);
   void register_deactivation_function(delegate<void()>);
+}
+namespace kernel {
+	Fixed_vector<delegate<void()>, 64> smp_global_init(Fixedvector_Init::UNINIT);
 }
 
 void __platform_init()
@@ -39,6 +43,12 @@ void __platform_init()
     PROFILE("ACPI init");
     x86::ACPI::init();
   }
+
+  // resize up all PER-CPU structures
+  for (auto lambda : kernel::smp_global_init) { lambda(); }
+
+  // setup main thread after PER-CPU ctors
+  kernel::setup_main_thread(0);
 
   // read SMBIOS tables
   {
@@ -82,12 +92,10 @@ void __platform_init()
   }
 
   // initialize and start registered APs found in ACPI-tables
-#ifdef INCLUDEOS_SMP_ENABLE
-{
-  PROFILE("SMP init");
-  x86::init_SMP();
-}
-#endif
+  {
+    PROFILE("SMP init");
+    x86::init_SMP();
+  }
 
   // Setup kernel clocks
   MYINFO("Setting up kernel clock sources");
@@ -141,6 +149,9 @@ static x86::GDT gdt;
 
 void x86::initialize_cpu_tables_for_cpu(int cpu)
 {
+  if (cpu == 0) {
+	  cpu_tables.resize(SMP::early_cpu_total());
+  }
   cpu_tables[cpu].cpuid = cpu;
 
 #ifdef ARCH_x86_64

@@ -12,7 +12,7 @@ struct alignas(SMP_ALIGN) per_cpu_test
   int value;
 
 };
-static SMP::Array<per_cpu_test> testing;
+static std::array<per_cpu_test, 256> testing;
 
 #include <malloc.h>
 void smp_advanced_test()
@@ -44,8 +44,6 @@ void smp_advanced_test()
       printf("bits = %#x\n", job);
       SMP::global_unlock();
       assert(job = 0xffffffff && "All 32 bits must be set");
-      if (SMP::cpu_count() == 1)
-          printf("SUCCESS\n");
     }
 	SMP::global_lock();
     volatile void* test = calloc(4, 128u);
@@ -72,6 +70,7 @@ void smp_advanced_test()
       if (times     == SMP::cpu_count()-1
        && irq_times == SMP::cpu_count()-1) {
         printf("SUCCESS!\n");
+		SMP::add_bsp_task(os::shutdown);
       }
       SMP::global_unlock();
     });
@@ -124,11 +123,9 @@ static void multiprocess_task(int task)
 
 void Service::start()
 {
-#ifdef INCLUDEOS_SMP_ENABLE
-  printf("SMP is enabled\n");
-#else
-  static_assert(false, "SMP is not enabled");
-#endif
+  if (SMP::active_cpus().size() < 2) {
+	  throw std::runtime_error("Need at least 2 CPUs to run this test!");
+  }
 
   for (const int i : SMP::active_cpus())
   {

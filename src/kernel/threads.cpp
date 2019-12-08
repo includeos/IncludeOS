@@ -32,7 +32,8 @@ namespace kernel
 	  return thread_counter-1;
   }
 
-  SMP::Array<ThreadManager> thread_managers;
+  std::vector<ThreadManager> thread_managers;
+  SMP_RESIZE_GCTOR(thread_managers);
   ThreadManager& ThreadManager::get() noexcept {
 	  return PER_CPU(thread_managers);
   }

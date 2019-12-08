@@ -205,8 +205,8 @@ private:
 #else
   static int next_id_;
 #endif
-  static SMP::Array<Fiber*> main_;
-  static SMP::Array<Fiber*> current_;
+  static std::vector<Fiber*> main_;
+  static std::vector<Fiber*> current_;
 
   // Uniquely identify return target (yield / exit)
   // first stack frame and yield will use this to identify next stack

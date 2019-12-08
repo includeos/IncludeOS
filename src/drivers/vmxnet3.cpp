@@ -4,6 +4,7 @@
 #include "vmxnet3_queues.hpp"
 
 #include <kernel/events.hpp>
+#include <arch.hpp>
 #include <smp>
 #include <statman>
 #include <info>

@@ -15,7 +15,8 @@ struct alignas(SMP_ALIGN) rng_state
   int32_t  reseed_rounds  = 0;
   delegate<void(uint64_t*)> reseed_callback = nullptr;
 };
-static SMP::Array<rng_state> rng;
+static std::array<rng_state, SMP_MAX_CORES> rng; // DO NOT EDIT
+
 // every RESEED_RATE bytes entropy is refilled
 static const int RESEED_RATE = 4096;
 
@@ -158,6 +159,7 @@ void rng_extract(void* output, size_t bytes)
     }
    }
 
+#include <kprint>
 void rng_reseed_init(delegate<void(uint64_t*)> func, int rounds)
 {
   PER_CPU(rng).reseed_callback = func;

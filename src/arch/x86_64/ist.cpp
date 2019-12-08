@@ -85,13 +85,16 @@ namespace x86
 
     AMD64_TSS tss;
   };
-  static std::array<LM_IST, SMP_MAX_CORES> lm_ist;
+  static std::vector<LM_IST> lm_ist;
+  SMP_RESIZE_GCTOR(lm_ist);
 
   void ist_initialize_for_cpu(int cpu, uintptr_t stack)
   {
     typedef struct stack (*create_stack_func_t) (size_t, const char*);
     create_stack_func_t create_stack = create_stack_virt;
-    if (cpu > 0) create_stack = create_stack_simple;
+    if (cpu > 0) {
+		create_stack = create_stack_simple;
+	}
 
     auto& ist = lm_ist.at(cpu);
     std::memset(&ist.tss, 0, sizeof(AMD64_TSS));

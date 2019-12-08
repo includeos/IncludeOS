@@ -45,7 +45,7 @@ struct smp_system_stuff
   std::thread* main_thread = nullptr;
   long         main_thread_id = 0;
 };
- extern SMP::Array<smp_system_stuff> smp_system;
+ extern std::vector<smp_system_stuff> smp_system;
 }
 
 #endif

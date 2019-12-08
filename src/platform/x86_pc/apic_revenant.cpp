@@ -12,7 +12,7 @@
 namespace x86 {
   extern void initialize_cpu_tables_for_cpu(int);
   smp_stuff smp_main;
-  SMP::Array<smp_system_stuff> smp_system;
+  std::vector<smp_system_stuff> smp_system;
 }
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 

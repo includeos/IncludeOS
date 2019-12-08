@@ -1,9 +1,9 @@
 #include "idt.hpp"
 #include <kernel/events.hpp>
 #include <os.hpp>
-#include <kprint>
 #include <info>
 #include <os>
+#include <smp>
 #include <kernel/memory.hpp>
 #define RING0_CODE_SEG   0x8
 
