@@ -2,6 +2,12 @@ global __apic_trampoline:function
 extern __gdt64_base_pointer
 extern revenant_main
 
+;; we will be calling these from AP initialization
+extern x86_enable_sse
+extern x86_enable_fpu_native
+extern x86_enable_xsave
+extern x86_enable_avx
+
 %define P4_TAB    0x1000
 ;; Extended Feature Enable Register (MSR)
 %define IA32_EFER_MSR 0xC0000080
@@ -14,7 +20,16 @@ extern revenant_main
 
 [BITS 32]
 __apic_trampoline:
-    pop edi  ;; cpuid
+	;; enable SSE before we enter C/C++ land
+	call x86_enable_sse
+	;; Enable modern x87 FPU exception handling
+	call x86_enable_fpu_native
+	;; try to enable XSAVE before checking AVX
+	call x86_enable_xsave
+	;; enable AVX if xsave and avx supported on CPU
+	call x86_enable_avx
+
+	pop edi  ;; cpuid
 
     ;; use same pagetable as CPU 0
     mov eax, P4_TAB
