@@ -6,6 +6,7 @@
 #include "pit.hpp"
 #include <os.hpp>
 #include <kernel/events.hpp>
+#include <kernel/smp_common.hpp>
 #include <kernel/threads.hpp>
 #include <malloc.h>
 #include <algorithm>
@@ -38,8 +39,8 @@ void init_SMP()
 {
   const uint32_t CPUcount = ACPI::get_cpus().size();
   // avoid heap usage during AP init
-  x86::smp_main.initialized_cpus.reserve(CPUcount);
-  x86::smp_system.resize(CPUcount);
+  smp::main_system.initialized_cpus.reserve(CPUcount);
+  smp::systems.resize(CPUcount);
   if (CPUcount <= 1) return;
 
   // copy our bootloader to APIC init location
@@ -49,8 +50,8 @@ void init_SMP()
 
   // allocate revenant main stacks
   void* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
-  smp_main.stack_base = (uintptr_t) stack;
-  smp_main.stack_size = REV_STACK_SIZE;
+  smp::main_system.stack_base = (uintptr_t) stack;
+  smp::main_system.stack_size = REV_STACK_SIZE;
 
   // modify bootloader to support our cause
   auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
@@ -62,28 +63,29 @@ void init_SMP()
 #else
   #error "Unimplemented arch"
 #endif
-  boot->stack_base = (uint32_t) smp_main.stack_base;
+  boot->stack_base = (uint32_t) smp::main_system.stack_base;
   // add to start at top of each stack, remove to offset cpu 1 to idx 0
   boot->stack_base -= 16;
-  boot->stack_size = smp_main.stack_size;
+  boot->stack_size = smp::main_system.stack_size;
   debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
   assert((boot->stack_base & 15) == 0);
 
   // reset barrier
-  smp_main.boot_barrier.reset(1);
+  smp::main_system.boot_barrier.reset(1);
 
   auto& apic = x86::APIC::get();
   // massage musl to create a main thread for each AP
   for (const auto& cpu : ACPI::get_cpus())
   {
 	  if (cpu.id == apic.get_id() || cpu.id >= CPUcount) continue;
-	  // thread should immediately yield
-	  auto* t = new std::thread(&revenant_thread_main, cpu.id);
+	  // this thread will immediately yield back here
+	  new std::thread(&revenant_thread_main, cpu.id);
+	  // the last thread id will be the above threads kernel id
+	  // alternatively, we can extract this threads last-created childs id
 	  const long tid = kernel::get_last_thread_id();
 	  // store thread info in SMP structure
-	  auto& system = smp_system.at(cpu.id);
-	  system.main_thread = t;
+	  auto& system = smp::systems.at(cpu.id);
 	  system.main_thread_id = tid;
 	  // migrate thread to its CPU
 	  auto* kthread = kernel::ThreadManager::get().detach(tid);
@@ -113,30 +115,11 @@ void init_SMP()
   //PIT::blocking_cycles(1);
 
   // wait for all APs to start
-  smp_main.boot_barrier.spin_wait(CPUcount);
+  smp::main_system.boot_barrier.spin_wait(CPUcount);
   INFO("SMP", "All %u APs are online now\n", CPUcount);
 
   // subscribe to IPIs
-  Events::get().subscribe(BSP_LAPIC_IPI_IRQ,
-  [] {
-    int next = smp_main.bitmap.first_set();
-    while (next != -1)
-    {
-      // remove bit
-      smp_main.bitmap.atomic_reset(next);
-      // get jobs from other CPU
-      std::vector<smp_done_func> done;
-      smp_system[next].flock.lock();
-      smp_system[next].completed.swap(done);
-      smp_system[next].flock.unlock();
-
-      // execute all tasks
-      for (auto& func : done) func();
-
-      // get next set bit
-      next = smp_main.bitmap.first_set();
-    }
-  });
+  Events::get().subscribe(BSP_LAPIC_IPI_IRQ, smp::task_done_handler);
 }
 
 } // x86
@@ -145,10 +128,10 @@ using namespace x86;
 
 /// implementation of the SMP interface ///
 int SMP::cpu_count() noexcept {
-  return x86::smp_main.initialized_cpus.size();
+  return smp::main_system.initialized_cpus.size();
 }
 const std::vector<int>& SMP::active_cpus() {
-  return x86::smp_main.initialized_cpus;
+  return smp::main_system.initialized_cpus;
 }
 size_t SMP::early_cpu_total() noexcept {
 	return ACPI::get_cpus().size();
@@ -160,27 +143,29 @@ void SMP::init_task()
   /* do nothing */
 }
 
-void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
+void SMP::add_task(SMP::task_func task, SMP::done_func done, int cpu)
 {
-  smp_system[cpu].tlock.lock();
-  smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
-  smp_system[cpu].tlock.unlock();
+  auto& system = PER_CPU(smp::systems);
+  system.tlock.lock();
+  system.tasks.emplace_back(std::move(task), std::move(done));
+  system.tlock.unlock();
 }
-void SMP::add_task(smp_task_func task, int cpu)
+void SMP::add_task(SMP::task_func task, int cpu)
 {
-  smp_system[cpu].tlock.lock();
-  smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
-  smp_system[cpu].tlock.unlock();
+  auto& system = PER_CPU(smp::systems);
+  system.tlock.lock();
+  system.tasks.emplace_back(std::move(task), nullptr);
+  system.tlock.unlock();
 }
-void SMP::add_bsp_task(smp_done_func task)
+void SMP::add_bsp_task(SMP::done_func task)
 {
   // queue job
-  auto& system = PER_CPU(smp_system);
+  auto& system = PER_CPU(smp::systems);
   system.flock.lock();
   system.completed.push_back(std::move(task));
   system.flock.unlock();
   // set this CPU bit
-  smp_main.bitmap.atomic_set(SMP::cpu_id());
+  smp::main_system.bitmap.atomic_set(SMP::cpu_id());
   // call home
   x86::APIC::get().send_bsp_intr();
 }

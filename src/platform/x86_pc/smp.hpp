@@ -7,9 +7,6 @@
 #include <vector>
 #include <smp>
 
-typedef SMP::task_func smp_task_func;
-typedef SMP::done_func smp_done_func;
-
 namespace x86 {
 
 extern void init_SMP();
