@@ -83,7 +83,7 @@ $ conan config install https://github.com/includeos/conan_config.git
 #### Vagrant
 If you want to use a Vagrant box to explore IncludeOS and contribute to IncludeOS development, you can read the getting started with Vagrant. See [etc/vagrant.md](etc/vagrant.md)
 
-### <a href="hello_world"></a> Hello World
+### <a name="hello_world"></a> Hello World
 
 First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, Linux users can typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
 
@@ -106,7 +106,7 @@ Once you're done `$ source deactivate.sh` will reset the environment to its prev
 
 If you are interested in editing/building our dependency packages on your own, you can checkout our repositories at [includeos/](https://github.com/includeos/). Some of our tools and libraries are listed below under [Tools and Libraries](#libs_tools). You can find the external dependency recipes at [includeos/conan](https://github.com/includeos/conan). Currently we build with `clang-6` and `gcc-7.3.0` compiler toolchains. It is expected that these are already installed on your system (see [Dependencies](#dependencies) for details).
 
-## <a href="repositories_and_channels"></a> Managing dependencies
+## <a name="repositories_and_channels"></a> Managing dependencies
 
 Prebuilt conan packages are uploaded to our [bintray repository](https://bintray.com/includeos/includeos).
 
