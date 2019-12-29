@@ -5,6 +5,10 @@ export LC_ALL="en_US.UTF-8"
 sudo tee -a /etc/environment > /dev/null << EOT
 LC_ALL="en_US.UTF-8"
 EOT
+
+# disable the libssl reboot prompting
+echo '* libraries/restart-without-asking boolean true' | sudo debconf-set-selections
+
 #Install clang, nasm, cmake, qemu and bridge-utils
 sudo apt install -y clang nasm cmake qemu bridge-utils
 
