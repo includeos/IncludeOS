@@ -2,10 +2,10 @@
 ================================================
 
 ## Getting started with IncludeOS development on Vagrant
-To get started with IncludeOS development on a Vagrant, you should install Vagrant and virtualbox as instructed.
+To get started with IncludeOS development on a Vagrant, you should install Vagrant and virtualbox (or VMware) as instructed.
 
 * [Install Vagrant](https://www.vagrantup.com/docs/installation/)
-* [Install VirtualBox](https://www.virtualbox.org/manual/UserManual.html#installation)
+* [Install VirtualBox](https://www.virtualbox.org/manual/UserManual.html#installation) or [Install VMware](https://www.vmware.com/)
 
 After that clone the IncludeOS repo. This will be the basis for bringing up the Vagrant box.
 
