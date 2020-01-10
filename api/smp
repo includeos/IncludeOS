@@ -63,7 +63,8 @@ inline int SMP::cpu_id() noexcept
 #elif defined(ARCH_i686)
   asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
 #else
-  #error "Implement me?"
+  asm("movl %%mpidr_el1:(0x0), %0" : "=r" (cpuid));
+  cpuid &= 0xFF;
 #endif
   return cpuid;
 }

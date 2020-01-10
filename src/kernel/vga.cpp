@@ -4,7 +4,6 @@
 #if defined(ARCH_x86) || defined(ARCH_x86_64)
   #include <x86intrin.h>
 #endif
-#include <memstream>
 
 static inline uint16_t
 make_vgaentry(const char c, const uint8_t color) noexcept {
@@ -99,7 +98,9 @@ void TextmodeVGA::clear() noexcept {
   this->row    = 0;
   this->column = 0;
 
-  streamset16(buffer, DEFAULT_ENTRY, VGA_WIDTH * VGA_HEIGHT * 2);
+  for (unsigned i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+      buffer[i] = DEFAULT_ENTRY;
+  }
 }
 
 void TextmodeVGA::write(const char c) noexcept {
