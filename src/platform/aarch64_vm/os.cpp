@@ -13,7 +13,8 @@ extern bool os_default_stdout;
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
 };
-static SMP::Array<OS_CPU> os_per_cpu;
+static std::vector<OS_CPU> os_per_cpu;
+SMP_RESIZE_GCTOR(os_per_cpu);
 
 uint64_t os::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;

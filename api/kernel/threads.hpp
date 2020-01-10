@@ -72,8 +72,13 @@ namespace kernel
         asm("movq %%fs:(0x10), %0" : "=r" (thread));
     # elif defined(ARCH_i686)
         asm("movq %%gs:(0x08), %0" : "=r" (thread));
+    # elif defined(ARCH_aarch64)
+        // TODO: fixme, find actual TP offset for aarch64 threads
+        char* tp;
+        asm("mrs %0, tpidr_el0" : "=r" (tp));
+        thread = (Thread*) &tp[0x10];
     # else
-        #error "Implement me?"
+        #error "Implement me"
     # endif
     return thread;
   }

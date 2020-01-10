@@ -1,9 +1,11 @@
 #include <kernel/threads.hpp>
-#include <arch/x86/cpu.hpp>
 #include <smp>
-#include <cassert>
+#include <common>
 #include <pthread.h>
 #include <kprint>
+#ifdef ARCH_x86_64
+#include <arch/x86/cpu.hpp>
+#endif
 
 extern "C" {
   void __thread_yield();
@@ -81,7 +83,7 @@ namespace kernel
   {
     const bool exiting_myself = (get_thread() == this);
 	auto& tman = ThreadManager::get();
-    assert(this->parent != nullptr);
+    Expects(this->parent != nullptr);
     // detach children
     for (auto* child : this->children) {
         child->parent = tman.main_thread;
@@ -115,7 +117,7 @@ namespace kernel
   }
   void Thread::detach()
   {
-	  assert(this->parent != nullptr);
+	  Expects(this->parent != nullptr);
 	  auto& pcvec = this->parent->children;
       for (auto it = pcvec.begin(); it != pcvec.end(); ++it) {
           if (*it == this) {
@@ -194,7 +196,7 @@ namespace kernel
 		else
 		{
 			auto* main_thread = get_thread(tid);
-			assert(main_thread->parent == nullptr && "Must be a detached thread");
+			Expects(main_thread->parent == nullptr && "Must be a detached thread");
 			ThreadManager::get().main_thread = main_thread;
 			return main_thread;
 		}
@@ -230,6 +232,10 @@ namespace kernel
   {
 # ifdef ARCH_x86_64
     return (void*) x86::CPU::read_msr(IA32_FS_BASE);
+# elif defined(ARCH_aarch64)
+    void* thread;
+    asm("mrs %0, tpidr_el0" : "=r" (thread));
+    return thread;
 # else
     #error "Implement me"
 # endif
@@ -254,19 +260,19 @@ namespace kernel
 		__builtin_unreachable();
 	  }
 	  THPRINT("Could not resume thread, missing: %ld\n", tid);
-	  assert(thread && "Could not find thread id");
+	  Expects(thread && "Could not find thread id");
   }
 
   Thread* ThreadManager::detach(long tid)
   {
 	  auto* thread = get_thread(tid);
 	  // can't migrate missing thread
-	  assert(thread != nullptr && "Could not find given thread id");
+	  Expects(thread != nullptr && "Could not find given thread id");
 	  // can't migrate the main thread
-	  assert(thread != ThreadManager::get().main_thread);
+	  Expects(thread != ThreadManager::get().main_thread);
 	  // can't migrate the thread you are in
 	  auto* current = get_thread();
-	  assert(current != thread && "Can't migrate current thread");
+	  Expects(current != thread && "Can't migrate current thread");
 	  // remove from old thread manager
 	  if (thread->parent != nullptr) {
 		  thread->detach();
@@ -294,15 +300,15 @@ namespace kernel
   }
   void ThreadManager::erase_thread_safely(Thread* thread)
   {
-	  assert(thread != nullptr);
+	  Expects(thread != nullptr);
 	  auto it = threads.find(thread->tid);
-	  assert(it != threads.end());
-	  assert(it->second == thread);
+	  Expects(it != threads.end());
+	  Expects(it->second == thread);
 	  threads.erase(it);
   }
   Thread* ThreadManager::wakeup_next()
   {
-	  assert(!suspended.empty());
+	  Expects(!suspended.empty());
 	  auto* next = suspended.front();
 	  suspended.pop_front();
 	  return next;
@@ -356,7 +362,7 @@ void __thread_suspend_and_yield(void* stack)
 		man.next_migration_thread = nullptr;
 		// resume the thread on this core
 		kernel::set_thread_area(kthread->my_tls);
-		assert(kernel::get_thread() == kthread);
+		Expects(kernel::get_thread() == kthread);
 
 		__migrate_resume(kthread->my_stack);
 	}
