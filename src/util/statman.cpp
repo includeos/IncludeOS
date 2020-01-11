@@ -59,11 +59,14 @@ Statman::Statman() {
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name)
 {
   stlock.lock();
-  if (name.empty())
+  if (name.empty()) {
+    stlock.unlock();
     throw Stats_exception("Cannot create Stat with no name");
+  }
 
   const ssize_t idx = this->find_free_stat();
   if (idx < 0) {
+    // FIXME: this can throw, and leave the spinlock unlocked
     m_stats.emplace_back(type, name);
     auto& retval = m_stats.back();
     stlock.unlock();
@@ -96,16 +99,23 @@ Stat& Statman::get(const Stat* st)
 
 Stat& Statman::get_by_name(const char* name)
 {
-  stlock.lock();
+  /// FIXME FIXME FIXME ///
+  ///  Regression here  ///
+  /// FIXME FIXME FIXME ///
+  
+  //printf("get_by_name Locking: this=%p, lock=%p, %d\n", this, &stlock, *(spinlock_t*) &stlock);
+  //stlock.lock();
   for (auto& stat : this->m_stats)
   {
     if (stat.unused() == false) {
       if (strncmp(stat.name(), name, Stat::MAX_NAME_LEN) == 0)
-        stlock.unlock();
+        //stlock.unlock();
+        printf("Unlocked (found): this=%p, lock=%p, %d\n", this, &stlock, *(spinlock_t*) &stlock);
         return stat;
     }
   }
-  stlock.unlock();
+  //stlock.unlock();
+  //printf("Unlocked (not found): %d\n", *(spinlock_t*) &stlock);
   throw std::out_of_range("No stat found with exact given name");
 }
 
