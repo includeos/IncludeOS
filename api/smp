@@ -80,16 +80,25 @@ inline T& per_cpu_help(std::array<T, N>& array)
 namespace kernel {
 	extern Fixed_vector<delegate<void()>, 64> smp_global_init;
 }
-#define SMP_RESIZE_GCTOR(x) \
+
+#define SMP_RESIZE_NOW(x) x.resize(SMP::early_cpu_total())
+
+#define SMP_RESIZE_EARLY_GCTOR(x) \
     static struct smp_gctor_##x { \
 		smp_gctor_##x() { \
 			kernel::smp_global_init.push_back( \
 				[] () { \
-					x.resize(SMP::early_cpu_total()); \
+					SMP_RESIZE_NOW(x); \
 				}); \
 		} \
 	} smp_gctor_##x_instance;
 
+#define SMP_RESIZE_LATE_GCTOR(x) \
+    static struct smp_gctor_##x { \
+		smp_gctor_##x() { \
+      SMP_RESIZE_NOW(x); \
+		} \
+	} smp_gctor_##x_instance;
 
 #define SMP_ALIGN       64
 #define SMP_MAX_CORES  256

@@ -21,7 +21,7 @@ struct alignas(4096) pvclock_vcpu_time_info {
 	unsigned char pad[2];
 }__attribute__((packed));
 static std::vector<pvclock_vcpu_time_info> vcpu_time;
-SMP_RESIZE_GCTOR(vcpu_time);
+SMP_RESIZE_EARLY_GCTOR(vcpu_time);
 
 struct alignas(4096) pvclock_wall_clock {
 	uint32_t version;

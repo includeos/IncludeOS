@@ -8,7 +8,7 @@
 //#define DEBUG_SMP
 
 static std::vector<Events> managers;
-SMP_RESIZE_GCTOR(managers);
+SMP_RESIZE_EARLY_GCTOR(managers);
 
 Events& Events::get(int cpuid)
 {

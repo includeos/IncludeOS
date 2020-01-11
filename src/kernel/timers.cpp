@@ -85,7 +85,7 @@ struct alignas(SMP_ALIGN) timer_system
   uint32_t* periodic_stopped = (uint32_t*) &stat64;
 };
 static std::vector<timer_system> systems;
-SMP_RESIZE_GCTOR(systems);
+SMP_RESIZE_EARLY_GCTOR(systems);
 
 void timer_system::free_timer(Timers::id_t id)
 {

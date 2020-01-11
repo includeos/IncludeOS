@@ -86,7 +86,7 @@ namespace x86
     AMD64_TSS tss;
   };
   static std::vector<LM_IST> lm_ist;
-  SMP_RESIZE_GCTOR(lm_ist);
+  SMP_RESIZE_EARLY_GCTOR(lm_ist);
 
   void ist_initialize_for_cpu(int cpu, uintptr_t stack)
   {

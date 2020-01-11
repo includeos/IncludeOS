@@ -35,7 +35,7 @@ namespace kernel
   }
 
   std::vector<ThreadManager> thread_managers;
-  SMP_RESIZE_GCTOR(thread_managers);
+  SMP_RESIZE_EARLY_GCTOR(thread_managers);
   ThreadManager& ThreadManager::get() noexcept {
 	  return PER_CPU(thread_managers);
   }
