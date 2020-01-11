@@ -14,9 +14,9 @@ static void boot_save(Storage& storage)
 {
   timestamps.push_back(os::nanos_since_boot());
   storage.add_vector(0, timestamps);
-  assert(blob != nullptr);
   // store binary blob for later
   auto blob = LiveUpdate::binary_blob();
+  assert(blob.first != nullptr && blob.second != 0);
   storage.add_buffer(2, blob.first, blob.second);
 
   auto& stm = Statman::get();
