@@ -22,6 +22,7 @@ namespace kernel
     void*   my_stack;
     // for returning to this Thread
     void*   stored_stack = nullptr;
+    bool    migrated = false;
     bool    yielded = false;
     // address zeroed when exiting
     void*   clear_tid = nullptr;
@@ -45,7 +46,7 @@ namespace kernel
 	  std::map<long, kernel::Thread*> threads;
 	  std::deque<Thread*> suspended;
 	  Thread* main_thread = nullptr;
-	  Thread* next_migration_thread = nullptr;
+	  Thread* next_thread = nullptr;
 
 	  delegate<Thread*(ThreadManager&, Thread*)> on_new_thread = nullptr;
 
@@ -61,7 +62,7 @@ namespace kernel
 
 	  void erase_suspension(Thread* t);
 	  void suspend(Thread* t) { suspended.push_back(t); }
-	  void finish_migration_to(Thread* next);
+	  void yield_to(Thread* next);
 	  Thread* wakeup_next();
   };
 

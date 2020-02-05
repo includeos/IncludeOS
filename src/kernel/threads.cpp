@@ -138,8 +138,13 @@ namespace kernel
       set_thread_area(this->my_tls);
       THPRINT("CPU %d: Returning to tid=%ld tls=%p stack=%p thread=%p\n",
             SMP::cpu_id(), this->tid, this->my_tls, this->stored_stack, get_thread());
+      Expects(kernel::get_thread() == this);
       // NOTE: the RAX return value here is CHILD thread id, not this
-      if (this->yielded == false) {
+      if (UNLIKELY(this->migrated)) {
+          this->migrated = false;
+          __migrate_resume(this->my_stack); // NOTE: no stored stack
+      }
+      else if (this->yielded == false) {
           __clone_return(this->stored_stack);
       }
       else {
@@ -216,7 +221,7 @@ namespace kernel
 			  // attach this thread on this core
 			  ThreadManager::get().attach(kthread);
 			  // resume kthread after yielding this thread
-			  ThreadManager::get().finish_migration_to(kthread);
+			  ThreadManager::get().yield_to(kthread);
 			  // NOTE: returns here!!
 		  }, nullptr);
 		  // signal that work exists in the global queue
@@ -284,10 +289,15 @@ namespace kernel
   {
 	  // insert into new thread manager
 	  this->insert_thread(thread);
+      this->suspend(thread);
 	  // attach this thread to the managers main thread
 	  if (this->main_thread) {
 		thread->attach(this->main_thread);
 	  }
+      // threads that are migrated from clone require special treatment
+      if (thread->yielded == false) {
+          thread->migrated = true;
+      }
   }
   void ThreadManager::insert_thread(Thread* thread)
   {
@@ -323,10 +333,10 @@ namespace kernel
           }
       }
   }
-  void ThreadManager::finish_migration_to(Thread* thread)
+  void ThreadManager::yield_to(Thread* thread)
   {
 	  // special migration-yield to next thread
-	  this->next_migration_thread = thread;
+	  this->next_thread = thread;
 	  __thread_yield(); // NOTE: function returns!!
   }
 }
@@ -337,7 +347,7 @@ void __thread_suspend_and_yield(void* stack)
 {
 	auto& man = kernel::ThreadManager::get();
 	// don't go through the ardous yielding process when alone
-	if (man.suspended.empty() && man.next_migration_thread == nullptr) {
+	if (man.suspended.empty() && man.next_thread == nullptr) {
 		THPRINT("CPU %d: Nothing to yield to. Returning... thread=%p stack=%p\n",
 				SMP::cpu_id(), kernel::get_thread(), stack);
 		return;
@@ -346,7 +356,7 @@ void __thread_suspend_and_yield(void* stack)
 	auto* thread = kernel::get_thread();
 	thread->suspend(true, stack);
 
-	if (man.next_migration_thread == nullptr)
+	if (man.next_thread == nullptr)
 	{
 		// resume some other thread
 		auto* next = man.wakeup_next();
@@ -355,15 +365,12 @@ void __thread_suspend_and_yield(void* stack)
 	}
 	else
 	{
-		// resume migrated thread
-		auto* kthread = man.next_migration_thread;
-		man.next_migration_thread = nullptr;
-		// resume the thread on this core
-		kernel::set_thread_area(kthread->my_tls);
-		//Expects(kernel::get_thread() == kthread);
-
-        THPRINT("__migrate_resume tid=%ld\n", kthread->tid);
-		__migrate_resume(kthread->my_stack);
+		// resume specific thread
+		auto* kthread = man.next_thread;
+		man.next_thread = nullptr;
+        // resume the thread on this core
+        man.erase_suspension(kthread);
+        kthread->resume();
 	}
 	__builtin_unreachable();
 }
