@@ -71,8 +71,8 @@ namespace kernel
 
   void Thread::suspend(bool yielded, void* ret_stack)
   {
-	  THPRINT("Thread %ld suspended, yielded=%d stack=%p\n",
-              this->tid, yielded, ret_stack);
+	  THPRINT("CPU %d: Thread %ld suspended, yielded=%d stack=%p\n",
+              SMP::cpu_id(), this->tid, yielded, ret_stack);
 	  this->yielded = yielded;
       this->stored_stack = ret_stack;
       // add to suspended (NB: can throw)
@@ -136,8 +136,8 @@ namespace kernel
   void Thread::resume()
   {
       set_thread_area(this->my_tls);
-      THPRINT("Returning to tid=%ld tls=%p stack=%p thread=%p\n",
-            this->tid, this->my_tls, this->stored_stack, get_thread());
+      THPRINT("CPU %d: Returning to tid=%ld tls=%p stack=%p thread=%p\n",
+            SMP::cpu_id(), this->tid, this->my_tls, this->stored_stack, get_thread());
       // NOTE: the RAX return value here is CHILD thread id, not this
       if (this->yielded == false) {
           __clone_return(this->stored_stack);
@@ -209,11 +209,9 @@ namespace kernel
 		  SMP::add_task(
 		  [kthread] () {
 #ifdef THREADS_DEBUG
-			  SMP::global_lock();
 			  THPRINT("CPU %d resuming migrated thread %ld (stack=%p)\n",
 			  		SMP::cpu_id(), kthread->tid,
 					(void*) kthread->my_stack);
-			  SMP::global_unlock();
 #endif
 			  // attach this thread on this core
 			  ThreadManager::get().attach(kthread);
@@ -340,8 +338,8 @@ void __thread_suspend_and_yield(void* stack)
 	auto& man = kernel::ThreadManager::get();
 	// don't go through the ardous yielding process when alone
 	if (man.suspended.empty() && man.next_migration_thread == nullptr) {
-		THPRINT("Nothing to yield to. Returning... thread=%p stack=%p\n",
-				kernel::get_thread(), stack);
+		THPRINT("CPU %d: Nothing to yield to. Returning... thread=%p stack=%p\n",
+				SMP::cpu_id(), kernel::get_thread(), stack);
 		return;
 	}
 	// suspend current thread (yielded)
@@ -362,8 +360,9 @@ void __thread_suspend_and_yield(void* stack)
 		man.next_migration_thread = nullptr;
 		// resume the thread on this core
 		kernel::set_thread_area(kthread->my_tls);
-		Expects(kernel::get_thread() == kthread);
+		//Expects(kernel::get_thread() == kthread);
 
+        THPRINT("__migrate_resume tid=%ld\n", kthread->tid);
 		__migrate_resume(kthread->my_stack);
 	}
 	__builtin_unreachable();

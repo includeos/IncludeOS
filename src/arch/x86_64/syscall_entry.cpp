@@ -76,9 +76,9 @@ pthread_t syscall_clone(void* next_instr,
 
 	auto& tman = kernel::ThreadManager::get();
 	if (tman.on_new_thread != nullptr) {
-		// push 8 values onto new stack, as the old stack will get
+		// push all 14 values onto new stack, as the old stack will get
 		// used immediately by the returning thread
-		constexpr int STV = 8;
+		constexpr int STV = 14;
 		for (int i = 0; i < STV; i++) {
 			thread->stack_push(*((uintptr_t*) old_stack + STV + 1 - i));
 		}

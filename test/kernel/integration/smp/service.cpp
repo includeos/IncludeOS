@@ -1,4 +1,3 @@
-
 #include <os>
 #include <cassert>
 #include <smp>
@@ -172,7 +171,9 @@ void Service::start()
   kernel::setup_automatic_thread_multiprocessing();
 
   std::vector<std::thread*> mpthreads;
-  for (unsigned i = 0; i < SMP::active_cpus().size() - 1; i++)
+
+  const auto& cpus = SMP::active_cpus();
+  for (unsigned i = 1; i < cpus.size(); i++)
   {
 	mpthreads.push_back(
 	  new std::thread(&multiprocess_task, i)
@@ -186,8 +187,16 @@ void Service::start()
   for (auto* t : mpthreads) {
     t->join();
   }
+
+  SMP::global_lock();
+  printf("DONE: Joining %d threads, waiting on barrier\n",
+        SMP::cpu_count()-1);
+  SMP::global_unlock();
   // the dead threads should have already made this barrier complete!
   messages.barry.spin_wait(SMP::cpu_count()-1);
+  SMP::global_lock();
+  printf("DONE: Barrier condition met\n");
+  SMP::global_unlock();
 
   // trigger interrupt
   SMP::broadcast(IRQ);
