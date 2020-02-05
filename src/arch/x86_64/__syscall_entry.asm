@@ -22,8 +22,22 @@ extern syscall_entry
    push r9
    push r10
    push r11
+   ;; extra
+   push rbx
+   push rbp
+   push r12
+   push r13
+   push r14
+   push r15
 %endmacro
 %macro POPAQ 0
+   pop r15
+   pop r14
+   pop r13
+   pop r12
+   pop rbp
+   pop rbx
+   ;; ^ extra
    pop r11
    pop r10
    pop r9
