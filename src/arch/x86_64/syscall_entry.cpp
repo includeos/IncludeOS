@@ -57,7 +57,7 @@ pthread_t syscall_clone(void* next_instr,
 {
     auto* parent = kernel::get_thread();
 
-    auto* thread = kernel::thread_create(parent, flags, ctid, stack);
+    auto* thread = kernel::thread_create(parent, flags, ctid, ptid, stack);
 #ifdef VERBOSE_CLONE_SYSCALL
     kprintf("clone syscall creating thread %ld\n", thread->tid);
     kprintf("-> nexti:  "); print_symbol(next_instr);

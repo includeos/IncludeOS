@@ -13,7 +13,7 @@ pthread_t syscall_clone(
         void* old_stack)
 {
     auto* parent = kernel::get_thread();
-    auto* thread = kernel::thread_create(parent, flags, ctid, stack);
+    auto* thread = kernel::thread_create(parent, flags, ctid, ptid, stack);
 
     // suspend parent thread
     parent->suspend(next_instr, old_stack);

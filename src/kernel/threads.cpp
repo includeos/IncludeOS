@@ -148,7 +148,7 @@ namespace kernel
   }
 
   Thread* thread_create(Thread* parent, int flags,
-                          void* ctid, void* stack) noexcept
+                          void* ctid, void* ptid, void* stack) noexcept
   {
     const long tid = generate_new_thread_id();
     try {
@@ -157,7 +157,13 @@ namespace kernel
 
       // flag for write child TID
       if (flags & CLONE_CHILD_SETTID) {
+          THPRINT("Setting ctid to TID value at %p\n", ctid);
           *(pid_t*) ctid = thread->tid;
+      }
+      // flag for write parent TID
+      if (flags & CLONE_PARENT_SETTID) {
+          THPRINT("Setting ptid to TID value at %p\n", ptid);
+          *(pid_t*) ptid = thread->tid;
       }
       if (flags & CLONE_CHILD_CLEARTID) {
           thread->clear_tid = ctid;

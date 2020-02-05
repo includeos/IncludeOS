@@ -7,6 +7,7 @@
 
 //#define THREADS_DEBUG 1
 #ifdef THREADS_DEBUG
+#include <smp>
 #define THPRINT(fmt, ...) { SMP::global_lock(); kprintf(fmt, ##__VA_ARGS__); SMP::global_unlock(); }
 #else
 #define THPRINT(fmt, ...) /* fmt */
@@ -88,7 +89,7 @@ namespace kernel
   void* get_thread_area();
   void  set_thread_area(void*);
 
-  Thread* thread_create(Thread* parent, int flags, void* ctid, void* stack) noexcept;
+  Thread* thread_create(Thread* parent, int flags, void* ctid, void* ptid, void* stack) noexcept;
 
   void resume(long tid);
 
