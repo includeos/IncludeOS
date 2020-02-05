@@ -15,20 +15,14 @@
 //#define ENABLE_PROFILERS
 #include <profile>
 
-extern "C" void* get_cpu_esp();
-extern uintptr_t _start;
-extern uintptr_t _end;
-extern uintptr_t _ELF_START_;
-extern uintptr_t _TEXT_START_;
-extern uintptr_t _LOAD_START_;
-extern uintptr_t _ELF_END_;
 // in kernel/os.cpp
 extern bool os_default_stdout;
 
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
 };
-static SMP::Array<OS_CPU> os_per_cpu;
+static std::vector<OS_CPU> os_per_cpu;
+SMP_RESIZE_EARLY_GCTOR(os_per_cpu);
 
 uint64_t os::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
@@ -79,7 +73,8 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
-  MYINFO("Stack: %p", get_cpu_esp());
+  int stack;
+  MYINFO("Stack: %p", &stack);
   MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
   // PAGING //

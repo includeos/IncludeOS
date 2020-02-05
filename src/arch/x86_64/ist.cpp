@@ -12,6 +12,7 @@
 #endif
 
 extern "C" void __amd64_load_tr(uint16_t);
+extern "C" void* kalloc(size_t size);
 
 struct gdtr64 {
   uint16_t limit;
@@ -45,7 +46,7 @@ static stack create_stack_virt(size_t size, const char* name)
   static uintptr_t stacks_begin = stack_area + GUARD_SIZE;
 
   // Allocate physical memory
-  auto* phys = (char*)memalign(4096, size);
+  auto* phys = (char*) kalloc(size);
   IST_PRINT("* Creating stack '%s' @ %p (%p phys) \n",
          name, (void*)stacks_begin, phys);
 
@@ -60,19 +61,17 @@ static stack create_stack_virt(size_t size, const char* name)
   stacks_begin += util::bits::roundto<4096>(size) + GUARD_SIZE;
 
   // Align stack pointer to bottom of stack minus a pop
-  auto sp = map.lin + size - 8;
-  sp &= ~uintptr_t(0xf);
+  auto sp = map.lin + size;
 
   // Force page fault if mapped area isn't writable
-  ((char*)sp)[0] = '!';
+  ((char*)sp)[-1] = '!';
 
   return {(void*) sp, phys};
 }
 static stack create_stack_simple(size_t size, const char* /*name*/)
 {
-  auto* phys = (char*)memalign(4096, size);
-  uintptr_t sp = (uintptr_t) phys + size - 8;
-  sp &= ~uintptr_t(0xf);
+  auto* phys = (char*) kalloc(size);
+  uintptr_t sp = (uintptr_t) phys + size;
   return {(void*) sp, phys};
 }
 
@@ -86,16 +85,19 @@ namespace x86
 
     AMD64_TSS tss;
   };
-  static std::array<LM_IST, SMP_MAX_CORES> lm_ist;
+  static std::vector<LM_IST> lm_ist;
+  SMP_RESIZE_EARLY_GCTOR(lm_ist);
 
   void ist_initialize_for_cpu(int cpu, uintptr_t stack)
   {
     typedef struct stack (*create_stack_func_t) (size_t, const char*);
     create_stack_func_t create_stack = create_stack_virt;
-    if (cpu > 0) create_stack = create_stack_simple;
+    if (cpu > 0) {
+		create_stack = create_stack_simple;
+	}
 
     auto& ist = lm_ist.at(cpu);
-    memset(&ist.tss, 0, sizeof(AMD64_TSS));
+    std::memset(&ist.tss, 0, sizeof(AMD64_TSS));
 
     auto st = create_stack(INTR_SIZE, "Intr stack");
     ist.tss.ist1 = (uintptr_t) st.sp;
@@ -116,7 +118,8 @@ namespace x86
     auto tss_addr = (uintptr_t) &ist.tss;
 
     // entry #3 in the GDT is the Task selector
-    auto* tgd = (AMD64_TS*) &__gdt64_base_pointer.location[8 * 3];
+    const int task_offset = 8 * (3 + cpu);
+    auto* tgd = (AMD64_TS*) &__gdt64_base_pointer.location[task_offset];
     memset(tgd, 0, sizeof(AMD64_TS));
     tgd->td_type = 0x9;
     tgd->td_present = 1;
@@ -125,6 +128,6 @@ namespace x86
     tgd->td_lobase  = tss_addr & 0xFFFFFF;
     tgd->td_hibase  = tss_addr >> 24;
 
-    __amd64_load_tr(8 * 3);
+    __amd64_load_tr(task_offset);
   }
 }

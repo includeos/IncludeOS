@@ -4,65 +4,35 @@
 #ifndef API_SMP_UTILS_HEADER
 #define API_SMP_UTILS_HEADER
 
-#include <arch.hpp>
-
-/// x86-related locking stuff ///
-#if defined(ARCH_x86)
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef unsigned int spinlock_t __attribute__((aligned(128)));
 
-#ifdef INCLUDEOS_SMP_ENABLE
-inline void lock(spinlock_t& lock) {
-  while (!__sync_bool_compare_and_swap(&lock, 0, 1)) {
-    while (lock) asm("pause");
-  }
-}
-inline void unlock(spinlock_t& lock) {
-  __sync_lock_release(&lock, 0); // barrier
-}
-#else
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
-#endif
-
-struct scoped_spinlock
+struct smp_spinlock
 {
-  scoped_spinlock(spinlock_t& ref) noexcept : spinlock(ref) {
-    //asm("" : : : "memory");
-    lock(this->spinlock);
-  }
-  ~scoped_spinlock() noexcept {
-    unlock(spinlock); // barrier
-  }
+  void lock();
+  void unlock();
+
 private:
-    spinlock_t& spinlock;
+  volatile spinlock_t m_value = 0;
 };
 
-struct minimal_barrier_t
+struct smp_barrier
 {
-  void inc()
+  void increment() noexcept
   {
     __sync_fetch_and_add(&val, 1);
   }
 
-  void spin_wait(int max)
-  {
-    asm("mfence");
-    while (this->val < max) {
-      asm("pause; nop;");
-    }
-  }
+  void spin_wait(int max) noexcept;
 
-  void reset(int val)
+  void reset(int val = 0) noexcept
   {
-    asm volatile("mfence");
+    __sync_synchronize();
     this->val = val;
   }
 
 private:
   volatile int val = 0;
 };
-
-#endif // arch
 
 #endif // hdr

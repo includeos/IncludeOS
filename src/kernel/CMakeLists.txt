@@ -11,6 +11,8 @@ set(SRCS
     profile.cpp
     service_stub.cpp
     #scoped_profiler.cpp
+    smp_common.cpp
+    smp_utils.cpp
 #    elf.cpp
   #  fiber.cpp
 #    profile.cpp

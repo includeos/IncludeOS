@@ -22,7 +22,9 @@ struct alignas(SMP_ALIGN) context_buffer
 {
   std::array<char, 512> buffer;
 };
-static SMP::Array<context_buffer> contexts;
+static std::vector<context_buffer> contexts;
+SMP_RESIZE_EARLY_GCTOR(contexts);
+
 // NOTE: panics cannot be per-cpu because it might not be ready yet
 // NOTE: it's also used by OS::is_panicking(), used by OS::print(...)
 
@@ -172,6 +174,15 @@ void panic_epilogue(const char* why)
   }
 
   __builtin_unreachable();
+}
+
+void __expect_fail(const char *expr, const char *file, int line, const char *func)
+{
+  SMP::global_lock();
+  fprintf(stderr, "%s:%i:%s\n>>> %s\n",file, line, func, expr);
+  fflush(NULL);
+  SMP::global_unlock();
+  os::panic(expr);
 }
 
 // Shutdown the machine when one of the exit functions are called

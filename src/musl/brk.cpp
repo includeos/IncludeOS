@@ -2,7 +2,7 @@
 #include <string.h>
 #include <os.hpp>
 #include <errno.h>
-#include <kprint>
+#include <kernel/mrspinny.hpp>
 
 static uintptr_t brk_begin        = 0;
 static uintptr_t brk_current_end  = 0;
@@ -30,10 +30,13 @@ size_t brk_bytes_free() {
 
 static uintptr_t sys_brk(void* addr)
 {
+  mr_spinny.memory.lock();
   if (addr == nullptr
       or (uintptr_t)addr > brk_begin +  brk_max
       or (uintptr_t)addr < brk_begin) {
-    return brk_current_end;
+    uintptr_t retval = brk_current_end;
+    mr_spinny.memory.unlock();
+    return retval;
   }
 
   brk_current_end = (uintptr_t)addr;
@@ -43,7 +46,9 @@ static uintptr_t sys_brk(void* addr)
     brk_initialized = brk_current_end;
   }
 
-  return brk_current_end;
+  uintptr_t retval = brk_current_end;
+  mr_spinny.memory.unlock();
+  return retval;
 }
 
 extern "C"

@@ -1,6 +1,7 @@
 global __syscall_entry:function
 global __clone_helper:function
 global __clone_return:function
+global __migrate_resume:function
 extern syscall_entry
 
 ;; x86_64 / System V ABI calling convention
@@ -21,8 +22,22 @@ extern syscall_entry
    push r9
    push r10
    push r11
+   ;; extra
+   push rbx
+   push rbp
+   push r12
+   push r13
+   push r14
+   push r15
 %endmacro
 %macro POPAQ 0
+   pop r15
+   pop r14
+   pop r13
+   pop r12
+   pop rbp
+   pop rbx
+   ;; ^ extra
    pop r11
    pop r10
    pop r9
@@ -84,6 +99,7 @@ __clone_helper:
     call syscall_clone
     ;; remove old rsp
     add rsp, 0x18
+__clone_resume:
     ;; return value preserved
     POPAQ
     PUSHAQ
@@ -98,11 +114,19 @@ __clone_helper:
     jmp QWORD rcx
 
 __clone_return:
-    mov rbx, rdi
-    mov rsp, rsi
+    mov rsp, rdi
 
     pop rax ;; restore thread id
     pop rbp
     POPAQ
     ;;
-    jmp QWORD rbx
+    jmp QWORD rcx
+
+__migrate_resume:
+	mov rsp, rdi
+
+	;; restore saved registers
+	POPAQ
+	;; rax zero (child thread)
+	xor rax, rax
+	jmp QWORD rcx

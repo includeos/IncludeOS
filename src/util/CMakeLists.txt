@@ -15,7 +15,6 @@ set(SRCS
 if (NOT ${PLATFORM} STREQUAL "nano")
   include_directories(${CMAKE_SOURCE_DIR}/lib/LiveUpdate/include)
   list(APPEND SRCS
-    memstream.c
     tar.cpp
     uri.cpp #rapidjson
     autoconf.cpp

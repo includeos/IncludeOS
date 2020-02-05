@@ -34,7 +34,8 @@ struct alignas(SMP_ALIGN) smp_deferred_kick
   std::vector<VirtioNet*> devs;
   uint8_t irq;
 };
-static std::array<smp_deferred_kick, SMP_MAX_CORES> deferred_devs;
+static std::vector<smp_deferred_kick> deferred_devs;
+SMP_RESIZE_LATE_GCTOR(deferred_devs);
 #endif
 
 using namespace net;
@@ -453,7 +454,8 @@ void VirtioNet::move_to_this_cpu()
 #include <hw/pci_manager.hpp>
 
 /** Register VirtioNet's driver factory at the PCI_manager */
-__attribute__((constructor))
-void autoreg_virtionet() {
-  hw::PCI_manager::register_nic(PCI::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
-}
+static struct autoreg_virtionet {
+  autoreg_virtionet() {
+    hw::PCI_manager::register_nic(PCI::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
+  }
+} autoreg;

@@ -1,21 +1,18 @@
 
 #include <kernel/events.hpp>
+#include <arch.hpp>
 #include <algorithm>
 #include <cassert>
 #include <statman>
 #include <smp>
 //#define DEBUG_SMP
 
-static SMP::Array<Events> managers;
+static std::vector<Events> managers;
+SMP_RESIZE_EARLY_GCTOR(managers);
 
 Events& Events::get(int cpuid)
 {
-#ifdef INCLUDEOS_SMP_ENABLE
   return managers.at(cpuid);
-#else
-  (void) cpuid;
-  return managers[0];
-#endif
 }
 Events& Events::get()
 {
@@ -24,9 +21,6 @@ Events& Events::get()
 
 void Events::init_local()
 {
-  std::memset(event_subs.data(), 0, sizeof(event_subs));
-  std::memset(event_pend.data(), 0, sizeof(event_pend));
-
   if (SMP::cpu_id() == 0)
   {
     // prevent legacy IRQs from being free for taking

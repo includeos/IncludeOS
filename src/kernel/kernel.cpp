@@ -1,4 +1,3 @@
-
 #include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/cpuid.hpp>
@@ -36,8 +35,7 @@ util::KHz os::cpu_freq() {
 }
 
 // stdout redirection
-using Print_vec = Fixed_vector<os::print_func, 8>;
-static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
+static Fixed_vector<os::print_func, 16> os_print_handlers;
 
 // Plugins
 struct Plugin_desc {
@@ -46,7 +44,7 @@ struct Plugin_desc {
   os::Plugin  func;
   const char* name;
 };
-static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
+static Fixed_vector<Plugin_desc, 64> plugins;
 
 const char* os::cmdline_args() noexcept {
   return kernel::cmdline();
@@ -205,3 +203,6 @@ void os::print_timestamps(const bool enabled)
 {
   kernel::state().timestamps = enabled;
 }
+
+#include <kernel/mrspinny.hpp>
+struct struct_spinny mr_spinny {};

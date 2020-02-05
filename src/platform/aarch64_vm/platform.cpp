@@ -63,7 +63,8 @@ void __platform_init(uint64_t fdt_addr)
     int  intr;
     bool intr_enabled = false;
   };
-  static SMP::Array<timer_data> timerdata;
+  static std::vector<timer_data> timerdata;
+  SMP_RESIZE_GCTOR(timerdata);
 
   #define TIMER_IRQ 27
 
@@ -163,7 +164,6 @@ void __arch_disable_legacy_irq(unsigned char){}
 
 void SMP::global_lock() noexcept {}
 void SMP::global_unlock() noexcept {}
-int SMP::cpu_id() noexcept { return 0; }
 int SMP::cpu_count() noexcept { return 1; }
 
 

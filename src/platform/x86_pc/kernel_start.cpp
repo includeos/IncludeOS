@@ -87,6 +87,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Begin portable HAL initialization
   __machine->init();
 
+  PRATTLE("* Early RNG init\n");
   {
     PROFILE("RNG init")
     // TODO: Move more stuff into Machine::init
@@ -99,5 +100,6 @@ void kernel_start(uint32_t magic, uint32_t addr)
   PRATTLE("* Init CPU exceptions\n");
   x86::idt_initialize_for_cpu(0);
 
+  PRATTLE("* Init libc\n");
   x86::init_libc(magic, addr);
 }

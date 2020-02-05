@@ -12,3 +12,10 @@ extern "C"
 long syscall_SYS_sched_yield() {
   return strace(sys_sched_yield, "sched_yield");
 }
+
+extern "C"
+long syscall_SYS_sched_setscheduler(pid_t /*pid*/, int /*policy*/,
+                          const struct sched_param* /*param*/)
+{
+  return 0;
+}

@@ -4,6 +4,8 @@
 #ifndef KERNEL_RNG_HPP
 #define KERNEL_RNG_HPP
 
+#define INCLUDEOS_RNG_IS_SHARED
+
 #include <cstdlib>
 #include <cstdint>
 #include <delegate>

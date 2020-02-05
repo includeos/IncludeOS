@@ -8,26 +8,14 @@
 #include <vector>
 #include <smp_utils>
 
-#ifndef SMP_MAX_CORES
-# ifdef INCLUDEOS_SMP_ENABLE
-#   define SMP_MAX_CORES   32
-# else
-#   define SMP_MAX_CORES   1
-# endif
-#endif
+// access a container of T by current CPU id
+#define PER_CPU(x) x.at(SMP::cpu_id())
 
-#define SMP_ALIGN       64
-
-// access a std::array of T by current CPU id
-#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, SMP_MAX_CORES>(x))
 
 class SMP {
 public:
   using task_func = delegate<void()>;
   using done_func = delegate<void()>;
-
-  template <typename T>
-  using Array = std::array<T, SMP_MAX_CORES>;
 
   // return the current CPU id
   static int cpu_id() noexcept;
@@ -38,74 +26,82 @@ public:
   // Return the indices of all initialized CPU cores
   static const std::vector<int>& active_cpus();
 
-  static int active_cpus(int index){
-    return active_cpus().at(index);
-  }
-
-
   // implement this function to execute something on all APs at init
   static void init_task();
 
-  // execute @func on another CPU core
-  // call @done back on main CPU when task returns
-  // use signal() to broadcast work should begin
-  static void add_task(task_func func, done_func done, int cpu = 0);
-  static void add_task(task_func func, int cpu = 0);
+  // execute @task on another CPU core
+  // call @done back on main CPU after running task
+  // use signal() to broadcast when work should begin
+  static void add_task(task_func task, done_func done, int cpu = 0);
+  static void add_task(task_func task, int cpu = 0);
   // execute a function on the main cpu
-  static void add_bsp_task(done_func func);
+  static void add_bsp_task(done_func done);
 
   // call this to signal that tasks are queued up
-  // if cpu == 0, broadcast signal to all
+  // if cpu == 0, broadcast signal to all CPUs
   static void signal(int cpu = 0);
   static void signal_bsp();
 
-  // trigger interrupt on specified CPU
+  // trigger single interrupt on specified CPU
   static void unicast(int cpu, uint8_t intr);
-  // broadcast-trigger interrupt on all waiting APs
+  // broadcast-trigger interrupt on all CPUs
   static void broadcast(uint8_t intr);
 
-  // a global spinlock to synchronize text output (and other things)
+  // a global spinlock to synchronize text output (primarily)
   static void global_lock()   noexcept;
   static void global_unlock() noexcept;
+
+  // during startup we can use this function to size up dynamic arrays
+  static size_t early_cpu_total() noexcept;
 };
 
-//#define SMP_DEBUG 1
-
-// SMP serialized print helpers
-#define SMP_ALWAYS_PRINT(fmt, ...) \
-    SMP::global_lock();     \
-    printf(fmt, ##__VA_ARGS__); \
-    SMP::global_unlock();
-
-#ifdef SMP_DEBUG
-#define SMP_PRINT(fmt, ...) SMP_ALWAYS_PRINT(fmt, ##__VA_ARGS__)
-#define CPULOG(X,...) SMP_PRINT("[C%i]" X,SMP::cpu_id(),##__VA_ARGS__)
+inline int SMP::cpu_id() noexcept
+{
+  int cpuid;
+#ifdef ARCH_x86_64
+  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#elif defined(ARCH_i686)
+  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
 #else
-#define SMP_PRINT(fmt, ...) /** fmt **/
-#define CPULOG(X,...) ;
+  asm("mrs %0, mpidr_el1" : "=r" (cpuid));
+  cpuid &= 0xFF;
 #endif
+  return cpuid;
+}
 
 #include <array>
-#ifdef INCLUDEOS_SMP_ENABLE
-  template <typename T, size_t N>
-  inline T& per_cpu_help(std::array<T, N>& array)
-  {
-    unsigned cpuid;
-# ifdef ARCH_x86_64
-    asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
-# elif defined(ARCH_i686)
-    asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
-# else
-    #error "Implement me?"
-# endif
-    return array.at(cpuid);
-  }
-#else
-  template <typename T, size_t N>
-  inline T& per_cpu_help(std::array<T, N>& array)
-  {
-    return array[0];
-  }
-#endif
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+    return array.at(SMP::cpu_id());
+}
+
+#include <util/fixed_vector.hpp>
+namespace kernel {
+	extern Fixed_vector<delegate<void()>, 64> smp_global_init;
+}
+
+#define SMP_RESIZE_NOW(x) x.resize(SMP::early_cpu_total())
+
+#define SMP_RESIZE_EARLY_GCTOR(x) \
+    static struct smp_gctor_##x { \
+		smp_gctor_##x() { \
+			kernel::smp_global_init.push_back( \
+				[] () { \
+					SMP_RESIZE_NOW(x); \
+				}); \
+		} \
+	} smp_gctor_##x_instance;
+
+#define SMP_RESIZE_LATE_GCTOR(x) \
+    static struct smp_gctor_##x { \
+		smp_gctor_##x() { \
+      SMP_RESIZE_NOW(x); \
+		} \
+	} smp_gctor_##x_instance;
+
+#define SMP_ALIGN       64
+#define SMP_MAX_CORES  256
+
 
 #endif

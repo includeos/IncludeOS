@@ -7,6 +7,12 @@ global __multiboot_addr
 global _start
 global __xsave_enabled
 global __avx_enabled
+;; we will be calling these from AP initialization
+global x86_enable_sse:function
+global x86_enable_fpu_native:function
+global x86_enable_xsave:function
+global x86_enable_avx:function
+
 
 %define  MB_MAGIC   0x1BADB002
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
@@ -39,10 +45,6 @@ section .multiboot
 %define code_segment 0x08
 
 section .data
-__xsave_enabled:
-    dw 0x0
-__avx_enabled:
-    dw 0x0
 __multiboot_magic:
     dd 0x0
 __multiboot_addr:
@@ -73,13 +75,13 @@ rock_bottom:
   mov ebp, esp
 
   ;; enable SSE before we enter C/C++ land
-  call enable_sse
+  call x86_enable_sse
   ;; Enable modern x87 FPU exception handling
-  call enable_fpu_native
+  call x86_enable_fpu_native
   ;; try to enable XSAVE before checking AVX
-  call enable_xsave
+  call x86_enable_xsave
   ;; enable AVX if xsave and avx supported on CPU
-  call enable_avx
+  call x86_enable_avx
 
   ;;  Save multiboot params
   mov DWORD [__multiboot_magic], eax
@@ -88,7 +90,7 @@ rock_bottom:
   call __arch_start
   jmp __start_panic
 
-enable_fpu_native:
+x86_enable_fpu_native:
     push eax
     mov eax, cr0
     or eax, 0x20
@@ -96,7 +98,7 @@ enable_fpu_native:
     pop eax
     ret
 
-enable_sse:
+x86_enable_sse:
   push eax        ;preserve eax for multiboot
   mov eax, cr0
   and ax, 0xFFFB  ;clear coprocessor emulation CR0.EM
@@ -108,7 +110,7 @@ enable_sse:
   pop eax
   ret
 
-enable_xsave:
+x86_enable_xsave:
   push eax
   push ebx
   ; check for XSAVE support
@@ -123,13 +125,12 @@ enable_xsave:
   mov eax, cr4
   or  eax, 0x40000
   mov cr4, eax
-  mov WORD [__xsave_enabled], 0x1
 xsave_not_supported:
   pop ebx
   pop eax
   ret
 
-enable_avx:
+x86_enable_avx:
   push eax
   push ebx
   ;; assuming cpuid with eax=1 supported
@@ -145,7 +146,6 @@ enable_avx:
   xgetbv
   or eax, 0x7
   xsetbv
-  mov WORD [__avx_enabled], 0x1
 avx_not_supported:
   pop ebx
   pop eax

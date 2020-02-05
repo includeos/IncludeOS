@@ -29,7 +29,8 @@ namespace x86
     int  intr;
     bool intr_enabled = false;
   };
-  static SMP::Array<timer_data> timerdata;
+  static std::vector<timer_data> timerdata;
+  SMP_RESIZE_EARLY_GCTOR(timerdata);
 
   #define GET_TIMER() PER_CPU(timerdata)
 

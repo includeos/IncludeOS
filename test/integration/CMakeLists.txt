@@ -125,6 +125,7 @@ set(TEST_LIST
   "plugin_init" "60" "kernel"
   "rng"       "20" "kernel"
   "smp"       "20" "kernel"
+  "threads"       "20" "kernel"
   "term"      "40" "kernel"
   "timers"    "60" "kernel"
   "tls"       "20" "kernel"

@@ -43,21 +43,22 @@ namespace net {
 
   uint8_t* BufferStore::get_buffer()
   {
-#ifdef INCLUDEOS_SMP_ENABLE
-    scoped_spinlock spinlock(this->plock);
-#endif
+    plock.lock();
 
     if (UNLIKELY(available_.empty())) {
       if (this->growth_enabled())
           this->create_new_pool();
-      else
+      else {
+          plock.unlock();
           throw std::runtime_error("This BufferStore has run out of buffers");
+	  }
     }
 
     auto* addr = available_.back();
     available_.pop_back();
     BSD_PRINT("%d: Gave away %p, %zu buffers remain\n",
             this->index, addr, available());
+    plock.unlock();
     return addr;
   }
 

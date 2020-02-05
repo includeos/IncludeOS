@@ -9,14 +9,9 @@ conan_basic_setup()
 
 set(LIVEUPDATE_MB 32 CACHE STRING "")
 option(MINIMAL "" ON)
-include(os)
-
-option(benchmark_mode "Optimizations for benchmarking" OFF)
 option(SERIAL_OUTPUT "Output information" OFF)
-if (benchmark_mode)
-  add_definitions(-DBENCHMARK_MODE)
-endif()
 
+include(os)
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp test_boot.cpp

@@ -10,11 +10,9 @@ extern storage_func_t begin_test_boot();
 
 void Service::start()
 {
-//  auto prof = ScopedProfiler::get_statistics(false);
-//  printf("%s\n", prof.c_str());
-#ifdef BENCHMARK_MODE
-  extern bool LIVEUPDATE_USE_CHEKSUMS;
-  LIVEUPDATE_USE_CHEKSUMS = false;
+#ifdef ENABLE_PROFILERS
+  auto prof = ScopedProfiler::get_statistics(false);
+  printf("%s\n", prof.c_str());
 #endif
   os::set_panic_action(os::Panic_action::halt);
 

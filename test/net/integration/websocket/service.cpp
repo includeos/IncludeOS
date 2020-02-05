@@ -5,7 +5,7 @@
 #include <deque>
 #include <kernel/crash_context.hpp>
 
-struct alignas(SMP_ALIGN) HTTP_server
+struct HTTP_server
 {
   http::Server*      server = nullptr;
   net::tcp::buffer_t buffer = nullptr;
@@ -13,11 +13,15 @@ struct alignas(SMP_ALIGN) HTTP_server
   // websocket clients
   std::deque<net::WebSocket_ptr> clients;
 };
-static SMP::Array<HTTP_server> httpd;
+static HTTP_server httpd;
+
+auto& server() {
+    return httpd;
+}
 
 static net::WebSocket_ptr& new_client(net::WebSocket_ptr socket)
 {
-  auto& sys = PER_CPU(httpd);
+  auto& sys = server();
   for (auto& client : sys.clients)
   if (client->is_alive() == false) {
     return client = std::move(socket);
@@ -40,13 +44,14 @@ bool accept_client(net::Socket remote, std::string origin)
 
 void websocket_service(net::TCP& tcp, uint16_t port)
 {
-  PER_CPU(httpd).server = new http::Server(tcp);
+  auto& sys = server();
+  sys.server = new http::Server(tcp);
 
   // buffer used for testing
-  PER_CPU(httpd).buffer = net::tcp::construct_buffer(1024);
+  sys.buffer = net::tcp::construct_buffer(1024);
 
   // Set up server connector
-  PER_CPU(httpd).ws_serve = new net::WS_server_connector(
+  sys.ws_serve = new net::WS_server_connector(
     [&tcp] (net::WebSocket_ptr ws)
     {
       // sometimes we get failed WS connections
@@ -64,7 +69,7 @@ void websocket_service(net::TCP& tcp, uint16_t port)
 
         //socket->write("THIS IS A TEST CAN YOU HEAR THIS?");
         for (int i = 0; i < 1000; i++)
-            socket->write(PER_CPU(httpd).buffer, net::op_code::BINARY);
+            socket->write(server().buffer, net::op_code::BINARY);
 
         //socket->close();
         socket->on_close =
@@ -77,8 +82,8 @@ void websocket_service(net::TCP& tcp, uint16_t port)
       }
     },
     accept_client);
-  PER_CPU(httpd).server->on_request(*PER_CPU(httpd).ws_serve);
-  PER_CPU(httpd).server->listen(port);
+  sys.server->on_request(*sys.ws_serve);
+  sys.server->listen(port);
   /// server ///
 }
 
@@ -112,7 +117,7 @@ void ws_client_test(net::TCP& tcp)
     };
 
     socket->write("HOLAS\r\n");
-    PER_CPU(httpd).clients.push_back(std::move(socket));
+    server().clients.push_back(std::move(socket));
   });
   /// client ///
 }

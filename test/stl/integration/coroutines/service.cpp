@@ -12,6 +12,8 @@
 #include <smp>
 #include <vector>
 
+#define CPULOG(fmt, ...) /* fmt */
+
 using namespace std;
 template<typename T>
 struct smp_future {

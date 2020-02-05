@@ -4,9 +4,11 @@
 #include "vmxnet3_queues.hpp"
 
 #include <kernel/events.hpp>
+#include <arch.hpp>
 #include <smp>
 #include <statman>
 #include <info>
+#include <atomic>
 #include <cassert>
 #include <malloc.h>
 static std::vector<vmxnet3*> deferred_devs;
@@ -500,7 +502,7 @@ bool vmxnet3::receive_handler(const int Q)
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
 
     /* prevent speculative pre read ahead of comp content*/
-    os::Arch::read_memory_barrier();
+    std::atomic_thread_fence(std::memory_order_acquire);
 
     rx[Q].consumers++;
     rx[Q].prod_count--;

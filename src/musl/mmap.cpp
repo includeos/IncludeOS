@@ -6,7 +6,7 @@
 #include <os>
 #include <kernel/memory.hpp>
 #include <kernel.hpp>
-#include <kprint>
+#include <kernel/mrspinny.hpp>
 
 using Alloc = os::mem::Raw_allocator;
 static Alloc* alloc;
@@ -28,12 +28,17 @@ uintptr_t __init_mmap(uintptr_t addr_begin, size_t size)
 extern "C" __attribute__((weak))
 void* kalloc(size_t size) {
   Expects(kernel::heap_ready());
-  return alloc->allocate(size);
+  mr_spinny.memory.lock();
+  auto* data = alloc->allocate(size);
+  mr_spinny.memory.unlock();
+  return data;
 }
 
 extern "C" __attribute__((weak))
 void kfree (void* ptr, size_t size) {
+  mr_spinny.memory.lock();
   alloc->deallocate(ptr, size);
+  mr_spinny.memory.unlock();
 }
 
 size_t mmap_bytes_used() {
@@ -48,8 +53,8 @@ uintptr_t mmap_allocation_end() {
   return alloc->highest_used();
 }
 
-static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
-                      int fd, off_t /*offset*/)
+static void* sys_mmap(void *addr, size_t length, int /*prot*/, int flags,
+                      int fd, off_t offset)
 {
   // TODO: Mapping to file descriptor
   if (fd > 0) {
@@ -62,6 +67,14 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
   }
 
   auto* res = kalloc(length);
+
+  if (flags & MAP_ANONYMOUS) {
+    // Requires mem to be cleared
+    memset(res, 0, length);
+    if (fd != -1 && offset == 0) {
+       assert(false && "mmap expects fd to be -1 and offset to be 0 when using MAP_ANONYMOUS");
+    }
+  }
 
   if (UNLIKELY(res == nullptr))
     return MAP_FAILED;

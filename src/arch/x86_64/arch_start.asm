@@ -176,8 +176,7 @@ GDT64:
     db 00000000b                 ; Granularity.
     db 0                         ; Base (high).
   .Task: equ $ - GDT64         ; TSS descriptor.
-    dq 0
-    dq 0
+    resq 2*256 ; make room for 256 CPUs
 
     dw 0x0 ;; alignment padding
 __gdt64_base_pointer:

@@ -8,6 +8,7 @@
 
 extern "C" {
   long syscall_SYS_set_thread_area(void* u_info);
+  void __clone_return(void* stack);
 }
 
 #define ARCH_SET_GS 0x1001
@@ -56,8 +57,8 @@ pthread_t syscall_clone(void* next_instr,
 {
     auto* parent = kernel::get_thread();
 
-    auto* thread = kernel::thread_create(parent, flags, ctid, stack);
-#ifdef THREADS_DEBUG
+    auto* thread = kernel::thread_create(parent, flags, ctid, ptid, stack);
+#ifdef VERBOSE_CLONE_SYSCALL
     kprintf("clone syscall creating thread %ld\n", thread->tid);
     kprintf("-> nexti:  "); print_symbol(next_instr);
     kprintf("-> flags:  %#lx\n", flags);
@@ -70,11 +71,31 @@ pthread_t syscall_clone(void* next_instr,
     kprintf("-> callback: "); print_symbol(callback);
 #endif
 
-    // suspend parent thread
-    parent->suspend(next_instr, old_stack);
-    // activate new TLS location
-    thread->activate(newtls);
-    return thread->tid;
+	// set TLS location (and set self)
+    thread->set_tls(newtls);
+
+	auto& tman = kernel::ThreadManager::get();
+	if (tman.on_new_thread != nullptr) {
+		// push 8 values onto new stack, as the old stack will get
+		// used immediately by the returning thread
+		constexpr int STV = 8;
+		for (int i = 0; i < STV; i++) {
+			thread->stack_push(*((uintptr_t*) old_stack + STV + 1 - i));
+		}
+		// potentially get child stolen by migration callback
+		thread = tman.on_new_thread(tman, thread);
+	}
+
+	if (thread) {
+		// suspend parent thread (not yielded)
+		parent->suspend(false, old_stack);
+		// continue on child
+		kernel::set_thread_area(thread->my_tls);
+		return thread->tid;
+	}
+	// continue with parent
+	__clone_return(old_stack);
+	__builtin_unreachable();
 }
 
 extern "C"
@@ -103,7 +124,11 @@ long syscall_SYS_set_thread_area(void* u_info)
   //kprintf("<SYS_set_thread_area> set to %p\n", u_info);
   if (UNLIKELY(!u_info)) return -EINVAL;
 #ifdef __x86_64__
-  x86::CPU::set_fs(u_info);
+#	ifdef PLATFORM_x86_solo5
+		solo5_set_tls_base((uintptr_t) u_info);
+#	else
+  		x86::CPU::set_fs(u_info);
+#	endif
 #else
   x86::CPU::set_gs(u_info);
 #endif

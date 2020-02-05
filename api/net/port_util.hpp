@@ -28,7 +28,7 @@ public:
     : ports(),
       eph_view{ // set the ephemeral view to be between 49152-65535
         ports.data() + port_ranges::DYNAMIC_START / 8,
-        static_cast<MemBitmap::index_t> (size() / sizeof(MemBitmap::word))
+        size() / sizeof(MemBitmap::word)
       },
       ephemeral_(net::new_ephemeral_port()),
       eph_count(0)
