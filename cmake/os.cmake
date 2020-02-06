@@ -78,6 +78,7 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
 add_definitions(-DPLATFORM_${PLATFORM})
+add_definitions(-D__includeos__)
 
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
