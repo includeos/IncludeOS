@@ -30,9 +30,10 @@ public:
   static void init_task();
 
   // execute @task on another CPU core
-  // call @done back on main CPU after running task
-  // use signal() to broadcast when work should begin
-  static void add_task(task_func task, done_func done, int cpu = 0);
+  // optionally call @done back on main CPU after running task
+  // use SMP::signal() to broadcast when work should begin
+  // if cpu == 0, the first free signalled CPU will grab the work
+  static void add_task(task_func task, done_func done = nullptr, int cpu = 0);
   static void add_task(task_func task, int cpu = 0);
   // execute a function on the main cpu
   static void add_bsp_task(done_func done);
@@ -53,6 +54,11 @@ public:
 
   // during startup we can use this function to size up dynamic arrays
   static size_t early_cpu_total() noexcept;
+
+  // activate or deactivate automatic migration of new threads for,
+  // the current CPU, by moving them to the first free CPU.
+  // this setting is active on a per-CPU basis.
+  static void migrate_threads(bool enable = true);
 };
 
 inline int SMP::cpu_id() noexcept

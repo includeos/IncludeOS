@@ -1,5 +1,7 @@
 #include <kernel/smp_common.hpp>
 
+#include <kernel/threads.hpp>
+
 namespace smp
 {
 smp_main_system main_system;
@@ -80,4 +82,57 @@ void smp_task_handler()
   }
 }
 
+} // namespace smp
+
+/// implementation of the SMP interface ///
+int SMP::cpu_count() noexcept {
+  return smp::main_system.initialized_cpus.size();
+}
+
+const std::vector<int>& SMP::active_cpus() {
+  return smp::main_system.initialized_cpus;
+}
+
+void SMP::add_task(SMP::task_func task, SMP::done_func done, int cpu)
+{
+  auto& system = smp::systems.at(cpu);
+  system.tlock.lock();
+  system.tasks.emplace_back(std::move(task), std::move(done));
+  system.tlock.unlock();
+}
+void SMP::add_task(SMP::task_func task, int cpu)
+{
+  add_task(std::move(task), nullptr, cpu);
+}
+
+void SMP::add_bsp_task(SMP::done_func task)
+{
+  // queue completed job at current CPU
+  auto& system = PER_CPU(smp::systems);
+  system.flock.lock();
+  system.completed.push_back(std::move(task));
+  system.flock.unlock();
+  // set bit for current CPU
+  smp::main_system.bitmap.atomic_set(SMP::cpu_id());
+  // call home
+  SMP::signal_bsp();
+}
+
+static smp_spinlock g_global_lock;
+
+void SMP::global_lock() noexcept
+{
+  g_global_lock.lock();
+}
+void SMP::global_unlock() noexcept
+{
+  g_global_lock.unlock();
+}
+
+void SMP::migrate_threads(bool enable)
+{
+  if (enable)
+      kernel::setup_automatic_thread_multiprocessing();
+  else
+      kernel::ThreadManager::get().on_new_thread = nullptr;
 }

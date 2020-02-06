@@ -1,5 +1,5 @@
-
 #include "smp.hpp"
+
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_revenant.hpp"
@@ -9,7 +9,6 @@
 #include <kernel/smp_common.hpp>
 #include <kernel/threads.hpp>
 #include <malloc.h>
-#include <algorithm>
 #include <cstring>
 #include <thread>
 
@@ -126,13 +125,6 @@ void init_SMP()
 
 using namespace x86;
 
-/// implementation of the SMP interface ///
-int SMP::cpu_count() noexcept {
-  return smp::main_system.initialized_cpus.size();
-}
-const std::vector<int>& SMP::active_cpus() {
-  return smp::main_system.initialized_cpus;
-}
 size_t SMP::early_cpu_total() noexcept {
 	return ACPI::get_cpus().size();
 }
@@ -141,33 +133,6 @@ __attribute__((weak))
 void SMP::init_task()
 {
   /* do nothing */
-}
-
-void SMP::add_task(SMP::task_func task, SMP::done_func done, int cpu)
-{
-  auto& system = PER_CPU(smp::systems);
-  system.tlock.lock();
-  system.tasks.emplace_back(std::move(task), std::move(done));
-  system.tlock.unlock();
-}
-void SMP::add_task(SMP::task_func task, int cpu)
-{
-  auto& system = PER_CPU(smp::systems);
-  system.tlock.lock();
-  system.tasks.emplace_back(std::move(task), nullptr);
-  system.tlock.unlock();
-}
-void SMP::add_bsp_task(SMP::done_func task)
-{
-  // queue job
-  auto& system = PER_CPU(smp::systems);
-  system.flock.lock();
-  system.completed.push_back(std::move(task));
-  system.flock.unlock();
-  // set this CPU bit
-  smp::main_system.bitmap.atomic_set(SMP::cpu_id());
-  // call home
-  x86::APIC::get().send_bsp_intr();
 }
 
 void SMP::signal(int cpu)
@@ -192,15 +157,4 @@ void SMP::broadcast(uint8_t irq)
 void SMP::unicast(int cpu, uint8_t irq)
 {
   x86::APIC::get().send_ipi(cpu, IRQ_BASE + irq);
-}
-
-static smp_spinlock g_global_lock;
-
-void SMP::global_lock() noexcept
-{
-  g_global_lock.lock();
-}
-void SMP::global_unlock() noexcept
-{
-  g_global_lock.unlock();
 }
