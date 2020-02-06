@@ -4,20 +4,6 @@
 #ifndef INCLUDEOS_COMMON_HEADER
 #define INCLUDEOS_COMMON_HEADER
 
-#if !defined(__cplusplus)
-#error "IncludeOS must be built with a C++ compiler"
-#endif
-
-#ifdef ARCH_X86
-static_assert(sizeof(void*) == 4, "Pointer must match arch");
-#endif
-#ifdef ARCH_X64
-static_assert(sizeof(void*) == 8, "Pointer must match arch");
-#endif
-
-/* BOCHS Break point */
-#define BREAK() __asm__ volatile("xchg %bx,%bx");
-
 /* debugging macros */
 #include "debug"
 #include "info"
