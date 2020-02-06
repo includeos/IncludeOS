@@ -1,18 +1,13 @@
-
 #pragma once
-#ifndef KERNEL_CONTEXT_HPP
-#define KERNEL_CONTEXT_HPP
+#ifndef KERNEL_FIBER_HPP
+#define KERNEL_FIBER_HPP
 
 #include <cstdio>
 #include <delegate>
 #include <smp>
-
-#ifdef INCLUDEOS_SMP_ENABLE
 #include <atomic>
-#endif
 
 class Fiber;
-
 /** Bottom C++ stack frame for all fibers */
 extern "C" void fiber_jumpstarter(Fiber* f);
 
@@ -26,11 +21,8 @@ struct Err_bad_cast : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-
 class Fiber {
-
 public:
-
   using R_t = void*;
   using P_t = void*;
   using init_func = void*(*)(void*);
@@ -54,7 +46,6 @@ public:
       param_{arg}
   {}
 
-
   template<typename R, typename P>
   Fiber(R(*func)(P), void* arg)
     : Fiber(default_stack_size, func, arg)
@@ -64,7 +55,6 @@ public:
   Fiber(R(*func)(P))
     : Fiber(default_stack_size, func, nullptr)
   {}
-
 
   Fiber()
     : Fiber(init_func{nullptr})
@@ -150,29 +140,29 @@ public:
   Fiber* parent()
   { return parent_; }
 
-  int id()
-  { return id_; }
+  int id() const noexcept {
+    return id_;
+  }
 
-  bool suspended() {
+  bool suspended() const noexcept {
     return suspended_;
   }
 
-  bool started() {
+  bool started() const noexcept {
     return started_;
   }
 
-  bool empty() {
+  bool empty() const noexcept {
     return func_ == nullptr;
   }
 
-  bool done() {
+  bool done() const noexcept {
     return done_;
   }
 
   template<typename R>
   R ret()
   {
-
     while (not done_)
       resume();
 
@@ -191,20 +181,11 @@ public:
 
   static int last_id()
   {
-#ifdef INCLUDEOS_SMP_ENABLE
     return next_id_.load();
-#else
-    return next_id_;
-#endif
   }
 
-
 private:
-#ifdef INCLUDEOS_SMP_ENABLE
   static std::atomic<int> next_id_;
-#else
-  static int next_id_;
-#endif
   static std::vector<Fiber*> main_;
   static std::vector<Fiber*> current_;
 
@@ -213,7 +194,7 @@ private:
   Fiber* parent_ = nullptr;
   void* parent_stack_ = nullptr;
 
-  void make_parent(Fiber* parent){
+  void make_parent(Fiber* parent) {
     parent_ = parent;
     parent_stack_ = parent_->stack_loc_;
   }
@@ -221,20 +202,20 @@ private:
   const int id_ = next_id_++ ;
 
   int stack_size_ = default_stack_size;
-  Stack_ptr stack_ {};
-  void* stack_loc_ {};
+  Stack_ptr stack_ = nullptr;
+  void* stack_loc_ = nullptr;
 
   const std::type_info& type_return_;
   const std::type_info& type_param_;
 
   init_func func_ = nullptr;
-  void* param_ {};
-  void* ret_ {};
+  void* param_ = nullptr;
+  void* ret_ = nullptr;
 
-  bool suspended_ { false };
-  bool started_ { false };
-  bool done_ { false };
-  bool running_ { false };
+  bool suspended_ = false;
+  bool started_ = false;
+  bool done_ = false;
+  bool running_ = false;
 
   friend void ::fiber_jumpstarter(Fiber* f);
 };

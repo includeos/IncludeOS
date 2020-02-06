@@ -13,6 +13,7 @@ else()
 endif()
 option(ELF_SYMBOLS "Enable full backtrace" ON)
 option(PROFILE "Compile with startup profilers" OFF)
+option(DISABLE_SYSTEM_PATHS "Disable system include paths" ON)
 
 set(LIVEUPDATE_MB 0 CACHE STRING "Liveupdate size in MB")
 
@@ -77,6 +78,7 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
 add_definitions(-DPLATFORM_${PLATFORM})
+add_definitions(-D__includeos__)
 
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
@@ -156,10 +158,12 @@ function(os_add_executable TARGET NAME)
 
   target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
   target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
-  else()
-    target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdinc>)
+  if (DISABLE_SYSTEM_PATHS)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+    else()
+      target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdinc>)
+    endif()
   endif()
 
   if (PROFILE)

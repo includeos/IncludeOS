@@ -5,10 +5,8 @@
 #TODO restructure this in a different commit based on KJ/CMakeFixes branch
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-D__includeos__)
 
-if (SMP)
-  add_definitions(-DINCLUDEOS_SMP_ENABLE)
-endif()
 if (PROFILE)
   add_definitions(-DENABLE_PROFILERS)
 endif()
