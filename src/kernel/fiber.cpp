@@ -1,21 +1,15 @@
-// This file is a part of the IntcludeOS unikernel - www.includeos.org
+#include <kernel/fiber.hpp>
 
 //#define SMP_DEBUG 1
-#include <kernel/fiber.hpp>
 #include <common> // assert-based Exepcts/Ensures
 #include <cstdint>
 #include <memory>
 #include <smp>
 
 // Default location for previous stack. Asm will always save a pointer.
-#ifdef INCLUDEOS_SMP_ENABLE
 std::atomic<int> Fiber::next_id_{0};
-#else
-int Fiber::next_id_{0};
-#endif
-
-std::vector<Fiber*> Fiber::main_ = {{nullptr}};
-std::vector<Fiber*> Fiber::current_ {{nullptr}};
+std::vector<Fiber*> Fiber::main_ = {nullptr};
+std::vector<Fiber*> Fiber::current_ = {nullptr};
 
 extern "C" {
   void __fiber_jumpstart(volatile void* th_stack, volatile Fiber* f, volatile void* parent_stack);

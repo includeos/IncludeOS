@@ -5,7 +5,6 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 project (includeos C CXX)
 
-option(SMP "Compile with SMP (multiprocessing)" OFF)
 option(PROFILE "Compile with startup profilers" OFF)
 
 #Are we executing cmake from conan or locally
@@ -31,10 +30,6 @@ else() # in user space
   endif()
 
   #ordering matters we create opts here
-  if (SMP)
-    set(OPTS OPTIONS smp="True")
-  endif()
-
   if (PLATFORM)
     if (OPTS)
       list(APPEND OPTS platform=${PLATFORM})
