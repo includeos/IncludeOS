@@ -1,9 +1,8 @@
 
 #include "ioapic.hpp"
 #include <hw/ioport.hpp>
+#include <os.hpp>
 #include <cstdio>
-#include <cassert>
-#include <debug>
 #include <info>
 
 // I/O APIC registers
@@ -100,7 +99,7 @@ namespace x86
       current += a.entries();
     }
     printf("Entry: %u\n", entry);
-    assert(0 && "Could not match I/O APIC to entry");
+    os::panic("Could not match I/O APIC to entry");
   }
 
   void IOAPIC::enable(uint8_t cpu, const ACPI::override_t& redir)
