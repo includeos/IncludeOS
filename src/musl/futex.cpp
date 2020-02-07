@@ -1,6 +1,7 @@
 #include "stub.hpp"
 #include <errno.h>
 #include <kernel/threads.hpp>
+#include <os.hpp>
 
 #define FUTEX_WAIT 0
 #define FUTEX_WAKE 1
@@ -19,7 +20,8 @@ static int sys_futex(int *uaddr, int futex_op, int val,
                       const struct timespec* /* timeout */, int /*val3*/)
 {
   switch (futex_op & 0xF) {
-	  case FUTEX_WAIT: if (*uaddr != val) return -EAGAIN;
+	  case FUTEX_WAIT:
+                if (*uaddr != val) return -EAGAIN;
 			    // we have to yield here because of cooperative threads
 			    // TODO: potential for sleeping here
 			    while (*uaddr == val) __thread_yield();

@@ -1,8 +1,10 @@
 #include "common.hpp"
 #include <kernel/threads.hpp>
 
-static long sys_set_tid_address(int* /*tidptr*/) {
-  return kernel::get_tid();
+static long sys_set_tid_address(int* ctid) {
+  auto* kthread = kernel::get_thread();
+  kthread->clear_tid = ctid;
+  return kthread->tid;
 }
 
 extern "C"
