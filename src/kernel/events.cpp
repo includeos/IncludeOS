@@ -86,11 +86,12 @@ void Events::defer(event_callback callback)
   event_pend[ev] = true;
 }
 
-void Events::process_events()
+bool Events::process_events()
 {
-  bool handled_any;
+  bool handled_any = false;
+  bool rerun;
   do {
-    handled_any = false;
+    rerun = false;
 
     for (const uint8_t intr : sublist)
     if (event_pend[intr])
@@ -108,7 +109,10 @@ void Events::process_events()
       callbacks[intr]();
       // increment events handled
       handled_array[intr]++;
+      rerun = true;
       handled_any = true;
     }
-  } while (handled_any);
+  } while (rerun);
+
+  return handled_any;
 }

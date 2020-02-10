@@ -155,7 +155,7 @@ namespace kernel
       thread->init(tid, parent, stack);
 
       // flag for write child TID
-      if (false || (flags & CLONE_CHILD_SETTID)) {
+      if (flags & CLONE_CHILD_SETTID) {
           THPRINT("Setting ctid to %d at %p\n", tid, ctid);
           *(int*) ctid = tid;
       }

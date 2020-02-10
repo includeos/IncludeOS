@@ -22,13 +22,13 @@ extern "C" uint32_t os_get_highest_blocking_level() {
 void os::block() noexcept
 {
   // Initialize stats
-  if (not blocking_level) {
+  if (UNLIKELY(blocking_level == nullptr)) {
     blocking_level = &Statman::get()
       .create(Stat::UINT32, std::string("blocking.current_level")).get_uint32();
     *blocking_level = 0;
   }
 
-  if (not highest_blocking_level) {
+  if (UNLIKELY(highest_blocking_level == nullptr)) {
     highest_blocking_level = &Statman::get()
       .create(Stat::UINT32, std::string("blocking.highest")).get_uint32();
     *highest_blocking_level = 0;
@@ -42,13 +42,11 @@ void os::block() noexcept
     *highest_blocking_level = *blocking_level;
 
   // Process immediate events
-  Events::get().process_events();
-
-  // Await next interrupt
-  os::halt();
-
-  // Process events (again?)
-  Events::get().process_events();
+  if (Events::get().process_events() == false) {
+    os::halt();
+    // Process new events (this is what we're really after)
+    Events::get().process_events();
+  }
 
   // Decrement level
   *blocking_level -= 1;

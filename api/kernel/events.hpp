@@ -34,8 +34,8 @@ public:
   static Events& get();
   static Events& get(int cpu);
 
-  /** process all pending events */
-  void process_events();
+  /** process all pending events, returns true if any were processed */
+  bool process_events();
 
   /** array of received events */
   auto& get_received_array() const noexcept
