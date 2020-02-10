@@ -90,9 +90,10 @@ namespace kernel
     auto* next = this->parent;
     // remove myself from parent
     this->detach();
-    // CLONE_CHILD_CLEARTID: set userspace TID value to zero
+    // CLONE_CHILD_CLEARTID: set userspace value to zero
     if (this->clear_tid) {
-        THPRINT("Clearing child value at %p\n", this->clear_tid);
+        THPRINT("Clearing child value at %p for tls=%p\n",
+                this->clear_tid, this->my_tls);
         *(int*) this->clear_tid = 0;
     }
     // delete this thread

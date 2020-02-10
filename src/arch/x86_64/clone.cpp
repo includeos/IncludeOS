@@ -55,8 +55,8 @@ long clone_helper(
 	}
 
 	if (thread) {
-        THPRINT("Suspending parent thread %p tid=%d stack=%p and entering %d\n",
-                parent, parent->tid, old_stack, thread->tid);
+        THPRINT("Suspending parent thread tid=%d tls=%p stack=%p and entering %d\n",
+                parent->tid, parent->my_tls, old_stack, thread->tid);
 		// suspend parent thread (not yielded)
 		parent->suspend(false, old_stack);
 		// continue on child

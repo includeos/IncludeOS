@@ -2,10 +2,12 @@
 #include <pthread.h>
 #include <kernel/threads.hpp>
 #include <thread>
+extern "C" int syscall_SYS_tkill(int tid, int sig);
 
 struct testdata
 {
-  int depth     = 0;
+  int created   = 0;
+  int exited    = 0;
   const int max_depth = 20;
 };
 
@@ -18,7 +20,10 @@ extern "C" {
     Expects(*(int*) data == 666);
     Expects(test == 2019);
     // this will cause a TKILL on this thread
-    throw std::runtime_error("Test");
+    //throw std::runtime_error("Test");
+    //syscall_SYS_tkill(kernel::get_tid(), 1234);
+    //pthread_cancel(pthread_self());
+    return nullptr;
   }
   static void* thread_function2(void* data)
   {
@@ -39,11 +44,11 @@ extern "C" {
   static void* recursive_function(void* tdata)
   {
     auto* data = (testdata*) tdata;
-    data->depth++;
+    data->created++;
     printf("%d: Thread depth %d / %d (%p)\n",
-          kernel::get_thread()->tid, data->depth, data->max_depth, tdata);
+          kernel::get_thread()->tid, data->created, data->max_depth, tdata);
 
-    if (data->depth < data->max_depth)
+    if (data->created < data->max_depth)
     {
       pthread_t t;
       int res = pthread_create(&t, NULL, recursive_function, data);
@@ -56,12 +61,12 @@ extern "C" {
         printf("We are at max depth now, start yielding!\n");
     }
     printf("%d: Thread yielding %d / %d\n",
-           kernel::get_thread()->tid, data->depth, data->max_depth);
+           kernel::get_thread()->tid, data->created, data->max_depth);
     sched_yield();
 
+    data->exited++;
     printf("%d: Thread exiting %d / %d\n",
-           kernel::get_thread()->tid, data->depth, data->max_depth);
-    data->depth--;
+           kernel::get_thread()->tid, data->exited, data->max_depth);
     return NULL;
   }
 }
@@ -104,8 +109,10 @@ void Service::start()
   static testdata rdata;
   recursive_function(&rdata);
   // now we have to yield until all the detached children also exit
-  printf("*** Yielding until all children are dead!\n");
-  while (rdata.depth > 0) sched_yield();
+  printf("*** Yielding until all children are created!\n");
+  while (rdata.created < rdata.max_depth) sched_yield();
+  printf("*** Yielding until all children are exited!\n");
+  while (rdata.exited < rdata.max_depth) sched_yield();
 
     auto* cpp_thread = new std::thread(
         [] (int a, long long b, std::string c) -> void {
