@@ -253,7 +253,7 @@ $ conan create . includeos/latest -pr clang-6.0-linux-x86_64
 Vmbuild is an utility for building the IncludeOS virtual machines.
 
 - [Vmrunner](https://github.com/includeos/vmrunner) -
-Vmrunner is a utility developed for booting IncludeOS binanries.
+Vmrunner is a utility developed for booting IncludeOS binaries.
 
 - [Mana](https://github.com/includeos/mana) -
 Mana is a web application framework which is used to build a IncludeOS webserver.
