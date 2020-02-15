@@ -48,9 +48,6 @@ void revenant_thread_main(int cpu)
     // signal that the revenant has started
     smp::main_system.boot_barrier.increment();
 
-    SMP::global_lock();
-    smp::main_system.initialized_cpus.push_back(cpu);
-    SMP::global_unlock();
     while (true)
     {
       Events::get().process_events();

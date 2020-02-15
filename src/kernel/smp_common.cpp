@@ -6,6 +6,8 @@ namespace smp
 {
 smp_main_system main_system;
 std::vector<smp_worker_system> systems;
+// the main CPU is always initialized
+std::vector<int> initialized_cpus {0};
 
 void task_done_handler()
 {
@@ -85,13 +87,6 @@ void smp_task_handler()
 } // namespace smp
 
 /// implementation of the SMP interface ///
-int SMP::cpu_count() noexcept {
-  return smp::main_system.initialized_cpus.size();
-}
-
-const std::vector<int>& SMP::active_cpus() {
-  return smp::main_system.initialized_cpus;
-}
 
 void SMP::add_task(SMP::task_func task, SMP::done_func done, int cpu)
 {

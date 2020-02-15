@@ -8,8 +8,8 @@
 #include <kernel/events.hpp>
 #include <kernel/smp_common.hpp>
 #include <kernel/threads.hpp>
-#include <malloc.h>
 #include <cstring>
+#include <malloc.h>
 #include <thread>
 
 extern "C" {
@@ -38,7 +38,7 @@ void init_SMP()
 {
   const uint32_t CPUcount = ACPI::get_cpus().size();
   // avoid heap usage during AP init
-  smp::main_system.initialized_cpus.reserve(CPUcount);
+  smp::initialized_cpus.reserve(CPUcount);
   smp::systems.resize(CPUcount);
   if (CPUcount <= 1) return;
 
@@ -114,6 +114,11 @@ void init_SMP()
   // wait for all APs to start
   smp::main_system.boot_barrier.spin_wait(CPUcount);
   INFO("SMP", "All %u APs are online now\n", CPUcount);
+
+  // while we can make the APs do this, the boot barrier guarantees all are up
+  for (unsigned i = 1; i < CPUcount; i++) {
+	  smp::initialized_cpus.push_back(i);
+  }
 
   // subscribe to IPIs
   Events::get().subscribe(BSP_LAPIC_IPI_IRQ, smp::task_done_handler);

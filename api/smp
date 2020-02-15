@@ -63,20 +63,6 @@ public:
   static void migrate_threads(bool enable = true);
 };
 
-inline int SMP::cpu_id() noexcept
-{
-  int cpuid;
-#ifdef ARCH_x86_64
-  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
-#elif defined(ARCH_i686)
-  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
-#else
-  asm("mrs %0, mpidr_el1" : "=r" (cpuid));
-  cpuid &= 0xFF;
-#endif
-  return cpuid;
-}
-
 #include <array>
 template <typename T, size_t N>
 inline T& per_cpu_help(std::array<T, N>& array)
@@ -111,5 +97,32 @@ namespace kernel {
 #define SMP_ALIGN       64
 #define SMP_MAX_CORES  256
 
+
+namespace smp {
+	extern std::vector<int> initialized_cpus;
+}
+
+/// implementation of the SMP interface ///
+inline int SMP::cpu_id() noexcept
+{
+  int cpuid;
+#ifdef ARCH_x86_64
+  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#elif defined(ARCH_i686)
+  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
+#else
+  asm("mrs %0, mpidr_el1" : "=r" (cpuid));
+  cpuid &= 0xFF;
+#endif
+  return cpuid;
+}
+
+inline int SMP::cpu_count() noexcept {
+  return smp::initialized_cpus.size();
+}
+
+inline const std::vector<int>& SMP::active_cpus() {
+  return smp::initialized_cpus;
+}
 
 #endif
