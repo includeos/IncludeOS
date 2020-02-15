@@ -186,22 +186,21 @@ void Virtio::negotiate_features(uint32_t features) {
   debug("<Virtio> Got features: 0x%lx \n",_features);
 }
 
-void Virtio::move_to_this_cpu()
+void Virtio::cpu_migrate(int old_cpu, int new_cpu)
 {
   if (has_msix())
   {
     // unsubscribe IRQs on old CPU
     for (size_t i = 0; i < irqs.size(); i++)
     {
-      auto& oldman = Events::get(this->current_cpu);
-      oldman.unsubscribe(this->irqs[i]);
+      Events::get(old_cpu).unsubscribe(this->irqs[i]);
     }
     // resubscribe on the new CPU
-    this->current_cpu = SMP::cpu_id();
+    this->current_cpu = new_cpu;
     for (size_t i = 0; i < irqs.size(); i++)
     {
       this->irqs[i] = Events::get().subscribe(nullptr);
-      _pcidev.rebalance_msix_vector(i, current_cpu, IRQ_BASE + this->irqs[i]);
+      _pcidev.rebalance_msix_vector(i, new_cpu, IRQ_BASE + this->irqs[i]);
     }
   }
 }

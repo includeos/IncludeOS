@@ -327,7 +327,7 @@ public:
     return _pcidev.get_msix_vectors();
   }
 
-  void move_to_this_cpu();
+  void cpu_migrate(int, int);
 
   /** Virtio device constructor.
 

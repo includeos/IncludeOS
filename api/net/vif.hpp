@@ -63,8 +63,8 @@ public:
   void deactivate() override
   { }
 
-  void move_to_this_cpu() override
-  { link_.move_to_this_cpu(); }
+  void cpu_migrate(int oldcpu, int newcpu) override
+  { link_.cpu_migrate(oldcpu, newcpu); }
 
   void flush() override
   { link_.flush(); }

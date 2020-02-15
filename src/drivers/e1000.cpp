@@ -27,8 +27,12 @@ static const uint32_t RXTO = 1 << 7; // receive timer interrupt
 #define LEGACY_INTR_MASK() (TXDW | TXQE | LSC | RXDMTO | RXO | RXTO)
 #define MSIX_INTR_MASK() (LSC | RXO | (1 << 20) | (1 << 22) | (1 << 24))
 
-static int deferred_event = 0;
-static std::vector<e1000*> deferred_devices;
+struct alignas(SMP_ALIGN) smp_deferred {
+	std::vector<e1000*> devs;
+	int event = 0;
+};
+static std::vector<smp_deferred> deferred_devs;
+SMP_RESIZE_LATE_GCTOR(deferred_devs);
 
 static inline uint16_t report_size_for_mtu(uint16_t mtu)
 {
@@ -116,9 +120,9 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
     this->irqs.push_back(real_irq);
   }
 
-  if (deferred_event == 0)
+  if (PER_CPU(deferred_devs).event == 0)
   {
-    deferred_event = Events::get().subscribe(&e1000::do_deferred_xmit);
+    PER_CPU(deferred_devs).event = Events::get().subscribe(&e1000::do_deferred_xmit);
   }
 
   // shared-memory & I/O address
@@ -205,7 +209,7 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
     write_cmd(REG_IAM, 0x0);
 
     // configure IVAR and MSI-X table entries
-    this->config_msix();
+    this->config_msix(SMP::cpu_id());
 
     // CTRL_EXT = MSI-X PBA + **normal** IAME
     write_cmd(REG_CTRL_EXT, (1 << 31) | (1 << 27));
@@ -272,28 +276,32 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
 #endif
 }
 
-void e1000::config_msix()
+void e1000::config_msix(int cpu)
 {
   #define IVAR_INT_ALLOC_VALID 0x8 // 10.2.4.9 p.328
   uint32_t ivar = 0;
   // rx queue 0 2:0
   uint8_t vec0 = Events::get().subscribe({this, &e1000::receive_handler});
-  int m0 = m_pcidev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec0);
+  int m0 = m_pcidev.setup_msix_vector(cpu, IRQ_BASE + vec0);
   ivar |= (IVAR_INT_ALLOC_VALID | m0);
 
   // tx queue 0 10:8
   uint8_t vec1 = Events::get().subscribe({this, &e1000::transmit_handler});
-  int m1 = m_pcidev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec1);
+  int m1 = m_pcidev.setup_msix_vector(cpu, IRQ_BASE + vec1);
   ivar |= (IVAR_INT_ALLOC_VALID | m1) << 8;
 
   // other causes 18:16
   uint8_t vec2 = Events::get().subscribe({this, &e1000::event_handler});
-  int m2 = m_pcidev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec2);
+  int m2 = m_pcidev.setup_msix_vector(cpu, IRQ_BASE + vec2);
   ivar |= (IVAR_INT_ALLOC_VALID | m2) << 16;
 
   // enable TX interrupts on every writeback regardless of RS bit
   ivar |= 1 << 31;
   write_cmd(REG_IVAR, ivar);
+
+  irqs.push_back(vec0);
+  irqs.push_back(vec1);
+  irqs.push_back(vec2);
 }
 
 void e1000::wait_millis(int millis)
@@ -634,8 +642,8 @@ void e1000::transmit_data(uint8_t* data, uint16_t length)
   if (tx.deferred == false)
   {
     tx.deferred = true;
-    deferred_devices.push_back(this);
-    Events::get().trigger_event(deferred_event);
+    PER_CPU(deferred_devs).devs.push_back(this);
+    Events::get().trigger_event(PER_CPU(deferred_devs).event);
   }
 }
 void e1000::xmit_kick()
@@ -647,9 +655,9 @@ void e1000::xmit_kick()
 }
 void e1000::do_deferred_xmit()
 {
-  for (auto& dev : deferred_devices)
+  for (auto& dev : PER_CPU(deferred_devs).devs)
       dev->xmit_kick();
-  deferred_devices.clear();
+  PER_CPU(deferred_devs).devs.clear();
 }
 
 void e1000::flush()
@@ -665,9 +673,28 @@ void e1000::deactivate()
   uint32_t flags = read_cmd(REG_RCTRL);
   write_cmd(REG_RCTRL, flags & ~RCTL_EN);
 }
-void e1000::move_to_this_cpu()
+void e1000::cpu_migrate(int old_cpu, int new_cpu)
 {
-  // TODO: implement me
+  INFO("e1000e", "Moving to CPU %d", new_cpu);
+  this->intr_disable();
+  for (auto irq : this->irqs) {
+    Events::get(old_cpu).unsubscribe(irq);
+  }
+  if (SMP::cpu_id() != new_cpu) {
+	  SMP::add_task(
+		  [this, new_cpu] () {
+			this->config_msix(new_cpu);
+			this->intr_enable();
+		  });
+  } else {
+	  this->config_msix(new_cpu);
+	  this->intr_enable();
+  }
+  // deferred transmit
+  if (deferred_devs.at(new_cpu).event == 0) {
+    deferred_devs.at(new_cpu).event =
+    	Events::get(new_cpu).subscribe(&e1000::do_deferred_xmit);
+  }
 }
 
 #include <hw/pci_manager.hpp>

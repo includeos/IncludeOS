@@ -81,7 +81,7 @@ namespace hw {
     virtual uint64_t get_packets_dropped() = 0;
 
     /** Move this nic to current CPU **/
-    virtual void move_to_this_cpu() = 0;
+    virtual void cpu_migrate(int old_cpu, int new_cpu) = 0;
 
     /** Flush remaining packets if possible. **/
     virtual void flush() override = 0;

@@ -61,7 +61,7 @@ public:
 
   void deactivate() override;
 
-  void move_to_this_cpu() override;
+  void cpu_migrate(int, int) override;
 
   void poll() override;
 
