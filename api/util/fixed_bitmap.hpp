@@ -19,15 +19,13 @@ public:
   static_assert(N % sizeof(Storage) == 0, "Number of bits need to be divisable by sizeof(Storage)");
 
 public:
-  Fixed_bitmap() :
-    MemBitmap{},
-    storage{}
+  Fixed_bitmap() : MemBitmap{}
   {
     set_location(storage.data(), N / sizeof(Storage));
   }
 
 private:
-  std::array<Storage, N / sizeof(Storage)> storage;
+  std::array<Storage, N / sizeof(Storage)> storage {};
 
 }; // < class Fixed_bitmap
 
