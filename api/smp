@@ -33,7 +33,7 @@ public:
   // optionally call @done back on main CPU after running task
   // use SMP::signal() to broadcast when work should begin
   // if cpu == 0, the first free signalled CPU will grab the work
-  static void add_task(task_func task, done_func done = nullptr, int cpu = 0);
+  static void add_task(task_func task, done_func done, int cpu = 0);
   static void add_task(task_func task, int cpu = 0);
   // execute a function on the main cpu
   static void add_bsp_task(done_func done);
