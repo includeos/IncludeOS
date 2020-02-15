@@ -25,7 +25,7 @@ get_cpu_eip:
     ret
 
 spurious_intr:
-    iret
+    iretq
 
 lapic_send_eoi:
     mov eax, 0xfee000B0

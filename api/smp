@@ -47,6 +47,8 @@ public:
   static void unicast(int cpu, uint8_t intr);
   // broadcast-trigger interrupt on all CPUs
   static void broadcast(uint8_t intr);
+  // spuriously wake a CPU (from sleeping), works on all CPUs
+  static void wake(int cpu);
 
   // a global spinlock to synchronize text output (primarily)
   static void global_lock()   noexcept;

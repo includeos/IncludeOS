@@ -19,7 +19,7 @@ extern "C" {
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
-static const uint32_t  REV_STACK_SIZE = 1 << 14; // 16kb
+static const uint32_t  REV_STACK_SIZE = 1 << 15; // 32kb
 static_assert((BOOTLOADER_LOCATION & 0xfff) == 0, "Must be page-aligned");
 
 struct apic_boot {
@@ -63,8 +63,6 @@ void init_SMP()
   #error "Unimplemented arch"
 #endif
   boot->stack_base = (uint32_t) smp::main_system.stack_base;
-  // add to start at top of each stack, remove to offset cpu 1 to idx 0
-  boot->stack_base -= 16;
   boot->stack_size = smp::main_system.stack_size;
   debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
@@ -157,4 +155,8 @@ void SMP::broadcast(uint8_t irq)
 void SMP::unicast(int cpu, uint8_t irq)
 {
   x86::APIC::get().send_ipi(cpu, IRQ_BASE + irq);
+}
+void SMP::wake(int cpu)
+{
+  x86::APIC::get().send_ipi(cpu, IRQ_BASE + Events::NUM_EVENTS-1);
 }

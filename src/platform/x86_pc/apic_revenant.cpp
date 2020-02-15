@@ -13,7 +13,6 @@
 namespace x86 {
   extern void initialize_cpu_tables_for_cpu(int);
 }
-#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 void revenant_thread_main(int cpu)
 {
@@ -78,8 +77,7 @@ void revenant_main(int cpu)
 
   const uint64_t star_kernel_cs = 8ull << 32;
   const uint64_t star_user_cs   = 8ull << 48;
-  const uint64_t star = star_kernel_cs | star_user_cs;
-  x86::CPU::write_msr(IA32_STAR, star);
+  x86::CPU::write_msr(IA32_STAR, star_kernel_cs | star_user_cs);
   x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
 #endif
 

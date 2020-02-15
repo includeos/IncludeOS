@@ -22,8 +22,6 @@
 #include <vector>
 #include <common>
 
-#define PAGE_SIZE 4096
-
 #define VIRTIO_F_NOTIFY_ON_EMPTY 24
 #define VIRTIO_F_ANY_LAYOUT 27
 #define VIRTIO_F_RING_INDIRECT_DESC 28
