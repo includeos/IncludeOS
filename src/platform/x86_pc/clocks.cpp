@@ -27,7 +27,7 @@ namespace x86
 {
   void Clocks::init()
   {
-    if (0 && CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE
+    if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE
                          | KVM_FEATURE_CLOCKSOURCE2))
     {
       KVM_clock::init();

@@ -11,7 +11,6 @@ extern "C" {
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
   extern void spurious_intr();
-  extern void cpu_enable_panicking();
 }
 
 #define IRQ_LINES  Events::NUM_EVENTS

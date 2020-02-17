@@ -16,6 +16,11 @@ extern "C" {
 }
 static constexpr bool PRIORITIZE_PARENT = true;
 
+namespace os {
+	__attribute__((noreturn))
+	extern void panic(const char* why) noexcept;
+}
+
 struct libc_internal {
   void* self;
   void* dtv;
@@ -35,17 +40,18 @@ namespace kernel
   inline int generate_new_thread_id() noexcept {
 	  return __sync_fetch_and_add(&thread_counter, 1);
   }
-  int get_last_thread_id() noexcept {
-	  return thread_counter-1;
-  }
 
-  std::vector<ThreadManager> thread_managers;
+  static std::vector<ThreadManager> thread_managers;
   SMP_RESIZE_EARLY_GCTOR(thread_managers);
-  ThreadManager& ThreadManager::get() noexcept {
+  ThreadManager& ThreadManager::get() {
 	  return PER_CPU(thread_managers);
   }
   ThreadManager& ThreadManager::get(int cpu) {
 	  return thread_managers.at(cpu);
+  }
+
+  Thread* get_last_thread() {
+	  return ThreadManager::get().last_thread;
   }
 
   void Thread::init(int tid, Thread* parent, void* stack)
@@ -177,7 +183,7 @@ namespace kernel
     }
   }
 
-  Thread* setup_main_thread(int tid)
+  Thread* setup_main_thread(int cpu, int tid)
   {
 		int stack_value;
 		if (tid == 0)
@@ -195,7 +201,7 @@ namespace kernel
 		{
 			auto* main_thread = get_thread(tid);
 			Expects(main_thread->parent == nullptr && "Must be a detached thread");
-			ThreadManager::get().main_thread = main_thread;
+			ThreadManager::get(cpu).main_thread = main_thread;
 			return main_thread;
 		}
   }
@@ -298,6 +304,7 @@ namespace kernel
 			std::piecewise_construct,
 			std::forward_as_tuple(thread->tid),
 			std::forward_as_tuple(thread));
+	  last_thread = thread;
   }
   void ThreadManager::erase_thread_safely(Thread* thread)
   {

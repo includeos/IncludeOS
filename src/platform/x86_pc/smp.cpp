@@ -68,26 +68,27 @@ void init_SMP()
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
   assert((boot->stack_base & 15) == 0);
 
-  // reset barrier
-  smp::main_system.boot_barrier.reset(1);
-
   auto& apic = x86::APIC::get();
+  smp::main_system.still_starting = true;
+
   // massage musl to create a main thread for each AP
   for (const auto& cpu : ACPI::get_cpus())
   {
 	  if (cpu.id == apic.get_id() || cpu.id >= CPUcount) continue;
 	  // this thread will immediately yield back here
 	  new std::thread(&revenant_thread_main, cpu.id);
-	  // the last thread id will be the above threads kernel id
-	  // alternatively, we can extract this threads last-created childs id
-	  const long tid = kernel::get_last_thread_id();
 	  // store thread info in SMP structure
 	  auto& system = smp::systems.at(cpu.id);
-	  system.main_thread_id = tid;
+	  // the last thread created will be the above C++ thread
+	  system.main_thread_id = kernel::get_last_thread()->tid;
 	  // migrate thread to its CPU
-	  auto* kthread = kernel::ThreadManager::get().detach(tid);
+	  auto* kthread = kernel::ThreadManager::get().detach(system.main_thread_id);
 	  kernel::ThreadManager::get(cpu.id).attach(kthread);
   }
+  smp::main_system.still_starting = false;
+
+  // reset barrier
+  smp::main_system.boot_barrier.reset(1);
 
   // turn on CPUs
   INFO("SMP", "Initializing APs");

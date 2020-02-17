@@ -16,31 +16,35 @@ namespace x86 {
 
 void revenant_thread_main(int cpu)
 {
-	sched_yield();
+	while (smp::main_system.still_starting) sched_yield();
 	uintptr_t this_stack = smp::main_system.stack_base + cpu * smp::main_system.stack_size;
 
+	static smp_spinlock startup_lock;
     // show we are online, and verify CPU ID is correct
-    SMP::global_lock();
+    startup_lock.lock();
     INFO2("AP %d started at %p", SMP::cpu_id(), (void*) this_stack);
-    SMP::global_unlock();
+    startup_lock.unlock();
     Expects(cpu == SMP::cpu_id());
 
 	auto& ev = Events::get(cpu);
 	ev.init_local();
+startup_lock.lock();
 	// subscribe to task and timer interrupts
 	ev.subscribe(0, smp::smp_task_handler);
 	ev.subscribe(1, x86::APIC_Timer::start_timers);
-	// enable interrupts
-	asm volatile("sti");
 	// init timer system
 	x86::APIC_Timer::init();
+startup_lock.unlock();
 	// initialize clocks
 	x86::Clocks::init();
+
 #ifndef INCLUDEOS_RNG_IS_SHARED
 	// NOTE: its faster if we can steal RNG from main CPU, but not scaleable
 	// perhaps its just better to do it like this, or even share RNG
 	RNG::get().init();
 #endif
+	// enable interrupts
+	asm volatile("sti");
 
 	// allow programmers to do stuff on each core at init
     SMP::init_task();
@@ -50,7 +54,7 @@ void revenant_thread_main(int cpu)
 
     while (true)
     {
-      Events::get().process_events();
+      ev.process_events();
       os::halt();
     }
     __builtin_unreachable();
@@ -78,9 +82,11 @@ void revenant_main(int cpu)
   x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
 #endif
 
-  auto& system = PER_CPU(smp::systems);
+  asm("" : : : "memory");
+
+  auto& system = smp::systems.at(cpu);
   // setup main thread
-  auto* kthread = kernel::setup_main_thread(system.main_thread_id);
+  auto* kthread = kernel::setup_main_thread(cpu, system.main_thread_id);
   // resume APs main thread
   kthread->resume();
   __builtin_unreachable();

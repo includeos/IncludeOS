@@ -77,6 +77,8 @@ extern void kvm_pv_eoi_init();
 
 namespace x86
 {
+  static smp_spinlock irqlock;
+
   void APIC::init()
   {
     // disable the legacy 8259 PIC
@@ -115,6 +117,7 @@ namespace x86
 
   void APIC::enable_irq(uint8_t irq)
   {
+  	irqlock.lock();
     auto& overrides = x86::ACPI::get_overrides();
     for (auto& redir : overrides)
     {
@@ -127,6 +130,7 @@ namespace x86
               redir.global_intr, redir.bus_source, irq, get().get_id());
         }
         IOAPIC::enable(get().get_id(), redir);
+		irqlock.unlock();
         return;
       }
     }
@@ -135,9 +139,11 @@ namespace x86
       INFO2("Enabled non-redirected IRQ %u on apic %u", irq, get().get_id());
     }
     IOAPIC::enable(get().get_id(), {0, 0, 0, irq, irq, 0});
+	irqlock.unlock();
   }
   void APIC::disable_irq(uint8_t irq)
   {
+	irqlock.lock();
     auto& overrides = x86::ACPI::get_overrides();
     for (auto& redir : overrides)
     {
@@ -145,9 +151,11 @@ namespace x86
       if (redir.irq_source == irq)
       {
         IOAPIC::disable(redir.global_intr);
+		irqlock.unlock();
         return;
       }
     }
     IOAPIC::disable(irq);
+	irqlock.unlock();
   }
 }

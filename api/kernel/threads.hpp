@@ -39,16 +39,17 @@ namespace kernel
     void libc_store_this();
   };
 
-  struct ThreadManager
+  struct alignas(64) ThreadManager
   {
 	  std::map<int, kernel::Thread*> threads;
 	  std::deque<Thread*> suspended;
 	  Thread* main_thread = nullptr;
-	  Thread* next_thread = nullptr;
+	  Thread* last_thread = nullptr; // last inserted thread
+	  Thread* next_thread = nullptr; // next yield-to thread
 
 	  delegate<Thread*(ThreadManager&, Thread*)> on_new_thread = nullptr;
 
-	  static ThreadManager& get() noexcept;
+	  static ThreadManager& get();
 	  static ThreadManager& get(int cpu);
 
 	  Thread* detach(int tid);
@@ -88,7 +89,7 @@ namespace kernel
     return get_thread()->tid;
   }
 
-  int get_last_thread_id() noexcept;
+  Thread* get_last_thread();
 
   void* get_thread_area();
   void  set_thread_area(void*);
@@ -97,7 +98,7 @@ namespace kernel
 
   void resume(int tid);
 
-  Thread* setup_main_thread(int tid = 0);
+  Thread* setup_main_thread(int cpu = 0, int tid = 0);
   void setup_automatic_thread_multiprocessing();
 }
 
