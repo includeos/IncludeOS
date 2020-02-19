@@ -1,6 +1,7 @@
 #include <kernel/smp_common.hpp>
 
 #include <kernel/threads.hpp>
+#include <common>
 
 namespace smp
 {
@@ -124,10 +125,56 @@ void SMP::global_unlock() noexcept
   g_global_lock.unlock();
 }
 
+
+using namespace kernel;
+
+inline auto migration_handler(Thread* kthread)
+{
+	return [kthread] () -> void {
+#ifdef THREADS_DEBUG
+		THPRINT("CPU %d resuming migrated thread %d (stack=%p)\n",
+			  SMP::cpu_id(), kthread->tid,
+			  (void*) kthread->my_stack);
+#endif
+		// attach this thread on this core
+		ThreadManager::get().attach(kthread);
+		// resume kthread after yielding this thread
+		ThreadManager::get().yield_to(kthread);
+		// NOTE: returns here!!
+	};
+}
+
 void SMP::migrate_threads(bool enable)
 {
-  if (enable)
-      kernel::setup_automatic_thread_multiprocessing();
-  else
+  if (enable) {
+	  ThreadManager::get().on_new_thread =
+	  [] (ThreadManager&, Thread* kthread) -> Thread* {
+		  SMP::add_task(migration_handler(kthread), nullptr);
+		  SMP::signal();
+		  return nullptr;
+	  };
+  } else {
       kernel::ThreadManager::get().on_new_thread = nullptr;
+  }
+}
+void SMP::migrate_threads_to(int cpu)
+{
+  Expects(cpu >= 0);
+  if (cpu == SMP::cpu_id()) {
+	  // running threads on this CPU doesn't require migration
+      kernel::ThreadManager::get().on_new_thread = nullptr;
+  } else {
+	  ThreadManager::get().on_new_thread =
+	  [cpu] (ThreadManager&, Thread* kthread) -> Thread* {
+		  if (cpu != 0) {
+		  	SMP::add_task(migration_handler(kthread), nullptr, cpu);
+		  	SMP::signal(cpu);
+		  }
+		  else {
+			SMP::add_bsp_task(migration_handler(kthread));
+  		  	SMP::signal_bsp();
+		  }
+		  return nullptr;
+	  };
+  }
 }

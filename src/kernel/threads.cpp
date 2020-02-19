@@ -152,35 +152,29 @@ namespace kernel
       __builtin_unreachable();
   }
 
-  Thread* thread_create(Thread* parent, long flags,
-                          void* ctid, void* ptid, void* stack) noexcept
+  Thread* Thread::create(Thread* parent, long flags,
+                          void* ctid, void* ptid, void* stack)
   {
     const int tid = generate_new_thread_id();
-    try {
-      auto* thread = new struct Thread;
-      thread->init(tid, parent, stack);
+	auto* thread = new struct Thread;
+	thread->init(tid, parent, stack);
 
-      // flag for write child TID
-      if (flags & CLONE_CHILD_SETTID) {
-          THPRINT("Setting ctid to %d at %p\n", tid, ctid);
-          *(int*) ctid = tid;
-      }
-      // flag for write parent TID
-      if (flags & CLONE_PARENT_SETTID) {
-          THPRINT("Setting ptid to TID value at %p\n", ptid);
-          *(int*) ptid = tid;
-      }
-      if (flags & CLONE_CHILD_CLEARTID) {
-          THPRINT("Setting clear_tid to %p for tid=%d\n", ctid, tid);
-          thread->clear_tid = ctid;
-      }
+	// flag for write child TID
+	if (flags & CLONE_CHILD_SETTID) {
+	  THPRINT("Setting ctid to %d at %p\n", tid, ctid);
+	  *(int*) ctid = tid;
+	}
+	// flag for write parent TID
+	if (flags & CLONE_PARENT_SETTID) {
+	  THPRINT("Setting ptid to TID value at %p\n", ptid);
+	  *(int*) ptid = tid;
+	}
+	if (flags & CLONE_CHILD_CLEARTID) {
+	  THPRINT("Setting clear_tid to %p for tid=%d\n", ctid, tid);
+	  thread->clear_tid = ctid;
+	}
 
-	  ThreadManager::get().insert_thread(thread);
-      return thread;
-    }
-    catch (...) {
-      return nullptr;
-    }
+	return thread;
   }
 
   Thread* setup_main_thread(int cpu, int tid)
@@ -204,30 +198,6 @@ namespace kernel
 			ThreadManager::get(cpu).main_thread = main_thread;
 			return main_thread;
 		}
-  }
-  void setup_automatic_thread_multiprocessing()
-  {
-	  ThreadManager::get().on_new_thread =
-	  [] (ThreadManager& man, Thread* thread) -> Thread* {
-		  auto* kthread = man.detach(thread->tid);
-		  SMP::add_task(
-		  [kthread] () {
-#ifdef THREADS_DEBUG
-			  THPRINT("CPU %d resuming migrated thread %d (stack=%p)\n",
-			  		SMP::cpu_id(), kthread->tid,
-					(void*) kthread->my_stack);
-#endif
-			  // attach this thread on this core
-			  ThreadManager::get().attach(kthread);
-			  // resume kthread after yielding this thread
-			  ThreadManager::get().yield_to(kthread);
-			  // NOTE: returns here!!
-		  }, nullptr);
-		  // signal that work exists in the global queue
-		  SMP::signal();
-		  // indicate that the thread has been detached
-		  return nullptr;
-	  };
   }
 
   void* get_thread_area()

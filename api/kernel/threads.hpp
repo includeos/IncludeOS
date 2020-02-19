@@ -27,6 +27,9 @@ namespace kernel
     // address zeroed when exiting
     void*   clear_tid = nullptr;
 
+	static Thread* create(Thread* parent, 
+		long flags, void* ctid, void* ptid, void* stack);
+
     void init(int tid, Thread* parent, void* stack);
     void exit();
     void suspend(bool yielded, void* ret_stack);
@@ -94,12 +97,9 @@ namespace kernel
   void* get_thread_area();
   void  set_thread_area(void*);
 
-  Thread* thread_create(Thread* parent, long flags, void* ctid, void* ptid, void* stack) noexcept;
-
   void resume(int tid);
 
   Thread* setup_main_thread(int cpu = 0, int tid = 0);
-  void setup_automatic_thread_multiprocessing();
 }
 
 extern "C" {

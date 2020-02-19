@@ -61,6 +61,7 @@ public:
   // the current CPU, by moving them to the first free CPU.
   // this setting is active on a per-CPU basis.
   static void migrate_threads(bool enable = true);
+  static void migrate_threads_to(int cpu);
 };
 
 #include <array>

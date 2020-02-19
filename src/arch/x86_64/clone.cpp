@@ -23,7 +23,7 @@ long clone_helper(
     // NOTE: using printf is completely forbidden in this function
     auto* parent = kernel::get_thread();
 
-    auto* thread = kernel::thread_create(parent, flags, ctid, ptid, stack);
+    auto* thread = kernel::Thread::create(parent, flags, ctid, ptid, stack);
 
 //#define VERBOSE_CLONE_FUNCTION
 #ifdef VERBOSE_CLONE_FUNCTION
@@ -43,7 +43,6 @@ long clone_helper(
 
     // write tid on the top of the old stack (for parent)
     *(uintptr_t*) old_stack = thread->tid;
-    //*(int*) ctid = thread->tid;
 
 	// set TLS location (and set self)
     thread->set_tls(newtls);
@@ -55,6 +54,9 @@ long clone_helper(
 	}
 
 	if (thread) {
+		// if we still have the thread, insert it now
+		tman.insert_thread(thread);
+
         THPRINT("Suspending parent thread tid=%d tls=%p stack=%p and entering %d\n",
                 parent->tid, parent->my_tls, old_stack, thread->tid);
 		// suspend parent thread (not yielded)
