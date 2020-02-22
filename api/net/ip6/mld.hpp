@@ -1,4 +1,3 @@
-
 #pragma once
 #ifndef NET_IP6_MLD_HPP
 #define NET_IP6_MLD_HPP
@@ -134,9 +133,8 @@ namespace net {
 
     struct Router {
     public:
-      Router(Mld& ref) : mld_{ref} {}
+      Router(Mld& /* ref */) {}
     private:
-      Mld         &mld_;
       RouterMlist mlist_;
     };
 
