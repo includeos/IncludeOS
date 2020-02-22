@@ -37,19 +37,9 @@ namespace PCI {
    *  Used to communicate with PCI devices
    */
   union msg {
-
-    //! The whole message
     uint32_t data;
 
-    /**
-     *  Packed attribtues, ordered low to high.
-     *
-     *  @note: Doxygen thinks this is a function - it's not
-     *
-     *  it's a GCC-directive.
-     */
     struct __attribute__((packed)) {
-      //! The PCI register
       uint8_t reg;
 
       //! The 16-bit PCI-address @see pci_addr()
@@ -133,14 +123,12 @@ struct msix_t;
      */
     explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
 
-    //! @brief Read from device with implicit pci_address (e.g. used by Nic)
-    uint32_t read32(const uint8_t reg) noexcept;
-
     //! @brief Read from device with explicit pci_addr
     static uint32_t read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept;
 
-    //! @brief Write to device with implicit pci_address (e.g. used by Nic)
-    void write_dword(const uint8_t reg, const uint32_t value) noexcept;
+	// Read/write from device with implicit pci_address (e.g. used by Nic)
+    uint32_t read32(const uint8_t reg) noexcept;
+    void write32(const uint8_t reg, const uint32_t value) noexcept;
 
     uint16_t read16(const uint8_t reg) noexcept;
     void write16(const uint8_t reg, const uint16_t value) noexcept;

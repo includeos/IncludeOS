@@ -50,24 +50,24 @@ namespace hw {
 
   void PCI_Device::probe_resources() noexcept
   {
-    //Find resources on this PCI device (scan the BAR's)
-    for (int bar = 0; bar < 6; ++bar)
+    // Find resources on this PCI device (scan the BAR's)
+    for (size_t bar = 0; bar < m_resources.size(); ++bar)
     {
       //Read the current BAR register
-      uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
-      uint32_t value = read32(reg);
+      uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + bar * 4;
+      uint32_t value = this->read32(reg);
 
       if (!value) continue;
 
-      //Write all 1's to the register, to get the length value (osdev)
-      write_dword(reg, 0xFFFFFFFF);
-      uint32_t len = read32(reg);
+      // Write all 1's to the register to get the length value
+      this->write32(reg, 0xFFFFFFFF);
+      uint32_t len = this->read32(reg);
 
       //Put the value back
-      write_dword(reg, value);
+      write32(reg, value);
 
-      uint32_t unmasked_val  {0};
-      uint32_t pci__size     {0};
+      uint32_t unmasked_val = 0;
+      uint32_t pci__size    = 0;
 
       if (value & 1) {
         // Resource type IO
@@ -82,7 +82,7 @@ namespace hw {
       }
       this->m_resources.at(bar) = {unmasked_val, pci__size};
 
-      INFO2("|  |- BAR%d %s @ 0x%x, size %i ", bar,
+      INFO2("|  |- BAR%zu %s @ 0x%x, size %u ", bar,
             (value & 1 ? "I/O" : "Mem"), unmasked_val, pci__size);
     }
 
@@ -96,7 +96,7 @@ namespace hw {
     // set master, mem and io flags
     uint32_t cmd = read32(PCI_CMD_REG);
     cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
-    write_dword(PCI_CMD_REG, cmd);
+    write32(PCI_CMD_REG, cmd);
 
     // device class info is coming from pci manager to save a PCI read
     this->devtype_.reg = devclass;
@@ -112,33 +112,32 @@ namespace hw {
     outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     return inpd(PCI::CONFIG_DATA);
   }
-  void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
+  
+  uint32_t PCI_Device::read32(const uint8_t reg) noexcept {
     PCI::msg req;
 
     req.data = 0x80000000;
-    req.addr = pci_addr_;
+    req.addr = this->pci_addr_;
+    req.reg  = reg;
+
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
+    return inpd(PCI::CONFIG_DATA);
+  }
+  void PCI_Device::write32(const uint8_t reg, const uint32_t value) noexcept {
+    PCI::msg req;
+
+    req.data = 0x80000000;
+    req.addr = this->pci_addr_;
     req.reg  = reg;
 
     outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
     outpd(PCI::CONFIG_DATA, value);
   }
 
-  uint32_t PCI_Device::read32(const uint8_t reg) noexcept {
-    PCI::msg req;
-
-    req.data = 0x80000000;
-    req.addr = pci_addr_;
-    req.reg  = reg;
-
-    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
-    return inpd(PCI::CONFIG_DATA);
-  }
-
-  __attribute__((noinline))
   uint16_t PCI_Device::read16(const uint8_t reg) noexcept {
     PCI::msg req;
     req.data = 0x80000000;
-    req.addr = pci_addr_;
+    req.addr = this->pci_addr_;
     req.reg  = reg;
 
     outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
@@ -148,7 +147,7 @@ namespace hw {
   void PCI_Device::write16(const uint8_t reg, const uint16_t value) noexcept {
     PCI::msg req;
     req.data = 0x80000000;
-    req.addr = pci_addr_;
+    req.addr = this->pci_addr_;
     req.reg  = reg;
 
     outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
@@ -193,7 +192,7 @@ namespace hw {
   void PCI_Device::deactivate()
   {
     // disables device (except for configuration)
-    write_dword(PCI_CMD_REG, 0);
+    write32(PCI_CMD_REG, 0);
   }
 
   void PCI_Device::intx_enable()

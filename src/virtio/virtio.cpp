@@ -22,9 +22,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   /**
       Match vendor ID and Device ID : §4.1.2.2
   */
-  assert (dev.vendor_id() == PCI::VENDOR_VIRTIO &&
-          "Must be a Virtio device");
-  CHECK(true, "Vendor ID is VIRTIO");
+  CHECKSERT(dev.vendor_id() == PCI::VENDOR_VIRTIO,
+			"Must be a Virtio vendor device");
 
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
   bool _LEGACY_ID = dev.product_id() >= 0x1000
@@ -90,13 +89,12 @@ Virtio::Virtio(hw::PCI_Device& dev)
     if (msix_vectors)
     {
       INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
-      this->current_cpu = SMP::cpu_id();
 
       // setup all the MSI-X vectors
       for (int i = 0; i < msix_vectors; i++)
       {
         auto irq = Events::get().subscribe(nullptr);
-        dev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
+        dev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + irq);
         // store IRQ for later
         this->irqs.push_back(irq);
       }
@@ -196,7 +194,6 @@ void Virtio::cpu_migrate(int old_cpu, int new_cpu)
       Events::get(old_cpu).unsubscribe(this->irqs[i]);
     }
     // resubscribe on the new CPU
-    this->current_cpu = new_cpu;
     for (size_t i = 0; i < irqs.size(); i++)
     {
       this->irqs[i] = Events::get().subscribe(nullptr);

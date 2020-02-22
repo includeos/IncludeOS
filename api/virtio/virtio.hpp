@@ -1,4 +1,3 @@
-
 /**
    @note This virtio implementation was very much inspired by
    SanOS, (C) Michael Ringgaard. All due respect.
@@ -12,11 +11,12 @@
 
    In the following abbreviated to Virtio 1.03 or Virtio std.
 */
+
 #pragma once
 #ifndef VIRTIO_VIRTIO_HPP
 #define VIRTIO_VIRTIO_HPP
 
-#include "../hw/pci_device.hpp"
+#include <hw/pci_device.hpp>
 #include <net/inet_common.hpp>
 #include <stdint.h>
 #include <vector>
@@ -46,15 +46,10 @@
 #define VIRTIO_CONFIG_S_DRIVER_OK       4
 #define VIRTIO_CONFIG_S_FAILED          0x80
 
-
-//#include <class_irq_handler.hpp>
-class Virtio
-{
-
+class Virtio {
 public:
   /** A wrapper for buffers to be passed in to the Queue */
   class Token {
-
   public:
     // "Direction" of tokens
     using span = std::pair<uint8_t*, size_t>;  //gsl::span<uint8_t>;
@@ -175,14 +170,10 @@ public:
        Update the available index */
     inline void update_avail_idx ()
     {
-#if defined(ARCH_x86)
       // Std. §3.2.1 pt. 4
-      __arch_hw_barrier();
+      __sync_synchronize();
       _queue.avail->idx += _num_added;
       _num_added = 0;
-#else
-#warning "update_avail_idx() not implemented for selected arch"
-#endif
     }
 
     /** Kick hypervisor.
@@ -354,7 +345,6 @@ private:
 
   void default_irq_handler();
 
-  uint8_t current_cpu;
   std::vector<uint8_t> irqs;
 };
 
