@@ -89,29 +89,31 @@ void smp_task_handler()
 
 /// implementation of the SMP interface ///
 
-void SMP::add_task(SMP::task_func task, SMP::done_func done, int cpu)
+bool SMP::add_task(SMP::task_func task, SMP::done_func done, int cpu)
 {
   auto& system = smp::systems.at(cpu);
   system.tlock.lock();
+  bool first = system.tasks.empty();
   system.tasks.emplace_back(std::move(task), std::move(done));
   system.tlock.unlock();
+  return first;
 }
-void SMP::add_task(SMP::task_func task, int cpu)
+bool SMP::add_task(SMP::task_func task, int cpu)
 {
-  add_task(std::move(task), nullptr, cpu);
+  return add_task(std::move(task), nullptr, cpu);
 }
 
-void SMP::add_bsp_task(SMP::done_func task)
+bool SMP::add_bsp_task(SMP::done_func task)
 {
   // queue completed job at current CPU
   auto& system = PER_CPU(smp::systems);
   system.flock.lock();
+  bool first = system.completed.empty();
   system.completed.push_back(std::move(task));
   system.flock.unlock();
   // set bit for current CPU
   smp::main_system.bitmap.atomic_set(SMP::cpu_id());
-  // call home
-  SMP::signal_bsp();
+  return first;
 }
 
 static smp_spinlock g_global_lock;
