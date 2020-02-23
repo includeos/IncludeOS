@@ -58,6 +58,8 @@ private:
   // using deque because vector resize causes invalidation of ranged for
   // when something subscribes during processing of events
   std::deque<uint8_t> sublist;
+  
+  int m_cpu;
 };
 
 inline void Events::trigger_event(const uint8_t evt)

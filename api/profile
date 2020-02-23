@@ -84,7 +84,7 @@ class ScopedProfiler
   {
     record();
     // memory clobbered make sure ScopedProfilers aren't moved around
-    __sw_barrier();
+    compiler_barrier();
   }
 
   void record();
