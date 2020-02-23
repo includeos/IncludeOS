@@ -514,9 +514,20 @@ namespace net {
       this->packet_rerouter = func;
     }
 
+    /**
+     * @brief      Returns the CPU this TCP was instantiated on.
+	 *             It is still possible to handle TCP packets on another CPU.
+     */
     int get_cpuid() const noexcept {
       return this->cpu_id;
     }
+
+    /**
+     * @brief      Process the write queue with the given amount of free packets.
+     *
+     * @param[in]  packets  Number of disposable packets
+     */
+    void process_writeq(size_t packets);
 
   private:
     IPStack&      inet_;
@@ -735,7 +746,6 @@ namespace net {
      *
      * @param[in]  packets  Number of disposable packets
      */
-    void process_writeq(size_t packets);
     void smp_process_writeq(size_t packets);
 
     /**

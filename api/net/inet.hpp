@@ -344,9 +344,11 @@ namespace net {
     }
 
     // register a callback for receiving signal on free packet-buffers
-    void
-    on_transmit_queue_available(transmit_avail_delg del) {
+    void on_transmit_queue_available(transmit_avail_delg del) {
       tqa.push_back(del);
+    }
+    void clear_transmit_queue_available() {
+	  tqa.clear();
     }
 
     size_t transmit_queue_available() {
