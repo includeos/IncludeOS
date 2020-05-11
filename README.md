@@ -7,7 +7,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 [![Pre-release](https://img.shields.io/github/release-pre/includeos/IncludeOS.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Join the chat](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://goo.gl/NXBVsc)
+[![Join the chat](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://join.slack.com/t/includeos/shared_invite/zt-5z7ts29z-_AX0kZNiUNE7eIMUP60GmQ)
 
 **Note:** *IncludeOS is under active development. The public API should not be considered stable.*
 
@@ -270,7 +270,7 @@ NaCl is the configuration language tool we have tailored for IncludeOS to allow 
 
 ## <a name="contribute"></a> Contributing to IncludeOS
 
-IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://goo.gl/NXBVsc). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
+IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://join.slack.com/t/includeos/shared_invite/zt-5z7ts29z-_AX0kZNiUNE7eIMUP60GmQ). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 ## <a name="guideline"></a> C++ Guidelines
 
