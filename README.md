@@ -157,9 +157,9 @@ Below we have written down a few steps to get you started with editable packages
 
 **Note:** Currently this is an experimental feature on conan version 1.13 and they have mentioned that for future releases the feature is subject to breaking changes.
 
-Start by cloning the IncludeOS source code and create a `build` folder. You have to edit `etc/layout.txt` in the source code to point to the `build` folder you created, by updating the `build_dir` variable.
+Start by cloning the IncludeOS source code and create a `build` folder. You must edit `etc/layout.txt` in the source code to point to the `build` folder you created, by updating the `build_dir` variable.
 
-The layout will look similar to the example below. You only have to update `build_dir`.
+The layout will look like the example below. You only must update `build_dir`.
 
 ```text
   {% set simple=true%}
@@ -194,7 +194,7 @@ The layout will look similar to the example below. You only have to update `buil
 ```
 **Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases
 
-You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this has to match exactly.
+You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this must match exactly.
 
 ```text
 $ conan editable add . includeos/$(conan inspect -a version . | cut -d " " -f 2)@includeos/latest --layout=etc/layout.txt
