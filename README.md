@@ -1,4 +1,5 @@
-![IncludeOS Logo](./etc/logo.png)
+![IncludeOS Logo](./etc/logo.png#gh-light-mode-only)
+![IncludeOS Logo](./etc/logo_dark.png#gh-dark-mode-only)
 ================================================
 
 **IncludeOS** is a minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud and on real hardware. Starting a program with `#include <os>` will include a tiny operating system into your service during link-time.
