@@ -192,7 +192,7 @@ The layout will look similar to the example below. You only have to update `buil
   {{ build_dir }}
 
 ```
-**Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases
+**Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases.
 
 You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this has to match exactly.
 
