@@ -17,7 +17,7 @@ enum class cpu_irq_flag_t: uint32_t
   IRQ_FLAG_F = 1<<6, //FIQ
   IRQ_FLAG_I = 1<<7, //IRQ
   IRQ_FLAG_A = 1<<8, //SError
-  IRQ_FLAG_D = 1<<9 //Endianess in AARCH32 and Debug exception mask in aarch64
+  IRQ_FLAG_D = 1<<9 //Endianness in AARCH32 and Debug exception mask in aarch64
 };// cpu_irq_flag_t;
 */
 #if defined(__cplusplus)
