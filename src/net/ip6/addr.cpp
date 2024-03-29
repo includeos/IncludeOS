@@ -44,7 +44,7 @@ inline uint16_t shortfromHexString(const std::string &str) noexcept
       shift-=4;
   }
   using namespace net;
-  //handle the endianess
+  //handle the endianness
   return ntohs(val);
 }
 
