@@ -1,0 +1,26 @@
+diff --git a/include/type_traits b/include/type_traits
+index 7234b981f..27044f171 100644
+--- a/include/type_traits
++++ b/include/type_traits
+@@ -736,7 +736,7 @@ template <class _Tp> struct __libcpp_is_floating_point              : public fal
+ #ifdef __clang__
+ template <>          struct __libcpp_is_floating_point<__fp16>      : public true_type {};
+ #endif
+-#ifdef __FLT16_MANT_DIG__
++#ifdef __STDC_WANT_IEC_60559_TYPES_EXT__
+ template <>          struct __libcpp_is_floating_point<_Float16>    : public true_type {};
+ #endif
+ template <>          struct __libcpp_is_floating_point<float>       : public true_type {};
+diff --git a/test/libcxx/type_traits/is_floating_point.pass.cpp b/test/libcxx/type_traits/is_floating_point.pass.cpp
+index 98452fad3..d2e23818c 100644
+--- a/test/libcxx/type_traits/is_floating_point.pass.cpp
++++ b/test/libcxx/type_traits/is_floating_point.pass.cpp
+@@ -17,7 +17,7 @@ int main() {
+ #ifdef __clang__
+   static_assert(std::is_floating_point<__fp16>::value, "");
+ #endif
+-#ifdef __FLT16_MANT_DIG__
++#ifdef __STDC_WANT_IEC_60559_TYPES_EXT__
+   static_assert(std::is_floating_point<_Float16>::value, "");
+ #endif
+   return 0;
