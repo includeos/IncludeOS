@@ -42,7 +42,7 @@ class LibCxxAbiConan(ConanFile):
         # if (self.settings.compiler == "gcc"):
         #     tools.patch("libcxx",patch_file='files/float16_gcc.patch')
 
-        
+
     def _triple_arch(self):
         return {
             "x86":"i686",
@@ -58,7 +58,7 @@ class LibCxxAbiConan(ConanFile):
         source=self.source_folder+"/libcxxabi"
         unwind=self.source_folder+"/libunwind"
         libcxx=self.source_folder+"/libcxx"
-        
+
         if (self.settings.compiler == "clang"):
             triple=self._triple_arch()+"-pc-linux-gnu"
             tc.variables["LIBCXXABI_TARGET_TRIPLE"] = triple
@@ -66,10 +66,10 @@ class LibCxxAbiConan(ConanFile):
         tc.variables['LIBCXXABI_USE_LLVM_UNWINDER']=True
         tc.variables['LIBCXXABI_ENABLE_SHARED']=self.options.shared
         tc.variables['LIBCXXABI_ENABLE_STATIC']=True
-        #TODO consider that this locks us to llvm unwinder                                                                                               
+        #TODO consider that this locks us to llvm unwinder
         tc.variables['LIBCXXABI_ENABLE_STATIC_UNWINDER']=True
         tc.variables['LIBCXXABI_USE_LLVM_UNWINDER']=True
-        tc.variables['LLVM_ENABLE_LIBCXX']=True        
+        tc.variables['LLVM_ENABLE_LIBCXX']=True
         tc.variables['LLVM_PATH']=llvm_source
         if (str(self.settings.arch) == "x86"):
             tc.variables['LIBCXXABI_BUILD_32_BITS']=True
@@ -90,7 +90,7 @@ class LibCxxAbiConan(ConanFile):
         cmake = CMake(self)
         cmake.install()
         source = os.path.join(self.source_folder, "libcxxabi", "include")
-        inc    = os.path.join(self.package_folder, "include")                              
+        inc    = os.path.join(self.package_folder, "include")
         copy(self, pattern = "*.h",dst=inc, src=source)
 
 
@@ -105,8 +105,7 @@ class LibCxxAbiConan(ConanFile):
         # self.info.settings.os="ANY"
 	# -> ConanException: 'self.info' access in 'package_info()' method is forbidden
         # It builds fine without it, but not sure what the consequences are.
-        
+
         self.cpp_info.includedirs=['include']
         self.cpp_info.libs=['c++abi']
         self.cpp_info.libdirs=['lib']
-
