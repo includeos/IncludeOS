@@ -1,7 +1,11 @@
-import shutil #move
-import os #unlink
-import sys
-from conans import ConanFile,tools,CMake
+import os
+import shutil
+
+from conan import ConanFile,tools
+from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps
+from conan.tools.files import copy
+from conan.tools.files import download
+from conan.tools.files import unzip
 
 class LibUnwindConan(ConanFile):
     #TODO check if the os matters at all here.. a .a from os a is compatible with os b
@@ -21,23 +25,24 @@ class LibUnwindConan(ConanFile):
     }
     no_copy_source=True
 
+
     def configure(self):
         #we dont care what you had here youre building it :)
         del self.settings.compiler.libcxx
 
+
     def llvm_checkout(self,project):
         filename="{}-{}.src.tar.xz".format(project,self.version)
-        tools.download("http://releases.llvm.org/{}/{}".format(self.version,filename),filename)
-        if sys.version_info[0] < 3:
-            self.run("tar -xf {}".format(filename))
-        else:
-            tools.unzip(filename)
+        download(self, "http://releases.llvm.org/{}/{}".format(self.version,filename),filename)
+        unzip(self, filename)
         os.unlink(filename)
         shutil.move("{}-{}.src".format(project,self.version),project)
+
 
     def source(self):
         self.llvm_checkout("llvm")
         self.llvm_checkout("libunwind")
+
 
     def _triple_arch(self):
         return {
@@ -46,41 +51,46 @@ class LibUnwindConan(ConanFile):
             "armv8" : "aarch64"
         }.get(str(self.settings.arch))
 
-    def _configure_cmake(self):
-        cmake=CMake(self)
+
+    def generate(self):
+        deps=CMakeDeps(self)
+        deps.generate()
+        tc = CMakeToolchain(self)
         llvm_source=self.source_folder+"/llvm"
         unwind_source=self.source_folder+"/libunwind"
 
         if (self.settings.compiler == "clang"):
             triple=self._triple_arch()+"-pc-linux-gnu"
-            cmake.definitions["LIBUNWIND_TARGET_TRIPLE"] = triple
+            tc.variables["LIBUNWIND_TARGET_TRIPLE"] = triple
 
-        cmake.definitions['LIBUNWIND_ENABLE_SHARED']=self.options.shared
-        cmake.definitions['LLVM_PATH']=llvm_source
+        tc.variables['LIBUNWIND_ENABLE_SHARED']=self.options.shared
+        tc.variables['LLVM_PATH']=llvm_source
+        tc.variables['LLVM_ENABLE_LIBCXX']=True
         if (str(self.settings.arch) == "x86"):
-            cmake.definitions['LLVM_BUILD_32_BITS']=True
-        cmake.configure(source_folder=unwind_source)
-        return cmake
+            tc.variables['LLVM_BUILD_32_BITS']=True
+        tc.generate()
+
 
     def build(self):
-        cmake = self._configure_cmake()
+        source=self.source_folder+"/libunwind"
+        cmake=CMake(self)
+        cmake.configure(build_script_folder=source)
         cmake.build()
 
+
     def package(self):
-        cmake = self._configure_cmake()
+        cmake=CMake(self)
         cmake.install()
-        self.copy("*libunwind*.h",dst="include",src="libunwind/include")
+        src_inc = os.path.join(self.source_folder, "libunwind", "include")
+        pkg_inc = os.path.join(self.package_folder, "include")
+        copy(self, pattern="*libunwind*.h", src=src_inc, dst=pkg_inc)
+
+
+    def package_id(self):
+        self.info.settings.os = "ANY"
 
 
     def package_info(self):
         self.cpp_info.includedirs=['include']
         self.cpp_info.libs=['unwind']
         self.cpp_info.libdirs=['lib']
-        #where it was buildt doesnt matter
-        self.info.settings.os="ANY"
-        #what libcxx the compiler uses isnt of any known importance
-        self.info.settings.compiler.libcxx="ANY"
-
-    def deploy(self):
-        self.copy("*.h",dst="include",src="include")
-        self.copy("*.a",dst="lib",src="lib")
