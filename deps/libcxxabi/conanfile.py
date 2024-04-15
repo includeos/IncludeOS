@@ -25,6 +25,9 @@ class LibCxxAbiConan(ConanFile):
     exports_sources=['files/float16_gcc.patch']
     no_copy_source=True
 
+    def requirements(self):
+        self.requires("llvm_source/{}".format(self.version))
+
     def llvm_checkout(self,project):
         filename="{}-{}.src.tar.xz".format(project,self.version)
         download(self, "http://releases.llvm.org/{}/{}".format(self.version,filename),filename)
@@ -33,7 +36,6 @@ class LibCxxAbiConan(ConanFile):
         shutil.move("{}-{}.src".format(project,self.version),project)
 
     def source(self):
-        self.llvm_checkout("llvm")
         self.llvm_checkout("libcxx")
         self.llvm_checkout("libcxxabi")
         # TODO move to build step?
@@ -54,7 +56,7 @@ class LibCxxAbiConan(ConanFile):
         deps = CMakeDeps(self)
         deps.generate()
         tc = CMakeToolchain(self)
-        llvm_source=self.source_folder+"/llvm"
+        llvm_source=self.dependencies["llvm_source"].cpp_info.srcdirs[0]
         source=self.source_folder+"/libcxxabi"
         unwind=self.source_folder+"/libunwind"
         libcxx=self.source_folder+"/libcxx"

@@ -25,6 +25,8 @@ class LibUnwindConan(ConanFile):
     }
     no_copy_source=True
 
+    def requirements(self):
+        self.requires("llvm_source/{}".format(self.version))
 
     def configure(self):
         #we dont care what you had here youre building it :)
@@ -40,7 +42,6 @@ class LibUnwindConan(ConanFile):
 
 
     def source(self):
-        self.llvm_checkout("llvm")
         self.llvm_checkout("libunwind")
 
 
@@ -56,13 +57,16 @@ class LibUnwindConan(ConanFile):
         deps=CMakeDeps(self)
         deps.generate()
         tc = CMakeToolchain(self)
-        llvm_source=self.source_folder+"/llvm"
+        llvm_source=self.dependencies["llvm_source"].cpp_info.srcdirs[0]
         unwind_source=self.source_folder+"/libunwind"
 
         if (self.settings.compiler == "clang"):
             triple=self._triple_arch()+"-pc-linux-gnu"
             tc.variables["LIBUNWIND_TARGET_TRIPLE"] = triple
 
+        # We currently have an implicit dependency on the host libc++
+        # TODO: Use the LLVM source to find the C++ headers.
+        # tc.variables["CMAKE_CXX_FLAGS"] = "-nostdlibinc"
         tc.variables['LIBUNWIND_ENABLE_SHARED']=self.options.shared
         tc.variables['LLVM_PATH']=llvm_source
         tc.variables['LLVM_ENABLE_LIBCXX']=True
