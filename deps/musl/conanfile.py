@@ -71,3 +71,5 @@ class MuslConan(ConanFile):
         copy(self, pattern="*.a",dst=lib_pkg, src=lib_bld)
         copy(self, pattern="*.o",dst=lib_pkg, src=lib_bld)
 
+    def package_info(self):
+        self.cpp_info.includedirs = ["include"]
