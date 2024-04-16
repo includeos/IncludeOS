@@ -27,11 +27,12 @@ class LibCxxConan(ConanFile):
         "shared":False,
         "threads":True
     }
-    exports_sources= ['CMakeLists.txt','patches/float16_gcc.patch']
+    exports_sources= ['CMakeLists.txt', 'linux/version.h', 'patches/float16_gcc.patch']
     no_copy_source=True
 
     def requirements(self):
         self.requires("musl/[>=1.1.18]")
+        self.requires("llvm_source/{}".format(self.version))
         self.requires("libunwind/{}".format(self.version))
         self.requires("libcxxabi/{}".format(self.version))
 
@@ -46,11 +47,20 @@ class LibCxxConan(ConanFile):
         shutil.move("{}-{}.src".format(project,self.version),project)
 
     def source(self):
-        self.llvm_checkout("llvm")
         self.llvm_checkout("libcxx")
 
-        # This approach doesn't seem to work anymore
-        # The conan toolchain should do the job this used to do.
+        # print("Overwriting LLVM's CMakeLists.txt with our own");
+
+        # The reason for doing this is to be able add our own include paths
+        # the recommended way seems to be to use CMake's find_package and let
+        # conan generate what's needed for those for each of the dependencies.
+        #
+        # However, it doesn't look like it works and it could be because
+        # find_package doesn't take effect without target_link_libraries, which
+        # it seems we can't use since we're not buidling a normal cmake target.
+        # 
+        # Instead, adding include paths directly with -I via CMAKE_CXX_FLAGS
+        # 
         # shutil.copy("libcxx/CMakeLists.txt","libcxx/CMakeListsOriginal.txt")
         # shutil.copy("CMakeLists.txt","libcxx/CMakeLists.txt")
 
@@ -64,16 +74,22 @@ class LibCxxConan(ConanFile):
 
     def generate(self):
         deps=CMakeDeps(self)
-        deps.generate()
+        deps.generate()        
         tc = CMakeToolchain(self)
-        llvm_source=self.source_folder+"/llvm"
+        llvm_source=self.dependencies["llvm_source"].cpp_info.srcdirs[0]
         source=self.source_folder+"/libcxx"
-        tc.variables["CMAKE_CXX_FLAGS"] = "-nostdlibinc"
+
+        musl_path = self.dependencies["musl"].package_folder
+        musl_inc = os.path.join(musl_path, self.dependencies["musl"].cpp_info.includedirs[0])
+
+        print("Musl path: " + musl_path)
+        
+        
+        tc.variables["CMAKE_CXX_FLAGS"] = "-nostdlibinc -I" + musl_inc + " -I" + self.source_folder
         tc.variables['CMAKE_CROSSCOMPILING']=True
         tc.variables['LIBCXX_HAS_MUSL_LIBC']=True
         tc.variables['_LIBCPP_HAS_MUSL_LIBC']=True
         tc.variables['LIBCXX_ENABLE_THREADS']=self.options.threads
-        #TODO consider how to have S_LIB
         tc.variables['LIBCXX_HAS_GCC_S_LIB']=False
         tc.variables['LIBCXX_ENABLE_STATIC']=True
         tc.variables['LIBCXX_ENABLE_SHARED']=self.options.shared
@@ -92,7 +108,6 @@ class LibCxxConan(ConanFile):
         tc.variables['LIBCXX_CXX_ABI_INCLUDE_PATHS'] = include_paths
         tc.variables['LIBCXX_CXX_ABI_LIBRARY_PATH'] = lib_paths
 
-        #TODO figure out how to do this with GCC ? for the one case of x86_64 building x86 code
         if (self.settings.compiler == "clang"):
             triple=self._triple_arch()+"-linux-elf"
             tc.variables["LIBCXX_TARGET_TRIPLE"] = triple
@@ -106,17 +121,25 @@ class LibCxxConan(ConanFile):
         if (self.settings.compiler == "gcc"):
             self.patch("libcxx",patch_file='files/float16_gcc.patch')
         cmake=CMake(self)
-        source=self.source_folder+"/libcxx"
+        source=self.source_folder+"/libcxx"        
         cmake.configure(build_script_folder=source)
+
+        print("Building in {}".format(self.build_folder))
+        print("Source in {}".format(self.source_folder))
+        
         cmake.build(build_tool_args=['--trace'])
 
     def package(self):
-        cmake = self._configure_cmake()
+        cmake=CMake(self)        
         cmake.install()
-        self.copy("*cxxabi*",dst="include",src="include")
+        source=self.source_folder+"/include"
+        dest = self.package_folder+"/include"
+        # TODO: figure out why this was needed👇. I don't think it has any effect.
+        copy(self, pattern="*cxxabi*",dst=dest, src=source)
+        
 
-    def package_id(self):
-        self.info.settings.os = "IncludeOS"
+    def package_id(self):        
+        self.info.settings.os = "ANY"
 
     def package_info(self):
         #this solves a lot but libcxx still needs to be included before musl
