@@ -17,7 +17,7 @@ class MuslConan(ConanFile):
     url = "https://www.musl-libc.org/"
 
     exports_sources = "patches*"
-    
+
     # def build_requirements(self):
         # self.build_requires("binutils/2.31")
 
@@ -29,14 +29,14 @@ class MuslConan(ConanFile):
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*",dst=tgt,src=tgt)
 
-        
+
     def source(self):
         print("source")
         git = Git(self)
         folder="musl"
         clone_args=["--branch", self.version]
         git.clone("git://git.musl-libc.org/musl/", args=clone_args)
-        
+
         # Replace syscall API
         patch(self, base_path="musl", patch_file="patches/musl.patch")
         patch(self, base_path="musl", patch_file="patches/endian.patch")
@@ -51,14 +51,26 @@ class MuslConan(ConanFile):
     def generate(self):
         tc = AutotoolsToolchain(self)
         tc.generate()
-        
+
     def build(self):
         print("build")
         print("Build to folder: {}".format(self.build_folder))
         triple = str(self.settings.arch)+"-elf"
+
         #TODO swap this to use self.settings.arch
         autotools = Autotools(self)
-        autotools.configure(build_script_folder="musl", args=["--enable-debug", "--disable-shared"])
+
+        # TODO: Needed with clang18 this warning is turned into an error.
+        # The origin of the issue are some of the syscalls converting address to long
+        # for example, musl/src/internal/pthread_impl.h:137:23
+        #  __syscall(SYS_futex, addr, FUTEX_WAKE, cnt);
+        #                       ^~~~
+        # which becomes
+        # extern long syscall_SYS_futex(long, ...);
+        #
+        cflags='CFLAGS=-Wno-error=int-conversion'
+        autotools.configure(build_script_folder="musl",
+                            args=["--enable-debug", "--disable-shared",cflags])
         autotools.make(args=["-j"])
         autotools.install()
 
@@ -70,6 +82,7 @@ class MuslConan(ConanFile):
         copy(self, pattern="*.h",dst="include",src="musl/include")
         copy(self, pattern="*.a",dst=lib_pkg, src=lib_bld)
         copy(self, pattern="*.o",dst=lib_pkg, src=lib_bld)
+
 
     def package_info(self):
         self.cpp_info.includedirs = ["include"]
