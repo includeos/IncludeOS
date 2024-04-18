@@ -1,6 +1,11 @@
 #!/bin/bash
 
+set -e
+
 echo "Creating all conan packages:"
+
+CONAN="$HOME/.local/bin/conan"
+CONAN_CREATE="$CONAN create -pr ../default_conan_profile ."
 
 # These must be built in order
 PLATFORM=(musl
@@ -24,7 +29,7 @@ do
 	pushd $DIR
 	echo "Creating package $DIR"
 	if [ "$dry_run" = false ]; then
-	    conan create .
+	    $CONAN_CREATE
 	fi
 	popd
     fi
@@ -41,7 +46,7 @@ do
 	pushd $DIR
 	echo "Creating package $DIR"
 	if [ "$dry_run" = false ]; then
-	    conan create .
+	    $CONAN_CREATE
 	fi
 	popd
     fi
