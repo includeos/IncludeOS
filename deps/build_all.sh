@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 echo "Creating all conan packages:"
 
 CONAN="$HOME/.local/bin/conan"
