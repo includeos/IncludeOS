@@ -1,11 +1,5 @@
 echo "Installing build tools we can't live without"
-sudo apt install -y emacs cmake python3-pip
-
-echo "Fetching llvm install script"
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-sudo ./llvm.sh 18
-
+sudo apt install -y emacs cmake python3-pip clang-18 libc++-18-dev libc++abi-18-dev
 
 echo "Installing conan"
 pip install conan

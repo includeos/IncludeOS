@@ -1,14 +1,14 @@
 # IncludeOS dependencies
-Build scripts and tools for all IncludeOS dependencies. The maintained build system is [Conan](https://conan.io/), currently supporting version `2.2.2`.
+Build scripts and tools for all IncludeOS dependencies. The maintained build system is [Conan](https://conan.io/), currently supporting version `2.2.2`. Submissions for other build scripts and build systems for the dependencies are welcome as long as they are open source and easy to test for most user with the right hardware.
 
 ## Toolchain
-The toolchain used in active development are release binaries from LLVM installed with their script at [https://apt.llvm.org/](https://apt.llvm.org/) on Ubuntu 22.04.
+The toolchain used in active development are LLVM binaries from apt, provided by apt.llvm.org, on Ubuntu 22.04.
 
 ```
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-sudo ./llvm.sh 18
+sudo apt install clang-18 libc++-18-dev libc++abi-18-dev
 ```
+
+In addition you'll need cmake, as well as python3 and pip to install conan.
 
 ## Conanfiles for IncludeOS dependencies
 The current conanfiles were ported from Conan 1.x versions in `https://github.com/includeos/conan`.
