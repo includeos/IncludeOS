@@ -43,7 +43,7 @@ class BotanConan(ConanFile):
         cmd = cmd + " --cc-abi-flags="+flags
         print("Building in {}. Comamnd: \n{}".format(self.build_folder, cmd))
         self.run(cmd,cwd="botan")
-        self.run("make -j libs",cwd="botan")
+        self.run("make -j$(nproc) libs",cwd="botan")
 
     def package(self):
         src_inc = os.path.join(self.source_folder, "botan", "build", "include", "botan")
