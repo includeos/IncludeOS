@@ -224,12 +224,15 @@ let
       done
     '';
 
+    nativeBuildInputs = [
+      cmake
+      nasm
+    ];
+
     buildInputs = [
       botan2
-      cmake
       http-parser
       microsoft_gsl
-      nasm
       openssl
       rapidjson
       s2n-tls
