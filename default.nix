@@ -141,24 +141,9 @@ let
   includeos = stdenv.mkDerivation rec {
     pname = "includeos";
 
-    # latest release
-    #version = "0.15.0";
-    #src = fetchzip {
-    #  url = "https://github.com/includeos/IncludeOS/archive/v${version}.tar.gz";
-    #  sha256 = "1dbdx589jc0ljzf4wsxbn00clfkyjc53dyn2d85xsg6198ghdz2l";
-    #};
+    version = "dev";
 
-    # latest from git
-    version = "2020-05-11";
-    src = builtins.fetchGit {
-      url = "https://github.com/includeos/IncludeOS.git";
-      ref = "refs/heads/master";
-      rev = "99b60c782161f521edd797f789c35158109d9d44"; # 2020-05-11
-    };
-
-    # local tree
-    #version = "0";
-    #src = lib.cleanSource ./IncludeOS/.;
+    src = lib.cleanSource ./.;
 
     # * Disable conan from CMake files
     # * REVISIT: Add #include <linux/limits.h>, <bits/xopen_lim.h> to fix missing IOV_MAX macro
