@@ -9,7 +9,7 @@
 
 { nixpkgs ?
   # branch nixos-20.09 @ 2021-02-20
-  builtins.fetchTarball "https://github.com/NixOS/nixpkgs/archive/38eaa62f28384bc5f6c394e2a99bd6a4913fc71f.tar.gz"
+  builtins.fetchTarball "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz"
 
 , pkgs ? import nixpkgs { config = {}; overlays = []; }
 }:
@@ -17,6 +17,7 @@
 with pkgs;
 
 let
+  stdenv = clang6Stdenv;
   uzlib = stdenv.mkDerivation rec {
     pname = "uzlib";
 
@@ -39,6 +40,11 @@ let
     # v2.1.1 has no top-level Makefile
     buildPhase = ''
       make -C src -f makefile.elf
+    '';
+
+    postPatch = ''
+      echo 'Replacing gcc with $(CC) in makefile.elf'
+      sed 's/gcc/$(CC)/g' -i ./src/makefile.elf
     '';
 
     # Upstream doesn't have an install target (not even in the latest version)
