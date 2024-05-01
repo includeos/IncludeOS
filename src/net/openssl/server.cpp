@@ -1,6 +1,7 @@
 #include <net/openssl/init.hpp>
 #include <net/openssl/tls_stream.hpp>
 #include <memdisk>
+#include <cassert>
 #define LOAD_FROM_MEMDISK
 
 namespace openssl

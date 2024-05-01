@@ -1,4 +1,5 @@
 
+#include <cassert>
 #include <net/dns/record.hpp>
 
 namespace net::dns {
