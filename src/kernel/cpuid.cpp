@@ -1,9 +1,9 @@
-
 #include <kernel/cpuid.hpp>
 #include <cstring>
 #include <cstdint>
 #include <array>
 #include <unordered_map>
+#include <stdexcept>
 
 namespace std
 {
