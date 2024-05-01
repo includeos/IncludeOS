@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <dirent.h>
 #include <sys/uio.h>
+#include <bits/xopen_lim.h>
 
 ssize_t File_FD::read(void* p, size_t n)
 {
