@@ -165,13 +165,6 @@ let
     # * Remove -march=native impurity (better tell the system what to build
     #   than to get whatever the current build machine is)
     postPatch = ''
-      echo "Adding missing #include <assert.h>"
-      grep -rnl --include="*.hpp" --include="*.cpp" "\<assert(" | while read f; do
-          if ! grep -q "#include .*assert\.h" "$f"; then
-              echo "inserting missing #include <assert.h>: $f"
-              sed -i -e "1i #include <assert.h>" "$f"
-          fi
-      done
 
       echo "Remove -march=native impurity from CMake files"
       grep -rnl march=native . | while read -r f; do
