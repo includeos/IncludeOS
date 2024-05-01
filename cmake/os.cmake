@@ -21,7 +21,6 @@ endif()
 
 set(NAME_STUB "${INCLUDEOS_PACKAGE}/src/service_name.cpp")
 
-
 set(TRIPLE "${ARCH}-pc-linux-elf")
 
 find_program(ELF_SYMS elf_syms)
