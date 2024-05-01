@@ -173,10 +173,6 @@ let
           fi
       done
 
-      echo "Disabling conan in cmake/os.cmake"
-      sed -e "s/conan_find_libraries_abs_path/#conan_find_libraries_abs_path/g" \
-          -i cmake/os.cmake
-
       echo "Remove -march=native impurity from CMake files"
       grep -rnl march=native . | while read -r f; do
           sed -e "s/-march=native//g" -i "$f"
