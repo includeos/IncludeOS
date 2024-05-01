@@ -165,22 +165,6 @@ let
     # * Remove -march=native impurity (better tell the system what to build
     #   than to get whatever the current build machine is)
     postPatch = ''
-
-      echo "Adding #include <linux/limits.h>"
-      patch -p1 <<EOF
-      diff --git a/src/musl/fstatat.cpp b/src/musl/fstatat.cpp
-      index 24434bcde..09fb591e3 100644
-      --- a/src/musl/fstatat.cpp
-      +++ b/src/musl/fstatat.cpp
-      @@ -1,5 +1,6 @@
-       #include "common.hpp"
-       #include <sys/stat.h>
-      +#include <linux/limits.h>
-
-       #include <posix/fd_map.hpp>
-
-      EOF
-
       echo "Adding #include <bits/xopen_lim.h>"
       patch -p1 <<EOF
       diff --git a/src/posix/file_fd.cpp b/src/posix/file_fd.cpp
