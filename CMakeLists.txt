@@ -68,4 +68,8 @@ install(FILES cmake/linux.service.cmake DESTINATION cmake)
 install(FILES cmake/os.cmake DESTINATION cmake)
 install(FILES cmake/includeos.cmake DESTINATION cmake)
 
+# Install IncludeOS user code dependencies
+install(FILES src/service_name.cpp DESTINATION src)
+
+# Install IncludeOS headers
 install(DIRECTORY api/ DESTINATION include/os)
