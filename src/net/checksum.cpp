@@ -101,7 +101,7 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
 
      oldsum = _mm_shuffle_epi8(_mm_cvtsi32_si128(tsum), _mm_loadu_si128((__m128i *)&swap32[0]));
      suma = _mm_add_epi32(suma,oldsum); //adds the old csum to this
-     //fix endianess
+     //fix endianness
 
      //extract the 32 bit sum from vector
      uint32_t vsum;
