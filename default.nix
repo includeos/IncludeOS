@@ -165,28 +165,6 @@ let
     # * Remove -march=native impurity (better tell the system what to build
     #   than to get whatever the current build machine is)
     postPatch = ''
-      echo "Disabling conan from CMake files"
-      patch -p1 <<EOF
-      diff --git a/CMakeLists.txt b/CMakeLists.txt
-      index 82aff91a3..4764de894 100644
-      --- a/CMakeLists.txt
-      +++ b/CMakeLists.txt
-      @@ -7,6 +7,7 @@ project (includeos C CXX)
-
-       option(PROFILE "Compile with startup profilers" OFF)
-
-      +if(FALSE)  # disable conan
-       #Are we executing cmake from conan or locally
-       #if locally then pull the deps from conanfile.py
-       #if buiding from conan expect the conanbuildinfo.cmake to already be present
-      @@ -54,6 +55,7 @@ else() # in user space
-           ''${CONANPROFILE}
-         )
-       endif()
-      +endif()
-
-       include(cmake/includeos.cmake)
-      EOF
 
       echo "Adding #include <linux/limits.h>"
       patch -p1 <<EOF
