@@ -26,7 +26,7 @@ void __default_quick_exit() {
 // According to the standard this should probably be a list or vector.
 static void (*__quick_exit_func)() = __default_quick_exit;
 
-int at_quick_exit (void (*func)())
+int at_quick_exit (void (*func)()) noexcept
 {
   // Append to the ist
   __quick_exit_func = func;

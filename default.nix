@@ -8,7 +8,6 @@
 # Author: Bjørn Forsman <bjorn.forsman@gmail.com>
 
 { nixpkgs ?
-  # branch nixos-20.09 @ 2021-02-20
   builtins.fetchTarball "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz"
 
 , pkgs ? import nixpkgs { config = {}; overlays = []; }
@@ -17,7 +16,15 @@
 with pkgs;
 
 let
-  stdenv = clang6Stdenv;
+  stdenv = clang7Stdenv;
+
+  # Get older dependencies from here
+  # TODO: Looks like it's only GSL 4.0.0 we're choking on so we can probably just update that.
+  nix_20_09 = import (builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/38eaa62f28384bc5f6c394e2a99bd6a4913fc71f.tar.gz";
+  }) {};
+
+
   uzlib = stdenv.mkDerivation rec {
     pname = "uzlib";
 
@@ -238,7 +245,7 @@ let
     buildInputs = [
       botan2
       http-parser
-      microsoft_gsl
+      nix_20_09.microsoft_gsl
       openssl
       rapidjson
       s2n-tls
