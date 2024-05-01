@@ -1,4 +1,5 @@
 
+#include <cassert>
 #include <net/tcp/read_buffer.hpp>
 #include <util/bitops.hpp>
 

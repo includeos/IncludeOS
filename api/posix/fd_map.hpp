@@ -8,6 +8,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <cassert>
 #include <common>
 
 class FD_map_error : public std::runtime_error {

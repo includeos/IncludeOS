@@ -1,4 +1,5 @@
 
+#include <cassert>
 #include <net/tcp/write_queue.hpp>
 
 using namespace net::tcp;

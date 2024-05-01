@@ -158,84 +158,8 @@ let
 
     src = lib.cleanSource ./.;
 
-    # * Disable conan from CMake files
-    # * REVISIT: Add #include <linux/limits.h>, <bits/xopen_lim.h> to fix missing IOV_MAX macro
-    # * Add missing #include <assert.h>
-    # * Disable conan in cmake/os.cmake
-    # * Remove -march=native impurity (better tell the system what to build
-    #   than to get whatever the current build machine is)
-    postPatch = ''
-      echo "Disabling conan from CMake files"
-      patch -p1 <<EOF
-      diff --git a/CMakeLists.txt b/CMakeLists.txt
-      index 82aff91a3..4764de894 100644
-      --- a/CMakeLists.txt
-      +++ b/CMakeLists.txt
-      @@ -7,6 +7,7 @@ project (includeos C CXX)
-
-       option(PROFILE "Compile with startup profilers" OFF)
-
-      +if(FALSE)  # disable conan
-       #Are we executing cmake from conan or locally
-       #if locally then pull the deps from conanfile.py
-       #if buiding from conan expect the conanbuildinfo.cmake to already be present
-      @@ -54,6 +55,7 @@ else() # in user space
-           ''${CONANPROFILE}
-         )
-       endif()
-      +endif()
-
-       include(cmake/includeos.cmake)
-      EOF
-
-      echo "Adding #include <linux/limits.h>"
-      patch -p1 <<EOF
-      diff --git a/src/musl/fstatat.cpp b/src/musl/fstatat.cpp
-      index 24434bcde..09fb591e3 100644
-      --- a/src/musl/fstatat.cpp
-      +++ b/src/musl/fstatat.cpp
-      @@ -1,5 +1,6 @@
-       #include "common.hpp"
-       #include <sys/stat.h>
-      +#include <linux/limits.h>
-
-       #include <posix/fd_map.hpp>
-
-      EOF
-
-      echo "Adding #include <bits/xopen_lim.h>"
-      patch -p1 <<EOF
-      diff --git a/src/posix/file_fd.cpp b/src/posix/file_fd.cpp
-      index eb00dc4ae..f44d56c96 100644
-      --- a/src/posix/file_fd.cpp
-      +++ b/src/posix/file_fd.cpp
-      @@ -3,6 +3,7 @@
-       #include <errno.h>
-       #include <dirent.h>
-       #include <sys/uio.h>
-      +#include <bits/xopen_lim.h>
-
-       ssize_t File_FD::read(void* p, size_t n)
-       {
-      EOF
-
-      echo "Adding missing #include <assert.h>"
-      grep -rnl --include="*.hpp" --include="*.cpp" "\<assert(" | while read f; do
-          if ! grep -q "#include .*assert\.h" "$f"; then
-              echo "inserting missing #include <assert.h>: $f"
-              sed -i -e "1i #include <assert.h>" "$f"
-          fi
-      done
-
-      echo "Disabling conan in cmake/os.cmake"
-      sed -e "s/conan_find_libraries_abs_path/#conan_find_libraries_abs_path/g" \
-          -i cmake/os.cmake
-
-      echo "Remove -march=native impurity from CMake files"
-      grep -rnl march=native . | while read -r f; do
-          sed -e "s/-march=native//g" -i "$f"
-      done
-    '';
+    # If you need to patch, this is the place
+    postPatch = '''';
 
     nativeBuildInputs = [
       cmake
