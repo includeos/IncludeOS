@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include <sys/stat.h>
-
+#include <linux/limits.h>
 #include <posix/fd_map.hpp>
 
 long sys_getcwd(char *buf, size_t size);
