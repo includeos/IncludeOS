@@ -165,22 +165,6 @@ let
     # * Remove -march=native impurity (better tell the system what to build
     #   than to get whatever the current build machine is)
     postPatch = ''
-      echo "Adding #include <bits/xopen_lim.h>"
-      patch -p1 <<EOF
-      diff --git a/src/posix/file_fd.cpp b/src/posix/file_fd.cpp
-      index eb00dc4ae..f44d56c96 100644
-      --- a/src/posix/file_fd.cpp
-      +++ b/src/posix/file_fd.cpp
-      @@ -3,6 +3,7 @@
-       #include <errno.h>
-       #include <dirent.h>
-       #include <sys/uio.h>
-      +#include <bits/xopen_lim.h>
-
-       ssize_t File_FD::read(void* p, size_t n)
-       {
-      EOF
-
       echo "Adding missing #include <assert.h>"
       grep -rnl --include="*.hpp" --include="*.cpp" "\<assert(" | while read f; do
           if ! grep -q "#include .*assert\.h" "$f"; then
