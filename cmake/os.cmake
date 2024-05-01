@@ -18,27 +18,9 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
-# standard conan installation, deps will be defined in conanfile.py
-# and not necessary to call conan again, conan is already running
-if (CONAN_EXPORTED)
-  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  conan_basic_setup()
-endif()
 
-if (NOT ARCH)
-  if (${CONAN_SETTINGS_ARCH} STREQUAL "x86")
-    set(ARCH i686)
-  elseif(${CONAN_SETTINGS_ARCH} STREQUAL "armv8")
-    set(ARCH aarch64)
-  else()
-    set(ARCH ${CONAN_SETTINGS_ARCH})
-  endif()
-endif()
+set(NAME_STUB "${INCLUDEOS_PACKAGE}/src/service_name.cpp")
 
-
-set(NAME_STUB "${CONAN_INCLUDEOS_ROOT}/src/service_name.cpp")
-set(CRTN ${CONAN_LIB_DIRS_MUSL}/crtn.o)
-set(CRTI ${CONAN_LIB_DIRS_MUSL}/crti.o)
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 
@@ -52,10 +34,10 @@ if (DISKBUILDER-NOTFOUND)
   message(FATAL_ERROR "diskbuilder not found")
 endif()
 
-set(LINK_SCRIPT ${CONAN_RES_DIRS_INCLUDEOS}/linker.ld)
+set(LINK_SCRIPT ${INCLUDEOS_PACKAGE}/linker.ld)
 #includeos package can provide this!
 include_directories(
-  ${CONAN_RES_DIRS_INCLUDEOS}/include/os
+  ${INCLUDEOS_PACKAGE}/include/os
 )
 
 
@@ -117,6 +99,9 @@ else()
 endif()
 
 # TODO: find a more proper way to get the linker.ld script ?
+set(LD_COMMON "-nostdlib --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE}")
+set(LD_COMMON "${LD_COMMON} --gc-sections $ENV{NIX_LDFLAGS}") # TODO: DON'T DO NIX LIKE THIS
+
 if("${ARCH}" STREQUAL "aarch64")
   set(LDFLAGS "-nostdlib -m${ELF}elf --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT} ${PROD_USE} ${PRE_BSS_SIZE}")
 else()
@@ -139,12 +124,35 @@ endfunction()
 function(os_add_executable TARGET NAME)
   set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
   add_executable(${ELF_TARGET} ${ARGN} ${NAME_STUB})
-  set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS SERVICE="${TARGET}" SERVICE_NAME="${NAME}")
+
+  set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS
+            SERVICE="${TARGET}" SERVICE_NAME="${NAME}"
+            _LIVEUPDATE_MEMSIZE_=${LIVEUPDATE_MB})
+
+  target_compile_options(${ELF_TARGET} PRIVATE -Wall -Wextra -fstack-protector)
+  target_compile_options(${ELF_TARGET} PRIVATE -ffunction-sections -fdata-sections)
+  if (DISABLE_SYSTEM_PATHS)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      message(STATUS "Adding clang compile options, -nostdlib, nostdlibinc")
+      target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdlibinc>)
+    else()
+      message(STATUS "Adding compile options, -nostdlib, nostdinc")
+      target_compile_options(${ELF_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-nostdlib -nostdinc>)
+    endif()
+  endif()
+
+  if (PROFILE)
+	  target_compile_definitions(${ELF_TARGET} PRIVATE ENABLE_PROFILERS=1)
+  endif()
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
-  conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
 
+  # TODO: Find out which libraries we need
+  #conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
+
+  message(STATUS ">>>>> 👉 Libraries: ${LIBRARIES}")
   foreach(_LIB ${LIBRARIES})
+    message(STATUS ">>>>> 👉 Adding library ${_LIB}")
     get_filename_component(_PATH ${_LIB} DIRECTORY)
     if (_PATH MATCHES ".*drivers" OR _PATH MATCHES ".*plugins" OR _PATH MATCHES ".*stdout")
       message(STATUS "Whole Archive " ${_LIB})
@@ -227,6 +235,7 @@ function(os_link_libraries TARGET)
 endfunction()
 
 function(os_include_directories TARGET)
+  message(STATUS "Including directories ${TARGET}${ELF_POSTFIX} ${ARGN}")
   target_include_directories(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
 
@@ -251,18 +260,18 @@ endfunction()
 function (os_add_drivers TARGET)
   foreach(DRIVER ${ARGN})
     #if in conan expect it to be in order ?
-    os_add_library_from_path(${TARGET} ${DRIVER} "${CONAN_RES_DIRS_INCLUDEOS}/drivers")
+    os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PACKAGE}/drivers")
   endforeach()
 endfunction()
 
 function(os_add_plugins TARGET)
   foreach(PLUGIN ${ARGN})
-    os_add_library_from_path(${TARGET} ${PLUGIN} "${CONAN_RES_DIRS_INCLUDEOS}/plugins")
+    os_add_library_from_path(${TARGET} ${PLUGIN} "${INCLUDEOS_PACKAGE}/plugins")
   endforeach()
 endfunction()
 
 function (os_add_stdout TARGET DRIVER)
-   os_add_library_from_path(${TARGET} ${DRIVER} "${CONAN_RES_DIRS_INCLUDEOS}/drivers/stdout")
+   os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PACKAGE}/drivers/stdout")
 endfunction()
 
 
@@ -289,7 +298,7 @@ function(os_add_memdisk TARGET DISK)
     REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND ${PYTHON3_EXECUTABLE} ${CONAN_RES_DIRS_INCLUDEOS}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND ${PYTHON3_EXECUTABLE} ${INCLUDEOS_PACKAGE}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK}
   )
