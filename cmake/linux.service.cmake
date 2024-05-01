@@ -3,7 +3,7 @@
 ####################################
 
 #set(CMAKE_CXX_STANDARD 17)
-set(COMMON "-g -O2 -march=native -Wall -Wextra")
+set(COMMON "-g -O2  -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON}")
 

@@ -158,19 +158,8 @@ let
 
     src = lib.cleanSource ./.;
 
-    # * Disable conan from CMake files
-    # * REVISIT: Add #include <linux/limits.h>, <bits/xopen_lim.h> to fix missing IOV_MAX macro
-    # * Add missing #include <assert.h>
-    # * Disable conan in cmake/os.cmake
-    # * Remove -march=native impurity (better tell the system what to build
-    #   than to get whatever the current build machine is)
-    postPatch = ''
-
-      echo "Remove -march=native impurity from CMake files"
-      grep -rnl march=native . | while read -r f; do
-          sed -e "s/-march=native//g" -i "$f"
-      done
-    '';
+    # If you need to patch, this is the place
+    postPatch = '''';
 
     nativeBuildInputs = [
       cmake
