@@ -8,7 +8,7 @@
 with pkgs;
 let
   stdenv = clang7Stdenv;
-  musl-includeos=stdenv.mkDerivation rec {
+  musl-includeos = stdenv.mkDerivation rec {
     pname = "musl-includeos";
     version = "1.1.18";
 
@@ -32,20 +32,19 @@ let
 
       rm $sourceRoot/arch/x86_64/syscall_arch.h
       rm $sourceRoot/arch/i386/syscall_arch.h
-      '';
+    '';
 
    configurePhase = ''
       echo "Configuring with musl's configure script"
       ./configure --prefix=$out --disable-shared --enable-debug
-      '';
+    '';
 
     CFLAGS = "-Wno-error=int-conversion -nostdinc";
 
     meta = {
-      description = "musl - an implementation of the standard library for Linux-based systems";
+      description = "musl - Linux based libc, built with IncludeOS linux-like syscalls";
       homepage = "https://www.musl-libc.org/";
       license = lib.licenses.mit;
-      maintainers = with lib.maintainers; [ includeos ];
     };
   };
 in
