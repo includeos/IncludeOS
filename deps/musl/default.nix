@@ -15,7 +15,9 @@ stdenv.mkDerivation rec {
     rev = "eb03bde2f24582874cb72b56c7811bf51da0c817";
   };
 
-  nativeBuildInputs = [ pkgs.git pkgs.clang pkgs.tree];
+  enableParallelBuilding = true;
+
+  #nativeBuildInputs = [ pkgs.git pkgs.clang pkgs.tree];
 
   patches = [
     ./patches/musl.patch
@@ -34,7 +36,7 @@ stdenv.mkDerivation rec {
 
  configurePhase = ''
     echo "Configuring with musl's configure script"
-    ./configure --prefix=$out --disable-shared --enable-debug
+    ./configure --prefix=$out --disable-shared --enable-debug CROSS_COMPILE=x86_64-unknown-linux-musl-
   '';
 
   CFLAGS = "-Wno-error=int-conversion -nostdinc";
