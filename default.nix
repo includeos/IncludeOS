@@ -11,31 +11,36 @@
   builtins.fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz";
     sha256 = "1ndiv385w1qyb3b18vw13991fzb9wg4cl21wglk89grsfsnra41k";
-  }
-, pkgs ? (import nixpkgs { }).pkgs # should we add pkgsStatic here? Fails on cmake
+  },
+  pkgs ? (import nixpkgs { }).pkgsStatic, # should we add pkgsStatic here? Fails on cmake
+  stdenv ? pkgs.llvmPackages_7.stdenv
 }:
 
-with pkgs;
+assert (stdenv.buildPlatform.isLinux == false) ->
+  throw "Currently only Linux builds are supported";
+assert (stdenv.hostPlatform.isMusl == false) ->
+  throw "Stdenv should be based on Musl";
 
 let
-  stdenv = makeStaticLibraries pkgs.llvmPackages_7.libcxxStdenv; # could also use makeStatic?
 
-  musl-includeos = callPackage ./deps/musl/default.nix { inherit nixpkgs pkgs stdenv; };
-  uzlib = callPackage ./deps/uzlib/default.nix { inherit stdenv pkgs; };
-  botan2 = callPackage ./deps/botan/default.nix { inherit pkgs; };
-  microsoft_gsl = callPackage ./deps/GSL/default.nix { inherit stdenv; };
-  s2n-tls = callPackage ./deps/s2n/default.nix { inherit stdenv pkgs; };
+  musl-includeos = pkgs.callPackage ./deps/musl/default.nix { inherit nixpkgs stdenv pkgs; };
+  uzlib = pkgs.callPackage ./deps/uzlib/default.nix { inherit stdenv pkgs; };
+  botan2 = pkgs.callPackage ./deps/botan/default.nix { inherit pkgs; };
+  microsoft_gsl = pkgs.callPackage ./deps/GSL/default.nix { inherit stdenv; };
+  s2n-tls = pkgs.callPackage ./deps/s2n/default.nix { inherit stdenv pkgs; };
+  http-parser = pkgs.callPackage ./deps/http-parser/default.nix { inherit stdenv; };
 
-  # Add needed $out/include/http-parser directory to match IncludeOS' use of
-  # "#include <http-parser/http_parser.h>".
-  # TODO: Upstream doesn't use that subdir though, so better fix IncludeOS
-  # sources.
-  #http-parser = pkgs.pkgsStatic.http-parser.overrideAttrs (oldAttrs: {
-    #postInstall = (oldAttrs.postInstall or "") + ''
-      #mkdir "$out/include/http-parser"
-      #ln -sr "$out/include/http_parser.h" "$out/include/http-parser"
-    #'';
-  #});
+  # pkgs.cmake fails on unknown argument --disable-shared. Override configurePhase to not use the flag.
+  cmake = pkgs.cmake.overrideAttrs(oldAttrs: {
+    inherit stdenv;
+    useSharedLibraries=false;
+    isMinimalBuild=true;
+    # Override configure phase, otherwise it will fail on unsupported flags,.
+    # Add some manual flags taken from cmake.nix.
+    configurePhase = ''
+      ./configure --prefix=$out --parallel=''${NIX_BUILD_CORES:-1} CC=$CC_FOR_BUILD CXX=$CXX_FOR_BUILD CXXFLAGS=-Wno-elaborated-enum-base --no-system-libs
+    '';
+  });
 
   includeos = stdenv.mkDerivation rec {
     pname = "includeos";
@@ -48,18 +53,18 @@ let
     postPatch = '''';
 
     nativeBuildInputs = [
-      pkgs.cmake
+      cmake
       pkgs.nasm
     ];
 
     buildInputs = [
       musl-includeos
       botan2
-      #http-parser
+      http-parser
       microsoft_gsl
-     # openssl
-     # rapidjson
-      s2n-tls
+      pkgs.openssl
+      pkgs.rapidjson
+      #s2n-tls
       uzlib
     ];
 
@@ -67,9 +72,9 @@ let
     # $ nix-build -A NAME
     passthru = {
       inherit uzlib;
-      #inherit http-parser;
+      inherit http-parser;
       inherit botan2;
-      inherit s2n-tls;
+      #inherit s2n-tls;
       inherit musl-includeos;
     };
 
