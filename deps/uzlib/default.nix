@@ -30,6 +30,8 @@ stdenv.mkDerivation rec {
   postPatch = ''
     echo 'Replacing gcc with $(CC) in makefile.elf'
     sed 's/gcc/$(CC)/g' -i ./src/makefile.elf
+    sed 's/ar /$(AR) /g' -i ./src/makefile.elf
+    sed 's/ranlib /$(RANLIB) /g' -i ./src/makefile.elf
   '';
 
   # Upstream doesn't have an install target (not even in the latest version)
