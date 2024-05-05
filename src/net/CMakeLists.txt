@@ -6,7 +6,8 @@ if(${ARCH} STREQUAL "x86_64")
     openssl/tls_stream.cpp
     https/openssl_server.cpp
     http/client.cpp
-    https/s2n_server.cpp
+    # TODO: Fix s2n build issues and move to their own repo.
+    # https/s2n_server.cpp
   )
   #TODO get from conan
   set(OPENSSL_LIBS
