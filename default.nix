@@ -7,22 +7,7 @@
 #
 # Authors: Bjørn Forsman <bjorn.forsman@gmail.com>
 
-{ nixpkgs ? <nixpkgs>, # Builds cleanly with unstable, May 9. 2024
-
-  # TODO: We want to pin nixpkgs, but:
-  #
-  # builtins.fetchTarball {
-  #
-  # This👇 "is not able to compile a simple test program" (clang via cmake)
-  #  url = "https://github.com/NixOS/nixpkgs/archive/refs/tags/24.05-pre.tar.gz";
-  #  sha256 = "1cfbkahcfj1hgh4v5nfqwivg69zks8d72n11m5513i0phkqwqcgh";
-
-  # This👇 "is not able to compile a simple test program" (clang via cmake)
-  # url = "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz";
-  # sha256 = "1ndiv385w1qyb3b18vw13991fzb9wg4cl21wglk89grsfsnra41k";
-  #
-  #},
-
+{ nixpkgs ? ./pinned.nix, # Builds cleanly May 9. 2024
   pkgs ? (import nixpkgs { }).pkgsStatic,
 
   # This env has musl and LLVM's libc++ as static libraries.
@@ -107,6 +92,7 @@ let
       inherit botan2;
       #inherit s2n-tls;
       inherit musl-includeos;
+      inherit cmake;
     };
 
     meta = {
