@@ -5,6 +5,15 @@ endif()
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+if (NOT INCLUDEOS_PACKAGE)
+  message(FATAL_ERROR "INCLUDEOS_PACKAGE is not set")
+endif()
+
+if (NOT ARCH)
+  message(FATAL_ERROR "ARCH is not set")
+endif()
+
 find_program(PYTHON3_EXECUTABLE python3)
 if (PYTHON3_EXECUTABLE-NOTFOUND)
   message(FATAL_ERROR "python3 not found")
@@ -23,9 +32,12 @@ set(NAME_STUB "${INCLUDEOS_PACKAGE}/src/service_name.cpp")
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 
-find_program(ELF_SYMS elf_syms)
-if (ELF_SYMS-NOTFOUND)
-  message(FATAL_ERROR "elf_syms not found")
+
+if (ELF_SYMBOLS)
+  find_program(ELF_SYMS elf_syms)
+  if (ELF_SYMS-NOTFOUND)
+    message(FATAL_ERROR "elf_syms not found")
+  endif()
 endif()
 
 find_program(DISKBUILDER diskbuilder)
@@ -170,15 +182,28 @@ function(os_add_executable TARGET NAME)
   FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/binary.txt
     "${TARGET}"
   )
-  add_custom_target(
-    ${TARGET} ALL
-    COMMENT "elf.syms"
-    COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
-    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-    COMMAND ${STRIP_LV}
-    COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
-    DEPENDS ${ELF_TARGET}
-  )
+  if (ELF_SYMBOLS)
+      add_custom_target(
+        ${TARGET} ALL
+        COMMENT "elf.syms"
+        COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
+        COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
+        DEPENDS ${ELF_TARGET}
+      )
+  else()
+    # TODO: Re-enable stripping.
+    # They won't be used inside IncludeOS as-is, but are likely in the way of
+    # something else, like .bss.
+    # Restoring ELF_SYMBOLS should be done first though.
+    #add_custom_target(
+    #    ${TARGET} ALL
+    #    COMMAND cp bin/${ELF_TARGET} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+    #    COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+    #    DEPENDS ${ELF_TARGET}
+    #  )
+  endif()
 
   if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
     message(STATUS "using set config file ${JSON_CONFIG_FILE_${ELF_TARGET}}")
