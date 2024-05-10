@@ -5,15 +5,13 @@
 #
 # $ nix-build ./path/to/this/file.nix
 #
-# Author: Bjørn Forsman <bjorn.forsman@gmail.com>
+# Authors: Bjørn Forsman <bjorn.forsman@gmail.com>
 
-{ nixpkgs ?
-  builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz";
-    sha256 = "1ndiv385w1qyb3b18vw13991fzb9wg4cl21wglk89grsfsnra41k";
-  },
-  pkgs ? (import nixpkgs { }).pkgsStatic, # should we add pkgsStatic here? Fails on cmake
-  stdenv ? pkgs.llvmPackages_7.stdenv
+{ nixpkgs ? ./pinned.nix, # Builds cleanly May 9. 2024
+  pkgs ? (import nixpkgs { }).pkgsStatic,
+
+  # This env has musl and LLVM's libc++ as static libraries.
+  stdenv ? pkgs.llvmPackages_16.libcxxStdenv
 }:
 
 assert (stdenv.buildPlatform.isLinux == false) ->
@@ -22,7 +20,6 @@ assert (stdenv.hostPlatform.isMusl == false) ->
   throw "Stdenv should be based on Musl";
 
 let
-
   musl-includeos = pkgs.callPackage ./deps/musl/default.nix { inherit nixpkgs stdenv pkgs; };
   uzlib = pkgs.callPackage ./deps/uzlib/default.nix { inherit stdenv pkgs; };
   botan2 = pkgs.callPackage ./deps/botan/default.nix { inherit pkgs; };
@@ -58,13 +55,32 @@ let
     ];
 
     buildInputs = [
-      musl-includeos
+
+      # TODO:
+      # including musl here makes the compiler pick up musl's libc headers
+      # before libc++'s libc headers, which doesn't work. See e.g. <cstdint>
+      # line 149;
+      # error <cstdint> tried including <stdint.h> but didn't find libc++'s <stdint.h> header.
+      # #ifndef _LIBCPP_STDINT_H
+      #   error <cstdint> tried including <stdint.h> but didn't find libc++'s <stdint.h> header. \
+      #   This usually means that your header search paths are not configured properly. \
+      #   The header search paths should contain the C++ Standard Library headers before \
+      #   any C Standard Library, and you are probably using compiler flags that make that \
+      #   not be the case.
+      # #endif
+      #
+      # With this commented out IncludeOS builds with Nix libc++, which is great,
+      # but might bite us later because it then uses a libc we didn't patch.
+      # Best case we case we can adapt our own musl to be identical, use nix static
+      # musl for compilation, and includeos-musl only for linking.
+      #
+      # musl-includeos  👈 this has to come in after libc++ headers.
       botan2
       http-parser
       microsoft_gsl
       pkgs.openssl
       pkgs.rapidjson
-      #s2n-tls
+      #s2n-tls          👈 This is postponed until we can fix the s2n build.
       uzlib
     ];
 
@@ -76,6 +92,7 @@ let
       inherit botan2;
       #inherit s2n-tls;
       inherit musl-includeos;
+      inherit cmake;
     };
 
     meta = {
