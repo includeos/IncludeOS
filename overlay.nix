@@ -10,17 +10,6 @@ final: prev: {
     microsoft_gsl = self.callPackage ./deps/GSL/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
-    # prev.pkgsStatic.cmake fails on unknown argument --disable-shared. Override configurePhase to not use the flag.
-    cmake = prev.pkgsStatic.cmake.overrideAttrs (oldAttrs: {
-      inherit (self) stdenv;
-      useSharedLibraries = false;
-      isMinimalBuild = true;
-      # Override configure phase, otherwise it will fail on unsupported flags,.
-      # Add some manual flags taken from cmake.nix.
-      configurePhase = ''
-        ./configure --prefix=$out --parallel=''${NIX_BUILD_CORES:-1} CC=$CC_FOR_BUILD CXX=$CXX_FOR_BUILD CXXFLAGS=-Wno-elaborated-enum-base --no-system-libs
-      '';
-    });
 
     # IncludeOS
     includeos = self.stdenv.mkDerivation rec {
@@ -34,8 +23,8 @@ final: prev: {
       postPatch = '''';
 
       nativeBuildInputs = [
-        self.cmake
-        prev.pkgsStatic.nasm
+        prev.cmake
+        prev.nasm
       ];
 
       buildInputs = [
