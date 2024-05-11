@@ -8,10 +8,10 @@
 # Authors: Bjørn Forsman <bjorn.forsman@gmail.com>
 
 { nixpkgs ? ./pinned.nix, # Builds cleanly May 9. 2024
-  pkgs ? (import nixpkgs { }).pkgsStatic,
+  pkgs ? (import nixpkgs { }),
 
   # This env has musl and LLVM's libc++ as static libraries.
-  stdenv ? pkgs.llvmPackages_16.libcxxStdenv
+  stdenv ? pkgs.pkgsStatic.llvmPackages_16.libcxxStdenv
 }:
 
 assert (stdenv.buildPlatform.isLinux == false) ->
@@ -20,24 +20,19 @@ assert (stdenv.hostPlatform.isMusl == false) ->
   throw "Stdenv should be based on Musl";
 
 let
-  musl-includeos = pkgs.callPackage ./deps/musl/default.nix { inherit nixpkgs stdenv pkgs; };
-  uzlib = pkgs.callPackage ./deps/uzlib/default.nix { inherit stdenv pkgs; };
-  botan2 = pkgs.callPackage ./deps/botan/default.nix { inherit pkgs; };
-  microsoft_gsl = pkgs.callPackage ./deps/GSL/default.nix { inherit stdenv; };
-  s2n-tls = pkgs.callPackage ./deps/s2n/default.nix { inherit stdenv pkgs; };
-  http-parser = pkgs.callPackage ./deps/http-parser/default.nix { inherit stdenv; };
 
-  # pkgs.cmake fails on unknown argument --disable-shared. Override configurePhase to not use the flag.
-  cmake = pkgs.cmake.overrideAttrs(oldAttrs: {
-    inherit stdenv;
-    useSharedLibraries=false;
-    isMinimalBuild=true;
-    # Override configure phase, otherwise it will fail on unsupported flags,.
-    # Add some manual flags taken from cmake.nix.
-    configurePhase = ''
-      ./configure --prefix=$out --parallel=''${NIX_BUILD_CORES:-1} CC=$CC_FOR_BUILD CXX=$CXX_FOR_BUILD CXXFLAGS=-Wno-elaborated-enum-base --no-system-libs
-    '';
-  });
+  # Static libraries, for linking into IncludeOS bootables.
+  # Anything that goes into IncludeOS needs to be staically linkable.
+  static = pkgs.pkgsStatic;
+  musl-includeos = static.callPackage ./deps/musl/default.nix { inherit nixpkgs stdenv pkgs; };
+  uzlib = static.callPackage ./deps/uzlib/default.nix { inherit stdenv pkgs; };
+  botan2 = static.callPackage ./deps/botan/default.nix { inherit pkgs; };
+  microsoft_gsl = static.callPackage ./deps/GSL/default.nix { inherit stdenv; };
+  s2n-tls = static.callPackage ./deps/s2n/default.nix { inherit stdenv pkgs; };
+  http-parser = static.callPackage ./deps/http-parser/default.nix { inherit stdenv; };
+  
+  # We can build the tools with any vanilla C++ environment.
+  tools = pkgs.callPackage ./tools/default.nix {};
 
   includeos = stdenv.mkDerivation rec {
     pname = "includeos";
@@ -50,7 +45,7 @@ let
     postPatch = '''';
 
     nativeBuildInputs = [
-      cmake
+      pkgs.cmake
       pkgs.nasm
     ];
 
@@ -92,7 +87,7 @@ let
       inherit botan2;
       #inherit s2n-tls;
       inherit musl-includeos;
-      inherit cmake;
+      inherit tools;
     };
 
     meta = {
