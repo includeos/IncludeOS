@@ -8,7 +8,7 @@
 # Authors: Bjørn Forsman <bjorn.forsman@gmail.com>
 
 { nixpkgs ? ./pinned.nix, # Builds cleanly May 9. 2024
-  pkgs ? (import nixpkgs { }).pkgsStatic,
+  pkgs ? (import nixpkgs { config = {}; overlays = []; }).pkgsStatic,
 
   # This env has musl and LLVM's libc++ as static libraries.
   stdenv ? pkgs.llvmPackages_16.libcxxStdenv
