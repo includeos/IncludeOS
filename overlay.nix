@@ -1,7 +1,7 @@
 final: prev: {
-  pkgsIncludeOS = prev.lib.makeScope prev.newScope (self: {
+  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
     # self.callPackage will use this stdenv.
-    stdenv = prev.llvmPackages_16.libcxxStdenv;
+    stdenv = prev.pkgsStatic.llvmPackages_16.libcxxStdenv;
 
     # Deps
     musl-includeos = self.callPackage ./deps/musl/default.nix { };
@@ -10,8 +10,8 @@ final: prev: {
     microsoft_gsl = self.callPackage ./deps/GSL/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
-    # prev.cmake fails on unknown argument --disable-shared. Override configurePhase to not use the flag.
-    cmake = prev.cmake.overrideAttrs (oldAttrs: {
+    # prev.pkgsStatic.cmake fails on unknown argument --disable-shared. Override configurePhase to not use the flag.
+    cmake = prev.pkgsStatic.cmake.overrideAttrs (oldAttrs: {
       inherit (self) stdenv;
       useSharedLibraries = false;
       isMinimalBuild = true;
@@ -28,14 +28,14 @@ final: prev: {
 
       version = "dev";
 
-      src = prev.lib.cleanSource ./.;
+      src = prev.pkgsStatic.lib.cleanSource ./.;
 
       # If you need to patch, this is the place
       postPatch = '''';
 
       nativeBuildInputs = [
         self.cmake
-        prev.nasm
+        prev.pkgsStatic.nasm
       ];
 
       buildInputs = [
@@ -62,8 +62,8 @@ final: prev: {
         self.botan2
         self.http-parser
         self.microsoft_gsl
-        prev.openssl
-        prev.rapidjson
+        prev.pkgsStatic.openssl
+        prev.pkgsStatic.rapidjson
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
       ];
@@ -82,7 +82,7 @@ final: prev: {
       meta = {
         description = "Run your application with zero overhead";
         homepage = "https://www.includeos.org/";
-        license = prev.lib.licenses.asl20;
+        license = prev.pkgsStatic.lib.licenses.asl20;
       };
     };
   });

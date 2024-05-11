@@ -15,7 +15,7 @@
 }:
 
 let
-  inherit (pkgs.pkgsStatic) pkgsIncludeOS;
+  inherit (pkgs) pkgsIncludeOS;
 in
   assert (pkgsIncludeOS.stdenv.buildPlatform.isLinux == false) ->
     throw "Currently only Linux builds are supported";
