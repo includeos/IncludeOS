@@ -6,19 +6,13 @@ set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-# Helper to assert that env vars are set and convert them to local vars.
-function(expects VAR_NAME)
-  set(ENV_VAR $ENV{${VAR_NAME}})
-  if(NOT ENV_VAR)
-    message(FATAL_ERROR "Environment variable ${VAR_NAME} is not set")
-  else()
-    set(${VAR_NAME} "${ENV_VAR}" PARENT_SCOPE)
-    message(STATUS "${VAR_NAME} is set to ${ENV_VAR}")
-  endif()
-endfunction()
+if (NOT INCLUDEOS_PACKAGE)
+  message(FATAL_ERROR "INCLUDEOS_PACKAGE is not set")
+endif()
 
-expects(INCLUDEOS_PACKAGE)
-expects(ARCH)
+if (NOT ARCH)
+  message(FATAL_ERROR "ARCH is not set")
+endif()
 
 
 option(MINIMAL "Minimal build" OFF)
@@ -27,7 +21,9 @@ if (MINIMAL)
 else()
     set(STRIP_CMD true)
 endif()
-option(ELF_SYMBOLS "Enable full backtrace" ON)
+
+# TODO: Re-enable this once we build the ELF_SYMS program with nix.
+option(ELF_SYMBOLS "Enable full backtrace" OFF)
 option(PROFILE "Compile with startup profilers" OFF)
 option(DISABLE_SYSTEM_PATHS "Disable system include paths" ON)
 
@@ -51,9 +47,12 @@ set(NAME_STUB "${INCLUDEOS_PACKAGE}/src/service_name.cpp")
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 
-find_program(ELF_SYMS elf_syms)
-if (ELF_SYMS-NOTFOUND)
-  message(FATAL_ERROR "elf_syms not found")
+
+if (ELF_SYMBOLS)
+  find_program(ELF_SYMS elf_syms)
+  if (ELF_SYMS-NOTFOUND)
+    message(FATAL_ERROR "elf_syms not found")
+  endif()
 endif()
 
 find_program(DISKBUILDER diskbuilder)
@@ -208,12 +207,16 @@ function(os_add_executable TARGET NAME)
         DEPENDS ${ELF_TARGET}
       )
   else()
-      add_custom_target(
-        ${TARGET} ALL
-        COMMAND cp bin/${ELF_TARGET} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-        COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-        DEPENDS ${ELF_TARGET}
-      )
+    # TODO: Re-enable stripping.
+    # They won't be used inside IncludeOS as-is, but are likely in the way of
+    # something else, like .bss.
+    # Restoring ELF_SYMBOLS should be done first though.
+    #add_custom_target(
+    #    ${TARGET} ALL
+    #    COMMAND cp bin/${ELF_TARGET} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+    #    COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+    #    DEPENDS ${ELF_TARGET}
+    #  )
   endif()
 
   if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
