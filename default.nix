@@ -10,10 +10,8 @@
 { nixpkgs ? ./pinned.nix, # Builds cleanly May 9. 2024
   pkgs ? (import nixpkgs { }).pkgsStatic,
 
-  llvmPkgs ? pkgs.llvmPackages_16,
-
   # This env has musl and LLVM's libc++ as static libraries.
-  stdenv ? llvmPkgs.libcxxStdenv
+  stdenv ? pkgs.llvmPackages_16.libcxxStdenv
 }:
 
 assert (stdenv.buildPlatform.isLinux == false) ->
@@ -95,7 +93,6 @@ let
       #inherit s2n-tls;
       inherit musl-includeos;
       inherit cmake;
-      inherit microsoft_gsl;
     };
 
     meta = {
@@ -104,72 +101,5 @@ let
       license = pkgs.lib.licenses.asl20;
     };
   };
-
-  # A bootable example binary
-  example = stdenv.mkDerivation rec {
-
-    pname = "inludeos_example";
-    src = pkgs.lib.cleanSource ./example/.;
-
-    nativeBuildInputs = [
-      cmake
-      pkgs.nasm
-    ];
-
-    buildInputs = [
-      includeos.microsoft_gsl
-      includeos
-    ];
-
-    # TODO:
-    # We currently need to explicitly pass in because we link with a linker script
-    # and need to control linking order.
-    # This can be moved to os.cmake eventually, once we figure out how to expose
-    # them to cmake from nix without having to make cmake depend on nix.
-    # * Maybe we should make symlinks from the includeos package to them.
-
-    libcxx    = "${stdenv.cc.libcxx}/lib/libc++.a";
-    libcxxabi = "${stdenv.cc.libcxx}/lib/libc++abi.a";
-    libunwind = "${llvmPkgs.libraries.libunwind}/lib/libunwind.a";
-
-    linkdeps = [
-      libcxx
-      libcxxabi
-      libunwind
-    ];
-
-    cmakeFlags = [
-      "-DINCLUDEOS_PACKAGE=${includeos}"
-      "-DINCLUDEOS_LIBC_PATH=${musl-includeos}/lib/libc.a"
-      "-DINCLUDEOS_LIBCXX_PATH=${libcxx}"
-      "-DINCLUDEOS_LIBCXXABI_PATH=${libcxxabi}"
-      "-DINCLUDEOS_LIBUNWIND_PATH=${libunwind}"
-
-      "-DARCH=x86_64"
-      "-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
-    ];
-
-    preBuild = ''
-      echo ""
-      echo "📣 preBuild: about to build - can it work?  Yes! 🥁🥁🥁"
-      echo "Validating dependencies: "
-      for dep in ${toString linkdeps}; do
-          echo "Checking $dep:"
-          file $dep
-        done
-      echo ""
-    '';
-
-    postBuild = ''
-      echo "🎉 POST BUILD - you made it pretty far! 🗻⛅"
-      if [[ $? -ne 0 ]]; then
-        echo "Build failed. Running post-processing..."
-        echo "Performing cleanup or logging"
-      fi
-    '';
-
-    version = "dev";
-  };
 in
-#includeos
-example
+  includeos
