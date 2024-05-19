@@ -11,11 +11,25 @@
 #endif
 
 #if defined(__x86_64__) || defined(__i386__)
-#define GDB_ENTRY { printf("Waiting for GDB to set %%eax to 1..\n"); \
-      asm("mov $0,%eax ; 0: ; test %eax,%eax ; jz 0b"); }
+#define GDB_EAX_TRICK asm("mov $0,%eax ; 0: ; test %eax,%eax ; jz 0b")
+#endif
+
+#if defined(__x86_64__) || defined(__i386__)
+#define GDB_EARLY_ENTRY { \
+    GDB_EAX_TRICK; }
+#else
+#define GDB_EARLY_ENTRY
+#endif
+
+// The same as GDB_ENTRY but without the printf dependency.
+// For the cases when nothing works.
+#if defined(__x86_64__) || defined(__i386__)
+#define GDB_ENTRY { \  printf("Waiting for GDB to set %%eax to 1..\n"); \
+    GDB_EAX_TRICK; }
 #else
 #define GDB_ENTRY
 #endif
+
 
 
 #if defined(DEBUG2) && ! defined(NO_DEBUG)
