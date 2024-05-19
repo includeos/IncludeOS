@@ -4,7 +4,7 @@
 #include <kernel.hpp>
 #include <os>
 
-//#define INFO_MACHINE
+#define INFO_MACHINE
 #ifdef INFO_MACHINE
 #ifndef USERSPACE_KERNEL
 #define MINFO(fmt, ...) kprintf("[ Machine ] " fmt, ##__VA_ARGS__)

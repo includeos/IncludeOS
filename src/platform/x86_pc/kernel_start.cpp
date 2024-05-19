@@ -11,6 +11,9 @@
 //#define ENABLE_PROFILERS
 #include <profile>
 
+#include <util/units.hpp>
+using namespace util::literals;
+
 #define KERN_DEBUG 1
 #ifdef KERN_DEBUG
 #define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
@@ -48,7 +51,10 @@ extern "C"
 __attribute__((no_sanitize("all")))
 void kernel_start(uint32_t magic, uint32_t addr)
 {
-  PRATTLE("\n//////////////////  IncludeOS kernel start //////////////////\n");
+
+  __serial_print1("\n//////////////////  IncludeOS kernel start //////////////////\n");
+  //GDB_EARLY_ENTRY;
+
   PRATTLE("* Booted with magic 0x%x, grub @ 0x%x\n",
           magic, addr);
   PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n", magic, addr);
@@ -59,12 +65,18 @@ void kernel_start(uint32_t magic, uint32_t addr)
   uintptr_t memory_end = 0;
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
+    PRATTLE("*  Multiboot magic number found : 0x%x", magic);
     free_mem_begin = _multiboot_free_begin(addr);
     memory_end     = _multiboot_memory_end(addr);
   }
   else if (kernel::is_softreset_magic(magic))
   {
+    PRATTLE("* Softreset magic number found : 0x%x", magic);
     memory_end = kernel::softreset_memory_end(addr);
+  } else {
+    PRATTLE("* Unknown magic number, 0x%x. Assuming 128 MB (qemu default)\n", magic);
+    memory_end = free_mem_begin + 128_MiB;
+
   }
   PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx\n",
           free_mem_begin, memory_end);
