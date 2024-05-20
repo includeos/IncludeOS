@@ -28,9 +28,6 @@ final: prev: {
             ./deps
             ./userspace
             ./lib
-            ./default.nix
-            ./overlay.nix
-            ./pinned.nix
             ./CMakeLists.txt
           ];
       };
