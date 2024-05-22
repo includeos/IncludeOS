@@ -13,11 +13,24 @@ final: prev: {
 
     # IncludeOS
     includeos = self.stdenv.mkDerivation rec {
+      enableParallelBuilding = true;
       pname = "includeos";
 
       version = "dev";
 
-      src = prev.pkgsStatic.lib.cleanSource ./.;
+      src = prev.pkgsStatic.lib.fileset.toSource {
+          root = ./.;
+          # Only include files needed by IncludeOS (not examples, docs etc)
+          fileset = prev.pkgsStatic.lib.fileset.unions [
+            ./src
+            ./api
+            ./cmake
+            ./deps
+            ./userspace
+            ./lib
+            ./CMakeLists.txt
+          ];
+      };
 
       # If you need to patch, this is the place
       postPatch = '''';
