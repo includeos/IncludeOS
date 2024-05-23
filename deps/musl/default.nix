@@ -32,6 +32,8 @@ stdenv.mkDerivation rec {
 
     rm $sourceRoot/arch/x86_64/syscall_arch.h
     rm $sourceRoot/arch/i386/syscall_arch.h
+    rm $sourceRoot/src/thread/x86_64/clone.s
+    rm $sourceRoot/src/thread/clone.c
   '';
 
  configurePhase = ''
