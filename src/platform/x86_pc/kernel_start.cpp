@@ -11,7 +11,7 @@
 //#define ENABLE_PROFILERS
 #include <profile>
 
-//#define KERN_DEBUG 1
+#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
 #define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #else
