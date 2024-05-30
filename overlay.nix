@@ -14,6 +14,7 @@ final: prev: {
     # IncludeOS
     includeos = self.stdenv.mkDerivation rec {
       enableParallelBuilding = true;
+      hardeningDisable = [ "pie" ]; # use "all" to disable all hardening options
       pname = "includeos";
 
       version = "dev";
@@ -69,6 +70,11 @@ final: prev: {
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
       ];
+
+      cmakeFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
+        [ "-DARCH=i686" ]
+      else
+        [ "-DARCH=x86_64"];
 
       # Add some pasthroughs, for easily building the depdencies (for debugging):
       # $ nix-build -A NAME
