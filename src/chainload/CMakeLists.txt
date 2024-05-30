@@ -14,7 +14,7 @@ set(LIBRARIES
   ${INCLUDEOS_PACKAGE}/lib/libos.a
   ${INCLUDEOS_PACKAGE}/lib/libarch.a
   ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
-  ${INCLUDEOS_PACKAGE}/platform/libx86_64_pc.a
+  ${INCLUDEOS_PACKAGE}/platform/libi686_pc.a
   ${INCLUDEOS_LIBCXX_PATH}
   ${INCLUDEOS_LIBC_PATH}
   ${INCLUDEOS_LIBUNWIND_PATH}
