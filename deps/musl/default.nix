@@ -3,8 +3,8 @@
     url = "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz";
     sha256 = "1ndiv385w1qyb3b18vw13991fzb9wg4cl21wglk89grsfsnra41k";
   }
-, pkgs ? import nixpkgs { config = {}; overlays = []; }
 , stdenv
+, pkgs ? import nixpkgs { config = {}; overlays = []; crossSystem = { config = stdenv.targetPlatform.config; }; }
 }:
 stdenv.mkDerivation rec {
   pname = "musl-includeos";
@@ -16,8 +16,6 @@ stdenv.mkDerivation rec {
   };
 
   enableParallelBuilding = true;
-
-  #nativeBuildInputs = [ pkgs.git pkgs.clang pkgs.tree];
 
   patches = [
     ./patches/musl.patch
@@ -36,7 +34,8 @@ stdenv.mkDerivation rec {
 
  configurePhase = ''
     echo "Configuring with musl's configure script"
-    ./configure --prefix=$out --disable-shared --enable-debug CROSS_COMPILE=x86_64-unknown-linux-musl-
+    echo "Target platform is ${stdenv.targetPlatform.config}"
+    ./configure --prefix=$out --disable-shared --enable-debug CROSS_COMPILE=${stdenv.targetPlatform.config}-
   '';
 
   CFLAGS = "-Wno-error=int-conversion -nostdinc";
