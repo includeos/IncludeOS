@@ -67,9 +67,11 @@ void Service::start()
 
   auto binary = mods[0];
 
+  Expects((uint64_t)binary.mod_end - (uint64_t)binary.mod_start < std::numeric_limits<ptrdiff_t>::max());
+
   Elf_binary<Elf64> elf (
       {(char*)binary.mod_start,
-        (int)(binary.mod_end - binary.mod_start)});
+       (uint32_t)binary.mod_end - (uint32_t)binary.mod_start});
 
 
   auto phdrs = elf.program_headers();
