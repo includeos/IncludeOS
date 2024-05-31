@@ -72,7 +72,10 @@ final: prev: {
       ];
 
       cmakeFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
-        [ "-DARCH=i686" ]
+        [
+          "-DARCH=i686"
+          "-DPLATFORM=nano" # we currently only support nano platform on i686
+        ]
       else
         [ "-DARCH=x86_64"];
 
