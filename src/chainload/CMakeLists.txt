@@ -4,6 +4,8 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 project(chainloader C CXX)
 
 set(ARCH i686)
+set(PLATFORM nano)
+
 include(${INCLUDEOS_PACKAGE}/cmake/os.cmake)
 
 option(default_stdout "" OFF)
@@ -14,7 +16,7 @@ set(LIBRARIES
   ${INCLUDEOS_PACKAGE}/lib/libos.a
   ${INCLUDEOS_PACKAGE}/lib/libarch.a
   ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
-  ${INCLUDEOS_PACKAGE}/platform/libi686_pc.a
+  ${INCLUDEOS_PACKAGE}/platform/libi686_nano.a
   ${INCLUDEOS_LIBCXX_PATH}
   ${INCLUDEOS_LIBC_PATH}
   ${INCLUDEOS_LIBUNWIND_PATH}
