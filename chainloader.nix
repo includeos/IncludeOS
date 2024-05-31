@@ -25,6 +25,7 @@ includeos.stdenv.mkDerivation rec {
   version = "dev";
 
   sourceRoot = "./src/chainload/";
+  hardeningDisable = [ "pie" ]; # use "all" to disable all hardening options
 
   libcxx    = "${includeos.stdenv.cc.libcxx}/lib/libc++.a";
   libcxxabi = "${includeos.stdenv.cc.libcxx}/lib/libc++abi.a";
