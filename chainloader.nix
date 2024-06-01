@@ -11,7 +11,9 @@
   },
   llvmPkgs ? pkgs.llvmPackages_16
 }:
-let includeos = pkgs.pkgsIncludeOS.includeos; in
+let
+  includeos = pkgs.pkgsIncludeOS.includeos;
+in
 
 assert (includeos.stdenv.targetPlatform.system != "i686-linux") ->
   throw "Chainloader must be built as 32-bit target";
@@ -27,9 +29,10 @@ includeos.stdenv.mkDerivation rec {
   sourceRoot = "./src/chainload/";
   hardeningDisable = [ "pie" ]; # use "all" to disable all hardening options
 
-  libcxx    = "${includeos.stdenv.cc.libcxx}/lib/libc++.a";
-  libcxxabi = "${includeos.stdenv.cc.libcxx}/lib/libc++abi.a";
-  libunwind = "${llvmPkgs.libraries.libunwind}/lib/libunwind.a";
+  libcxx      = "${includeos.stdenv.cc.libcxx}/lib/libc++.a";
+  libcxxabi   = "${includeos.stdenv.cc.libcxx}/lib/libc++abi.a";
+  libunwind   = "${llvmPkgs.libraries.libunwind}/lib/libunwind.a";
+  compiler-rt = "${llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-i386.a";
 
   linkdeps = [
     libcxx
@@ -43,6 +46,7 @@ includeos.stdenv.mkDerivation rec {
     "-DINCLUDEOS_LIBCXX_PATH=${libcxx}"
     "-DINCLUDEOS_LIBCXXABI_PATH=${libcxxabi}"
     "-DINCLUDEOS_LIBUNWIND_PATH=${libunwind}"
+    "-DINCLUDEOS_LIBGCC_PATH=${compiler-rt}"
   ];
 
   srcs = [
@@ -58,6 +62,7 @@ includeos.stdenv.mkDerivation rec {
 
   buildInputs = [
     pkgs.microsoft_gsl
+    pkgs.pkgsStatic.llvmPackages_16.compiler-rt
   ];
 
 }
