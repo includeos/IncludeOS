@@ -7,7 +7,6 @@
 #include "apic_regs.hpp"
 #include <arch/x86/cpu.hpp>
 #include <kernel/events.hpp>
-#include <debug>
 #include <info>
 
 /// x2APIC MSR offsets ///
@@ -172,7 +171,6 @@ namespace x86 {
 
     void send_ipi(int id, uint8_t vector) noexcept override
     {
-      debug("send_ipi  id %u  vector %u\n", id, vector);
       // select APIC ID
       writel(x2APIC_ICR, id,
                          ICR_ASSERT | ICR_FIXED | vector);
@@ -184,7 +182,6 @@ namespace x86 {
     }
     void bcast_ipi(uint8_t vector) noexcept override
     {
-      debug("bcast_ipi  vector %u\n", vector);
       writel(x2APIC_ICR, 0,
                          ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
     }

@@ -1,13 +1,13 @@
-
 #include <os>
-#include <cassert>
 #include <pthread.h>
 #include <kernel/threads.hpp>
 #include <thread>
+extern "C" int syscall_SYS_tkill(int tid, int sig);
 
 struct testdata
 {
-  int depth     = 0;
+  int created   = 0;
+  int exited    = 0;
   const int max_depth = 20;
 };
 
@@ -17,9 +17,13 @@ extern "C" {
     printf("Inside thread function1, x = %d\n", *(int*) data);
     thread_local int test = 2019;
     printf("test @ %p, test = %d\n", &test, test);
-    assert(test == 2019);
+    Expects(*(int*) data == 666);
+    Expects(test == 2019);
     // this will cause a TKILL on this thread
-    throw std::runtime_error("Test");
+    //throw std::runtime_error("Test");
+    //syscall_SYS_tkill(kernel::get_tid(), 1234);
+    //pthread_cancel(pthread_self());
+    return nullptr;
   }
   static void* thread_function2(void* data)
   {
@@ -40,11 +44,11 @@ extern "C" {
   static void* recursive_function(void* tdata)
   {
     auto* data = (testdata*) tdata;
-    data->depth++;
-    printf("%ld: Thread depth %d / %d\n",
-          kernel::get_thread()->tid, data->depth, data->max_depth);
+    data->created++;
+    printf("%d: Thread depth %d / %d (%p)\n",
+          kernel::get_thread()->tid, data->created, data->max_depth, tdata);
 
-    if (data->depth < data->max_depth)
+    if (data->created < data->max_depth)
     {
       pthread_t t;
       int res = pthread_create(&t, NULL, recursive_function, data);
@@ -53,13 +57,16 @@ extern "C" {
         return NULL;
       }
     }
-    printf("%ld: Thread yielding %d / %d\n",
-           kernel::get_thread()->tid, data->depth, data->max_depth);
+    else {
+        printf("We are at max depth now, start yielding!\n");
+    }
+    printf("%d: Thread yielding %d / %d\n",
+           kernel::get_thread()->tid, data->created, data->max_depth);
     sched_yield();
 
-    printf("%ld: Thread exiting %d / %d\n",
-           kernel::get_thread()->tid, data->depth, data->max_depth);
-    data->depth--;
+    data->exited++;
+    printf("%d: Thread exiting %d / %d\n",
+           kernel::get_thread()->tid, data->exited, data->max_depth);
     return NULL;
   }
 }
@@ -80,6 +87,10 @@ void Service::start()
     printf("Failed to create thread!\n");
     return;
   }
+  printf("*** Returned to main, tls=%p thread=%p tid=%d\n",
+        kernel::get_thread_area(), kernel::get_thread(), kernel::get_tid());
+  Expects(kernel::get_tid() == 0);
+  pthread_join(t, NULL);
 
   pthread_mutex_lock(&mtx);
   res = pthread_create(&t, NULL, thread_function2, &mtx);
@@ -98,15 +109,17 @@ void Service::start()
   static testdata rdata;
   recursive_function(&rdata);
   // now we have to yield until all the detached children also exit
-  printf("*** Yielding until all children are dead!\n");
-  while (rdata.depth > 0) sched_yield();
+  printf("*** Yielding until all children are created!\n");
+  while (rdata.created < rdata.max_depth) sched_yield();
+  printf("*** Yielding until all children are exited!\n");
+  while (rdata.exited < rdata.max_depth) sched_yield();
 
     auto* cpp_thread = new std::thread(
         [] (int a, long long b, std::string c) -> void {
             printf("Hello from a C++ thread\n");
-            assert(a == 1);
-            assert(b == 2LL);
-            assert(c == std::string("test"));
+            Expects(a == 1);
+            Expects(b == 2LL);
+            Expects(c == std::string("test"));
             printf("C++ thread arguments are OK, returning...\n");
         },
         1, 2L, std::string("test")

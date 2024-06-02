@@ -57,7 +57,7 @@ public:
 
   void deactivate() override;
 
-  void move_to_this_cpu() override;
+  void cpu_migrate(int, int) override;
 
   void poll() override;
 
@@ -67,7 +67,7 @@ private:
   void intr_cause_clear();
   void link_up();
   void retrieve_hw_addr();
-  void config_msix();
+  void config_msix(int cpu);
 
   void wait_millis(int);
 

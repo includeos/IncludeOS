@@ -21,7 +21,8 @@ Events& Events::get()
 
 void Events::init_local()
 {
-  if (SMP::cpu_id() == 0)
+  this->m_cpu = SMP::cpu_id();
+  if (this->m_cpu == 0)
   {
     // prevent legacy IRQs from being free for taking
     for (int evt = 0; evt < 32; evt++)
@@ -57,7 +58,7 @@ void Events::subscribe(uint8_t evt, event_callback func)
     SMP::global_unlock();
 #endif
     // enable IRQ in hardware
-    __arch_subscribe_irq(evt);
+    __arch_subscribe_irq(evt, this->m_cpu);
   }
 }
 void Events::unsubscribe(uint8_t evt)
@@ -66,7 +67,10 @@ void Events::unsubscribe(uint8_t evt)
   callbacks[evt] = nullptr;
   for (auto it = sublist.begin(); it != sublist.end(); ++it) {
     if (*it == evt) {
-      sublist.erase(it); return;
+      sublist.erase(it);
+	  // disable IRQ in hardware
+      __arch_unsubscribe_irq(evt, this->m_cpu);
+	  return;
     }
   }
   throw std::out_of_range("Event was not in sublist?");
@@ -86,11 +90,12 @@ void Events::defer(event_callback callback)
   event_pend[ev] = true;
 }
 
-void Events::process_events()
+bool Events::process_events()
 {
-  bool handled_any;
+  bool handled_any = false;
+  bool rerun;
   do {
-    handled_any = false;
+    rerun = false;
 
     for (const uint8_t intr : sublist)
     if (event_pend[intr])
@@ -108,7 +113,10 @@ void Events::process_events()
       callbacks[intr]();
       // increment events handled
       handled_array[intr]++;
+      rerun = true;
       handled_any = true;
     }
-  } while (handled_any);
+  } while (rerun);
+
+  return handled_any;
 }

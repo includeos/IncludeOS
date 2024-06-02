@@ -77,7 +77,7 @@ namespace net {
               this->index, this->total_buffers());
   }
 
-  void BufferStore::move_to_this_cpu() noexcept
+  void BufferStore::cpu_migrate(int, int) noexcept
   {
     // TODO: hmm
   }

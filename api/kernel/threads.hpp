@@ -16,20 +16,21 @@
 namespace kernel
 {
   struct Thread {
-    long    tid;
+    int     tid;
+    bool    migrated = false;
+    bool    yielded = false;
     Thread* parent;
     void*   my_tls;
     void*   my_stack;
     // for returning to this Thread
     void*   stored_stack = nullptr;
-    bool    migrated = false;
-    bool    yielded = false;
     // address zeroed when exiting
     void*   clear_tid = nullptr;
-    // children, detached when exited
-    std::vector<Thread*> children;
 
-    void init(long tid, Thread* parent, void* stack);
+	static Thread* create(Thread* parent, 
+		long flags, void* ctid, void* ptid, void* stack);
+
+    void init(int tid, Thread* parent, void* stack);
     void exit();
     void suspend(bool yielded, void* ret_stack);
     void set_tls(void* newtls);
@@ -41,22 +42,23 @@ namespace kernel
     void libc_store_this();
   };
 
-  struct ThreadManager
+  struct alignas(64) ThreadManager
   {
-	  std::map<long, kernel::Thread*> threads;
+	  std::map<int, kernel::Thread*> threads;
 	  std::deque<Thread*> suspended;
 	  Thread* main_thread = nullptr;
-	  Thread* next_thread = nullptr;
+	  Thread* last_thread = nullptr; // last inserted thread
+	  Thread* next_thread = nullptr; // next yield-to thread
 
 	  delegate<Thread*(ThreadManager&, Thread*)> on_new_thread = nullptr;
 
-	  static ThreadManager& get() noexcept;
+	  static ThreadManager& get();
 	  static ThreadManager& get(int cpu);
 
-	  Thread* detach(long tid);
+	  Thread* detach(int tid);
 	  void attach(Thread* thread);
 
-	  bool has_thread(long tid) const noexcept { return threads.find(tid) != threads.end(); }
+	  bool has_thread(int tid) const noexcept { return threads.find(tid) != threads.end(); }
 	  void insert_thread(Thread* thread);
 	  void erase_thread_safely(Thread* thread);
 
@@ -70,37 +72,34 @@ namespace kernel
   {
     Thread* thread;
     # ifdef ARCH_x86_64
-        asm("movq %%fs:(0x10), %0" : "=r" (thread));
+        asm("movq %%fs:(48), %0" : "=r" (thread));
     # elif defined(ARCH_i686)
-        asm("movq %%gs:(0x08), %0" : "=r" (thread));
+        asm("movq %%gs:(24), %0" : "=r" (thread));
     # elif defined(ARCH_aarch64)
         // TODO: fixme, find actual TP offset for aarch64 threads
         char* tp;
         asm("mrs %0, tpidr_el0" : "=r" (tp));
-        thread = (Thread*) &tp[0x10];
+        thread = (Thread*) &tp[48];
     # else
         #error "Implement me"
     # endif
     return thread;
   }
 
-  Thread* get_thread(long tid); /* or nullptr */
+  Thread* get_thread(int tid); /* or nullptr */
 
-  inline long get_tid() {
+  inline int get_tid() {
     return get_thread()->tid;
   }
 
-  long get_last_thread_id() noexcept;
+  Thread* get_last_thread();
 
   void* get_thread_area();
   void  set_thread_area(void*);
 
-  Thread* thread_create(Thread* parent, int flags, void* ctid, void* ptid, void* stack) noexcept;
+  void resume(int tid);
 
-  void resume(long tid);
-
-  Thread* setup_main_thread(long tid = 0);
-  void setup_automatic_thread_multiprocessing();
+  Thread* setup_main_thread(int cpu = 0, int tid = 0);
 }
 
 extern "C" {

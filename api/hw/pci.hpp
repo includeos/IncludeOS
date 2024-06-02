@@ -32,46 +32,44 @@ namespace hw {
     }
   };
 
-  #if defined(ARCH_x86) || defined(ARCH_x86_64)
+#if defined(__i386__) || defined(__x86_64__)
     class PCI_Impl
     {
     public:
       static inline uint8_t read_byte(uint16_t port)
       {
         uint8_t ret;
-        asm volatile("inb %1,%0" : "=a"(ret) : "Nd"(port));
+        asm volatile("inb %%dx,%0" : "=a"(ret) : "Nd"(port));
         return ret;
       }
-
       static inline uint16_t read_word(uint16_t port)
       {
         uint16_t ret;
-        asm volatile("inw %1,%0" : "=a"(ret) : "Nd"(port));
+        asm volatile("inw %%dx,%0" : "=a"(ret) : "Nd"(port));
         return ret;
       }
-
       static inline uint32_t read_long(uint16_t port)
       {
         uint32_t ret;
-        asm volatile("inl %1,%0" : "=a"(ret) : "Nd"(port));
+        asm volatile("inl %%dx,%0" : "=a"(ret) : "Nd"(port));
         return ret;
       }
 
       static inline void write_byte(uint16_t port, uint8_t data)
       {
-        asm volatile ("outb %0,%1" :: "a"(data), "Nd"(port));
+        asm volatile ("outb %0,%%dx" :: "a"(data), "Nd"(port));
       }
       static inline void write_word(uint16_t port, uint16_t data)
       {
-        asm volatile ("outw %0,%1" :: "a" (data), "Nd"(port));
+        asm volatile ("outw %0,%%dx" :: "a" (data), "Nd"(port));
       }
       static inline void write_long(uint16_t port, uint32_t data)
       {
-        asm volatile ("outl %0,%1" :: "a" (data), "Nd"(port));
+        asm volatile ("outl %0,%%dx" :: "a" (data), "Nd"(port));
       }
     };
 
-  #elif defined(ARCH_aarch64)
+#elif defined(ARCH_aarch64)
     class PCI_Impl
     {
     public:
@@ -106,17 +104,16 @@ namespace hw {
           #warning NOT_IMPLEMENTED
       }
     };
-  #endif
+#endif
+
   static inline uint8_t inp(uint16_t port)
   {
     return PCI_Handler<PCI_Impl>::rdb(port);
   }
-
   static inline uint16_t inpw(uint16_t port)
   {
     return PCI_Handler<PCI_Impl>::rdw(port);
   }
-
   static inline uint32_t inpd(uint16_t port)
   {
     return PCI_Handler<PCI_Impl>::rdl(port);
@@ -126,12 +123,10 @@ namespace hw {
   {
     PCI_Handler<PCI_Impl>::outb(port,data);
   }
-
   static inline void outpw(uint16_t port, uint16_t data)
   {
     PCI_Handler<PCI_Impl>::outw(port,data);
   }
-
   static inline void outpd(uint16_t port, uint32_t data)
   {
     PCI_Handler<PCI_Impl>::outl(port,data);

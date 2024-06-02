@@ -81,6 +81,10 @@ public:
     }
     return total;
   }
+  // returns true if no bits are set
+  bool none_set() const noexcept {
+	  return count_set() == 0;
+  }
 
   void zero_all() noexcept
   {

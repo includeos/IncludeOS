@@ -675,18 +675,31 @@ void vmxnet3::deactivate()
   this->reset();
 }
 
-void vmxnet3::move_to_this_cpu()
+void vmxnet3::cpu_migrate(int old_cpu, int new_cpu)
 {
-  bufstore().move_to_this_cpu();
+  bufstore().cpu_migrate(old_cpu, new_cpu);
 
   if (m_pcidev.has_msix())
   {
-    for (size_t i = 0; i < irqs.size(); i++)
+    for (auto irq : this->irqs) {
+		Events::get(old_cpu).unsubscribe(irq);
+	}
+	Expects(irqs.size() == 2 + NUM_RX_QUEUES);
+
+	irqs[0] = Events::get(new_cpu).subscribe({this, &vmxnet3::msix_evt_handler});
+	m_pcidev.rebalance_msix_vector(0, new_cpu, IRQ_BASE + irqs[0]);
+
+	irqs[1] = Events::get(new_cpu).subscribe({this, &vmxnet3::msix_xmit_handler});
+	m_pcidev.rebalance_msix_vector(1, new_cpu, IRQ_BASE + irqs[1]);
+	
+	for (int q = 0; q < NUM_RX_QUEUES; q++)
     {
-      this->irqs[i] = Events::get().subscribe(nullptr);
-      m_pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
+	  irqs[2 + q] = 
+	  	Events::get(new_cpu).subscribe({this, &vmxnet3::msix_recv_handler});
+      m_pcidev.rebalance_msix_vector(2 + q, new_cpu, IRQ_BASE + irqs[2 + q]);
     }
   }
+  // TODO: create deferred event on new CPU
 }
 
 #include <hw/pci_manager.hpp>

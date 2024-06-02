@@ -24,12 +24,14 @@ namespace smp
 	  uintptr_t stack_base;
 	  uintptr_t stack_size;
 	  smp_barrier boot_barrier;
-	  std::vector<int> initialized_cpus {0};
+	  bool still_starting;
 	  // used to determine which worker has posted done-tasks
 	  std::array<uint32_t, 8> bmp_storage = {0};
 	  MemBitmap bitmap{bmp_storage.data(), bmp_storage.size()};
 	};
 	extern smp_main_system main_system;
+
+	extern std::vector<int> initialized_cpus;
 
 	struct smp_worker_system
 	{

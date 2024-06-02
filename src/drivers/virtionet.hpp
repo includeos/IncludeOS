@@ -1,4 +1,3 @@
-
 /**
    @note This virtionet implementation was very much inspired by
    SanOS, (C) Michael Ringgaard. All due respect.
@@ -14,6 +13,7 @@
 
    ...Alas, nobody's using it yet, so we're stuck with "legacy" for now.
 */
+
 #ifndef VIRTIO_VIRTIONET_HPP
 #define VIRTIO_VIRTIONET_HPP
 
@@ -149,7 +149,7 @@ public:
     tx_q.kick();
   };
 
-  void move_to_this_cpu() override;
+  void cpu_migrate(int, int) override;
 
   void poll() override;
 
@@ -230,7 +230,6 @@ private:
   uint64_t& stat_packets_tx_total_;
 
   std::deque<net::Packet_ptr> sendq{};
-
 };
 
 #endif

@@ -55,8 +55,8 @@ namespace net
       return this->total_buffers() - this->available();
     }
 
-    /** move this bufferstore to the current CPU **/
-    void move_to_this_cpu() noexcept;
+    /** move this bufferstore to the given CPU **/
+    void cpu_migrate(int old_cpu, int new_cpu) noexcept;
 
   private:
     uint32_t pool_buffers() const noexcept { return poolsize_ / bufsize_; }

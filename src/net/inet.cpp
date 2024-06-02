@@ -343,8 +343,8 @@ void Inet::force_start_send_queues()
 
 void Inet::move_to_this_cpu()
 {
+  nic_.cpu_migrate(this->cpu_id, SMP::cpu_id());
   this->cpu_id = SMP::cpu_id();
-  nic_.move_to_this_cpu();
 }
 
 void Inet::cache_link_addr(ip4::Addr ip, MAC::Addr mac)

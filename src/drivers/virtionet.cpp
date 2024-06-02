@@ -432,22 +432,22 @@ void VirtioNet::deactivate()
   this->Virtio::reset();
 }
 
-void VirtioNet::move_to_this_cpu()
+void VirtioNet::cpu_migrate(int old_cpu, int new_cpu)
 {
-  INFO("VirtioNet", "Moving to CPU %d", SMP::cpu_id());
+  INFO("VirtioNet", "Moving to CPU %d", new_cpu);
   // update CPU id in bufferstore
-  bufstore().move_to_this_cpu();
+  bufstore().cpu_migrate(old_cpu, new_cpu);
   // virtio IRQ balancing
-  this->Virtio::move_to_this_cpu();
+  this->Virtio::cpu_migrate(old_cpu, new_cpu);
   // reset the IRQ handlers on this CPU
   auto& irqs = this->Virtio::get_irqs();
-  Events::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
-  Events::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
-  Events::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
+  Events::get(new_cpu).subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+  Events::get(new_cpu).subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+  Events::get(new_cpu).subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
 #ifndef NO_DEFERRED_KICK
   // update deferred kick IRQ
-  auto defirq = Events::get().subscribe(handle_deferred_devices);
-  PER_CPU(deferred_devs).irq = defirq;
+  PER_CPU(deferred_devs).irq = 
+  	Events::get(new_cpu).subscribe(handle_deferred_devices);
 #endif
 }
 

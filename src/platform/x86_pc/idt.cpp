@@ -11,7 +11,6 @@ extern "C" {
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
   extern void spurious_intr();
-  extern void cpu_enable_panicking();
 }
 
 #define IRQ_LINES  Events::NUM_EVENTS
@@ -162,20 +161,20 @@ void x86_IDT::init()
 
 } // x86
 
-void __arch_subscribe_irq(uint8_t irq)
+void __arch_subscribe_irq(uint8_t irq, int cpu)
 {
   assert(irq < IRQ_LINES);
-  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, modern_interrupt_handler);
+  x86::idt.at(cpu).set_handler(IRQ_BASE + irq, modern_interrupt_handler);
 }
 void __arch_install_irq(uint8_t irq, x86::intr_handler_t handler)
 {
   assert(irq < IRQ_LINES);
   PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, handler);
 }
-void __arch_unsubscribe_irq(uint8_t irq)
+void __arch_unsubscribe_irq(uint8_t irq, int cpu)
 {
   assert(irq < IRQ_LINES);
-  PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, unused_interrupt_handler);
+  x86::idt.at(cpu).set_handler(IRQ_BASE + irq, unused_interrupt_handler);
 }
 
 /// CPU EXCEPTIONS ///

@@ -8,17 +8,11 @@ long sys_kill(pid_t /*pid*/, int /*sig*/) {
 
 long sys_tkill(int tid, int /*sig*/)
 {
-    auto* thread = kernel::get_thread(tid);
-    if (thread->parent == nullptr) {
-        os::panic("TKILL on main thread (no parent)");
-    }
-
-    THPRINT("TKILL on tid=%d where thread=%p\n", tid, thread);
-    if (thread != nullptr) {
-        thread->exit();
-        return 0;
-    }
-    return -EINVAL;
+    char buffer[1024];
+    snprintf(buffer, sizeof(buffer),
+            "TKILL called on tid=%d, current tid=%d",
+            tid, kernel::get_tid());
+    os::panic(buffer);
 }
 
 long sys_tgkill(int /*tgid*/, int tid, int sig) {

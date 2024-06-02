@@ -34,8 +34,8 @@ public:
   static Events& get();
   static Events& get(int cpu);
 
-  /** process all pending events */
-  void process_events();
+  /** process all pending events, returns true if any were processed */
+  bool process_events();
 
   /** array of received events */
   auto& get_received_array() const noexcept
@@ -58,6 +58,8 @@ private:
   // using deque because vector resize causes invalidation of ranged for
   // when something subscribes during processing of events
   std::deque<uint8_t> sublist;
+  
+  int m_cpu;
 };
 
 inline void Events::trigger_event(const uint8_t evt)

@@ -1,8 +1,7 @@
-
+#pragma once
 #ifndef OS_HPP
 #define OS_HPP
 
-//#include <hal/machine.hpp>
 #include <cstdint>
 #include <cstddef>
 #include <delegate>
@@ -87,9 +86,6 @@ namespace os {
 
   /** The on_panic handler will be called directly after a panic if possible.**/
   void on_panic(on_panic_func);
-
-  //using Plugin      = delegate<void()>;
-  //using Span_mods   = gsl::span<multiboot_module_t>;
 
 
   //

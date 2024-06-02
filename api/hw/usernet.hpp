@@ -52,7 +52,7 @@ public:
   void   signal_tqa() { transmit_queue_available_event(transmit_queue_available()); }
 
   void deactivate() override {}
-  void move_to_this_cpu() override {}
+  void cpu_migrate(int, int) override {}
   void flush() override {}
   void poll() override {}
 

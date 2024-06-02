@@ -166,6 +166,7 @@ void Service::start()
   SMP::global_unlock();
   messages.barry.spin_wait(SMP::cpu_count()-1);
   messages.barry.reset();
+  printf("Done. Testing automatic thread migration...\n");
 
   // threads will now be migrated to free CPUs
   kernel::setup_automatic_thread_multiprocessing();

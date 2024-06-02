@@ -1,7 +1,7 @@
 #include <kernel/threads.hpp>
 #include <smp>
 #include <common>
-#include <pthread.h>
+#include <sched.h>
 #include <kprint>
 #ifdef ARCH_x86_64
 #include <arch/x86/cpu.hpp>
@@ -16,41 +16,49 @@ extern "C" {
 }
 static constexpr bool PRIORITIZE_PARENT = true;
 
+namespace os {
+	__attribute__((noreturn))
+	extern void panic(const char* why) noexcept;
+}
+
 struct libc_internal {
   void* self;
   void* dtv;
+  void* prev;
+  void* next;
+  void* sysinfo;
+  void* canary;
+  // this is what we are reduced to... for shame!
   kernel::Thread* kthread;
 };
 
 namespace kernel
 {
-  static long thread_counter = 1;
+  static int thread_counter = 1;
   static Thread core0_main_thread;
 
-  inline long generate_new_thread_id() noexcept {
+  inline int generate_new_thread_id() noexcept {
 	  return __sync_fetch_and_add(&thread_counter, 1);
   }
-  long get_last_thread_id() noexcept {
-	  return thread_counter-1;
-  }
 
-  std::vector<ThreadManager> thread_managers;
+  static std::vector<ThreadManager> thread_managers;
   SMP_RESIZE_EARLY_GCTOR(thread_managers);
-  ThreadManager& ThreadManager::get() noexcept {
+  ThreadManager& ThreadManager::get() {
 	  return PER_CPU(thread_managers);
   }
   ThreadManager& ThreadManager::get(int cpu) {
 	  return thread_managers.at(cpu);
   }
 
-  void Thread::init(long tid, Thread* parent, void* stack)
+  Thread* get_last_thread() {
+	  return ThreadManager::get().last_thread;
+  }
+
+  void Thread::init(int tid, Thread* parent, void* stack)
   {
     this->tid = tid;
 	this->parent = parent;
 	this->my_stack = stack;
-	if (this->parent) {
-		this->parent->children.push_back(this);
-	}
   }
   void Thread::stack_push(uintptr_t value)
   {
@@ -71,7 +79,7 @@ namespace kernel
 
   void Thread::suspend(bool yielded, void* ret_stack)
   {
-	  THPRINT("CPU %d: Thread %ld suspended, yielded=%d stack=%p\n",
+	  THPRINT("CPU %d: Thread %d suspended, yielded=%d stack=%p\n",
               SMP::cpu_id(), this->tid, yielded, ret_stack);
 	  this->yielded = yielded;
       this->stored_stack = ret_stack;
@@ -84,18 +92,15 @@ namespace kernel
     const bool exiting_myself = (get_thread() == this);
 	auto& tman = ThreadManager::get();
     Expects(this->parent != nullptr);
-    // detach children
-    for (auto* child : this->children) {
-        child->parent = tman.main_thread;
-    }
     // temporary copy of parent thread pointer
     auto* next = this->parent;
     // remove myself from parent
     this->detach();
-    // CLONE_CHILD_CLEARTID: set userspace TID value to zero
+    // CLONE_CHILD_CLEARTID: set userspace value to zero
     if (this->clear_tid) {
-        THPRINT("Clearing child value at %p\n", this->clear_tid);
-        *(pid_t*) this->clear_tid = 0;
+        THPRINT("Clearing child value at %p for tls=%p\n",
+                this->clear_tid, this->my_tls);
+        *(int*) this->clear_tid = 0;
     }
     // delete this thread
 	tman.erase_thread_safely(this);
@@ -118,30 +123,23 @@ namespace kernel
   void Thread::detach()
   {
 	  Expects(this->parent != nullptr);
-	  auto& pcvec = this->parent->children;
-      for (auto it = pcvec.begin(); it != pcvec.end(); ++it) {
-          if (*it == this) {
-              pcvec.erase(it);
-			  break;
-          }
-      }
 	  this->parent = nullptr;
   }
   void Thread::attach(Thread* parent)
   {
 	  this->parent = parent;
-	  parent->children.push_back(this);
   }
 
   void Thread::resume()
   {
       set_thread_area(this->my_tls);
-      THPRINT("CPU %d: Returning to tid=%ld tls=%p stack=%p thread=%p\n",
+      THPRINT("CPU %d: Returning to tid=%d tls=%p stack=%p thread=%p\n",
             SMP::cpu_id(), this->tid, this->my_tls, this->stored_stack, get_thread());
       Expects(kernel::get_thread() == this);
       // NOTE: the RAX return value here is CHILD thread id, not this
       if (UNLIKELY(this->migrated)) {
           this->migrated = false;
+          THPRINT("Entering thread from migration\n");
           __migrate_resume(this->my_stack); // NOTE: no stored stack
       }
       else if (this->yielded == false) {
@@ -154,37 +152,32 @@ namespace kernel
       __builtin_unreachable();
   }
 
-  Thread* thread_create(Thread* parent, int flags,
-                          void* ctid, void* ptid, void* stack) noexcept
+  Thread* Thread::create(Thread* parent, long flags,
+                          void* ctid, void* ptid, void* stack)
   {
-    const long tid = generate_new_thread_id();
-    try {
-      auto* thread = new struct Thread;
-      thread->init(tid, parent, stack);
+    const int tid = generate_new_thread_id();
+	auto* thread = new struct Thread;
+	thread->init(tid, parent, stack);
 
-      // flag for write child TID
-      if (flags & CLONE_CHILD_SETTID) {
-          THPRINT("Setting ctid to TID value at %p\n", ctid);
-          *(pid_t*) ctid = thread->tid;
-      }
-      // flag for write parent TID
-      if (flags & CLONE_PARENT_SETTID) {
-          THPRINT("Setting ptid to TID value at %p\n", ptid);
-          *(pid_t*) ptid = thread->tid;
-      }
-      if (flags & CLONE_CHILD_CLEARTID) {
-          thread->clear_tid = ctid;
-      }
+	// flag for write child TID
+	if (flags & CLONE_CHILD_SETTID) {
+	  THPRINT("Setting ctid to %d at %p\n", tid, ctid);
+	  *(int*) ctid = tid;
+	}
+	// flag for write parent TID
+	if (flags & CLONE_PARENT_SETTID) {
+	  THPRINT("Setting ptid to TID value at %p\n", ptid);
+	  *(int*) ptid = tid;
+	}
+	if (flags & CLONE_CHILD_CLEARTID) {
+	  THPRINT("Setting clear_tid to %p for tid=%d\n", ctid, tid);
+	  thread->clear_tid = ctid;
+	}
 
-	  ThreadManager::get().insert_thread(thread);
-      return thread;
-    }
-    catch (...) {
-      return nullptr;
-    }
+	return thread;
   }
 
-  Thread* setup_main_thread(long tid)
+  Thread* setup_main_thread(int cpu, int tid)
   {
 		int stack_value;
 		if (tid == 0)
@@ -202,33 +195,9 @@ namespace kernel
 		{
 			auto* main_thread = get_thread(tid);
 			Expects(main_thread->parent == nullptr && "Must be a detached thread");
-			ThreadManager::get().main_thread = main_thread;
+			ThreadManager::get(cpu).main_thread = main_thread;
 			return main_thread;
 		}
-  }
-  void setup_automatic_thread_multiprocessing()
-  {
-	  ThreadManager::get().on_new_thread =
-	  [] (ThreadManager& man, Thread* thread) -> Thread* {
-		  auto* kthread = man.detach(thread->tid);
-		  SMP::add_task(
-		  [kthread] () {
-#ifdef THREADS_DEBUG
-			  THPRINT("CPU %d resuming migrated thread %ld (stack=%p)\n",
-			  		SMP::cpu_id(), kthread->tid,
-					(void*) kthread->my_stack);
-#endif
-			  // attach this thread on this core
-			  ThreadManager::get().attach(kthread);
-			  // resume kthread after yielding this thread
-			  ThreadManager::get().yield_to(kthread);
-			  // NOTE: returns here!!
-		  }, nullptr);
-		  // signal that work exists in the global queue
-		  SMP::signal();
-		  // indicate that the thread has been detached
-		  return nullptr;
-	  };
   }
 
   void* get_thread_area()
@@ -248,25 +217,25 @@ namespace kernel
 	  syscall_SYS_set_thread_area(new_area);
   }
 
-  Thread* get_thread(long tid) {
+  Thread* get_thread(int tid) {
 	  auto& threads = ThreadManager::get().threads;
       auto it = threads.find(tid);
       if (it != threads.end()) return it->second;
 	  return nullptr;
   }
 
-  void resume(long tid)
+  void resume(int tid)
   {
 	  auto* thread = get_thread(tid);
 	  if (thread != nullptr) {
 	  	thread->resume();
 		__builtin_unreachable();
 	  }
-	  THPRINT("Could not resume thread, missing: %ld\n", tid);
+	  THPRINT("Could not resume thread, missing: %d\n", tid);
 	  Expects(thread && "Could not find thread id");
   }
 
-  Thread* ThreadManager::detach(long tid)
+  Thread* ThreadManager::detach(int tid)
   {
 	  auto* thread = get_thread(tid);
 	  // can't migrate missing thread
@@ -305,6 +274,7 @@ namespace kernel
 			std::piecewise_construct,
 			std::forward_as_tuple(thread->tid),
 			std::forward_as_tuple(thread));
+	  last_thread = thread;
   }
   void ThreadManager::erase_thread_safely(Thread* thread)
   {

@@ -17,20 +17,14 @@ extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
 extern void __arch_system_deactivate();
 extern void __arch_install_irq(uint8_t, void(*)());
-extern void __arch_subscribe_irq(uint8_t);
-extern void __arch_unsubscribe_irq(uint8_t);
+extern void __arch_subscribe_irq(uint8_t, int cpu = 0);
+extern void __arch_unsubscribe_irq(uint8_t, int cpu = 0);
 extern void __arch_preempt_forever(void(*)());
-inline void __arch_hw_barrier() noexcept;
-inline void __sw_barrier() noexcept;
 extern uint64_t __arch_system_time() noexcept;
 extern timespec __arch_wall_clock() noexcept;
 extern uint32_t __arch_rand32();
 
-inline void __arch_hw_barrier() noexcept {
-  __sync_synchronize();
-}
-
-inline void __sw_barrier() noexcept
+inline void compiler_barrier() noexcept
 {
   asm volatile("" ::: "memory");
 }

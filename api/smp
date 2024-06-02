@@ -30,12 +30,13 @@ public:
   static void init_task();
 
   // execute @task on another CPU core
-  // call @done back on main CPU after running task
-  // use signal() to broadcast when work should begin
-  static void add_task(task_func task, done_func done, int cpu = 0);
-  static void add_task(task_func task, int cpu = 0);
+  // optionally call @done back on main CPU after running task
+  // use SMP::signal() to broadcast when work should begin
+  // if cpu == 0, the first free signalled CPU will grab the work
+  static bool add_task(task_func task, done_func done, int cpu = 0);
+  static bool add_task(task_func task, int cpu = 0);
   // execute a function on the main cpu
-  static void add_bsp_task(done_func done);
+  static bool add_bsp_task(done_func done);
 
   // call this to signal that tasks are queued up
   // if cpu == 0, broadcast signal to all CPUs
@@ -46,6 +47,8 @@ public:
   static void unicast(int cpu, uint8_t intr);
   // broadcast-trigger interrupt on all CPUs
   static void broadcast(uint8_t intr);
+  // spuriously wake a CPU (from sleeping), works on all CPUs
+  static void wake(int cpu);
 
   // a global spinlock to synchronize text output (primarily)
   static void global_lock()   noexcept;
@@ -53,21 +56,13 @@ public:
 
   // during startup we can use this function to size up dynamic arrays
   static size_t early_cpu_total() noexcept;
-};
 
-inline int SMP::cpu_id() noexcept
-{
-  int cpuid;
-#ifdef ARCH_x86_64
-  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
-#elif defined(ARCH_i686)
-  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
-#else
-  asm("mrs %0, mpidr_el1" : "=r" (cpuid));
-  cpuid &= 0xFF;
-#endif
-  return cpuid;
-}
+  // activate or deactivate automatic migration of new threads for,
+  // the current CPU, by moving them to the first free CPU.
+  // this setting is active on a per-CPU basis.
+  static void migrate_threads(bool enable = true);
+  static void migrate_threads_to(int cpu);
+};
 
 #include <array>
 template <typename T, size_t N>
@@ -103,5 +98,32 @@ namespace kernel {
 #define SMP_ALIGN       64
 #define SMP_MAX_CORES  256
 
+
+namespace smp {
+	extern std::vector<int> initialized_cpus;
+}
+
+/// implementation of the SMP interface ///
+inline int SMP::cpu_id() noexcept
+{
+  int cpuid;
+#ifdef ARCH_x86_64
+  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#elif defined(ARCH_i686)
+  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
+#else
+  asm("mrs %0, mpidr_el1" : "=r" (cpuid));
+  cpuid &= 0xFF;
+#endif
+  return cpuid;
+}
+
+inline int SMP::cpu_count() noexcept {
+  return smp::initialized_cpus.size();
+}
+
+inline const std::vector<int>& SMP::active_cpus() {
+  return smp::initialized_cpus;
+}
 
 #endif
