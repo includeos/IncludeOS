@@ -18,14 +18,14 @@ set(LIBRARIES
   # libosdeps
   ${INCLUDEOS_PACKAGE}/platform/libx86_64_pc.a
   ${INCLUDEOS_PACKAGE}/lib/libarch.a
-  
+
   ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
   ${INCLUDEOS_PACKAGE}/lib/libos.a
-  
+
   ${INCLUDEOS_LIBCXX_PATH}
   ${INCLUDEOS_LIBCXXABI_PATH}
   ${INCLUDEOS_LIBUNWIND_PATH}
-  
+
   ${INCLUDEOS_LIBC_PATH}
   ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
   ${INCLDUEOS_LIBCXX_PATH}
@@ -38,7 +38,7 @@ set(LIBRARIES
 include("${INCLUDEOS_PACKAGE}/cmake/os.cmake")
 
 os_add_executable(hello_includeos "Hello world - OS included" src/main.cpp)
-#os_add_drivers(hello virtionet vmxnet3 boot_logger)
+os_add_drivers(hello_includeos virtionet vmxnet3 boot_logger)
 os_add_stdout(hello_includeos default_stdout)
 
 # This would be for application specific libs.
@@ -53,4 +53,3 @@ set(BINARY_NAME hello_includeos)
 set(ELF_TARGET ${BINARY_NAME}${ELF_POSTFIX})
 
 install(TARGETS ${ELF_TARGET} DESTINATION bin)
-
