@@ -20,6 +20,7 @@
 #define HW_MSI_HPP
 
 #include <cstdint>
+#include <cstddef>
 #include <cassert>
 #include <vector>
 

@@ -25,6 +25,7 @@
 **/
 
 #include <array>
+#include <stdexcept>
 
 namespace medic{
   namespace diag

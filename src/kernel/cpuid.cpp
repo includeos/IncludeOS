@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <array>
 #include <unordered_map>
+#include <stdexcept>
 
 namespace std
 {

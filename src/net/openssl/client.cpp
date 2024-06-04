@@ -3,7 +3,7 @@
 #include <openssl/rsa.h>
 #include <fs/dirent.hpp>
 #include <info>
-
+#include <cassert>
 // https://gist.github.com/darrenjs/4645f115d10aa4b5cebf57483ec82eca
 inline void handle_error(const char* file, int lineno, const char* msg) {
   fprintf(stderr, "** %s:%i %s\n", file, lineno, msg);

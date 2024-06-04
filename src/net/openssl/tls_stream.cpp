@@ -1,4 +1,5 @@
 #include <net/openssl/tls_stream.hpp>
+#include <cassert>
 
 using namespace openssl;
 
