@@ -1,18 +1,29 @@
 final: prev: {
-  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
+  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: rec {
     # self.callPackage will use this stdenv.
-    stdenv = prev.pkgsStatic.llvmPackages_16.libcxxStdenv;
+    llvmPkgs = prev.pkgsStatic.llvmPackages_16;
+    stdenv = llvmPkgs.libcxxStdenv;
 
     # Deps
-    musl-includeos = self.callPackage ./deps/musl/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
     botan2 = self.callPackage ./deps/botan/default.nix { };
     microsoft_gsl = self.callPackage ./deps/GSL/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
 
+    # Create new stdenv with musl to build includeos. This could also be used to build the dependencies,
+    # but currently (June 5th, 2024) this fails on libuv tests (and is a very large build).
+    musl-includeos = self.callPackage ./deps/musl/default.nix { };
+    clang_musl = llvmPkgs.libcxxClang.override (old: {
+      bintools = llvmPkgs.bintools.override {
+        libc = musl-includeos;
+      };
+      libc = musl-includeos;
+    });
+    musl_stdenv = (prev.overrideCC stdenv clang_musl);
+
     # IncludeOS
-    includeos = self.stdenv.mkDerivation rec {
+    includeos = musl_stdenv.mkDerivation rec {
       enableParallelBuilding = true;
       hardeningDisable = [ "pie" ]; # use "all" to disable all hardening options
       pname = "includeos";
@@ -43,41 +54,25 @@ final: prev: {
 
       buildInputs = [
 
-        # TODO:
-        # including musl here makes the compiler pick up musl's libc headers
-        # before libc++'s libc headers, which doesn't work. See e.g. <cstdint>
-        # line 149;
-        # error <cstdint> tried including <stdint.h> but didn't find libc++'s <stdint.h> header.
-        # #ifndef _LIBCPP_STDINT_H
-        #   error <cstdint> tried including <stdint.h> but didn't find libc++'s <stdint.h> header. \
-        #   This usually means that your header search paths are not configured properly. \
-        #   The header search paths should contain the C++ Standard Library headers before \
-        #   any C Standard Library, and you are probably using compiler flags that make that \
-        #   not be the case.
-        # #endif
-        #
-        # With this commented out IncludeOS builds with Nix libc++, which is great,
-        # but might bite us later because it then uses a libc we didn't patch.
-        # Best case we case we can adapt our own musl to be identical, use nix static
-        # musl for compilation, and includeos-musl only for linking.
-        #
-        # musl-includeos  👈 this has to come in after libc++ headers.
         self.botan2
         self.http-parser
         self.microsoft_gsl
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
+        prev.linuxHeaders # needed for linux/limits.h
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
       ];
 
-      cmakeFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
+      archFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
         [
           "-DARCH=i686"
           "-DPLATFORM=nano" # we currently only support nano platform on i686
         ]
       else
         [ "-DARCH=x86_64"];
+
+      cmakeFlags = archFlags;
 
       # Add some pasthroughs, for easily building the depdencies (for debugging):
       # $ nix-build -A NAME
