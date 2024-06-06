@@ -5,10 +5,11 @@ project(chainloader C CXX)
 
 set(ARCH i686)
 set(PLATFORM nano)
+set(ELF_SYMBOLS true)
 
 include(${INCLUDEOS_PACKAGE}/cmake/os.cmake)
 
-option(default_stdout "" OFF)
+option(default_stdout "" ON)
 set(SOURCES
     service.cpp hotswap.cpp
   )
@@ -23,11 +24,9 @@ set(LIBRARIES
   ${INCLUDEOS_LIBCXXABI_PATH}
   ${INCLUDEOS_LIBGCC_PATH}
 )
+set(BINARY_NAME chainloader)
 
 os_add_executable(chainloader "IncludeOS chainloader" ${SOURCES})
-#os_install(TARGETS chainloader DESTINATION bin)
-
-set(BINARY_NAME chainloader)
-set(ELF_TARGET ${BINARY_NAME}${ELF_POSTFIX})
-
-install(TARGETS ${ELF_TARGET} DESTINATION bin)
+os_install(TARGETS chainloader DESTINATION bin)
+os_install(TARGETS chainloader.elf.bin.copy DESTINATION bin)
+os_install(TARGETS _elf_symbols.bin DESTINATION bin)
