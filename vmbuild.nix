@@ -15,8 +15,8 @@ pkgs.stdenv.mkDerivation rec {
     ];
 
   nativeBuildInputs = [
-    pkgs.cmake
-    pkgs.nasm
+    pkgs.buildPackages.cmake
+    pkgs.buildPackages.nasm
   ];
 
   buildInputs = [
