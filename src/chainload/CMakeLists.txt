@@ -17,12 +17,17 @@ set(LIBRARIES
   ${INCLUDEOS_PACKAGE}/lib/libarch.a
   ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
   ${INCLUDEOS_PACKAGE}/platform/libi686_nano.a
-  ${INCLUDEOS_LIBGCC_PATH}
   ${INCLUDEOS_LIBCXX_PATH}
   ${INCLUDEOS_LIBC_PATH}
   ${INCLUDEOS_LIBUNWIND_PATH}
   ${INCLUDEOS_LIBCXXABI_PATH}
+  ${INCLUDEOS_LIBGCC_PATH}
 )
 
 os_add_executable(chainloader "IncludeOS chainloader" ${SOURCES})
-os_install(TARGETS chainloader DESTINATION bin)
+#os_install(TARGETS chainloader DESTINATION bin)
+
+set(BINARY_NAME chainloader)
+set(ELF_TARGET ${BINARY_NAME}${ELF_POSTFIX})
+
+install(TARGETS ${ELF_TARGET} DESTINATION bin)

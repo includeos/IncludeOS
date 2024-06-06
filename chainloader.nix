@@ -13,40 +13,29 @@
 }:
 let
   includeos = pkgs.pkgsIncludeOS.includeos;
+  stdenv = pkgs.pkgsIncludeOS.stdenv;
 in
 
-assert (includeos.stdenv.targetPlatform.system != "i686-linux") ->
+assert (stdenv.targetPlatform.system != "i686-linux") ->
   throw "Chainloader must be built as 32-bit target";
-assert (includeos.stdenv.targetPlatform.isLinux == false) ->
+assert (stdenv.targetPlatform.isLinux == false) ->
   throw "Target platform must be Linux";
-assert (includeos.stdenv.targetPlatform.isMusl == false) ->
+assert (stdenv.targetPlatform.isMusl == false) ->
   throw "Target stdenv should be based on Musl";
 
-includeos.stdenv.mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "chainloader";
   version = "dev";
 
   sourceRoot = "./src/chainload/";
-  hardeningDisable = [ "pie" ]; # use "all" to disable all hardening options
-
-  libcxx      = "${includeos.stdenv.cc.libcxx}/lib/libc++.a";
-  libcxxabi   = "${includeos.stdenv.cc.libcxx}/lib/libc++abi.a";
-  libunwind   = "${llvmPkgs.libraries.libunwind}/lib/libunwind.a";
-  compiler-rt = "${llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-i386.a";
-
-  linkdeps = [
-    libcxx
-    libcxxabi
-    libunwind
-  ];
 
   cmakeFlags = [
     "-DINCLUDEOS_PACKAGE=${includeos}"
-    "-DINCLUDEOS_LIBC_PATH=${includeos.musl-includeos}/lib/libc.a"
-    "-DINCLUDEOS_LIBCXX_PATH=${libcxx}"
-    "-DINCLUDEOS_LIBCXXABI_PATH=${libcxxabi}"
-    "-DINCLUDEOS_LIBUNWIND_PATH=${libunwind}"
-    "-DINCLUDEOS_LIBGCC_PATH=${compiler-rt}"
+    "-DINCLUDEOS_LIBC_PATH=${includeos.libraries.libc}"
+    "-DINCLUDEOS_LIBCXX_PATH=${includeos.libraries.libcxx}"
+    "-DINCLUDEOS_LIBCXXABI_PATH=${includeos.libraries.libcxxabi}"
+    "-DINCLUDEOS_LIBUNWIND_PATH=${includeos.libraries.libunwind}"
+    "-DINCLUDEOS_LIBGCC_PATH=${includeos.libraries.libgcc}"
   ];
 
   srcs = [
@@ -56,13 +45,11 @@ includeos.stdenv.mkDerivation rec {
     ];
 
   nativeBuildInputs = [
-    pkgs.cmake
-    pkgs.nasm
+    pkgs.buildPackages.cmake
+    pkgs.buildPackages.nasm
   ];
 
   buildInputs = [
     pkgs.microsoft_gsl
-    pkgs.pkgsStatic.llvmPackages_16.compiler-rt
   ];
-
 }

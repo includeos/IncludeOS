@@ -27,45 +27,17 @@ includeos.stdenv.mkDerivation rec {
   # them to cmake from nix without having to make cmake depend on nix.
   # * Maybe we should make symlinks from the includeos package to them.
 
-  libcxx    = "${includeos.stdenv.cc.libcxx}/lib/libc++.a";
-  libcxxabi = "${includeos.stdenv.cc.libcxx}/lib/libc++abi.a";
-  libunwind = "${llvmPkgs.libraries.libunwind}/lib/libunwind.a";
-
-  linkdeps = [
-    libcxx
-    libcxxabi
-    libunwind
-  ];
-
   cmakeFlags = [
     "-DINCLUDEOS_PACKAGE=${includeos}"
-    "-DINCLUDEOS_LIBC_PATH=${includeos.musl-includeos}/lib/libc.a"
-    "-DINCLUDEOS_LIBCXX_PATH=${libcxx}"
-    "-DINCLUDEOS_LIBCXXABI_PATH=${libcxxabi}"
-    "-DINCLUDEOS_LIBUNWIND_PATH=${libunwind}"
+    "-DINCLUDEOS_LIBC_PATH=${includeos.libraries.libc}"
+    "-DINCLUDEOS_LIBCXX_PATH=${includeos.libraries.libcxx}"
+    "-DINCLUDEOS_LIBCXXABI_PATH=${includeos.libraries.libcxxabi}"
+    "-DINCLUDEOS_LIBUNWIND_PATH=${includeos.libraries.libunwind}"
+    "-DINCLUDEOS_LIBGCC_PATH=${includeos.libraries.libgcc}"
 
     "-DARCH=x86_64"
     "-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
   ];
-
-  preBuild = ''
-    echo ""
-    echo "📣 preBuild: about to build - can it work?  Yes! 🥁🥁🥁"
-    echo "Validating dependencies: "
-    for dep in ${toString linkdeps}; do
-        echo "Checking $dep:"
-        file $dep
-      done
-    echo ""
-  '';
-
-  postBuild = ''
-    echo "🎉 POST BUILD - you made it pretty far! 🗻⛅"
-    if [[ $? -ne 0 ]]; then
-      echo "Build failed. Running post-processing..."
-      echo "Performing cleanup or logging"
-    fi
-  '';
 
   version = "dev";
 }

@@ -1,8 +1,59 @@
 final: prev: {
-  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: rec {
-    # self.callPackage will use this stdenv.
+  stdenvIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
     llvmPkgs = prev.pkgsStatic.llvmPackages_16;
-    stdenv = llvmPkgs.libcxxStdenv;
+    stdenv = self.llvmPkgs.libcxxStdenv; # Use this as base stdenv
+
+    # Import unpatched musl for building libcxx. Libcxx needs some linux headers to be passed through.
+    musl-unpatched = self.callPackage ./deps/musl-unpatched/default.nix { linuxHeaders = prev.linuxHeaders; };
+
+    # Import IncludeOS musl which will be built and linked with IncludeOS services
+    musl-includeos = self.callPackage ./deps/musl/default.nix { };
+
+    # Clang with unpatched musl for building libcxx
+    clang_musl_unpatched_nolibcxx = self.llvmPkgs.clangNoLibcxx.override (old: {
+      bintools = prev.pkgsStatic.bintools.override {
+        # Disable hardening flags while we work on the build
+        defaultHardeningFlags = [];
+        libc = self.musl-unpatched;
+      };
+      libc = self.musl-unpatched;
+    });
+
+    # Libcxx which will be built with unpatched musl
+    libcxx_musl_unpatched = self.llvmPkgs.libcxx.override (old: {
+      stdenv = (prev.overrideCC self.llvmPkgs.libcxxStdenv self.clang_musl_unpatched_nolibcxx);
+    });
+
+    # Final stdenv, use libcxx w/unpatched musl + includeos musl as libc
+    clang_musl_includeos_libcxx = self.llvmPkgs.libcxxClang.override (old: {
+      bintools = prev.pkgsStatic.bintools.override {
+        # Disable hardening flags while we work on the build
+        defaultHardeningFlags = [];
+        libc = self.musl-includeos;
+      };
+      libc = self.musl-includeos;
+      libcxx = self.libcxx_musl_unpatched;
+    });
+
+    musl_includeos_stdenv_libcxx = (prev.overrideCC self.llvmPkgs.libcxxStdenv self.clang_musl_includeos_libcxx);
+
+    includeos_stdenv = self.musl_includeos_stdenv_libcxx;
+
+    libraries = {
+      libc = "${self.musl-includeos}/lib/libc.a";
+      libcxx = "${self.libcxx_musl_unpatched}/lib/libc++.a";
+      libcxxabi = "${self.libcxx_musl_unpatched}/lib/libc++abi.a";
+      libunwind = "${self.llvmPkgs.libraries.libunwind}/lib/libunwind.a";
+      libgcc = if self.stdenv.system == "i686-linux" then
+        "${self.llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-i386.a"
+      else
+        "${self.llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-x86_64.a";
+    };
+  });
+
+  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
+    # self.callPackage will use this stdenv.
+    stdenv = final.stdenvIncludeOS.includeos_stdenv;
 
     # Deps
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
@@ -11,24 +62,15 @@ final: prev: {
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
 
-    # Create new stdenv with musl to build includeos. This could also be used to build the dependencies,
-    # but currently (June 5th, 2024) this fails on libuv tests (and is a very large build).
-    musl-includeos = self.callPackage ./deps/musl/default.nix { };
-    clang_musl = llvmPkgs.libcxxClang.override (old: {
-      bintools = llvmPkgs.bintools.override {
-        libc = musl-includeos;
-      };
-      libc = musl-includeos;
-    });
-    musl_stdenv = (prev.overrideCC stdenv clang_musl);
-
     # IncludeOS
-    includeos = musl_stdenv.mkDerivation rec {
+    includeos = self.stdenv.mkDerivation rec {
       enableParallelBuilding = true;
-      hardeningDisable = [ "pie" ]; # use "all" to disable all hardening options
       pname = "includeos";
 
       version = "dev";
+
+      # Convenient access to libc, libcxx etc
+      passthru.libraries = final.stdenvIncludeOS.libraries;
 
       src = prev.pkgsStatic.lib.fileset.toSource {
           root = ./.;
@@ -48,18 +90,16 @@ final: prev: {
       postPatch = '''';
 
       nativeBuildInputs = [
-        prev.cmake
-        prev.nasm
+        prev.buildPackages.cmake
+        prev.buildPackages.nasm
       ];
 
       buildInputs = [
-
         self.botan2
         self.http-parser
         self.microsoft_gsl
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
-        prev.linuxHeaders # needed for linux/limits.h
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
       ];
@@ -81,7 +121,6 @@ final: prev: {
         inherit (self) http-parser;
         inherit (self) botan2;
         #inherit (self) s2n-tls;
-        inherit (self) musl-includeos;
         inherit (self) cmake;
       };
 

@@ -1,13 +1,4 @@
-# Nix expression to build IncludeOS.
-# See https://nixos.org/nix for info about Nix.
-#
-# Usage:
-#
-# $ nix-build ./path/to/this/file.nix
-#
-# Authors: Bjørn Forsman <bjorn.forsman@gmail.com>
-
-{ nixpkgs ? ./pinned.nix, # Builds cleanly May 9. 2024
+{ nixpkgs ? ./pinned.nix,
   overlays ? [
     (import ./overlay.nix)
   ],

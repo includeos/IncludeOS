@@ -11,8 +11,6 @@ stdenv.mkDerivation rec {
   pname = "musl-unpatched";
   version = "1.1.18";
 
-  hardeningDisable = [ "pie" "relro" "stackprotector" ];
-
   src = fetchGit {
     url = "git://git.musl-libc.org/musl";
     rev = "eb03bde2f24582874cb72b56c7811bf51da0c817";
