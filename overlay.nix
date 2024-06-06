@@ -61,6 +61,7 @@ final: prev: {
     microsoft_gsl = self.callPackage ./deps/GSL/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
+    vmbuild = self.callPackage ./vmbuild.nix { };
 
     # IncludeOS
     includeos = self.stdenv.mkDerivation rec {
@@ -102,7 +103,14 @@ final: prev: {
         prev.pkgsStatic.rapidjson
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
+        self.vmbuild
       ];
+
+      postInstall = ''
+        echo Copying vmbuild binaries to tools/vmbuild
+        mkdir -p "$out/tools/vmbuild"
+        cp -v ${self.vmbuild}/bin/* "$out/tools/vmbuild"
+        '';
 
       archFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
         [
@@ -122,6 +130,7 @@ final: prev: {
         inherit (self) botan2;
         #inherit (self) s2n-tls;
         inherit (self) cmake;
+        inherit (self) vmbuild;
       };
 
       meta = {
