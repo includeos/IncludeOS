@@ -5,10 +5,13 @@
   }
 , stdenv
 , pkgs ? import nixpkgs { config = {}; overlays = []; crossSystem = { config = stdenv.targetPlatform.config; }; }
+, linuxHeaders ? null
 }:
 stdenv.mkDerivation rec {
   pname = "musl-includeos";
   version = "1.1.18";
+
+  hardeningDisable = [ "pie" "relro" "stackprotector" ];
 
   src = fetchGit {
     url = "git://git.musl-libc.org/musl";
@@ -21,6 +24,8 @@ stdenv.mkDerivation rec {
     ./patches/musl.patch
     ./patches/endian.patch
   ];
+
+  passthru.linuxHeaders = linuxHeaders;
 
   postUnpack = ''
     echo "Replacing musl's syscall headers with IncludeOS syscalls"
