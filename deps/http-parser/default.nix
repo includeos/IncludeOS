@@ -12,7 +12,7 @@ let
       url = "https://github.com/NixOS/nixpkgs/archive/33f464b661f939689aa56af6b6e27b504c5afb93.tar.gz";
       sha256 = "15bdlccjg14qa7lwkcc7pikvi386ig108ca62hbxfas5wyw1fr62";
   };
-  pkgsHttpfix = import nixpkgsHttpfix { };
+  pkgsHttpfix = import nixpkgsHttpfix { crossSystem = { config = stdenv.targetPlatform.config; }; };
 in
   pkgsHttpfix.pkgsStatic.http-parser.overrideAttrs (oldAttrs: {
     inherit stdenv;

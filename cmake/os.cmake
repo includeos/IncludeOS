@@ -34,7 +34,7 @@ set(TRIPLE "${ARCH}-pc-linux-elf")
 
 
 if (ELF_SYMBOLS)
-  find_program(ELF_SYMS elf_syms)
+  find_program(ELF_SYMS elf_syms HINTS ${INCLUDEOS_PACKAGE}/tools/vmbuild)
   if (ELF_SYMS-NOTFOUND)
     message(FATAL_ERROR "elf_syms not found")
   endif()
@@ -188,8 +188,8 @@ function(os_add_executable TARGET NAME)
         COMMENT "elf.syms"
         COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
         COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-        COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-        COMMAND mv bin/${ELF_TARGET} bin/${ELF_TARGET}.copy
+        #COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        COMMAND mv $<TARGET_FILE:${ELF_TARGET}> $<TARGET_FILE:${ELF_TARGET}>.copy
         DEPENDS ${ELF_TARGET}
       )
   else()

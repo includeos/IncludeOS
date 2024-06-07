@@ -67,9 +67,11 @@ void Service::start()
 
   auto binary = mods[0];
 
+  Expects((uint32_t)binary.mod_end - (uint32_t)binary.mod_start < std::numeric_limits<ptrdiff_t>::max());
+
   Elf_binary<Elf64> elf (
       {(char*)binary.mod_start,
-        (int)(binary.mod_end - binary.mod_start)});
+       (uint32_t)binary.mod_end - (uint32_t)binary.mod_start});
 
 
   auto phdrs = elf.program_headers();
@@ -81,7 +83,8 @@ void Service::start()
   }
 
   auto init_seg = phdrs[0];
-  // Expects(loadable == 1);
+  MYINFO("%u phdrs with PT_LOAD found", loadable);
+
   // TODO: Handle multiple loadable segments properly
   Expects(init_seg.p_type == PT_LOAD);
 
@@ -109,6 +112,5 @@ void Service::start()
   ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, __multiboot_magic, __multiboot_addr);
 
   os::panic("Should have jumped\n");
-
   __builtin_unreachable();
 }

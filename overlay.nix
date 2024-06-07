@@ -1,15 +1,67 @@
 final: prev: {
+  stdenvIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
+    llvmPkgs = prev.pkgsStatic.llvmPackages_16;
+    stdenv = self.llvmPkgs.libcxxStdenv; # Use this as base stdenv
+
+    # Import unpatched musl for building libcxx. Libcxx needs some linux headers to be passed through.
+    musl-unpatched = self.callPackage ./deps/musl-unpatched/default.nix { linuxHeaders = prev.linuxHeaders; };
+
+    # Import IncludeOS musl which will be built and linked with IncludeOS services
+    musl-includeos = self.callPackage ./deps/musl/default.nix { };
+
+    # Clang with unpatched musl for building libcxx
+    clang_musl_unpatched_nolibcxx = self.llvmPkgs.clangNoLibcxx.override (old: {
+      bintools = prev.pkgsStatic.bintools.override {
+        # Disable hardening flags while we work on the build
+        defaultHardeningFlags = [];
+        libc = self.musl-unpatched;
+      };
+      libc = self.musl-unpatched;
+    });
+
+    # Libcxx which will be built with unpatched musl
+    libcxx_musl_unpatched = self.llvmPkgs.libcxx.override (old: {
+      stdenv = (prev.overrideCC self.llvmPkgs.libcxxStdenv self.clang_musl_unpatched_nolibcxx);
+    });
+
+    # Final stdenv, use libcxx w/unpatched musl + includeos musl as libc
+    clang_musl_includeos_libcxx = self.llvmPkgs.libcxxClang.override (old: {
+      bintools = prev.pkgsStatic.bintools.override {
+        # Disable hardening flags while we work on the build
+        defaultHardeningFlags = [];
+        libc = self.musl-includeos;
+      };
+      libc = self.musl-includeos;
+      libcxx = self.libcxx_musl_unpatched;
+    });
+
+    musl_includeos_stdenv_libcxx = (prev.overrideCC self.llvmPkgs.libcxxStdenv self.clang_musl_includeos_libcxx);
+
+    includeos_stdenv = self.musl_includeos_stdenv_libcxx;
+
+    libraries = {
+      libc = "${self.musl-includeos}/lib/libc.a";
+      libcxx = "${self.libcxx_musl_unpatched}/lib/libc++.a";
+      libcxxabi = "${self.libcxx_musl_unpatched}/lib/libc++abi.a";
+      libunwind = "${self.llvmPkgs.libraries.libunwind}/lib/libunwind.a";
+      libgcc = if self.stdenv.system == "i686-linux" then
+        "${self.llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-i386.a"
+      else
+        "${self.llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-x86_64.a";
+    };
+  });
+
   pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
     # self.callPackage will use this stdenv.
-    stdenv = prev.pkgsStatic.llvmPackages_16.libcxxStdenv;
+    stdenv = final.stdenvIncludeOS.includeos_stdenv;
 
     # Deps
-    musl-includeos = self.callPackage ./deps/musl/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
     botan2 = self.callPackage ./deps/botan/default.nix { };
     microsoft_gsl = self.callPackage ./deps/GSL/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
+    vmbuild = self.callPackage ./vmbuild.nix { };
 
     # IncludeOS
     includeos = self.stdenv.mkDerivation rec {
@@ -17,6 +69,9 @@ final: prev: {
       pname = "includeos";
 
       version = "dev";
+
+      # Convenient access to libc, libcxx etc
+      passthru.libraries = final.stdenvIncludeOS.libraries;
 
       src = prev.pkgsStatic.lib.fileset.toSource {
           root = ./.;
@@ -36,31 +91,11 @@ final: prev: {
       postPatch = '''';
 
       nativeBuildInputs = [
-        prev.cmake
-        prev.nasm
+        prev.buildPackages.cmake
+        prev.buildPackages.nasm
       ];
 
       buildInputs = [
-
-        # TODO:
-        # including musl here makes the compiler pick up musl's libc headers
-        # before libc++'s libc headers, which doesn't work. See e.g. <cstdint>
-        # line 149;
-        # error <cstdint> tried including <stdint.h> but didn't find libc++'s <stdint.h> header.
-        # #ifndef _LIBCPP_STDINT_H
-        #   error <cstdint> tried including <stdint.h> but didn't find libc++'s <stdint.h> header. \
-        #   This usually means that your header search paths are not configured properly. \
-        #   The header search paths should contain the C++ Standard Library headers before \
-        #   any C Standard Library, and you are probably using compiler flags that make that \
-        #   not be the case.
-        # #endif
-        #
-        # With this commented out IncludeOS builds with Nix libc++, which is great,
-        # but might bite us later because it then uses a libc we didn't patch.
-        # Best case we case we can adapt our own musl to be identical, use nix static
-        # musl for compilation, and includeos-musl only for linking.
-        #
-        # musl-includeos  👈 this has to come in after libc++ headers.
         self.botan2
         self.http-parser
         self.microsoft_gsl
@@ -68,7 +103,24 @@ final: prev: {
         prev.pkgsStatic.rapidjson
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
+        self.vmbuild
       ];
+
+      postInstall = ''
+        echo Copying vmbuild binaries to tools/vmbuild
+        mkdir -p "$out/tools/vmbuild"
+        cp -v ${self.vmbuild}/bin/* "$out/tools/vmbuild"
+        '';
+
+      archFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
+        [
+          "-DARCH=i686"
+          "-DPLATFORM=nano" # we currently only support nano platform on i686
+        ]
+      else
+        [ "-DARCH=x86_64"];
+
+      cmakeFlags = archFlags;
 
       # Add some pasthroughs, for easily building the depdencies (for debugging):
       # $ nix-build -A NAME
@@ -77,8 +129,8 @@ final: prev: {
         inherit (self) http-parser;
         inherit (self) botan2;
         #inherit (self) s2n-tls;
-        inherit (self) musl-includeos;
         inherit (self) cmake;
+        inherit (self) vmbuild;
       };
 
       meta = {

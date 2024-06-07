@@ -8,7 +8,7 @@
 , linuxHeaders ? null
 }:
 stdenv.mkDerivation rec {
-  pname = "musl-includeos";
+  pname = "musl-unpatched";
   version = "1.1.18";
 
   src = fetchGit {
@@ -18,33 +18,23 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  patches = [
-    ./patches/musl.patch
-    ./patches/endian.patch
-  ];
-
-  passthru.linuxHeaders = linuxHeaders;
-
-  postUnpack = ''
-    echo "Replacing musl's syscall headers with IncludeOS syscalls"
-
-    cp ${./patches/includeos_syscalls.h} $sourceRoot/src/internal/includeos_syscalls.h
-    cp ${./patches/syscall.h} $sourceRoot/src/internal/syscall.h
-
-    rm $sourceRoot/arch/x86_64/syscall_arch.h
-    rm $sourceRoot/arch/i386/syscall_arch.h
-  '';
-
- configurePhase = ''
+  configurePhase = ''
     echo "Configuring with musl's configure script"
     echo "Target platform is ${stdenv.targetPlatform.config}"
     ./configure --prefix=$out --disable-shared --enable-debug CROSS_COMPILE=${stdenv.targetPlatform.config}-
   '';
 
+  # Copy linux headers - taken from upstream nixpkgs musl, needed for libcxx to build
+  postInstall = ''
+    (cd $out/include && ln -s $(ls -d ${linuxHeaders}/include/* | grep -v "scsi$") .)
+  '';
+
   CFLAGS = "-Wno-error=int-conversion -nostdinc";
 
+  passthru.linuxHeaders = linuxHeaders;
+
   meta = {
-    description = "musl - Linux based libc, built with IncludeOS linux-like syscalls";
+    description = "musl - Linux based libc (unpatched)";
     homepage = "https://www.musl-libc.org/";
     license = pkgs.lib.licenses.mit;
   };

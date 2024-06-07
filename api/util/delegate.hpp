@@ -33,7 +33,10 @@ namespace spec
 
 namespace detail
 {
-	constexpr size_t default_capacity = sizeof(size_t) * 4;
+        // Up to 1 cache line on 64-bit as a max for storing closures.
+        // If you want more than this, don't use a lambda but a member function
+        // with well considered storage lifetime.
+        constexpr size_t default_capacity = sizeof(size_t) * 8;
 
 	template<typename T> using default_alignment = std::alignment_of<
 		std::function<T>
