@@ -46,14 +46,12 @@ if (DISKBUILDER-NOTFOUND)
 endif()
 
 set(LINK_SCRIPT ${INCLUDEOS_PACKAGE}/linker.ld)
-#includeos package can provide this!
+
 include_directories(
   ${INCLUDEOS_PACKAGE}/include/os
 )
 
-
-# arch and platform defines
-#TODO get from toolchain ?
+# Arch and platform defines
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
@@ -158,8 +156,31 @@ function(os_add_executable TARGET NAME)
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
 
-  # TODO: Find out which libraries we need
-  #conan_find_libraries_abs_path("${CONAN_LIBS}" "${CONAN_LIB_DIRS}" LIBRARIES)
+  if (${PLATFORM} STREQUAL "x86_pc")
+    set(LIBPLATFORM lib${ARCH}_pc.a)
+  elseif (${PLATFORM} STREQUAL "nano")
+    set(LIBPLATFORM lib${ARCH}_nano.a)
+  else()
+    set(LIBPLATFORM lib${ARCH}_${PLATFORM}.a)
+  endif()
+
+  if (${ARCH} STREQUAL "i686")
+    set(LIBGCC libclang_rt.builtins-i386.a)
+  else()
+    set(LIBGCC libclang_rt.builtins-${ARCH}.a)
+  endif()
+
+  set(LIBRARIES
+    ${INCLUDEOS_PACKAGE}/lib/libos.a
+    ${INCLUDEOS_PACKAGE}/platform/${LIBPLATFORM}
+    ${INCLUDEOS_PACKAGE}/lib/libarch.a
+    ${INCLUDEOS_PACKAGE}/lib/libos.a
+    ${INCLUDEOS_PACKAGE}/libcxx/lib/libc++.a
+    ${INCLUDEOS_PACKAGE}/libc/lib/libc.a
+    ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
+    ${INCLUDEOS_PACKAGE}/libunwind/lib/libunwind.a
+    ${INCLUDEOS_PACKAGE}/libgcc/lib/linux/${LIBGCC}
+  )
 
   message(STATUS ">>>>> 👉 Libraries: ${LIBRARIES}")
   foreach(_LIB ${LIBRARIES})
