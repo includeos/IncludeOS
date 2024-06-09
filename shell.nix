@@ -4,8 +4,12 @@
     config = {};
     inherit overlays;
   },
-  buildpath ? "" # Will create a temp one if none is passed, for example:
-               # nix-shell --argstr buildpath .
+  # Will create a temp one if none is passed, for example:
+  # nix-shell --argstr buildpath .
+  buildpath ? "",
+
+  # The unikernel to build
+  unikernel ? "./example"
 }:
 pkgs.mkShell rec {
   includeos = pkgs.pkgsIncludeOS.includeos;
@@ -27,17 +31,21 @@ pkgs.mkShell rec {
   shellHook = ''
     CC=${stdenv.cc}/bin/clang
     CXX=${stdenv.cc}/bin/clang++
-    example=$(realpath ./example)
-
-    BUILDPATH=${buildpath}
+    unikernel=$(realpath ${unikernel})
+    echo -e "Attempting to build unikernel: \n$unikernel"
+    if [ ! -d "$unikernel" ]; then
+        echo "$unikernel is not a valid directory"
+        exit 1
+    fi
+    export BUILDPATH=${buildpath}
     if [ -z "${buildpath}" ]; then
-        BUILDPATH=$(mktemp -d)
+        export BUILDPATH=$(mktemp -d)
         pushd $BUILDPATH
     else
         mkdir -p $BUILDPATH
         pushd $BUILDPATH
     fi
-    cmake $example -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos}
+    cmake $unikernel -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos}
     make -j12
     echo -e "\n====================== IncludeOS nix-shell ====================="
     if [ -z "${buildpath}" ]; then
