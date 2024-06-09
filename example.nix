@@ -1,7 +1,7 @@
 { nixpkgs ? ./pinned.nix,
   includeos ? import ./default.nix { },
   pkgs ? (import nixpkgs { }).pkgsStatic,
-  llvmPkgs ? pkgs.llvmPackages_16
+  llvmPkgs ? pkgs.llvmPackages_18
 }:
 
 includeos.stdenv.mkDerivation rec {
