@@ -18,12 +18,13 @@
 #ifndef UTIL_ALLOC_BUDDY_HPP
 #define UTIL_ALLOC_BUDDY_HPP
 
-#include <common>
 #include <sstream>
 #include <array>
+#include <span>
 #include <pmr>
 #include <stdlib.h>
 #include <math.h>
+#include <expects>
 
 #include <util/bitops.hpp>
 #include <util/units.hpp>
@@ -64,8 +65,8 @@ namespace os::mem::buddy {
   using Node_t    = uint8_t;
   using Addr_t    = uintptr_t; // Use void* only at outermost api level
   using Size_t    = size_t;
-  using Node_arr  = gsl::span<Node_t>;
-  using Index_t   = Node_arr::index_type;
+  using Node_arr  = std::span<Node_t>;
+  using Index_t   = Node_arr::size_type;
 
   /**
    * A buddy allocator over a fixed size pool

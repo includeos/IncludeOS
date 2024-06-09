@@ -19,7 +19,6 @@
 #define HW_PCI_DEVICE_HPP
 
 #include <cstdint>
-#include <common>
 #include <vector>
 #include <unordered_map>
 

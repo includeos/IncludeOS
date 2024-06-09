@@ -18,7 +18,7 @@
 #include <util/autoconf.hpp>
 #include <util/config.hpp>
 #include <net/configure.hpp>
-#include <common>
+#include <info>
 
 void autoconf::run()
 {

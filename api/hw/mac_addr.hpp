@@ -19,12 +19,13 @@
 #ifndef HW_MAC_ADDR_HPP
 #define HW_MAC_ADDR_HPP
 
-#include <common>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <array>
+#include <expects>
 
 namespace MAC {
 

@@ -20,6 +20,7 @@
  */
 
 #include <os>
+#include <expects>
 #include <kprint>
 
 bool example_plugin_registered = false;

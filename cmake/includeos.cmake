@@ -1,6 +1,6 @@
 #includeos standard settings for compilation and linkers
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -38,7 +38,10 @@ set(CAPABS "${CAPABS} -g -fstack-protector-strong")
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -D__includeos__")
-set(WARNS "-Wall -Wextra") # -Werror
+
+# We want  -Werror but that's a big TODO
+# - Wno-frame-address disables the warning when our backtrace uses __builtin_frame_address
+set(WARNS "-Wall -Wextra -Wno-frame-address")
 
 # object format needs to be set BEFORE enabling ASM
 # see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166

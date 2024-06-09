@@ -17,8 +17,8 @@
 
 //#define SMP_DEBUG 1
 #include <kernel/fiber.hpp>
-#include <common> // assert-based Exepcts/Ensures
 #include <cstdint>
+#include <expects>
 #include <memory>
 #include <smp>
 

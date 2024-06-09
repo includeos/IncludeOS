@@ -20,6 +20,7 @@
 
 #include <elf.h>
 #include <gsl/gsl>
+#include <span>
 #include <stdexcept>
 
 
@@ -42,12 +43,12 @@ class Elf_binary {
 
 public:
 
-  using Span = gsl::span<char>;
+  using Span = std::span<char>;
   using Elf_header = typename Arch::Ehdr;
   using Section_header = typename Arch::Shdr;
-  using Section_headers = gsl::span<Section_header>;
+  using Section_headers = std::span<Section_header>;
   using Program_header = typename Arch::Phdr;
-  using Program_headers = gsl::span<Program_header>;
+  using Program_headers = std::span<Program_header>;
   using Addr = typename Arch::Addr;
 
   Elf_binary(Span data)

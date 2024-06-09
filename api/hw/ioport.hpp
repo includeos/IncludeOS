@@ -18,7 +18,6 @@
 #ifndef HW_IOPORT_HPP
 #define HW_IOPORT_HPP
 
-#include <common>
 #include <arch.hpp>
 
 namespace hw {

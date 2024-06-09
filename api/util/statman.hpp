@@ -19,11 +19,11 @@
 #ifndef UTIL_STATMAN_HPP
 #define UTIL_STATMAN_HPP
 
-#include <common>
 #include <cstddef>
 #include <deque>
 #include <string>
 #include <smp_utils>
+#include <likely>
 
 struct Stats_out_of_memory : public std::out_of_range {
   explicit Stats_out_of_memory()

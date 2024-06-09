@@ -33,7 +33,7 @@
 #ifndef VIRTIO_VIRTIONET_HPP
 #define VIRTIO_VIRTIONET_HPP
 
-#include <common>
+#include <expects>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
 #include <net/packet.hpp>

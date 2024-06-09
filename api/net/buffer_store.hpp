@@ -19,10 +19,10 @@
 #ifndef NET_BUFFER_STORE_HPP
 #define NET_BUFFER_STORE_HPP
 
-#include <common>
 #include <stdexcept>
 #include <vector>
 #include <smp>
+#include <likely>
 
 namespace net
 {

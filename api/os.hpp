@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <delegate>
-#include <gsl/gsl>
+#include <span>
 
 namespace os {
 
@@ -103,9 +103,6 @@ namespace os {
   /** The on_panic handler will be called directly after a panic if possible.**/
   void on_panic(on_panic_func);
 
-  //using Plugin      = delegate<void()>;
-  //using Span_mods   = gsl::span<multiboot_module_t>;
-
 
   //
   // Print
@@ -154,7 +151,7 @@ namespace os {
     uint32_t pad;
   };
 
-  using Span_mods = gsl::span<Module>;
+  using Span_mods = std::span<Module>;
   Span_mods modules();
 
   using Plugin = delegate<void()>;

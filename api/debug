@@ -21,9 +21,9 @@
 #define API_DEBUG_HEADER
 
 #if defined(DEBUG) && ! defined(NO_DEBUG)
-#define debug(X,...)  printf(X,##__VA_ARGS__);
+#define debug(X,...)  { printf(X,##__VA_ARGS__); }
 #else
-#define debug(X,...)
+#define debug(X,...) { }
 #endif
 
 #if defined(__x86_64__) || defined(__i386__)

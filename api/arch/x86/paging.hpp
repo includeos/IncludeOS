@@ -18,13 +18,13 @@
 #ifndef X86_PAGING_HPP
 #define X86_PAGING_HPP
 
-#include <common>
 #include <array>
 #include <delegate>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <kernel/memory.hpp>
 #include <cstdlib>
+#include <expects>
 
 //#define DEBUG_X86_PAGING
 

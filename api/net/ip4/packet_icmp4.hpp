@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <cstdint>
-#include <gsl/span>
+#include <span>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/ip4/ip4.hpp> // please remove me
 
@@ -42,7 +42,7 @@ namespace icmp4 {
 
   public:
 
-    using Span = gsl::span<uint8_t>;
+    using Span = std::span<uint8_t>;
 
     static constexpr size_t header_size()
     { return sizeof(Header); }

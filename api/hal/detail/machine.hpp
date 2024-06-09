@@ -22,8 +22,8 @@
 #include <hal/machine.hpp>
 #include <hal/machine_memory.hpp>
 #include <util/typename.hpp>
-
 #include <set>
+#include <info>
 #include <hw/device.hpp>
 
 namespace os::detail {

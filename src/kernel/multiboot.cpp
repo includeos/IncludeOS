@@ -148,7 +148,7 @@ void kernel::multiboot(uint32_t boot_addr)
     INFO2("* Multiboot provided memory map  (%zu entries @ %p)",
           info->mmap_length / sizeof(multiboot_memory_map_t),
           (void*) (uintptr_t) info->mmap_addr);
-    gsl::span<multiboot_memory_map_t> mmap {
+    std::span<multiboot_memory_map_t> mmap {
         reinterpret_cast<multiboot_memory_map_t*>(info->mmap_addr),
         (int)(info->mmap_length / sizeof(multiboot_memory_map_t))
       };

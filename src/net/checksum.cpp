@@ -22,7 +22,7 @@
   #include <x86intrin.h>
 #endif
 #include <cassert>
-#include <common>
+#include <likely>
 
 namespace net {
 

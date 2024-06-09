@@ -23,7 +23,6 @@
 #include <vector>
 #include <net/util.hpp>
 #include <cstring>
-#include <common>
 
 namespace net {
 namespace dhcp {

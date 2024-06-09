@@ -1,6 +1,7 @@
 #include "cmos.hpp"
 #include "acpi.hpp"
 #include <statman>
+#include <info>
 
 using namespace x86;
 uint8_t   CMOS::reg_b_value = 0;

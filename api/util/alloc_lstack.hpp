@@ -17,7 +17,7 @@
 #ifndef UTIL_MINIALLOC_HPP
 #define UTIL_MINIALLOC_HPP
 
-#include <common>
+#include <expects>
 #include <util/bitops.hpp>
 
 extern "C" void kprintf(const char*, ...);

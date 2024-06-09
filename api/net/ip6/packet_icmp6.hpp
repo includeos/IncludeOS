@@ -96,7 +96,7 @@ namespace net::icmp6 {
 
   public:
 
-    using Span = gsl::span<uint8_t>;
+    using Span = std::span<uint8_t>;
 
     static constexpr size_t header_size()
     { return sizeof(Header); }

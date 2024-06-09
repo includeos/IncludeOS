@@ -19,7 +19,7 @@
 #ifndef UTIL_LOGGER_HPP
 #define UTIL_LOGGER_HPP
 
-#include <gsl/span>
+#include <span>
 #include <string>
 #include <iterator>
 #include <vector>
@@ -34,11 +34,11 @@
  */
 class Logger {
 public:
-  using Log = gsl::span<char>;
+  using Log = std::span<char>;
 
 public:
 
-  Logger(Log& log, Log::index_type = 0);
+  Logger(Log& log, Log::size_type = 0);
 
   /**
    * @brief Log a string
@@ -95,35 +95,38 @@ private:
    * @brief A "circular" iterator, operating on a Logger::Log
    * @details Wraps around everytime it reaches the end
    */
-  class iterator : public Log::iterator {
+  class log_iterator {
   public:
-    using base = Log::iterator;
 
-    // inherit constructors
-    using base::base;
+    using difference_type = Log::difference_type;
 
-    constexpr iterator& operator++() noexcept
+    Log* span_;
+    std::size_t index_;
+
+    log_iterator(Log* span, std::size_t index) : span_(span), index_(index) {}
+
+    constexpr log_iterator& operator++() noexcept
     {
       //Expects(span_ && index_ >= 0);
       index_ = (index_ < span_->size()-1) ? index_+1 : 0;
       return *this;
     }
 
-    constexpr iterator& operator--() noexcept
+    constexpr log_iterator& operator--() noexcept
     {
       //Expects(span_ && index_ < span_->size());
       index_ = (index_ > 0) ? index_-1 : span_->size()-1;
       return *this;
     }
 
-    constexpr iterator& operator+=(difference_type n) noexcept
+    constexpr log_iterator& operator+=(difference_type n) noexcept
     {
       //Expects(span_);
-      index_ = (index_ + n < span_->size()) ? index_ + n : std::abs((n - ((span_->size()) - index_)) % span_->size());
+      index_ = (index_ + n < span_->size()) ? index_ + n : std::abs(static_cast<ssize_t>((n - static_cast<ssize_t>(span_->size() - index_)) % static_cast<ssize_t>(span_->size())));
       return *this;
     }
 
-    constexpr span_iterator& operator-=(difference_type n) noexcept
+    constexpr log_iterator& operator-=(difference_type n) noexcept
     {
       // No use case for this (yet)
       return *this += -n;
@@ -131,7 +134,7 @@ private:
   }; // < class Logger::iterator
 
   /** Current position in the log */
-  iterator pos_;
+  log_iterator pos_;
 
 }; // << class Logger
 

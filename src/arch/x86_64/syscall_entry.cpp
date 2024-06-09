@@ -16,7 +16,7 @@
 
 #include <arch/x86/cpu.hpp>
 #include <os.hpp>
-#include <common>
+#include <likely>
 #include <kprint>
 #include <errno.h>
 

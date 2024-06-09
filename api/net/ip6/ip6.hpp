@@ -23,7 +23,6 @@
 #include "packet_ip6.hpp"
 #include "addr_list.hpp"
 
-#include <common>
 #include <net/netfilter.hpp>
 #include <net/conntrack.hpp>
 

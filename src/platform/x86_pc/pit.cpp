@@ -21,6 +21,8 @@
 #include <os.hpp>
 #include <kernel/events.hpp>
 #include <kernel/rtc.hpp>
+#include <debug>
+
 //#undef NO_DEBUG
 #define DEBUG
 #define DEBUG2

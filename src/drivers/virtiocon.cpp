@@ -3,6 +3,7 @@
 #include <hw/pci.hpp>
 #include <cassert>
 #include <cstring>
+#include <info>
 
 #ifdef VCON_DEBUG
 #define VCPRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)

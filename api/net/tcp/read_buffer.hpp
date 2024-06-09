@@ -89,8 +89,8 @@ public:
    *
    * @return True if the internal buffer is unique with data and doesnt contain hole
   */
-  bool has_unhandled_data()
-  { return (buf.unique() && (size() > 0) && (missing() == 0)); }
+  bool has_unhandled_datas()
+  { return (/*buf.unique() && */(size() > 0) && (missing() == 0)); }
 
   /**
    * @brief      Exposes the internal buffer (read only)

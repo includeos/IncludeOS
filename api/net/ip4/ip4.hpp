@@ -22,7 +22,6 @@
 #include "addr.hpp"
 #include "header.hpp"
 #include "packet_ip4.hpp"
-#include <common>
 #include <net/netfilter.hpp>
 #include <net/port_util.hpp>
 #include <rtc>

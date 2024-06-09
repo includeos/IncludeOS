@@ -41,6 +41,7 @@
 #include <kernel/events.hpp>
 #include <malloc.h>
 #include <cstring>
+#include <info>
 
 //#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK

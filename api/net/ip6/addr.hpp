@@ -19,10 +19,10 @@
 #ifndef NET_IP6_ADDR_HPP
 #define NET_IP6_ADDR_HPP
 
-#include <common>
-#include <net/util.hpp>
 #include <cstdlib>
 #include <string>
+#include <expects>
+#include <net/util.hpp>
 #include <hw/mac_addr.hpp>
 
 namespace net {

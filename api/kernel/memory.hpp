@@ -19,12 +19,12 @@
 #ifndef KERNEL_MEMORY_HPP
 #define KERNEL_MEMORY_HPP
 
-#include <common>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <util/alloc_buddy.hpp>
 #include <util/allocator.hpp>
 #include <sstream>
+#include <expects>
 #include <kernel/memmap.hpp>
 
 namespace os::mem {
