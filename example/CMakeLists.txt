@@ -5,11 +5,6 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 project(hello_includeos)
 
-# IncludeOS binary install location
-# INCLUDEOS_SOURCE 👈 needed for rapid iteration on IncludeOS' cmake files
-
-message(status "Libunwind at: ${INCLUDEOS_LIBUNWIND_PATH}")
-
 include("${INCLUDEOS_PACKAGE}/cmake/os.cmake")
 
 os_add_executable(hello_includeos "Hello world - OS included" src/main.cpp)
