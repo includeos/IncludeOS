@@ -9,7 +9,7 @@
         config = "i686-unknown-linux-musl";
       };
   },
-  llvmPkgs ? pkgs.llvmPackages_16
+  llvmPkgs ? pkgs.llvmPackages_18
 }:
 let
   includeos = pkgs.pkgsIncludeOS.includeos;
