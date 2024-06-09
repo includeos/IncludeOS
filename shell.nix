@@ -23,7 +23,7 @@ pkgs.mkShell rec {
 
 
   buildInputs = [
-    pkgs.microsoft_gsl
+    pkgs.pkgsIncludeOS.microsoft_gsl
   ];
 
   bootloader="${includeos}/boot/bootloader";
@@ -45,7 +45,7 @@ pkgs.mkShell rec {
         mkdir -p $BUILDPATH
         pushd $BUILDPATH
     fi
-    cmake $unikernel -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos}
+    cmake $unikernel -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos} -DCMAKE_MODULE_PATH=${includeos}/cmake
     make -j12
     echo -e "\n====================== IncludeOS nix-shell ====================="
     if [ -z "${buildpath}" ]; then
