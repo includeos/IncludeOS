@@ -112,4 +112,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(120,image_name='net_tcp').clean()
+    vm.boot(120,image_name='net_tcp.elf.bin')

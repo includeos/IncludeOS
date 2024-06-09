@@ -103,4 +103,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(30,image_name="net_udp").clean()
+    vm.boot(30,image_name="net_udp.elf.bin")
