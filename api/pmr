@@ -2,6 +2,7 @@
 
 #if __has_include(<memory_resource>)
 #include <memory_resource>
+#include <vector>
 #else
 #include <experimental/memory_resource>
 #include <experimental/vector>
