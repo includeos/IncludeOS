@@ -58,7 +58,6 @@ final: prev: {
     # Deps
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
     botan2 = self.callPackage ./deps/botan/default.nix { };
-    microsoft_gsl = self.callPackage ./deps/GSL/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
     vmbuild = self.callPackage ./vmbuild.nix { };
@@ -98,7 +97,6 @@ final: prev: {
       buildInputs = [
         self.botan2
         self.http-parser
-        self.microsoft_gsl
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
