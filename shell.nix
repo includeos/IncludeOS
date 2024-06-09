@@ -1,5 +1,6 @@
 { nixpkgs ? ./pinned.nix,
   overlays ? [ (import ./overlay.nix) ],
+  chainloader ? (import ./chainloader.nix {}),
   pkgs ? import nixpkgs {
     config = {};
     inherit overlays;
@@ -19,11 +20,11 @@ pkgs.mkShell rec {
     stdenv.cc
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
+    pkgs.pkgsIncludeOS.microsoft_gsl
   ];
 
-
   buildInputs = [
-    pkgs.pkgsIncludeOS.microsoft_gsl
+    chainloader
   ];
 
   bootloader="${includeos}/boot/bootloader";
@@ -31,6 +32,10 @@ pkgs.mkShell rec {
   shellHook = ''
     CC=${stdenv.cc}/bin/clang
     CXX=${stdenv.cc}/bin/clang++
+
+    # The 'boot' utility in the vmrunner package requires this env var
+    export INCLUDEOS_CHAINLOADER=${chainloader}/bin
+
     unikernel=$(realpath ${unikernel})
     echo -e "Attempting to build unikernel: \n$unikernel"
     if [ ! -d "$unikernel" ]; then
