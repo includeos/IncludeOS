@@ -20,10 +20,6 @@
 #ifndef INCLUDEOS_EXPECTS_HEADER
 #define INCLUDEOS_EXPECTS_HEADER
 
-/* debugging macros */
-#include "debug"
-#include "info"
-
 // LIKELY/UNLIKELY
 #include "branch_prediction"
 
