@@ -40,3 +40,6 @@
 #define debug2(X,...)
 #endif
 #endif
+
+/* BOCHS Break point */
+#define BREAK() __asm__ volatile("xchg %bx,%bx");
