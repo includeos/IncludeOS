@@ -40,14 +40,14 @@ final: prev: {
     includeos_stdenv = self.musl_includeos_stdenv_libcxx;
 
     libraries = {
-      libc = "${self.musl-includeos}/lib/libc.a";
-      libcxx = "${self.libcxx_musl_unpatched}/lib/libc++.a";
-      libcxxabi = "${self.libcxx_musl_unpatched}/lib/libc++abi.a";
-      libunwind = "${self.llvmPkgs.libraries.libunwind}/lib/libunwind.a";
-      libgcc = if self.stdenv.system == "i686-linux" then
-        "${self.llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-i386.a"
-      else
-        "${self.llvmPkgs.compiler-rt}/lib/linux/libclang_rt.builtins-x86_64.a";
+      libc = self.musl-includeos;
+      libcxx = {
+        # There doesn't seem to be a single package containing both libc++ headers and libs.
+        lib = "${self.libcxx_musl_unpatched}/lib";
+        include = "${self.libcxx_musl_unpatched.dev}/include/c++/v1";
+      };
+      libunwind = self.llvmPkgs.libraries.libunwind;
+      libgcc = self.llvmPkgs.compiler-rt;
     };
   });
 
@@ -110,6 +110,12 @@ final: prev: {
         echo Copying vmbuild binaries to tools/vmbuild
         mkdir -p "$out/tools/vmbuild"
         cp -v ${self.vmbuild}/bin/* "$out/tools/vmbuild"
+        cp -r -v ${final.stdenvIncludeOS.libraries.libc} $out/libc
+        mkdir $out/libcxx
+        cp -r -v ${final.stdenvIncludeOS.libraries.libcxx.lib} $out/libcxx/lib
+        cp -r -v ${final.stdenvIncludeOS.libraries.libcxx.include} $out/libcxx/include
+        cp -r -v ${final.stdenvIncludeOS.libraries.libunwind} $out/libunwind
+        cp -r -v ${final.stdenvIncludeOS.libraries.libgcc} $out/libgcc
         '';
 
       archFlags = if self.stdenv.targetPlatform.system == "i686-linux" then

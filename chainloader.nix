@@ -31,11 +31,6 @@ stdenv.mkDerivation rec {
 
   cmakeFlags = [
     "-DINCLUDEOS_PACKAGE=${includeos}"
-    "-DINCLUDEOS_LIBC_PATH=${includeos.libraries.libc}"
-    "-DINCLUDEOS_LIBCXX_PATH=${includeos.libraries.libcxx}"
-    "-DINCLUDEOS_LIBCXXABI_PATH=${includeos.libraries.libcxxabi}"
-    "-DINCLUDEOS_LIBUNWIND_PATH=${includeos.libraries.libunwind}"
-    "-DINCLUDEOS_LIBGCC_PATH=${includeos.libraries.libgcc}"
   ];
 
   srcs = [
