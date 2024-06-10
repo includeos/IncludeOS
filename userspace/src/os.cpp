@@ -75,7 +75,7 @@ void SystemLog::initialize() {}
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
-#include <gsl/gsl_assert>
+#include <expects>
 void* memalign(size_t alignment, size_t size) {
   void* ptr {nullptr};
   int res = posix_memalign(&ptr, alignment, size);

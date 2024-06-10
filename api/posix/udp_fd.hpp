@@ -21,7 +21,6 @@
 
 #include "sockfd.hpp"
 #include <net/udp/socket.hpp>
-#include <gsl/span>
 #include <deque>
 #include <netinet/in.h>
 
