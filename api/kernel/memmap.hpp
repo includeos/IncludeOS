@@ -264,7 +264,7 @@ public:
    *
    * @return The new size of the memory range in bytes
    */
-  ptrdiff_t resize(const ptrdiff_t size);
+  size_t resize(const size_t size);
 
   /**
    * Get the raw representation of the memory range
@@ -390,7 +390,7 @@ public:
    * @throws std::out_of_range IIf (key <= 0) or (key >= size())
    * @throws Memory_range_exception IIf a resize wasn't possible
    */
-  ptrdiff_t resize(const Key key, const ptrdiff_t size);
+  size_t resize(const Key key, const size_t size);
 
   /**
    * Get the number of memory ranges in the memory map

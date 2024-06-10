@@ -150,7 +150,7 @@ void kernel::multiboot(uint32_t boot_addr)
           (void*) (uintptr_t) info->mmap_addr);
     std::span<multiboot_memory_map_t> mmap {
         reinterpret_cast<multiboot_memory_map_t*>(info->mmap_addr),
-        (int)(info->mmap_length / sizeof(multiboot_memory_map_t))
+        static_cast<size_t>(info->mmap_length / sizeof(multiboot_memory_map_t))
       };
 
     for (auto map : mmap)

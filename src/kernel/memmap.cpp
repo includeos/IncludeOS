@@ -188,7 +188,7 @@ const Fixed_memory_range& Memory_map::at(const Key key) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-ptrdiff_t Memory_map::resize(const Key key, const ptrdiff_t size) {
+size_t Memory_map::resize(const Key key, const size_t size) {
   auto& range = map_.at(key);
 
   debug("Resize range 0x%x using %lib to use %lib", key, range.bytes_in_use(), size);
