@@ -24,10 +24,11 @@
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
 #include <hw/nic.hpp>
+#include <info>
 #include <map>
 #include <net/port_util.hpp>
-#include "conntrack.hpp"
 
+#include "conntrack.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/icmp4.hpp"
 #include "ip4/arp.hpp"

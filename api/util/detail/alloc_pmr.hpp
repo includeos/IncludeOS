@@ -17,9 +17,10 @@
 #ifndef UTIL_DETAIL_ALLOC_PMR
 #define UTIL_DETAIL_ALLOC_PMR
 
-#include <common>
 #include <deque>
 #include <delegate>
+#include <expects>
+#include <likely>
 #include <util/units.hpp>
 
 namespace os::mem::detail {

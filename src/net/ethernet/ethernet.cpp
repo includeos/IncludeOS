@@ -22,6 +22,7 @@
 #define PRINT(fmt, ...) /* fmt */
 #endif
 
+#include <debug>
 #include <net/util.hpp>
 #include <net/ethernet/ethernet.hpp>
 #include <statman>
