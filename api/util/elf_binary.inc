@@ -17,6 +17,7 @@
 // limitations under the License.
 
 #include <iostream>
+#include <cassert>
 
 template <typename Arch>
 const typename Arch::Ehdr& Elf_binary<Arch>::elf_header() const{

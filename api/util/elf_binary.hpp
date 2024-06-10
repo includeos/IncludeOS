@@ -19,9 +19,14 @@
 #define ELF_BINARY_HPP
 
 #include <elf.h>
-#include <gsl/gsl>
 #include <span>
 #include <stdexcept>
+#include <cassert>
+
+// TODO:
+// we can't include <expects> because that includes os.hpp, which includes
+// arch specific functions, SMP locks etc.
+#define Expects assert
 
 
 struct Elf32 {
