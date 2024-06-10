@@ -472,11 +472,11 @@ namespace os::mem::buddy {
       }
 
       Node_t& data() {
-        return alloc_->nodes_.at(i_);
+        return alloc_->nodes_[i_]; // Was .at(i_), TODO with c++26
       }
 
       const Node_t& data() const noexcept {
-        return alloc_->nodes_.at(i_);
+        return alloc_->nodes_[i_]; // TODO c++26, .at(i_);
       }
 
       Addr_t allocate_self() {
