@@ -131,6 +131,15 @@ private:
       // No use case for this (yet)
       return *this += -n;
     }
+
+    constexpr Log::value_type& operator*() const {
+      return (*span_)[index_];
+    }
+
+    constexpr bool operator==(const log_iterator& other) const noexcept {
+      return (*span_)[index_] == *other;
+    }
+
   }; // < class Logger::iterator
 
   /** Current position in the log */
