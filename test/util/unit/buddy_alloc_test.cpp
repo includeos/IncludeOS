@@ -19,10 +19,7 @@
 #include <common.cxx>
 #include <util/alloc_buddy.hpp>
 #include <util/allocator.hpp>
-
-#if __has_include(<experimental/vector>)
-#include <experimental/vector> // For pmr::vector
-#endif
+#include <vector>
 
 struct Pool {
   using Alloc = os::mem::buddy::Alloc<true>;
@@ -336,13 +333,12 @@ CASE("mem::buddy random chaos with data verification"){
 
 CASE("mem::buddy as pmr::memory_resource") {
   using namespace util;
-  using namespace std::experimental;
 
   Pool pool(1_GiB);
   auto* resource = pool.alloc;
 
-  pmr::polymorphic_allocator<int> alloc(resource);
-  pmr::vector<int> numbers(alloc);
+  std::pmr::polymorphic_allocator<int> alloc(resource);
+  std::pmr::vector<int> numbers(alloc);
 
   EXPECT(resource->empty());
   numbers.push_back(10);
@@ -364,7 +360,7 @@ CASE("mem::buddy as pmr::memory_resource") {
   numbers.push_back(40);
   EXPECT(resource->bytes_used() == Pool::Alloc::min_size);
 
-  EXPECT((numbers == pmr::vector<int>{20,30,40}));
+  EXPECT((numbers == std::pmr::vector<int>{20,30,40}));
 
   numbers.clear();
   numbers.shrink_to_fit();

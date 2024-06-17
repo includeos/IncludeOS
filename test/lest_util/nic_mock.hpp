@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <hw/nic.hpp>
+#include <info>
 
 #ifndef NICK_MOCK_HPP
 #define NICK_MOCK_HPP

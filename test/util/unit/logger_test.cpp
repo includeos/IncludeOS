@@ -25,7 +25,7 @@ CASE("Creating a Logger")
     const int N = 100;
     char buffer[N] = { 0 };
     //char buffer[N];
-    gsl::span<char> log{buffer, N};
+    std::span<char> log{buffer, N};
     Logger logger{log};
 
     WHEN("A Logger is created")
@@ -50,7 +50,7 @@ CASE("Adding one entry")
   {
     const int N = 100;
     char buffer[N] = { 0 };
-    gsl::span<char> log{buffer, N};
+    std::span<char> log{buffer, N};
     Logger logger{log};
 
     WHEN("An entry is logged")
@@ -97,7 +97,7 @@ CASE("Adding several entries")
   {
     const int N = 100;
     char buffer[N] = { 0 };
-    gsl::span<char> log{buffer, N};
+    std::span<char> log{buffer, N};
     Logger logger{log};
 
     WHEN("3 entries are logged")
@@ -140,7 +140,7 @@ CASE("Adding entries that wraps around")
   {
     const int N = 14;
     char buffer[N] = { 0 };
-    gsl::span<char> log{buffer, N};
+    std::span<char> log{buffer, N};
     Logger logger{log};
 
     const std::string entry1{"First"}; // 5 + 1
@@ -211,7 +211,7 @@ CASE("Adding a horde of log entries")
   {
     const int N = 1024*1024;
     char buffer[N] = { 0 };
-    gsl::span<char> log{buffer, N};
+    std::span<char> log{buffer, N};
     Logger logger{log};
 
     WHEN("Adding shitloads of entries")
