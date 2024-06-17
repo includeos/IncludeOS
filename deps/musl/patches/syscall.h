@@ -1,6 +1,7 @@
 #ifndef _INTERNAL_SYSCALL_H
 #define _INTERNAL_SYSCALL_H
 
+#include <features.h>
 #include <sys/syscall.h>
 #include "includeos_syscalls.h"
 
@@ -28,26 +29,21 @@
 typedef long syscall_arg_t;
 #endif
 
-__attribute__((visibility("hidden")))
-long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
+hidden long __syscall_ret(unsigned long),
 	__syscall_cp(syscall_arg_t, syscall_arg_t, syscall_arg_t, syscall_arg_t,
 	             syscall_arg_t, syscall_arg_t, syscall_arg_t);
 
-#define __SYSCALL_NARGS_X(a,b,c,d,e,f,g,h,n,...) n
-#define __SYSCALL_NARGS(...) __SYSCALL_NARGS_X(__VA_ARGS__,7,6,5,4,3,2,1,0,)
-#define __SYSCALL_CONCAT_X(a,b) a##b
-#define __SYSCALL_CONCAT(a,b) __SYSCALL_CONCAT_X(a,b)
 #define __syscall(a,...) syscall_##a(__VA_ARGS__)
 #define syscall(a,...) __syscall_ret(syscall_##a(__VA_ARGS__))
-
-
-#define socketcall __socketcall
-#define socketcall_cp __socketcall
 
 #define __syscall_cp syscall
 #define syscall_cp syscall
 
-#define __socketcall(nm, ...) __syscall_ret(socketcall_##nm(__VA_ARGS__))
+#define socketcall __socketcall
+#define socketcall_cp __socketcall
+#define __socketcall(nm, ...) socketcall_##nm(__VA_ARGS__)
+//#define socketcall(nm,a,b,c,d,e,f) __syscall_ret(__socketcall(nm,a,b,c,d,e,f))
+//#define socketcall_cp(nm,a,b,c,d,e,f) __syscall_ret(__socketcall_cp(nm,a,b,c,d,e,f))
 
 /* fixup legacy 16-bit junk */
 
@@ -175,6 +171,89 @@ long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
 #define SYS_sendfile SYS_sendfile64
 #endif
 
+
+/* Ensure that the plain syscall names are defined even for "time64-only"
+ * archs. These facilitate callers passing null time arguments, and make
+ * tests for establishing which to use/fallback-to more consistent when
+ * they do need to be called with time arguments. */
+
+#ifndef SYS_clock_gettime
+#define SYS_clock_gettime SYS_clock_gettime64
+#endif
+
+#ifndef SYS_clock_settime
+#define SYS_clock_settime SYS_clock_settime64
+#endif
+
+#ifndef SYS_clock_adjtime
+#define SYS_clock_adjtime SYS_clock_adjtime64
+#endif
+
+#ifndef SYS_clock_getres
+#define SYS_clock_getres SYS_clock_getres_time64
+#endif
+
+#ifndef SYS_clock_nanosleep
+#define SYS_clock_nanosleep SYS_clock_nanosleep_time64
+#endif
+
+#ifndef SYS_timer_gettime
+#define SYS_timer_gettime SYS_timer_gettime64
+#endif
+
+#ifndef SYS_timer_settime
+#define SYS_timer_settime SYS_timer_settime64
+#endif
+
+#ifndef SYS_timerfd_gettime
+#define SYS_timerfd_gettime SYS_timerfd_gettime64
+#endif
+
+#ifndef SYS_timerfd_settime
+#define SYS_timerfd_settime SYS_timerfd_settime64
+#endif
+
+#ifndef SYS_utimensat
+#define SYS_utimensat SYS_utimensat_time64
+#endif
+
+#ifndef SYS_pselect6
+#define SYS_pselect6 SYS_pselect6_time64
+#endif
+
+#ifndef SYS_ppoll
+#define SYS_ppoll SYS_ppoll_time64
+#endif
+
+#ifndef SYS_recvmmsg
+#define SYS_recvmmsg SYS_recvmmsg_time64
+#endif
+
+#ifndef SYS_mq_timedsend
+#define SYS_mq_timedsend SYS_mq_timedsend_time64
+#endif
+
+#ifndef SYS_mq_timedreceive
+#define SYS_mq_timedreceive SYS_mq_timedreceive_time64
+#endif
+
+/* SYS_semtimedop omitted because SYS_ipc may provide it */
+
+#ifndef SYS_rt_sigtimedwait
+#define SYS_rt_sigtimedwait SYS_rt_sigtimedwait_time64
+#endif
+
+#ifndef SYS_futex
+#define SYS_futex SYS_futex_time64
+#endif
+
+#ifndef SYS_sched_rr_get_interval
+#define SYS_sched_rr_get_interval SYS_sched_rr_get_interval_time64
+#endif
+
+
+
+
 /* socketcall calls */
 
 
@@ -199,6 +278,27 @@ long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
 #define __SC_recvmmsg    19
 #define __SC_sendmmsg    20
 
+#ifndef SO_RCVTIMEO_OLD
+#define SO_RCVTIMEO_OLD  20
+#endif
+#ifndef SO_SNDTIMEO_OLD
+#define SO_SNDTIMEO_OLD  21
+#endif
+
+#define SO_TIMESTAMP_OLD    29
+#define SO_TIMESTAMPNS_OLD  35
+#define SO_TIMESTAMPING_OLD 37
+#define SCM_TIMESTAMP_OLD    SO_TIMESTAMP_OLD
+#define SCM_TIMESTAMPNS_OLD  SO_TIMESTAMPNS_OLD
+#define SCM_TIMESTAMPING_OLD SO_TIMESTAMPING_OLD
+
+#ifndef SIOCGSTAMP_OLD
+#define SIOCGSTAMP_OLD 0x8906
+#endif
+#ifndef SIOCGSTAMPNS_OLD
+#define SIOCGSTAMPNS_OLD 0x8907
+#endif
+
 #ifdef SYS_open
 #define __sys_open2(x,pn,fl) __syscall2(SYS_open, pn, (fl)|O_LARGEFILE)
 #define __sys_open3(x,pn,fl,mo) __syscall3(SYS_open, pn, (fl)|O_LARGEFILE, mo)
@@ -216,5 +316,9 @@ long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
 
 #define __sys_open_cp __sys_open
 #define sys_open_cp(...) __syscall_ret(__sys_open_cp(__VA_ARGS__))
+
+hidden void __procfdname(char __buf[static 15+3*sizeof(int)], unsigned);
+
+hidden void *__vdsosym(const char *, const char *);
 
 #endif

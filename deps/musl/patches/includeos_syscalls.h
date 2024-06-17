@@ -1,52 +1,71 @@
 #pragma once
 
-#define __includeos(num, ...) extern long syscall_##num(long,...)
+#if !defined(SYS_set_thread_area)
+ #define SYS_set_thread_area
+#endif
 
-extern long syscall_n(long,...);
-extern long syscall_SYS_brk(void*);
-extern long syscall_SYS_close(long,...);
-extern long syscall_SYS_epoll_wait(long,...);
-extern long syscall_SYS_exit_group(long,...);
-extern long syscall_SYS_exit(long,...);
-extern long syscall_SYS_fadvise(long,...);
-extern long syscall_SYS_fallocate(long,...);
-extern long syscall_SYS_fcntl(long,...);
-extern long syscall_SYS_flistxattr(long,...);
+#if !defined(SYS_fork)
+  #define SYS_fork
+#endif
+
+#define __includeos(num, ...) extern long syscall_##num()
+
+extern long syscall_n();
+extern long syscall_nr();
+extern long syscall_SYS_brk();
+extern long syscall_SYS_close();
+extern long syscall_SYS_copy_file_range();
+extern long syscall_SYS_epoll_wait();
+extern long syscall_SYS_execveat();
+extern long syscall_SYS_exit_group();
+extern long syscall_SYS_exit();
+extern long syscall_SYS_fadvise();
+extern long syscall_SYS_fallocate();
+extern long syscall_SYS_fcntl();
+extern long syscall_SYS_flistxattr();
 extern long syscall_SYS_fork();
-extern long syscall_SYS_fremovexattr(long,...);
-extern long syscall_SYS_fsetxattr(long,...);
-extern long syscall_SYS_futex(long, ...);
-extern long syscall_SYS_getdents(long,...);
+extern long syscall_SYS_fremovexattr();
+extern long syscall_SYS_fsetxattr();
+extern long syscall_SYS_futex();
+extern long syscall_SYS_get_robust_list();
+extern long syscall_SYS_getdents();
 extern long syscall_SYS_getegid();
 extern long syscall_SYS_geteuid();
 extern long syscall_SYS_getgid();
 extern long syscall_SYS_getpid();
 extern long syscall_SYS_getppid();
+extern long syscall_SYS_getrandom();
 extern long syscall_SYS_gettid();
 extern long syscall_SYS_getuid();
 extern long syscall_SYS_inotify_init();
-extern long syscall_SYS_ioctl(long, long, long, ...);
-extern long syscall_SYS_lremovexattr(long,...);
-extern long syscall_SYS_mmap2(long,...);
-extern long syscall_SYS_msgctl(long,...);
-extern long syscall_SYS_msgget(long,...);
+extern long syscall_SYS_ioctl();
+extern long syscall_SYS_lremovexattr();
+extern long syscall_SYS_membarrier();
+extern long syscall_SYS_memfd_create();
+extern long syscall_SYS_mmap2();
+extern long syscall_SYS_mlock2();
+extern long syscall_SYS_msgctl();
+extern long syscall_SYS_msgget();
 extern long syscall_SYS_munlockall();
+extern long syscall_SYS_name_to_handle_at();
+extern long syscall_SYS_open_by_handle_at();
 extern long syscall_SYS_pause();
-extern long syscall_SYS_poll(long,...);
-extern long syscall_SYS_removexattr(long,...);
-extern long syscall_SYS_rt_sigqueueinfo(long, ...);
-extern long syscall_SYS_sched_getaffinity(long, ...);
+extern long syscall_SYS_poll();
+extern long syscall_SYS_ppoll();
+extern long syscall_SYS_removexattr();
+extern long syscall_SYS_rt_sigqueueinfo();
+extern long syscall_SYS_sched_getaffinity();
 extern long syscall_SYS_sched_yield();
-extern long syscall_SYS_semctl(long,...);
-extern long syscall_SYS_semget(long,...);
-extern long syscall_SYS_semop(long,...);
-extern long syscall_SYS_semtimedop(long,...);
+extern long syscall_SYS_semctl();
+extern long syscall_SYS_semget();
+extern long syscall_SYS_semop();
+extern long syscall_SYS_semtimedop();
 extern long syscall_SYS_setsid();
-extern long syscall_SYS_set_tid_address(long,...);
-extern long syscall_SYS_shmat(long,...);
+extern long syscall_SYS_set_tid_address();
+extern long syscall_SYS_shmat();
 extern long syscall_SYS_sync();
 extern long syscall_SYS_vhangup();
-extern int syscall_SYS_open(const char *path, int oflag, ... );
+extern int syscall_SYS_open(const char *path, int oflag, ...);
 
 __includeos(SYS_access);
 __includeos(SYS_acct);
@@ -191,6 +210,7 @@ __includeos(SYS_sched_setparam);
 __includeos(SYS_sched_setscheduler);
 __includeos(SYS_select);
 __includeos(SYS_sendfile);
+__includeos(SYS_set_thread_area);
 __includeos(SYS_setdomainname);
 __includeos(SYS_setfsgid);
 __includeos(SYS_setfsuid);
@@ -217,6 +237,7 @@ __includeos(SYS_signalfd4);
 __includeos(SYS_socketcall);
 __includeos(SYS_splice);
 __includeos(SYS_stat);
+__includeos(SYS_statx);
 __includeos(SYS_statfs);
 __includeos(SYS_statfs64);
 __includeos(SYS_swapoff);
@@ -254,25 +275,25 @@ __includeos(SYS_waitid);
 __includeos(SYS_write);
 __includeos(SYS_writev);
 
-int socketcall_socket(int,...);
-int socketcall_bind(int,...);
-int socketcall_connect(int,...);
-int socketcall_listen(int,...);
-int socketcall_accept(int,...);
-int socketcall_getsockname(int,...);
-int socketcall_getpeername(int,...);
-int socketcall_socketpair(int,...);
-int socketcall_send(int,...);
-int socketcall_recv(int,...);
-int socketcall_sendto(int,...);
-int socketcall_recvfrom(int,...);
-int socketcall_shutdown(int,...);
-int socketcall_setsockopt(int,...);
-int socketcall_getsockopt(int,...);
-int socketcall_sendmsg(int,...);
-int socketcall_recvmsg(int,...);
-int socketcall_accept4(int,...);
-int socketcall_recvmmsg(int,...);
-int syscall_SYS_recvmmsg(int,...);
-int syscall_SYS_sendmmsg(int,...);
-//int socketcall_sendmmsg(int,...);
+int socketcall_socket();
+int socketcall_bind();
+int socketcall_connect();
+int socketcall_listen();
+int socketcall_accept();
+int socketcall_getsockname();
+int socketcall_getpeername();
+int socketcall_socketpair();
+int socketcall_send();
+int socketcall_recv();
+int socketcall_sendto();
+int socketcall_recvfrom();
+int socketcall_shutdown();
+int socketcall_setsockopt();
+int socketcall_getsockopt();
+int socketcall_sendmsg();
+int socketcall_recvmsg();
+int socketcall_accept4();
+int socketcall_recvmmsg();
+int syscall_SYS_recvmmsg();
+int syscall_SYS_sendmmsg();
+//int socketcall_sendmmsg();
