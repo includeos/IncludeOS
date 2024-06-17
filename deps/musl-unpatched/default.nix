@@ -5,11 +5,11 @@ stdenv
 }:
 stdenv.mkDerivation rec {
   pname = "musl-unpatched";
-  version = "1.1.24";
+  version = "1.2.5";
 
   src = fetchGit {
     url = "git://git.musl-libc.org/musl";
-    rev = "ea9525c8bcf6170df59364c4bcd616de1acf8703";
+    rev = "0784374d561435f7c787a555aeab8ede699ed298";
   };
 
   enableParallelBuilding = true;
