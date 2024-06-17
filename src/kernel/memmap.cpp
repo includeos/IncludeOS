@@ -19,6 +19,9 @@
 #include <iomanip>
 #include <kernel/memmap.hpp>
 #include <util/units.hpp>
+#include <expects>
+#include <likely>
+#include <debug>
 
 using namespace os::mem;
 
@@ -58,7 +61,7 @@ bool Fixed_memory_range::is_valid_range(const Memory_range& range) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-ptrdiff_t Fixed_memory_range::resize(const ptrdiff_t size) {
+size_t Fixed_memory_range::resize(const size_t size) {
   Expects(size > 0);
   range_ = Memory_range{range_.data(), size};
   return size;
@@ -185,7 +188,7 @@ const Fixed_memory_range& Memory_map::at(const Key key) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-ptrdiff_t Memory_map::resize(const Key key, const ptrdiff_t size) {
+size_t Memory_map::resize(const Key key, const size_t size) {
   auto& range = map_.at(key);
 
   debug("Resize range 0x%x using %lib to use %lib", key, range.bytes_in_use(), size);

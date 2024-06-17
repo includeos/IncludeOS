@@ -28,6 +28,7 @@ extern void *memalign(size_t, size_t);
 #endif
 #include <cstring>
 #include <cassert>
+#include <debug>
 
 /**
    Virtio Queue class, nested inside Virtio.
@@ -82,7 +83,7 @@ Virtio::Queue::Queue(const std::string& name,
 }
 
 /** Ported more or less directly from SanOS. */
-int Virtio::Queue::enqueue(gsl::span<Token> buffers)
+int Virtio::Queue::enqueue(std::span<Token> buffers)
 {
   debug ("<%s> Enqueuing %i tokens \n", qname.c_str(), buffers.size());
 

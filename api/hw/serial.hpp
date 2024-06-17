@@ -23,6 +23,7 @@
 #include <os>
 #include <hw/ioport.hpp>
 #include <cstdio>
+#include <debug>
 
 namespace hw {
 

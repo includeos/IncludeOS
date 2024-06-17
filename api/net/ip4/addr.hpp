@@ -19,10 +19,10 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
-#include <common>
 #include <net/util.hpp>
 #include <cstdlib>
 #include <string>
+#include <expects>
 
 namespace net {
 namespace ip4 {

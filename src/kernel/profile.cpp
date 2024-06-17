@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <profile>
-#include <common>
+#include <likely>
 #include <kernel.hpp>
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>

@@ -18,7 +18,7 @@
 #include <util/crc32.hpp>
 #include <cstdint>
 #include <cstddef>
-#include <common>
+#include <likely>
 
 /** Intel (iSCSI) or vanilla-polynomial, DONT mix with other code **/
 #if defined(ARCH_x86_64) || defined(ARCH_i686)

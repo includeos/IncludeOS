@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <arch.hpp>
+#include <info>
 #include <kernel/memory.hpp>
 
 __attribute__((weak))

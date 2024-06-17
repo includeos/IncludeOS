@@ -17,7 +17,6 @@
 
 #include <kernel/elf.hpp>
 #include <util/crc32.hpp>
-#include <common>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -27,6 +26,8 @@
 #include <elf.h>
 #include <os.hpp>
 #include <arch.hpp>
+#include <likely>
+#include <info>
 
 #include <stdint.h>
 #if UINTPTR_MAX == 0xffffffffffffffff

@@ -19,10 +19,11 @@
 #include <net/buffer_store.hpp>
 #include <os>
 #include <kernel/memory.hpp>
-#include <common>
 #include <cassert>
 #include <smp>
 #include <cstddef>
+#include <likely>
+
 #ifdef __MACH__
 extern void* aligned_alloc(size_t alignment, size_t size);
 #endif

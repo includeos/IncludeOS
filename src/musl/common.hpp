@@ -3,7 +3,7 @@
 #include <os>
 #include <sstream>
 #include <cstdio>
-#include <branch_prediction>
+#include <likely>
 #include <kernel.hpp>
 
 #define STUB(X) printf("<stubtrace> stubbed syscall %s  called\n", X)

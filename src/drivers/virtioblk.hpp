@@ -19,7 +19,6 @@
 #ifndef VIRTIO_BLOCK_HPP
 #define VIRTIO_BLOCK_HPP
 
-#include <common>
 #include <hw/block_device.hpp>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>

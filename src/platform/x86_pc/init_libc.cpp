@@ -38,7 +38,7 @@ int kernel_main(int, char * *, char * *)
   LL_ASSERT(global_ctors_ok == 42);
   kernel::state().libc_initialized = true;
 
-  Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
+  Elf_binary<Elf64> elf{{(char*)&_ELF_START_, static_cast<size_t>(&_ELF_END_ - &_ELF_START_)}};
   LL_ASSERT(elf.is_ELF() && "ELF header intact");
 
   PRATTLE("<kernel_main> OS start \n");
@@ -81,7 +81,7 @@ namespace x86
     auto* ehdr = (Elf64_Ehdr*)&_ELF_START_;
     auto* phdr = (Elf64_Phdr*)((char*)ehdr + ehdr->e_phoff);
     LL_ASSERT(phdr);
-    Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
+    Elf_binary<Elf64> elf{{(char*)&_ELF_START_, static_cast<size_t>(&_ELF_END_ - &_ELF_START_)}};
     LL_ASSERT(elf.is_ELF());
     LL_ASSERT(phdr[0].p_type == PT_LOAD);
 

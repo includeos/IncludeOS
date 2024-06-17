@@ -278,4 +278,4 @@ print(color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZ
 if len(sys.argv) > 4:
     vm.boot(timeout=thread_timeout, image_name=str(sys.argv[4]))
 else:
-    vm.cmake().boot(thread_timeout).clean()
+    vm.boot(thread_timeout)

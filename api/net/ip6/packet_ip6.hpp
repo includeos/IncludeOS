@@ -22,6 +22,7 @@
 #include "header.hpp"
 #include "extension_header.hpp"
 #include <cassert>
+#include <span>
 #include <net/packet.hpp>
 
 namespace net
@@ -36,8 +37,8 @@ namespace net
   class PacketIP6 : public Packet {
   public:
     static constexpr int DEFAULT_HOP_LIMIT = 64;
-    using Span = gsl::span<Byte>;
-    using Cspan = gsl::span<const Byte>;
+    using Span = std::span<Byte>;
+    using Cspan = std::span<const Byte>;
 
     // IPv6 header getters
 

@@ -20,7 +20,6 @@ pkgs.mkShell rec {
     stdenv.cc
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
-    pkgs.pkgsIncludeOS.microsoft_gsl
   ];
 
   buildInputs = [

@@ -96,7 +96,7 @@ void Read_buffer::reset_buffer_if_needed()
   const auto bufcap = buf->capacity();
 
   // buffer is only ours
-  if(buf.unique())
+  if(buf.use_count() == 1)
   {
     buf->clear();
   }

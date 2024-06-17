@@ -20,9 +20,9 @@
 
 #include <delegate>
 #include <array>
-#include <common>
 #include <deque>
 #include <smp>
+#include <likely>
 
 #define IRQ_BASE    32
 //#define DEBUG_ALL_INTERRUPTS

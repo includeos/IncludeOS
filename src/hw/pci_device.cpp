@@ -16,8 +16,7 @@
 // limitations under the License.
 
 #include <assert.h>
-
-#include <common>
+#include <info>
 #include <hw/pci.hpp>
 #include <hw/pci_device.hpp>
 #include <hw/msi.hpp>

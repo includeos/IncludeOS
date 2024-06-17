@@ -16,16 +16,17 @@
 // limitations under the License.
 
 #include <profile>
-#include <common>
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-//#include <kernel/os.hpp>
 #include <os.hpp>
 #include <kernel/rtc.hpp>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
 #include <sstream>
+
+#include <debug>
+#include <likely>
 
 decltype(ScopedProfiler::guard)   ScopedProfiler::guard   = Guard::NOT_SELECTED;
 decltype(ScopedProfiler::entries) ScopedProfiler::entries = {};

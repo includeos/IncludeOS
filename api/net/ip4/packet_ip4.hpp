@@ -20,6 +20,7 @@
 
 #include "header.hpp"
 #include <cassert>
+#include <span>
 #include <net/packet.hpp>
 #include <net/inet_common.hpp>
 
@@ -30,8 +31,8 @@ namespace net {
   public:
     static constexpr int DEFAULT_TTL = 64;
 
-    using Span = gsl::span<Byte>;
-    using Cspan = gsl::span<const Byte>;
+    using Span = std::span<Byte>;
+    using Cspan = std::span<const Byte>;
 
     //
     // IP header getters

@@ -21,6 +21,7 @@
 #include <os.hpp>
 #include <hw/ioport.hpp>
 #include <cassert>
+#include <info>
 
 namespace x86 {
 

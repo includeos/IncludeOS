@@ -19,6 +19,8 @@
 #define HW_CMOS_HPP
 
 #include <hw/ioport.hpp>
+#include <debug>
+#include <expects>
 
 namespace x86
 {

@@ -5,6 +5,8 @@
 #include <hw/pci.hpp>
 #include <cassert>
 #include <stdlib.h>
+#include <info>
+#include <debug>
 
 #define VIRTIO_BLK_F_BARRIER   0
 #define VIRTIO_BLK_F_SIZE_MAX  1

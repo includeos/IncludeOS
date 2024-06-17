@@ -19,7 +19,6 @@
 #ifndef VIRTIO_CONSOLE_HPP
 #define VIRTIO_CONSOLE_HPP
 
-#include <common>
 #include <delegate>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>

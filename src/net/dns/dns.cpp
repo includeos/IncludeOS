@@ -21,7 +21,7 @@
 #else
 #define PRINT(fmt, ...) /* fmt */
 #endif
-#include <common>
+
 #include <net/dns/dns.hpp>
 #include <net/util.hpp>
 

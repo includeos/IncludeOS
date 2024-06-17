@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <cassert>
-#include <common>
 #include <delegate>
 #include <stdexcept>
 #include <vector>

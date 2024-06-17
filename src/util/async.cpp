@@ -16,7 +16,8 @@
 // limitations under the License.
 
 #include <async>
-#include <common>
+#include <debug>
+#include <likely>
 #include <memory>
 
 inline unsigned roundup(unsigned n, unsigned div) {

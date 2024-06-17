@@ -20,8 +20,8 @@
 
 #include "buffer_store.hpp"
 #include "ip4/addr.hpp"
-#include <gsl/gsl_assert>
 #include <delegate>
+#include <expects>
 #include <cassert>
 
 namespace net

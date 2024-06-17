@@ -20,9 +20,9 @@
 #define KERNEL_MEMMAP_HPP
 
 #include <cassert>
-#include <common>
 #include <delegate>
 #include <map>
+#include <span>
 #include <string>
 
 namespace os::mem {
@@ -43,7 +43,7 @@ class Fixed_memory_range {
 public:
   using size_type    = ptrdiff_t;
   using In_use_delg  = delegate<size_type()>;
-  using Memory_range = gsl::span<uint8_t>;
+  using Memory_range = std::span<uint8_t>;
 
   /**
    * Constructor
@@ -264,7 +264,7 @@ public:
    *
    * @return The new size of the memory range in bytes
    */
-  ptrdiff_t resize(const ptrdiff_t size);
+  size_t resize(const size_t size);
 
   /**
    * Get the raw representation of the memory range
@@ -302,7 +302,7 @@ public:
    * @return A const iterator to the beginning of the memory range
    */
   auto cbegin() const noexcept
-  { return range_.cbegin(); }
+  { return range_.begin(); }
 
   /**
    * Get a const iterator to the end of the memory range
@@ -310,7 +310,7 @@ public:
    * @return A const iterator to the end of the memory range
    */
   auto cend() const noexcept
-  { return range_.cend(); }
+  { return range_.end(); }
 private:
   Memory_range range_;
   const char*  name_;
@@ -390,7 +390,7 @@ public:
    * @throws std::out_of_range IIf (key <= 0) or (key >= size())
    * @throws Memory_range_exception IIf a resize wasn't possible
    */
-  ptrdiff_t resize(const Key key, const ptrdiff_t size);
+  size_t resize(const Key key, const size_t size);
 
   /**
    * Get the number of memory ranges in the memory map

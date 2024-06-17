@@ -23,6 +23,7 @@
 #include <smp>
 #include <arch.hpp>
 #include <assert.h>
+#include <debug>
 
 #define VIRTIO_MSI_CONFIG_VECTOR  20
 #define VIRTIO_MSI_QUEUE_VECTOR   22

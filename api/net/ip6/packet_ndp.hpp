@@ -22,7 +22,6 @@
 #include <net/ip6/ip6.hpp>
 #include <net/ip6/icmp6_error.hpp>
 #include <cstdint>
-#include <gsl/span>
 
 namespace net::icmp6 {
   class Packet;

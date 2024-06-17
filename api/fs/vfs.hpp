@@ -26,6 +26,7 @@
 #include <memory>
 #include <stdexcept>
 #include <typeinfo>
+#include <info>
 #include <fs/fd_compatible.hpp>
 
 // Demangle

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gsl/gsl_assert>
+#include <expects>
 #include <net/tcp/listener.hpp>
 #include <net/tcp/tcp.hpp>
 

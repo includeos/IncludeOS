@@ -36,7 +36,6 @@
 #include <net/inet_common.hpp>
 #include <stdint.h>
 #include <vector>
-#include <common>
 
 #define PAGE_SIZE 4096
 
@@ -75,8 +74,8 @@ public:
 
   public:
     // "Direction" of tokens
-    using span = std::pair<uint8_t*, size_t>;  //gsl::span<uint8_t>;
-    using size_type = size_t;//span::size_type;
+    using span = std::pair<uint8_t*, size_t>;
+    using size_type = size_t;
     enum Direction { IN, OUT };
     inline Token(span buf, Direction d) :
       data_{ buf.first }, size_{ buf.second }, dir_{ d }
@@ -219,7 +218,7 @@ public:
     /** Push data tokens onto the queue.
         @param buffers : A span of tokens
     */
-    int enqueue(gsl::span<Virtio::Token> buffers);
+    int enqueue(std::span<Virtio::Token> buffers);
 
     /** Dequeue a received packet */
     Token dequeue();

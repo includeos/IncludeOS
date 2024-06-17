@@ -19,7 +19,7 @@
 #ifndef NET_TCP_RTTM_HPP
 #define NET_TCP_RTTM_HPP
 
-#include <gsl/gsl_assert>
+#include <expects>
 #include <chrono>
 #include <cmath>
 #include <algorithm>

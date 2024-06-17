@@ -89,12 +89,13 @@ struct Filter_chain
   Filter_verdict<IPV> operator()(IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr ct)
   {
     Filter_verdict<IPV> verdict{std::move(pckt), Filter_verdict_type::ACCEPT};
-    int i = 0;
+    // TODO: clean up debug info in the whole codebase.
+    //int i = 0;
     for (auto& filter : chain) {
-      i++;
+      //i++;
       verdict = filter(verdict.release(), stack, ct);
       if(verdict == Filter_verdict_type::DROP) {
-        debug("Packet dropped in %s chain, filter %i \n", name, i);
+        //debug("Packet dropped in %s chain, filter %i \n", name, i);
         break;
       }
     }

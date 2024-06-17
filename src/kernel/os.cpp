@@ -41,7 +41,7 @@ os::Span_mods os::modules()
 
     return os::Span_mods {
       reinterpret_cast<os::Module*>(bootinfo_->mods_addr),
-        static_cast<int>(bootinfo_->mods_count) };
+       bootinfo_->mods_count };
   }
   return {};
 }

@@ -32,7 +32,7 @@
 
 #define AT_EXECFN  31 /* filename of program */
 
-typedef struct
+typedef struct auxv
 {
   long int a_type;              /* Entry type */
   union

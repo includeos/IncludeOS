@@ -20,8 +20,9 @@
 #define UTIL_FIXED_STORAGE_HPP
 
 #include <array>
-#include <common>
 #include <util/fixed_vector.hpp>
+#include <likely>
+#include <expects>
 
 // Implemenation based upon Howard Hinnant's terrific short_alloc example
 // https://howardhinnant.github.io/short_alloc.h
