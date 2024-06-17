@@ -2,8 +2,8 @@
 set(MUSL_OBJECTS
   futex.cpp close.cpp fcntl.cpp lseek.cpp ioctl.cpp writev.cpp
   write.cpp brk.cpp madvise.cpp mmap.cpp mremap.cpp munmap.cpp
-  lseek.cpp sched_getaffinity.cpp sysinfo.cpp prlimit64.cpp
-  getrlimit.cpp sched_yield.cpp set_robust_list.cpp
+  lseek.cpp sched_getaffinity.cpp sched_setaffinity.cpp sysinfo.cpp prlimit64.cpp
+  getrlimit.cpp getrusage.cpp sched_yield.cpp set_robust_list.cpp
   nanosleep.cpp open.cpp creat.cpp clock_gettime.cpp gettimeofday.cpp
   poll.cpp exit.cpp close.cpp set_tid_address.cpp
   pipe.cpp read.cpp readv.cpp getpid.cpp getuid.cpp mknod.cpp sync.cpp
@@ -16,6 +16,7 @@ set(MUSL_OBJECTS
   cwd.cpp
   dup3.cpp # also dup, dup2
   execve.cpp
+  fchdir.cpp
   fchmod.cpp
   fchmodat.cpp
   fchown.cpp
@@ -25,6 +26,7 @@ set(MUSL_OBJECTS
   geteuid.cpp
   getgid.cpp
   getuid.cpp
+  getrandom.cpp
   kill.cpp
   mkdir.cpp
   mkdirat.cpp
@@ -46,6 +48,8 @@ set(MUSL_OBJECTS
   uname.cpp
   utimensat.cpp
   unlink.cpp
+  sigaltstack.cpp
+  sched_setscheduler.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})
