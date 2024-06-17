@@ -10,6 +10,7 @@ set(MUSL_OBJECTS
   msync.cpp mincore.cpp syscall_n.cpp sigmask.cpp gettid.cpp
   socketcall.cpp rt_sigaction.cpp
   stat.cpp fstat.cpp fstatat.cpp
+  statx.cpp
   access.cpp
   chmod.cpp
   chown.cpp
@@ -19,7 +20,10 @@ set(MUSL_OBJECTS
   fchdir.cpp
   fchmod.cpp
   fchmodat.cpp
+  fchmodat2.cpp
   fchown.cpp
+  faccessat.cpp
+  faccessat2.cpp
   fsync.cpp
   ftruncate.cpp
   getdents.cpp
