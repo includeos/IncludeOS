@@ -2,6 +2,7 @@
 #define _INTERNAL_SYSCALL_H
 
 #include <features.h>
+#include <errno.h>
 #include <sys/syscall.h>
 #include "includeos_syscalls.h"
 
@@ -171,6 +172,45 @@ hidden long __syscall_ret(unsigned long),
 #define SYS_sendfile SYS_sendfile64
 #endif
 
+#ifdef SYS_timer_settime32
+#define SYS_timer_settime SYS_timer_settime32
+#endif
+
+#ifdef SYS_timer_gettime32
+#define SYS_timer_gettime SYS_timer_gettime32
+#endif
+
+#ifdef SYS_timerfd_settime32
+#define SYS_timerfd_settime SYS_timerfd_settime32
+#endif
+
+#ifdef SYS_timerfd_gettime32
+#define SYS_timerfd_gettime SYS_timerfd_gettime32
+#endif
+
+#ifdef SYS_clock_settime32
+#define SYS_clock_settime SYS_clock_settime32
+#endif
+
+#ifdef SYS_clock_gettime32
+#define SYS_clock_gettime SYS_clock_gettime32
+#endif
+
+#ifdef SYS_clock_getres_time32
+#define SYS_clock_getres SYS_clock_getres_time32
+#endif
+
+#ifdef SYS_clock_nanosleep_time32
+#define SYS_clock_nanosleep SYS_clock_nanosleep_time32
+#endif
+
+#ifdef SYS_gettimeofday_time32
+#define SYS_gettimeofday SYS_gettimeofday_time32
+#endif
+
+#ifdef SYS_settimeofday_time32
+#define SYS_settimeofday SYS_settimeofday_time32
+#endif
 
 /* Ensure that the plain syscall names are defined even for "time64-only"
  * archs. These facilitate callers passing null time arguments, and make
@@ -278,6 +318,12 @@ hidden long __syscall_ret(unsigned long),
 #define __SC_recvmmsg    19
 #define __SC_sendmmsg    20
 
+/* This is valid only because all socket syscalls are made via
+ * socketcall, which always fills unused argument slots with zeros. */
+#ifndef SYS_accept
+#define SYS_accept SYS_accept4
+#endif
+
 #ifndef SO_RCVTIMEO_OLD
 #define SO_RCVTIMEO_OLD  20
 #endif
@@ -316,6 +362,18 @@ hidden long __syscall_ret(unsigned long),
 
 #define __sys_open_cp __sys_open
 #define sys_open_cp(...) __syscall_ret(__sys_open_cp(__VA_ARGS__))
+
+#ifdef SYS_wait4
+#define __sys_wait4(a,b,c,d) __syscall(SYS_wait4,a,b,c,d)
+#define __sys_wait4_cp(a,b,c,d) __syscall_cp(SYS_wait4,a,b,c,d)
+#else
+hidden long __emulate_wait4(int, int *, int, void *, int);
+#define __sys_wait4(a,b,c,d) __emulate_wait4(a,b,c,d,0)
+#define __sys_wait4_cp(a,b,c,d) __emulate_wait4(a,b,c,d,1)
+#endif
+
+#define sys_wait4(a,b,c,d) __syscall_ret(__sys_wait4(a,b,c,d))
+#define sys_wait4_cp(a,b,c,d) __syscall_ret(__sys_wait4_cp(a,b,c,d))
 
 hidden void __procfdname(char __buf[static 15+3*sizeof(int)], unsigned);
 
