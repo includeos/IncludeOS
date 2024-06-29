@@ -149,8 +149,8 @@ CASE("Reseting the buffer")
   EXPECT(not buf.is_ready());
   EXPECT(not buf.at_end());
 
-  // not unique means new buffer
-  EXPECT(buffer.unique());
+  // not refcounts means new buffer
+  EXPECT(buffer.use_count() == 1);
   EXPECT(buf.buffer() != buffer);
 
   // no copy means same buffer

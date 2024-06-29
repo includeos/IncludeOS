@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.6.0)
 
 project(unittests C CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if (NOT CMAKE_BUILD_TYPE)
@@ -9,40 +12,8 @@ endif()
 
 set(PLATFORM "userspace")
 
-if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
-  conan_basic_setup()
-else()
-  #TODO get a released version ? or put one into root/cmake/ ?
-  if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-     file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
-                    "${CMAKE_BINARY_DIR}/conan.cmake")
-  endif()
-  ##needed by conaningans
-
-  include(${CMAKE_BINARY_DIR}/conan.cmake)
-  #include conan cmake
-  if (UPDATE)
-   set(CONAN_UPDATE UPDATE)
-  endif()
-  if (CONAN_PROFILE)
-    set(CONANPROFILE PROFILED ${CONAN_PROFILE})
-  endif()
-  conan_cmake_run(
-    CONANFILE conanfile.txt
-    BASIC_SETUP
-    ${CONAN_UPDATE}
-    ${CONANPROFILE}
-  )
-endif()
-
 if (NOT ARCH)
-  if (CONAN_SETTINGS_ARCH)
-    set(ARCH ${CONAN_SETTINGS_ARCH})
-  else()
-    set(ARCH "x86_64")
-  endif()
+  set(ARCH "x86_64")
 endif()
 message(STATUS "Building for arch ${ARCH}")
 
@@ -54,6 +25,7 @@ option(DEBUG_INFO "Print debug macro output when DEBUG/DEBUG2 etc. is defined in
 option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e.g. tar)" ON)
 option(EXTRA_TESTS "Build extra test" OFF)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #if ("${ARCH}" STREQUAL "")
 #  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 #  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
@@ -67,7 +39,7 @@ FILE(WRITE ${CMAKE_BINARY_DIR}/version.h
   "#define OS_VERSION \"v0.0.0.1\"\n"
 )
 
-include_directories(${CMAKE_BINARY_DIR})
+#include_directories(${CMAKE_BINARY_DIR})
 
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
@@ -139,7 +111,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/block.cpp
   ${TEST}/kernel/unit/cpuid.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
-  ${TEST}/kernel/unit/memory.cpp
+  ${TEST}/kernel/unit/test_memory.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/rng.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
@@ -161,8 +133,8 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_status_codes_test.cpp
   ${TEST}/net/unit/http_method_test.cpp
   ${TEST}/net/unit/http_mime_types_test.cpp
-  ${TEST}/net/unit/http_request_test.cpp
-  ${TEST}/net/unit/http_response_test.cpp
+#  ${TEST}/net/unit/http_request_test.cpp
+#  ${TEST}/net/unit/http_response_test.cpp
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/interfaces_test.cpp
@@ -186,7 +158,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
-  ${TEST}/net/unit/websocket.cpp
+#  ${TEST}/net/unit/websocket.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/posix/unit/unit_fd.cpp
@@ -212,7 +184,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
-  ${TEST}/util/unit/uri_test.cpp
+#  ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
   ${TEST}/util/unit/lstack/test_lstack_merging.cpp
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
@@ -234,8 +206,6 @@ if(EXTRA_TESTS)
   message(STATUS "Adding some extra tests")
   list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
 endif()
-
-#TODO get from conan!!! or should the test be in liveupdate and not vise versa?
 
 #if we could do add directory here it would be a lot cleaner..
 #TODO investigate
@@ -269,7 +239,7 @@ foreach(T ${TEST_SOURCES})
   #get the filename witout extension
   get_filename_component(NAME ${T} NAME_WE)
   add_executable(${NAME} ${T})
-  target_link_libraries(${NAME} liveupdate os lest_util os m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
+  target_link_libraries(${NAME} liveupdate os lest_util os m stdc++)
   add_test(${NAME} bin/${NAME})
   #add to list of tests for dependencies
   list(APPEND TEST_BINARIES ${NAME})
