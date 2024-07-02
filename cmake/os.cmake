@@ -100,7 +100,7 @@ set(CMAKE_SKIP_RPATH ON)
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
-option(FOR_PRODUCTION "Stop the OS when conditions not suitable for production" ON)
+option(FOR_PRODUCTION "Stop the OS when conditions not suitable for production" OFF)
 if (FOR_PRODUCTION)
   set(PROD_USE "--defsym __for_production_use=0x2000")
 else()
