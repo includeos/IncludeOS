@@ -5,7 +5,7 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 project (includeos C CXX)
 
-option(SMP "Compile with SMP (multiprocessing)" OFF)
+option(SMP "Compile with SMP (multiprocessing)" ON)
 option(PROFILE "Compile with startup profilers" OFF)
 
 include(cmake/includeos.cmake)
