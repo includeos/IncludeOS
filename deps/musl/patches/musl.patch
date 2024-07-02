@@ -2,12 +2,14 @@ diff --git a/arch/i386/atomic_arch.h b/arch/i386/atomic_arch.h
 index 7d2a48a..0d9fc0f 100644
 --- a/arch/i386/atomic_arch.h
 +++ b/arch/i386/atomic_arch.h
-@@ -80,7 +80,7 @@ static inline void a_spin()
- #define a_crash a_crash
+@@ -80,4 +80,7 @@ static inline void a_spin()
++ extern void kprint(const char*);
++ #define a_crash a_crash
  static inline void a_crash()
  {
 -	__asm__ __volatile__( "hlt" : : : "memory" );
-+	__asm__ __volatile__( "ud2" : : : "memory" );
++ kprint("\n*** Libc crashed 😵 ***\n");
++	__asm__ __volatile__( "cli;hlt" : : : "memory" );
  }
 
  #define a_ctz_64 a_ctz_64
@@ -15,12 +17,14 @@ diff --git a/arch/x86_64/atomic_arch.h b/arch/x86_64/atomic_arch.h
 index da4e203..08beb81 100644
 --- a/arch/x86_64/atomic_arch.h
 +++ b/arch/x86_64/atomic_arch.h
-@@ -105,7 +105,7 @@ static inline void a_spin()
- #define a_crash a_crash
+@@ -105,4 +105,7 @@ static inline void a_spin()
++ extern void kprint(const char*);
++#define a_crash a_crash
  static inline void a_crash()
  {
 -	__asm__ __volatile__( "hlt" : : : "memory" );
-+	__asm__ __volatile__( "ud2" : : : "memory" );
++ kprint("\n*** Libc crashed 😵 ***\n");
++	__asm__ __volatile__( "cli;hlt" : : : "memory" );
  }
 
  #define a_ctz_64 a_ctz_64
