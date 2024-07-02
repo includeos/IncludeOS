@@ -160,6 +160,8 @@ void kernel::post_start()
       printf(" +-->        To disable this check, re-run cmake with \"-DFOR_PRODUCTION=OFF\".\n");
       os::shutdown();
       return;
+    } else {
+      printf(" +-->        To make this warning fatal, re-compile with FOR_PRODUCTION=ON.\n");
     }
     FILLINE('~');
   }
