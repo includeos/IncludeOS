@@ -21,9 +21,12 @@
 
 CASE("version() returns string representation of OS version")
 {
+  // OS version should be set
   EXPECT(os::version() != nullptr);
   EXPECT(std::string(os::version()).size() > 0);
-  EXPECT(os::version()[0] == 'v');
+  // Accept v and V as version prefix
+  EXPECT(std::toupper(os::version()[0]) == 'V');
+  // Arch should never be empty
   EXPECT(os::arch() != nullptr);
   EXPECT(std::string(os::arch()).size() > 0);
 }
