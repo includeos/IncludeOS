@@ -42,9 +42,9 @@ CASE ("Using the fixed memory range class")
         for (; i != range.end(); i++)
           EXPECT(*i);
 
-        EXPECT_THROWS(++i);
-        EXPECT_THROWS(i++);
-
+        // Disabled, as range checks are not available in std::span
+        //EXPECT_THROWS(++i);
+        //EXPECT_THROWS(i++);
       }
 
       AND_THEN("You can check if any address is within that range") {
