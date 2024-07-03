@@ -33,6 +33,7 @@
 
 #include <os.hpp>
 inline void __expect_fail(const char *expr, const char *file, int line, const char *func){
+#ifndef UNITTESTS
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
 #endif
@@ -42,6 +43,13 @@ inline void __expect_fail(const char *expr, const char *file, int line, const ch
   SMP::global_unlock();
 #endif
   os::panic(expr);
+#else // TEST
+  // throw here to allow tests to capture the error
+  #include <stdexcept>
+  #include <format>
+  auto msg = std::format("{}:{}:{} {}",file, line, func, expr);
+  throw std::runtime_error(msg);
+#endif
 }
 
 #define Expects(x) ((void)((x) || (__expect_fail("Expects failed: "#x, __FILE__, __LINE__, __func__),0)))
