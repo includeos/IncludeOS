@@ -168,10 +168,18 @@ namespace net {
      * @todo : Optimize!
      **/
     Route<IPV>* get_cheapest_route(typename IPV::addr dest) {
-      Routing_table all = get_all_routes(dest);
-      std::sort(all.begin(), all.end());
-      if (not all.empty()) return &all.front();
-      return nullptr;
+      Route<IPV>* match = nullptr;
+      for (auto& route : routing_table_)
+        {
+          if (route.match(dest)) {
+            if (match) {
+              match = route.cost() < match->cost() ? &route : match;
+            } else {
+              match = &route;
+            }
+          }
+        }
+      return match;
     };
 
 
