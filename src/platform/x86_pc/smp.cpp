@@ -45,13 +45,13 @@ struct apic_boot {
   uint32_t  stack_base;
   uint32_t  stack_size;
 };
-
 struct __libc {
-  int can_do_threads;
-  int threaded;
-  int secure;
-  volatile int threads_minus_1;
-  size_t* auxv;
+  char can_do_threads;
+  char threaded;
+  char secure;
+  volatile signed char need_locks;
+  int threads_minus_1;
+  size_t *auxv;
 };
 extern struct __libc __libc;
 //extern "C" struct __libc *__libc_loc(void) __attribute__((const));
@@ -59,11 +59,14 @@ extern struct __libc __libc;
 
 static inline void musl_override_glob_locks()
 {
-  printf("__libc.can_do_threads: %d  __libc.threaded: %d\n",
+  printf("__libc.can_do_threads: %d\n__libc.threaded: %d\n",
         __libc.can_do_threads, __libc.threaded);
   printf("__libc.threads_minus_1: %d -> %d\n",
         __libc.threads_minus_1, 1);
   __libc.threads_minus_1 = 1;
+  printf("__libc.need_locks: %d -> 1",
+        __libc.need_locks);
+  __libc.need_locks = 1;
 }
 
 namespace x86
