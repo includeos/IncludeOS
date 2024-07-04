@@ -19,14 +19,22 @@
 #include <net/inet>
 #include <net/interfaces>
 #include <hw/async_device.hpp>
+#include <net/dhcp/dhcpd.hpp>
 
-static std::unique_ptr<hw::Async_device<UserNet>> dev1 = nullptr;
-static std::unique_ptr<hw::Async_device<UserNet>> dev2 = nullptr;
 
-static void setup_inet()
+CASE("Setup network")
 {
+  static std::unique_ptr<hw::Async_device<UserNet>> dev1 = nullptr;
+  static std::unique_ptr<hw::Async_device<UserNet>> dev2 = nullptr;
+
+  Timers::init(
+    [] (Timers::duration_t) {},
+    [] () {}
+  );
+
   dev1 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
   dev2 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
+
   dev1->connect(*dev2);
   dev2->connect(*dev1);
 
@@ -34,19 +42,9 @@ static void setup_inet()
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,43});
 }
 
-CASE("Setup network")
-{
-  Timers::init(
-    [] (Timers::duration_t) {},
-    [] () {}
-  );
-  setup_inet();
-}
-
-#include <net/dhcp/dhcpd.hpp>
-static std::unique_ptr<net::dhcp::DHCPD> dhcp_server = nullptr;
 CASE("Setup DHCP server")
 {
+  static std::unique_ptr<net::dhcp::DHCPD> dhcp_server = nullptr;
   auto& inet = net::Interfaces::get(0);
   dhcp_server = std::make_unique<net::dhcp::DHCPD> (
       inet.udp(), net::ip4::Addr{10,0,0,1}, net::ip4::Addr{10,0,0,24});
@@ -63,7 +61,7 @@ CASE("Create DHCP request")
       printf("Configured!\n");
       done = true;
     });
-  
+
   inet.negotiate_dhcp();
 
   while (!done)

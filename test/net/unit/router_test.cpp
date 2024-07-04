@@ -75,7 +75,6 @@ CASE("net::router: Creating and matching against routes")
 
 }
 
-
 CASE("net::router: Creating and using a router and routing table")
 {
 
@@ -111,15 +110,22 @@ CASE("net::router: Creating and using a router and routing table")
   auto routes = router.get_all_routes({10,42,42,10});
   EXPECT(routes.size() == 2u);
   EXPECT((routes.front().nexthop() == IP4::addr{10,42,42,2} or routes.front().nexthop() == IP4::addr{10,42,42,3}));
+  EXPECT((routes.back().nexthop() == IP4::addr{10,42,42,2} or routes.back().nexthop() == IP4::addr{10,42,42,3}));
+  EXPECT(routes.back().nexthop() != routes.front().nexthop());
 
   // Get the cheapest route for an IP
   auto route = router.get_cheapest_route({10,42,42,10});
-  EXPECT((route->nexthop() == IP4::addr{10,42,42,2} and route->interface() == eth1));
+  EXPECT(route != nullptr);
+  EXPECT(route->interface() == eth1);
+  EXPECT(route->cost() == 2);
+  EXPECT(route->nexthop() == IP4::addr(10,42,42,2));
 
   // Getting the most specific route should hit the most specific one (duh)
   route = router.get_most_specific_route({10,42,42,10});
 
   EXPECT(route != nullptr);
+  EXPECT(route->interface() == eth1);
+  EXPECT(route->cost() == 2);
   EXPECT(route->nexthop() == IP4::addr(10,42,42,2));
 
   // Change the routing table
