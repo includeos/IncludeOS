@@ -165,6 +165,7 @@ if(EXTRA_TESTS)
 endif()
 
 enable_testing()
+
 if (CPPCHECK)
   find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
   if (NOT CMAKE_CXX_CPPCHECK)
@@ -187,6 +188,8 @@ add_library(lest_util ${LEST_UTIL})
 
 file(COPY memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+find_program( VALGRIND valgrind )
+
 SET(TEST_BINARIES)
 foreach(T ${TEST_SOURCES})
   #CTest style
@@ -194,10 +197,55 @@ foreach(T ${TEST_SOURCES})
   get_filename_component(NAME ${T} NAME_WE)
   add_executable(${NAME} ${T})
   target_link_libraries(${NAME} liveupdate os lest_util os m stdc++)
-  add_test(${NAME} bin/${NAME})
-  #add to list of tests for dependencies
+
+  # regular test
+  add_test(${NAME}_unit bin/${NAME})
+  set_property(TEST ${NAME}_unit
+    PROPERTY LABELS unit)
+
+  # valgrind / memcheck
+  add_test(${NAME}_memcheck ${VALGRIND}
+      --error-exitcode=1
+      -s
+      --track-origins=yes
+      --tool=memcheck
+      bin/${NAME})
+
+  set_property(TEST ${NAME}_memcheck
+    PROPERTY LABELS memcheck)
+
+  # clang-tidy (slow...)
+  add_test(${NAME}_clangtidy clang-tidy
+      -checks=clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability,cppcoreguidelines*,modernize*,performance*,misc*,-misc-virtual-near-miss
+      -p=compile_commands.json
+      ${T})
+
+  set_property(TEST ${NAME}_clangtidy
+    PROPERTY LABELS clangtidy)
+
   list(APPEND TEST_BINARIES ${NAME})
 endforeach()
+
+add_custom_target( unittests ALL
+  DEPENDS ${TEST_BINARIES})
+
+add_custom_command(TARGET unittests
+                   POST_BUILD
+                   COMMAND ctest --output-on-failure -L unit )
+
+add_custom_target( memcheck
+  DEPENDS ${TEST_BINARIES})
+
+add_custom_command(TARGET memcheck
+                   POST_BUILD
+                   COMMAND ctest --output-on-failure -L memcheck)
+
+add_custom_target( clangtidy
+  DEPENDS ${TEST_BINARIES})
+
+add_custom_command(TARGET clangtidy
+                   POST_BUILD
+                   COMMAND ctest --output-on-failure -L clangtidy)
 
 if (GENERATE_SUPPORT_FILES)
   add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar
@@ -211,3 +259,4 @@ if (GENERATE_SUPPORT_FILES)
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
     )
 endif()
+
