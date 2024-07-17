@@ -73,7 +73,8 @@ namespace fs {
 
       E_NOENT,
       E_NOTDIR,
-      E_NOTFILE
+      E_NOTFILE,
+      E_INVAL
     }; //< enum token_t
 
     /**
