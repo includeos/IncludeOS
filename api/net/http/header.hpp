@@ -212,7 +212,7 @@ private:
 template<typename Char, typename Char_traits>
 std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Header& header) {
   if (not header.is_empty()) {
-    for (const auto field : header.fields_) {
+    for (const auto& field : header.fields_) {
       output_device << field.first  << ": "
                     << field.second << "\r\n";
     }
