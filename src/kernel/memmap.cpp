@@ -193,7 +193,7 @@ size_t Memory_map::resize(const Key key, const size_t size) {
 
   debug("Resize range 0x%x using %lib to use %lib", key, range.bytes_in_use(), size);
 
-  if (range.bytes_in_use() >= size) {
+  if (range.bytes_in_use() >= static_cast<ssize_t>(size)) {
     throw Memory_range_exception{"Can't resize. Range " + std::string(range.name())
                                  + " uses " + std::to_string(range.bytes_in_use())
                                  + "b, more than the requested " + std::to_string(size) + "b"};

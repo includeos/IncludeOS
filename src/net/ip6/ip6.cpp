@@ -107,7 +107,7 @@ namespace net
     this->set_payload_offset(pl_off);
   }
 
-  void IP6::receive(Packet_ptr pckt, const bool link_bcast)
+  void IP6::receive(Packet_ptr pckt, const bool /* link_bcast */)
   {
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
     // this will calculate exthdr length and set payload correctly
@@ -254,7 +254,7 @@ namespace net
     ship(std::move(packet), IP6::ADDR_ANY, ct);
   }
 
-  void IP6::ship(Packet_ptr pckt, ip6::Addr next_hop, Conntrack::Entry_ptr ct)
+  void IP6::ship(Packet_ptr pckt, ip6::Addr next_hop, Conntrack::Entry_ptr /* ct */)
   {
     auto packet = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 

@@ -262,6 +262,7 @@ namespace os::detail
   {
     INFO("Machine", "Listing registered devices");
 
+    #ifndef NO_INFO
     for(const auto idx : device_types_)
     {
       INFO2("|");
@@ -271,6 +272,7 @@ namespace os::detail
         INFO2("+--+ %s", dev.to_string().c_str());
       }
     }
+    #endif
 
     INFO2("|");
     INFO2("o");

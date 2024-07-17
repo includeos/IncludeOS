@@ -48,7 +48,7 @@ namespace net {
     // assume ethernet
     auto* layer = layer_begin;
     Ethernet::header* eth = reinterpret_cast<Ethernet::header*>(layer);
-    fprintf(stderr, "Ethernet type: 0x%hx ", eth->type());
+    fprintf(stderr, "Ethernet type: 0x%hx ", static_cast<uint16_t>(eth->type()));
     int print_len = sizeof(Ethernet::header);
     switch(eth->type())
     {

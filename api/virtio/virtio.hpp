@@ -273,6 +273,10 @@ public:
       return _size;
     }
 
+    uint16_t iobase() const noexcept { return _iobase; }
+
+    uint16_t pci_index() const noexcept { return _pci_index; }
+
   private:
     /** Initialize the queue buffer */
     void init_queue(int size, char* buf);

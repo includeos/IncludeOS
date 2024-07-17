@@ -172,7 +172,7 @@ namespace net
     }
   }
 
-  void ICMPv6::destination_unreachable(Packet_ptr pckt, icmp6::code::Dest_unreachable code) {
+  void ICMPv6::destination_unreachable(Packet_ptr pckt, icmp6::code::Dest_unreachable /* code */) {
     if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
       return;
 
@@ -213,7 +213,7 @@ namespace net
   void ICMPv6::ping(ip6::Addr ip, icmp_func callback, int sec_wait)
   { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
 
-  void ICMPv6::ping(const std::string& hostname) {
+  void ICMPv6::ping(const std::string& /* hostname */) {
 #if 0
     inet_.resolve(hostname, [this] (ip6::Addr a, Error err) {
       if (!err and a != IP6::ADDR_ANY)
@@ -222,7 +222,7 @@ namespace net
 #endif
   }
 
-  void ICMPv6::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
+  void ICMPv6::ping(const std::string& /* hostname */, icmp_func /* callback */, int /* sec_wait */) {
 #if 0
     inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (ip6::Addr a, Error err) {
       if (!err and a != IP6::ADDR_ANY)
@@ -318,8 +318,8 @@ namespace net
     icmp6::Packet res(inet_.ip6_packet_factory());
 
     // drop if the packet is too small
-    if (res.ip().capacity() < IP6_HEADER_LEN
-     + (int) res.header_size() + req.payload().size())
+    if (res.ip().capacity() < (int) IP6_HEADER_LEN
+        + (int) res.header_size() + (int) req.payload().size())
     {
       PRINT("WARNING: Network MTU too small for ICMP response, dropping\n");
       return;

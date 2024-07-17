@@ -212,13 +212,18 @@ void Connection::offer(size_t& packets)
     auto packet = create_outgoing_packet();
     packets--;
 
+    #ifdef DEBUG
     size_t written{0};
+    #endif
+
     size_t x{0};
     // fill the packet with data
     while(can_send() and
       (x = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem()) ))
     {
+      #ifdef DEBUG
       written += x;
+      #endif
       cb.SND.NXT += x;
       writeq.advance(x);
     }

@@ -77,8 +77,10 @@ void Service::start(const std::string& cmd)
     }
   }
 
+  #ifndef NO_INFO
   int exit_status = main(argc, argv);
   INFO("main","returned with status %d", exit_status);
+  #endif
 }
 
 __attribute__((weak))

@@ -48,7 +48,7 @@ namespace net
       &Mld::MulticastHostNode::idle_listener_state_handler};
   }
 
-  void Mld::MulticastHostNode::non_listener_state_handler(icmp6::Packet& pckt)
+  void Mld::MulticastHostNode::non_listener_state_handler(icmp6::Packet& /* pckt */)
   {
   }
 
@@ -68,7 +68,7 @@ namespace net
     }
   }
 
-  void Mld::MulticastHostNode::idle_listener_state_handler(icmp6::Packet& pckt)
+  void Mld::MulticastHostNode::idle_listener_state_handler(icmp6::Packet& /* pckt */)
   {
   }
 
@@ -205,16 +205,16 @@ namespace net
     }
   }
 
-  void Mld::recv_report(icmp6::Packet& pckt)
+  void Mld::recv_report(icmp6::Packet& /* pckt */)
   {}
 
-  void Mld::recv_done(icmp6::Packet& pckt)
+  void Mld::recv_done(icmp6::Packet& /* pckt */)
   {}
 
-  void Mld::recv_query_v2(icmp6::Packet& pckt)
+  void Mld::recv_query_v2(icmp6::Packet& /* pckt */)
   {}
 
-  void Mld::recv_report_v2(icmp6::Packet& pckt)
+  void Mld::recv_report_v2(icmp6::Packet& /* pckt */)
   {}
 
   void Mld::transmit(icmp6::Packet& pckt, MAC::Addr mac)
@@ -233,7 +233,7 @@ namespace net
     req.set_code(0);
     req.ip().set_ip_dst(mcast);
 
-    auto& report = req.emplace<mld::Report>(mcast);
+    req.emplace<mld::Report>(mcast);
 
     auto dest = req.ip().ip_dst();
     MAC::Addr dest_mac(0x33,0x33,
@@ -301,7 +301,9 @@ namespace net
 
     auto max_res_code = ntohs(query.max_res_code);
     auto mcast = query.mcast_addr;
-    auto num_sources = ntohs(query.num_srcs);
+
+    // TODO: Unused.
+    // auto num_sources = ntohs(query.num_srcs);
 
 
     if (max_res_code < 32768) {
@@ -325,8 +327,9 @@ namespace net
 
   void Mld2::receive_report(icmp6::Packet& pckt)
   {
-    const auto& report = pckt.view_payload_as<mld::v2::Report>();
-    auto num_records = ntohs(report.num_records);
+    // TODO: Unused:
+    // const auto& report = pckt.view_payload_as<mld::v2::Report>();
+    // auto num_records = ntohs(report.num_records);
   }
 
   void Mld2::receive(icmp6::Packet& pckt)
