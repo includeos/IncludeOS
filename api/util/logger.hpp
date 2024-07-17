@@ -87,10 +87,6 @@ public:
   auto size() const
   { return log_.size(); }
 
-private:
-  /** The underlaying log */
-  Log& log_;
-
   /**
    * @brief A "circular" iterator, operating on a Logger::Log
    * @details Wraps around everytime it reaches the end
@@ -137,10 +133,21 @@ private:
     }
 
     constexpr bool operator==(const log_iterator& other) const noexcept {
-      return (*span_)[index_] == *other;
+      return &(*span_)[index_] == &(*other);
+    }
+
+    const std::size_t& index() const {
+      return index_;
     }
 
   }; // < class Logger::iterator
+
+  const Log& log() const { return log_; }
+  const log_iterator& current_pos() const { return pos_; }
+
+private:
+  /** The underlaying log */
+  Log& log_;
 
   /** Current position in the log */
   log_iterator pos_;
