@@ -53,6 +53,13 @@ CASE("Adding one entry")
     std::span<char> log{buffer, N};
     Logger logger{log};
 
+    // We need to test the iterator since we now have our own implementation.
+    auto it = logger.current_pos();
+
+    EXPECT( logger.current_pos().index() == 0 );
+    EXPECT( *it == *logger.current_pos() );
+    EXPECT( it == logger.current_pos() );
+
     WHEN("An entry is logged")
     {
       const std::string entry{"test"};
@@ -60,8 +67,17 @@ CASE("Adding one entry")
 
       THEN("The logger have one entry which is the one logged")
       {
+
+        WHEN("The iterator copy is incremented")
+        {
+          ++it;
+          EXPECT( it != logger.current_pos());
+        }
+
         auto entries = logger.entries();
 
+        EXPECT( std::string(logger.log().data()) == entry);
+        EXPECT( logger.current_pos().index() == entry.size() + 1);
         EXPECT( entries.size() == 1u );
         EXPECT( entries[0] == entry );
 
