@@ -46,7 +46,7 @@ struct Block {
       seq_t end;
     };
 
-    uint64_t whole = 0;
+    uint64_t whole;
   };
 
   void swap_endian() noexcept
@@ -86,6 +86,9 @@ struct Block {
   { return "[" + std::to_string(start) + " => " + std::to_string(end) + "]"; }
 
 }__attribute__((packed));
+
+// Packed structs must have standard layout
+static_assert(std::is_standard_layout_v<Block>);
 
 // Print for Block
 inline std::ostream& operator<<(std::ostream& out, const Block& b) {

@@ -30,7 +30,7 @@ namespace net::ip6 {
  */
 struct Header {
   union {
-    uint32_t ver_tc_fl = 0x0060;
+    uint32_t ver_tc_fl;
     uint32_t version : 4,
              traffic_class : 8,
              flow_label : 20;
@@ -40,6 +40,9 @@ struct Header {
   uint8_t  hop_limit   = 0;
   Addr     saddr;
   Addr     daddr;
+
+  Header() : ver_tc_fl{0x0060} {}
+
 } __attribute__((packed)); //< struct Header
 
 static_assert(sizeof(Header) == 40, "IPv6 Header is of constant size (40 bytes)");
