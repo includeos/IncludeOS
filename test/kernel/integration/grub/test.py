@@ -13,5 +13,5 @@ vm = vmrunner.vms[0];
 grubify = "grubiso.sh"
 
 # Create the GRUB image
-subprocess.check_call(["bash",grubify,"service"])
+subprocess.check_call(["bash",grubify,"kernel_grub.elf.bin"])
 vm.boot(multiboot = False)
