@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <os>
+#include <expects>
 #include <kernel/context.hpp>
 #include <cmath>
 

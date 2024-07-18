@@ -20,4 +20,4 @@ vm.on_output("Ready to receive binary blob", begin_test)
 if len(sys.argv) > 1:
     vm.boot(40,image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(40,image_name='kernel_LiveUpdate').clean()
+    vm.boot(40,image_name='kernel_LiveUpdate.elf.bin')

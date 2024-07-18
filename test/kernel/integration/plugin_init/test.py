@@ -7,4 +7,4 @@ from vmrunner import vmrunner
 if len(sys.argv) > 1:
     vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
 else:
-    vmrunner.vms[0].cmake().boot(60,image_name='kernel_plugin_init').clean()
+    vmrunner.vms[0].boot(60,image_name='kernel_plugin_init.elf.bin')
