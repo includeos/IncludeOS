@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 2.8.9)
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
+cmake_minimum_required(VERSION 3.5)
+
 project (service C CXX)
 
 option(PORTABLE "" OFF)

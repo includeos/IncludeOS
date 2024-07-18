@@ -13,4 +13,4 @@ vm = vmrunner.vms[0]
 if len(sys.argv) > 1:
     vm.boot(20,image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(20,image_name='fs_memdisk').clean()
+    vm.boot(20,image_name='fs_memdisk.elf.bin')

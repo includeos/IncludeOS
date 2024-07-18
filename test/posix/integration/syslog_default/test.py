@@ -111,4 +111,4 @@ vm.on_output(" Exiting test: Something special to close with", check_num_outputs
 if len(sys.argv) > 1:
     vm.boot(20,image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(20,image_name='posix_syslog_default').clean()
+    vm.boot(20,image_name='posix_syslog_default.elf.bin')

@@ -124,4 +124,4 @@ vm.on_output("Something special to close with", check_num_outputs)
 if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(30,image_name='util_tar').clean()
+    vm.boot(30,image_name='util_tar.elf.bin')

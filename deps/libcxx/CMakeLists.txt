@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project("LLVM_libc++ for IncludeOS")
 message(STATUS, "IncludeOS toplevel CMake for LLVM's libc++")
 

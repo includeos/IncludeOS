@@ -23,6 +23,6 @@ vm.on_exit(cleanup)
 
 # Boot the VM
 if len(sys.argv) > 1:
-    vm.boot(thread_timeout,image_name='fs_fat32')
+    vm.boot(thread_timeout,image_name='fs_fat32.elf.bin')
 else:
-    vm.cmake().boot(thread_timeout,image_name='fs_fat32').clean()
+    vm.boot(thread_timeout,image_name='fs_fat32.elf.bin')
