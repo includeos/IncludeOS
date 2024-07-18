@@ -19,6 +19,7 @@
 *.gz
 *.tar
 *nacl.txt
+\#*
 .DS_Store
 nbproject
 dummy.disk
