@@ -24,6 +24,7 @@ pkgs.mkShell rec {
 
   buildInputs = [
     chainloader
+    pkgs.openssl
   ];
 
   bootloader="${includeos}/boot/bootloader";
@@ -49,7 +50,8 @@ pkgs.mkShell rec {
         mkdir -p $BUILDPATH
         pushd $BUILDPATH
     fi
-    cmake $unikernel -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos} -DCMAKE_MODULE_PATH=${includeos}/cmake
+    cmake $unikernel -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos} -DCMAKE_MODULE_PATH=${includeos}/cmake \
+                     -DFOR_PRODUCTION=OFF
     make -j12
     echo -e "\n====================== IncludeOS nix-shell ====================="
     if [ -z "${buildpath}" ]; then
