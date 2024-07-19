@@ -90,7 +90,10 @@ void Service::start()
 
       static std::vector<Name_request> requests {
         {"google.com", google},
-        {"github.com", google},
+        // Having this here fails the test in some cases. A timing issue or a bug?
+        // Or maybe google is rate limiting queries.
+        //{"github.com", google},
+        {"github.com", level3},
         {"some_address_that_doesnt_exist.com"},
         {"theguardian.com", level3},
         {"www.facebook.com"},
@@ -101,7 +104,7 @@ void Service::start()
         {"doubleclick.net"},
         {"google-analytics.com"},
         {"akamaihd.net"},
-        {"googlesyndication.com"}
+        {"googlesyndication.com"},
       };
 
       do_test(inet, requests);

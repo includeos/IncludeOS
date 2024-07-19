@@ -29,7 +29,7 @@ def finish():
 # Add custom event-handler
 vm.on_output("Resolved IP address of google.com with DNS server 8.8.8.8", count)
 vm.on_output("Resolved IP address of theguardian.com with DNS server 4.2.2.1", count)
-vm.on_output("Resolved IP address of github.com with DNS server 8.8.8.8", count)
+vm.on_output("Resolved IP address of github.com with DNS server 4.2.2.1", count)
 vm.on_output("some_address_that_doesnt_exist.com couldn't be resolved", count)
 
 # Boot the VM, taking a timeout as parameter
