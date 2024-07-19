@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# A lot of these tests requires vmrunner and a network bridge.
+# A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
-# for an explanation.
 
 set -e
+
 : "${QUICK_SMOKE:=}" # Define this to only do a ~1 min. smoke test.
+: "${DRY_RUN:=}"     # Define this to expand all steps without running any
 
 success(){
   echo -e -n "\n👷💬 Step $1 succeeded "
@@ -15,45 +16,77 @@ success(){
   echo ""
 }
 
-echo -e "\n🚧 1) Building and running unit tests"
-nix-build unittests.nix
-success 1
+steps=1
 
-echo -e "\n🚧 2) Build the chainloader"
-INCLUDEOS_CHAINLOADER=$(nix-build chainloader.nix)
-echo "$INCLUDEOS_CHAINLOADER"
-success 2
+run(){
+  echo ""
+  echo "🚧 Step $steps) $2"
+  echo "⚙️  Running this command:"
+  declare -f $1 | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
+  echo "-------------------------------------- 💣 --------------------------------------"
+  if [ ! $DRY_RUN ]
+  then
+    $1
+  fi
+  success $steps
+  steps=$((steps + 1))
+}
 
-echo -e "\n🚧 3) Building the basic example"
-nix-build example.nix
-success 3
+unittests(){
+  nix-build unittests.nix
+}
 
-echo -e "\n🚧 4) Building and running a few key smoke tests"
-nix-shell --argstr unikernel ./test/net/integration/udp --run ./test.py
-nix-shell --argstr unikernel ./test/net/integration/tcp --run ./test.py
-nix-shell --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-nix-shell --argstr unikernel ./test/kernel/integration/smp --run ./test.py
-success 4
+build_chainloader(){
+  nix-build chainloader.nix
+}
+
+build_example(){
+  nix-build example.nix
+}
+
+smoke_tests(){
+  nix-shell --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --argstr unikernel ./test/net/integration/tcp --run ./test.py
+  nix-shell --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+}
+
+run unittests "Build and run unit tests"
+
+run build_chainloader "Build the 32-bit chainloader"
+
+run build_example "Build the basic example"
+
+run smoke_tests "Build and run a few key smoke tests"
+
 
 if [ -n "$QUICK_SMOKE" ]; then
-  echo -e "\n👷💬 A lot of things are working! 💪"
+  echo ""
+  echo "👷💬 A lot of things are working! 💪"
   exit 0
 fi
 
-echo -e "\n🚧 5) Building and running all integration tests"
+# Continuing from here will run all integration tests.
 
 run_testsuite() {
   local base_folder="$1"
   shift
   local exclusion_list=("$@")
+  substeps=1
 
-  echo -e "\n\n🚧 🚜 Running integration tests in $base_folder. Exceptions: "
+  echo ""
+  echo "====================================== 🚜 ======================================"
+  echo ""
+  echo "🚧 $steps) Running integration tests in $base_folder"
 
-  for exclude in "${exclusion_list[@]}"; do
-    echo " - 📎 Skipping $exclude"
-  done
-
-  echo -e "\n======================================================================="
+  if [ ! ${#exclusion_list[@]} -eq 0 ]
+  then
+    echo "⚠️  With the following exceptions: "
+    for exclude in "${exclusion_list[@]}"; do
+      echo " - ✏️  Skipping $exclude"
+    done
+  fi
+  echo "--------------------------------------------------------------------------------"
 
   for subfolder in "$base_folder"/*/; do
     local skip=false
@@ -69,16 +102,34 @@ run_testsuite() {
       continue
     fi
 
-    echo -e "\n💣 Running tests in $subfolder "
-    cmd="nix-shell --argstr unikernel $subfolder --run \"./test.py\""
-    echo "👷💬 Reproduce with this 👇"
-    echo "$cmd"
-    echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    $cmd
+
+    # The command to run, as string to be able to print the fully expanded command
+    cmd="nix-shell --argstr unikernel $subfolder --run ./test.py"
+
+    echo ""
+    echo "🚧 Step $steps.$substeps"
+    echo "📂 $subfolder"
+    echo "⚙️  Running this command:"
+    echo $cmd
+    echo "-------------------------------------- 💣 --------------------------------------"
+
+
+    if [ ! $DRY_RUN ]
+    then
+       $cmd
+    fi
+
+    substeps=$((substeps + 1))
+
   done
+
+  success $steps
+  steps=$((steps + 1))
 }
 
-# These tests should work or be removed, but are currently broken.
+#
+# Kernel tests
+#
 exclusions=(
   "LiveUpdate" # Missing includes
   "context"    # Outdated - references nonexisting OS::heap_end()
@@ -88,7 +139,25 @@ exclusions=(
 )
 
 run_testsuite "./test/kernel/integration" "${exclusions[@]}"
-success 5
 
-echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-echo -e "\n🌈✨ Everything is awesome ✨🦄"
+#
+# Networking tests
+#
+exclusions=(
+  "dhclient"  # Times out because it requires DHCP server on the bridge.
+  "dhcpd"     # Times out, requires certain routes to be set up. Seems easy.
+  "dhcpd_dhclient_linux" # We can't run userspace tests with this setup yet.
+  "gateway"   # Requires NaCl which is currently not integrated
+  "http"      # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
+  "microLB"   # Missing dependencies: microLB, diskbuilder, os_add_os_library
+  "nat"       # Times out after 3 / 6 tests seem to pass. Might be a legit bug here.
+  "router"    # Times out, requies sudo and has complex network setup.
+  "router6"   # Times out: iperf3: error - unable to connect to server
+  "vlan"      # Times out. Looks similar to the nat test - maybe similar cause?
+  "websocket" # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
+)
+
+run_testsuite "./test/net/integration" "${exclusions[@]}"
+
+echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo -e "\n🌈✨ Everything is awesome ✨\n"

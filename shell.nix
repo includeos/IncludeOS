@@ -25,6 +25,7 @@ pkgs.mkShell rec {
   buildInputs = [
     chainloader
     pkgs.openssl
+    pkgs.rapidjson
   ];
 
   bootloader="${includeos}/boot/bootloader";

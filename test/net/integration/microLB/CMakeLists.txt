@@ -13,8 +13,9 @@ os_add_drivers(net_microLB virtionet)
 
 os_add_stdout(net_microLB default_stdout)
 
-os_add_os_library(net_microLB microlb)
-os_add_os_library(net_microLB liveupdate)
+# TODO: This cmake command no longer exists
+#os_add_os_library(net_microLB microlb)
+#os_add_os_library(net_microLB liveupdate)
 
 os_diskbuilder(net_microLB ${CMAKE_CURRENT_SOURCE_DIR}/drive)
 
