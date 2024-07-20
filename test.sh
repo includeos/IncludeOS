@@ -1,35 +1,58 @@
 #!/bin/bash
 
+# Run all known IncludeOS tests.
+#
 # A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
 
-set -e
-
-: "${QUICK_SMOKE:=}" # Define this to only do a ~1 min. smoke test.
+: "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
 
+steps=0
+fails=0
+
 success(){
-  echo -e -n "\n👷💬 Step $1 succeeded "
-  for ((i=1; i<=$1; i++)); do
-    echo -n "👏"
-  done
+  echo ""
+  if [[ $1 =~ ^[0-9]+$ ]]; then
+    echo -n "👷💬 Step $1 succeeded "
+    for ((i=1; i<=$1; i++)); do
+      echo -n "👏"
+    done
+  else
+    echo "👷💬 Step $1 succeeded ✅"
+  fi
   echo ""
 }
 
-steps=1
+fail(){
+  echo ""
+  echo "👷⛔ Step $1 failed"
+}
 
 run(){
   echo ""
   echo "🚧 Step $steps) $2"
   echo "⚙️  Running this command:"
+  # This will print the body of a bash function, but won't expand variables
+  # inside. It works well for bundling simple commands together and allows us to
+  # print them without wrapping them in qotes.
   declare -f $1 | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
   echo "-------------------------------------- 💣 --------------------------------------"
+
+  steps=$((steps + 1))
+
   if [ ! $DRY_RUN ]
   then
     $1
   fi
-  success $steps
-  steps=$((steps + 1))
+  if [ $? -eq 0 ]; then
+    success $steps
+  else
+    echo "‼️  Error: Command failed with exit status $?"
+    fail $steps
+    fails=$((fails + 1))
+    return $?
+  fi
 }
 
 unittests(){
@@ -61,8 +84,15 @@ run smoke_tests "Build and run a few key smoke tests"
 
 
 if [ -n "$QUICK_SMOKE" ]; then
-  echo ""
-  echo "👷💬 A lot of things are working! 💪"
+  if [ fails -eq 0 ]; then
+    echo ""
+    echo "👷💬 A lot of things are working! 💪"
+  else
+    echo ""
+    echo "👷🧰 $fails / $steps steps failed. There's some work left to do. 🛠  "
+    echo ""
+    exit 1
+  fi
   exit 0
 fi
 
@@ -72,7 +102,10 @@ run_testsuite() {
   local base_folder="$1"
   shift
   local exclusion_list=("$@")
+
+  steps=$((steps + 1))
   substeps=1
+  subfails=0
 
   echo ""
   echo "====================================== 🚜 ======================================"
@@ -113,18 +146,27 @@ run_testsuite() {
     echo $cmd
     echo "-------------------------------------- 💣 --------------------------------------"
 
+    substeps=$((substeps + 1))
 
     if [ ! $DRY_RUN ]
     then
-       $cmd
+      $cmd
     fi
-
-    substeps=$((substeps + 1))
+    if [ $? -eq 0 ]; then
+      success "$steps.$substeps"
+    else
+      fail "$steps.$substeps"
+      subfails=$((subfails + 1))
+    fi
 
   done
 
-  success $steps
-  steps=$((steps + 1))
+  if [ $subfails -eq 0 ]; then
+    success $steps
+  else
+    fail $steps
+    fails=$((fails + 1))
+  fi
 }
 
 #
@@ -160,4 +202,14 @@ exclusions=(
 run_testsuite "./test/net/integration" "${exclusions[@]}"
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-echo -e "\n🌈✨ Everything is awesome ✨\n"
+
+if [ $fails -eq 0 ]; then
+  echo ""
+  echo "🌈✨ Everything is awesome ✨"
+  echo ""
+else
+  echo ""
+  echo "👷🧰 $fails / $steps steps failed. There's some work left to do. 🛠  "
+  echo ""
+  exit 1
+fi
