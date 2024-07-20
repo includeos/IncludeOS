@@ -7,6 +7,7 @@ in
 stdenv.mkDerivation rec {
   pname = "unittests";
   version = "dev";
+  enableParallelBuilding = true;
 
   sourceRoot = "test";
 
@@ -45,12 +46,10 @@ stdenv.mkDerivation rec {
     inherit lest;
   };
 
-  postBuild = ''
-    ctest
-  '';
-
   nativeBuildInputs = [
-    pkgs.cmake
+    pkgs.buildPackages.cmake
+    pkgs.buildPackages.valgrind
+    pkgs.buildPackages.clang-tools
   ];
 
   buildInputs = [

@@ -17,19 +17,12 @@ if (NOT ARCH)
 endif()
 message(STATUS "Building for arch ${ARCH}")
 
-option(COVERAGE "Build with coverage generation" OFF)
-option(SILENT_BUILD "Build with some warnings turned off" ON)
-
 option(INFO "Print INFO macro output" OFF)
 option(DEBUG_INFO "Print debug macro output when DEBUG/DEBUG2 etc. is defined in source" OFF)
 option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e.g. tar)" ON)
 option(EXTRA_TESTS "Build extra test" OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-#if ("${ARCH}" STREQUAL "")
-#  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-#  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
-#endif("${ARCH}" STREQUAL "")
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
@@ -54,31 +47,6 @@ if (DEBUG_INFO)
 endif()
 
 set(CMAKE_CXX_FLAGS "-g -O0  -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
-
-if (COVERAGE)
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-  endif()
-endif()
-
-# Neccesary apple stuff because native bundle is old/bad
-if (APPLE)
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    message(STATUS "Including brew bundled libc++")
-    execute_process(COMMAND brew "--prefix" "llvm@6" OUTPUT_VARIABLE BREW_LLVM)
-    string(STRIP ${BREW_LLVM} BREW_LLVM)
-    set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
-    message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -lc++experimental -Wno-unused-command-line-argument")
-  else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.12")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.12")
-  endif()
-endif()
 
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -190,27 +158,14 @@ set(TEST_SOURCES
   ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
 )
 
-# Disable (don't build) currently non-working tests on macOS
-if (APPLE)
-  list(REMOVE_ITEM TEST_SOURCES
-    ${TEST}/net/unit/websocket.cpp
-    )
-endif()
-
-if (COVERAGE)
-  list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
-endif()
-
 if(EXTRA_TESTS)
   set(GENERATE_SUPPORT_FILES ON)
   message(STATUS "Adding some extra tests")
   list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
 endif()
 
-#if we could do add directory here it would be a lot cleaner..
-#TODO investigate
-
 enable_testing()
+
 if (CPPCHECK)
   find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
   if (NOT CMAKE_CXX_CPPCHECK)
@@ -233,6 +188,8 @@ add_library(lest_util ${LEST_UTIL})
 
 file(COPY memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+find_program( VALGRIND valgrind )
+
 SET(TEST_BINARIES)
 foreach(T ${TEST_SOURCES})
   #CTest style
@@ -240,92 +197,55 @@ foreach(T ${TEST_SOURCES})
   get_filename_component(NAME ${T} NAME_WE)
   add_executable(${NAME} ${T})
   target_link_libraries(${NAME} liveupdate os lest_util os m stdc++)
-  add_test(${NAME} bin/${NAME})
-  #add to list of tests for dependencies
+
+  # regular test
+  add_test(${NAME}_unit bin/${NAME})
+  set_property(TEST ${NAME}_unit
+    PROPERTY LABELS unit)
+
+  # valgrind / memcheck
+  add_test(${NAME}_memcheck ${VALGRIND}
+      --error-exitcode=1
+      -s
+      --track-origins=yes
+      --tool=memcheck
+      bin/${NAME})
+
+  set_property(TEST ${NAME}_memcheck
+    PROPERTY LABELS memcheck)
+
+  # clang-tidy (slow...)
+  add_test(${NAME}_clangtidy clang-tidy
+      -checks=clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability,cppcoreguidelines*,modernize*,performance*,misc*,-misc-virtual-near-miss
+      -p=compile_commands.json
+      ${T})
+
+  set_property(TEST ${NAME}_clangtidy
+    PROPERTY LABELS clangtidy)
+
   list(APPEND TEST_BINARIES ${NAME})
 endforeach()
 
-if(SILENT_BUILD)
-  message(STATUS "NOTE: Building with some warnings turned off")
-  set_property(SOURCE ${SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS
-  " -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-format")
-endif()
+add_custom_target( unittests ALL
+  DEPENDS ${TEST_BINARIES})
 
-#disabled old DUNITTESTS
-if (COVERAGE)
-  if (NOT DEFINED CODECOV_OUTPUTFILE )
-      set( CODECOV_OUTPUTFILE coverage.info )
-  endif()
+add_custom_command(TARGET unittests
+                   POST_BUILD
+                   COMMAND ctest --output-on-failure -L unit )
 
-  if (NOT DEFINED CODECOV_HTMLOUTPUTDIR )
-      set( CODECOV_HTMLOUTPUTDIR ${CMAKE_CURRENT_BINARY_DIR}/html )
-  endif()
-  if (CMAKE_COMPILER_IS_GNUCXX)
-    if (NOT DEFINED CODECOV_GCOV)
-      find_program(CODECOV_GCOV gcov)
-      if (CODECOV_GCOV-NOTFOUND)
-        message(FATAL_ERROR "gcov not found")
-      endif()
-    endif()
-    if (NOT DEFINED CODECOV_LCOV)
-      find_program(CODECOV_LCOV lcov)
-      if (CODECOV_LCOV-NOTFOUND)
-        message(FATAL_ERROR "lcov not found")
-      endif()
-    endif()
-    if (NOT DEFINED CODECOV_GENHTML)
-      find_program(CODECOV_GENHTML genhtml)
-      if (CODECOV_GENHTML-NOTFOUND)
-        message(FATAL_ERROR "genhtml not found")
-      endif()
-    endif()
+add_custom_target( memcheck
+  DEPENDS ${TEST_BINARIES})
 
-    #run this command allways althoug it depends on all the sources beeing buildt
-    add_custom_target(coverage_init ALL
-      COMMENT "Generating empty initial coverage"
-      COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -b ${CMAKE_CURRENT_BINARY_DIR} -d ${CMAKE_CURRENT_BINARY_DIR} -o base.info -c -i
-      DEPENDS ${TEST_BINARIES}
-      BYPRODUCTS base.info
-    )
-    add_custom_target(execute_test
-      COMMENT "Executing test"
-      COMMAND ctest
-      DEPENDS ${TEST_BINARIES}
-    )
+add_custom_command(TARGET memcheck
+                   POST_BUILD
+                   COMMAND ctest --output-on-failure -L memcheck)
 
-    #generate coverage for the excuted code.. TODO make it run all the code ?
-    add_custom_target(coverage_executed
-      COMMENT "Generating executed coverage"
-      COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -b ${CMAKE_CURRENT_BINARY_DIR} -d ${CMAKE_CURRENT_BINARY_DIR} -o test.info -c
-      BYPRODUCTS test.info
-      DEPENDS execute_test
-    )
-    #merge generated coverage and executed coverage.
-    add_custom_target(coverage_merged
-      COMMENT "Merging initial and executed coverage"
-      COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -a base.info -a test.info -o unstripped.info
-      SOURCES test.info base.info
-      BYPRODUCTS unstripped.info
-      DEPENDS coverage_init coverage_executed
-    )
+add_custom_target( clangtidy
+  DEPENDS ${TEST_BINARIES})
 
-    #strip from report /test path /usr/lib and /usr/include.. TODO add more if neccesary eg */.conan/*
-    add_custom_target(coverage_stripped
-      COMMENT "Stripping default paths and test from report"
-      COMMAND ${CODECOV_LCOV} -q -r unstripped.info '*/.conan/*' '*/test/*' '/usr/lib/*' '/usr/include/*'  -o ${CODECOV_OUTPUTFILE}
-      DEPENDS coverage_merged
-      SOURCES unstripped.info
-      BYPRODUCTS ${CODECOV_OUTPUTFILE}
-    )
-    #generate HTML coverage report
-    add_custom_target(coverage
-      COMMENT "Generating Code Coverage Web report"
-      COMMAND ${CODECOV_GENHTML} -q -o ${CODECOV_HTMLOUTPUTDIR} ${CODECOV_OUTPUTFILE}
-      DEPENDS coverage_stripped
-      SOURCES ${CODECOV_OUTPUTFILE}
-    )
-  endif()
-endif()
+add_custom_command(TARGET clangtidy
+                   POST_BUILD
+                   COMMAND ctest --output-on-failure -L clangtidy)
 
 if (GENERATE_SUPPORT_FILES)
   add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar
@@ -340,9 +260,3 @@ if (GENERATE_SUPPORT_FILES)
     )
 endif()
 
-add_custom_target(
-  clang-tidy
-  COMMAND clang-tidy-3.8
-  -checks=clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability,cppcoreguidelines*,modernize*,performance*,misc*,-misc-virtual-near-miss
-  -p=compile_commands.json
-)
