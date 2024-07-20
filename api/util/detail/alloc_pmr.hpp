@@ -22,6 +22,7 @@
 #include <expects>
 #include <likely>
 #include <util/units.hpp>
+#include <util/bitops.hpp>
 
 namespace os::mem::detail {
 
@@ -34,16 +35,9 @@ namespace os::mem::detail {
 
     void* do_allocate(size_t size, size_t align) override {
       if (UNLIKELY(size + allocated_ > cap_total_)) {
-        //printf("pmr about to throw bad alloc: sz=%zu alloc=%zu cap=%zu\n", size, allocated_, cap_total_);
+        //printf("pmr about to throw bad alloc: sz=%zu alloc=%zu cap=%zu align=%zu\n", size, allocated_, cap_total_, align);
         throw std::bad_alloc();
       }
-
-      // Adapt to aligned_alloc's minimum size- and alignemnt requiremnets
-      if (align < sizeof(void*))
-        align = sizeof(void*);
-
-      if (size < sizeof(void*))
-        size = sizeof(void*);
 
       void* buf = aligned_alloc(align, size);
 
@@ -57,12 +51,7 @@ namespace os::mem::detail {
       return buf;
     }
 
-    void do_deallocate (void* ptr, size_t size, size_t) override {
-
-      // Adapt to aligned_alloc
-      if (size < sizeof(void*))
-        size = sizeof(void*);
-
+    void do_deallocate (void* ptr, size_t size, size_t /*align*/) override {
       free(ptr);
       allocated_ -= size;
       deallocations_++;
@@ -270,6 +259,7 @@ namespace os::mem {
 
   void* Pmr_resource::do_allocate(std::size_t size, std::size_t align) {
     auto cap = capacity();
+
     if (UNLIKELY(size + used > cap)) {
       throw std::bad_alloc();
     }
@@ -282,6 +272,7 @@ namespace os::mem {
 
   void Pmr_resource::do_deallocate(void* ptr, std::size_t s, std::size_t a) {
     Expects(s != 0); // POSIX malloc will allow size 0, but return nullptr.
+
     bool trigger_non_full = UNLIKELY(full() and non_full != nullptr);
     bool trigger_avail_thresh = UNLIKELY(allocatable() < avail_thresh
                                          and allocatable() + s >= avail_thresh

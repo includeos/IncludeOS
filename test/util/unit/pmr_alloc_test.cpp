@@ -37,7 +37,6 @@ CASE("pmr::default_pmr_resource") {
   EXPECT(numbers.size() == 1000);
 }
 
-
 CASE("pmr::Pmr_pool usage") {
   using namespace util;
   constexpr auto pool_cap = 40_MiB;
@@ -396,4 +395,38 @@ CASE("pmr::default resource cap") {
   EXPECT(res4->allocatable() == expected);
 
 
+}
+
+CASE("allocation alignment") {
+  // Check that allocator uses the size of the data type as alignment
+  using namespace util;
+  constexpr auto pool_cap = 400_KiB;
+
+  os::mem::Pmr_pool pool{pool_cap, pool_cap};
+  auto res = pool.get_resource();
+
+  std::pmr::polymorphic_allocator<uintptr_t> alloc{res.get()};
+
+  // Allocate 1 entry per type size
+  std::pmr::vector<uint8_t> numbers_1{alloc};
+  std::pmr::vector<uint16_t> numbers_2{alloc};
+  std::pmr::vector<uint32_t> numbers_4{alloc};
+  std::pmr::vector<uint64_t> numbers_8{alloc};
+
+  auto reserved = 1;
+  auto previously_allocated = res->allocated();
+  numbers_1.reserve(reserved);
+  EXPECT(res->allocated() == reserved + previously_allocated);
+
+  previously_allocated = res->allocated();
+  numbers_2.reserve(reserved);
+  EXPECT(res->allocated() == reserved + 1 + previously_allocated);
+
+  previously_allocated = res->allocated();
+  numbers_4.reserve(reserved);
+  EXPECT(res->allocated() == reserved + 3 + previously_allocated);
+
+  previously_allocated = res->allocated();
+  numbers_8.reserve(reserved);
+  EXPECT(res->allocated() == reserved + 7 + previously_allocated);
 }
