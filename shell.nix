@@ -16,7 +16,13 @@ pkgs.mkShell rec {
   includeos = pkgs.pkgsIncludeOS.includeos;
   stdenv = pkgs.pkgsIncludeOS.stdenv;
 
+  vmrunner = pkgs.callPackage (builtins.fetchGit {
+    url = "https://github.com/alfreb/vmrunner";
+    ref = "pyproject";
+  }) {};
+
   packages = [
+    vmrunner
     stdenv.cc
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
