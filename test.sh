@@ -146,7 +146,6 @@ run_testsuite() {
     echo $cmd
     echo "-------------------------------------- 💣 --------------------------------------"
 
-    substeps=$((substeps + 1))
 
     if [ ! $DRY_RUN ]
     then
@@ -158,6 +157,8 @@ run_testsuite() {
       fail "$steps.$substeps"
       subfails=$((subfails + 1))
     fi
+
+    substeps=$((substeps + 1))
 
   done
 
