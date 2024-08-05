@@ -18,9 +18,11 @@
 #pragma once
 #ifndef X86_PIT_HPP
 #define X86_PIT_HPP
+
 #include <delegate>
 #include <chrono>
 #include <util/units.hpp>
+#include <util/bitops.hpp>
 
 namespace x86
 {
@@ -71,14 +73,26 @@ namespace x86
       return instance_;
     }
 
+    // Operating mode bits are bits 1 to 3 in the Mode register
+    enum class OperatingMode : uint8_t {
+      ONE_SHOT = 0,
+      HW_ONESHOT = 1 << 1,
+      RATE_GEN = 2 << 1,
+      SQ_WAVE = 3 << 1,
+      SW_STROBE = 4 << 1,
+      HW_STROBE = 5 << 1,
+      NONE = 255
+    };
+
+    // Access mode bits are bits 4- and 5 in the Mode register
+    enum class AccessMode : uint8_t {
+      LATCH_COUNT = 0x0,
+      LO_ONLY=0x10,
+      HI_ONLY=0x20,
+      LO_HI=0x30
+    };
+
   private:
-    enum Mode { ONE_SHOT = 0,
-                HW_ONESHOT = 1 << 1,
-                RATE_GEN = 2 << 1,
-                SQ_WAVE = 3 << 1,
-                SW_STROBE = 4 << 1,
-                HW_STROBE = 5 << 1,
-                NONE = 256};
 
     /** Disable regular timer interrupts- which are ON at boot-time. */
     void disable_regular_interrupts();
@@ -88,18 +102,15 @@ namespace x86
 
     // State-keeping
     uint16_t current_freq_divider_ = 0;
-    Mode     current_mode_ = NONE;
+    OperatingMode     current_mode_ = OperatingMode::NONE;
 
     // Timer handler & expiration timestamp
     timeout_handler          handler = nullptr;
     timeout_handler          forev_handler = nullptr;
     std::chrono::nanoseconds expiration;
 
-    // Access mode bits are bits 4- and 5 in the Mode register
-    enum AccessMode { LATCH_COUNT = 0x0, LO_ONLY=0x10, HI_ONLY=0x20, LO_HI=0x30 };
-
     /** Physically set the PIT-mode */
-    void set_mode(Mode);
+    void set_mode(OperatingMode);
 
     /** Physiclally set the PIT frequency divider */
     void set_freq_divider(uint16_t);
@@ -117,5 +128,22 @@ namespace x86
   };
 
 } //< namespace hw
+
+// Enable bitwise operators for the PIT enum classes
+namespace util {
+  inline namespace bitops {
+    template <>
+    struct enable_bitmask_ops<::x86::PIT::OperatingMode> {
+      using type = uint8_t;
+      static constexpr bool enable = true;
+    };
+    template <>
+    struct enable_bitmask_ops<::x86::PIT::AccessMode> {
+      using type = uint8_t;
+      static constexpr bool enable = true;
+    };
+  }
+}
+
 
 #endif

@@ -72,12 +72,6 @@ struct enable_bitmask_ops<Pfault> {
   using type = std::underlying_type<Pfault>::type;
   static constexpr bool enable = true;
 };
-template<>
-struct enable_bitmask_ops<uint32_t> {
-  using type = uint32_t;
-  static constexpr bool enable = true;
-};
-
 }
 }
 
