@@ -27,6 +27,7 @@
 #include <info>
 #include <map>
 #include <net/port_util.hpp>
+#include <features.hpp>
 
 #include "conntrack.hpp"
 #include "ip4/ip4.hpp"
@@ -72,6 +73,8 @@ namespace net {
     using Port_utils  = std::map<net::Addr, Port_util>;
     using Vip4_list = std::vector<ip4::Addr>;
     using Vip6_list = std::vector<ip6::Addr>;
+
+    static constexpr bool enable_mld2 = INCLUDEOS_EXPERIMENTAL_MLD2;
 
     std::string ifname() const
     { return nic_.device_name(); }
@@ -146,7 +149,9 @@ namespace net {
 
     /** Get the MLD-object belonging to this stack */
     Mld& mld() { return mld_; }
-    //Mld2& mld2() { return mld2_; }
+
+    std::optional<experimental::Mld2>& mld2() { return mld2_; }
+
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -495,13 +500,15 @@ namespace net {
     Arp    arp_;
     Ndp    ndp_;
     Mld    mld_;
-    //Mld2   mld2_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;
     ICMPv6 icmp6_;
     UDP    udp_;
     TCP    tcp_;
+
+    // Experimental / optional features
+    std::optional<experimental::Mld2>  mld2_;
 
     Port_utils tcp_ports_;
     Port_utils udp_ports_;
