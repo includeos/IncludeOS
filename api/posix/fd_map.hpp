@@ -79,6 +79,7 @@ private:
 
   void internal_close(const id_t id)
   {
+    [[ maybe_unused ]]
     auto erased = map_.erase(id);
     assert(erased > 0);
   }

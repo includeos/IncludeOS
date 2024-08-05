@@ -305,7 +305,7 @@ namespace net
     send_neighbour_advertisement(req);
   }
 
-  void Ndp::receive_redirect(icmp6::Packet& req)
+  void Ndp::receive_redirect(icmp6::Packet& /* req */)
   {
     /*
     auto dest = req.ndp().router_redirect().dest();

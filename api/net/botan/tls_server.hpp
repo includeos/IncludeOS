@@ -55,7 +55,7 @@ public:
     m_transport->on_read(bs, {this, &Server::tls_read});
     this->m_on_read = cb;
   }
-  void on_data(DataCallback cb) override {
+  void on_data(DataCallback /*cb*/) override {
     // FIXME
     throw std::runtime_error("on_data not implemented on botan::server");
   }

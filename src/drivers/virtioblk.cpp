@@ -191,10 +191,11 @@ void VirtioBlk::service_RX()
   if (shipped) req.kick();
   req.enable_interrupts();
 
-  int handled = 0;
+  // TODO: -Wunused-but-set-variable
+  // int handled = 0;
   for (request_t* hdr : received) {
     handle(hdr);
-    inflight--; handled++;
+    inflight--; //handled++;
   }
   received.clear();
 

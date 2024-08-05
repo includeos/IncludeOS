@@ -40,7 +40,9 @@ using Flags = x86::paging::Flags;
 using Pml4  = x86::paging::Pml4;
 
 static void allow_executable();
-static void protect_pagetables_once();
+
+// TODO: -Wunused-function
+// static void protect_pagetables_once();
 
 // must be public symbols because of a unittest
 #ifndef PLATFORM_UNITTEST
@@ -392,7 +394,8 @@ void allow_executable()
   os::mem::map(m, "ELF .text");
 }
 
-void protect_pagetables_once()
+/* TODO: Compiler warning unused
+  void protect_pagetables_once()
 {
   struct ptinfo {
     void*  addr;
@@ -418,3 +421,4 @@ void protect_pagetables_once()
     __pml4->map_r(m);
   }
 }
+*/

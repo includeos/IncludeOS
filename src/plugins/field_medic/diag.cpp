@@ -44,7 +44,7 @@ namespace diag {
 
 
   static void verify_tls() {
-    int correct = 0;
+    unsigned correct = 0;
     for (auto& c : __tl_bss) {
       if (c == '!') correct++;
     }
@@ -65,7 +65,6 @@ namespace diag {
 
     static volatile int random1 = rand();
     if (N) {
-      volatile int local = N;
       volatile auto res = stack_check(N - 1);
       Expects (res == random1 + N - 1);
     }
@@ -80,12 +79,12 @@ namespace diag {
   }
 
   template <typename Err>
-  static volatile int throw_at(volatile int N) {
+  static int throw_at(int N) {
     std::array<char, diag::bufsize> frame_arr;
     memset(frame_arr.data(), '!', diag::bufsize);
 
     if (N) {
-      volatile int i = throw_at<Err>(N - 1);
+      throw_at<Err>(N - 1);
     }
 
     bool ok = true;

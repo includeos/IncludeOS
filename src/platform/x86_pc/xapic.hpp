@@ -24,6 +24,7 @@
 #include <arch/x86/cpu.hpp>
 #include <kernel/events.hpp>
 #include <debug>
+#include <expects>
 #include <info>
 
 /// xAPIC MMIO offsets ///
@@ -74,7 +75,7 @@ namespace x86 {
       CPU::write_msr(IA32_APIC_BASE_MSR, this->base_msr);
       // verify that xAPIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
-      assert(verify & MSR_ENABLE_XAPIC);
+      Ensures(verify & MSR_ENABLE_XAPIC);
       INFO2("ID: %x  Ver: %x", get_id(), version());
     }
 

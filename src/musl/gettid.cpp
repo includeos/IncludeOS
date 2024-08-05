@@ -1,9 +1,10 @@
 #include "stub.hpp"
 
 static long sys_gettid() {
-#ifndef INCLUDEOS_SINGLE_THREADED
-#warning "gettid not implemented for threaded IncludeOS"
-#endif
+// TODO:  threading partially implemented. Needs cleaning up.
+// We used to warn:
+// "gettid not implemented for threaded IncludeOS"
+// But we want to enable -Werror
   return 1;
 }
 

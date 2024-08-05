@@ -48,7 +48,7 @@ namespace medic{
     };
 
 
-    const int bufsize = 1024;
+    const unsigned bufsize = 1024;
     using Tl_bss_arr  = std::array<char, bufsize>;
     using Tl_data_arr = std::array<int, 256>;
 

@@ -23,10 +23,12 @@
 #include <stdexcept>
 #include <cassert>
 
-// TODO:
-// we can't include <expects> because that includes os.hpp, which includes
+// This file is used for both IncludeOS and vmbuild, so we can't
+// include <expects> because that includes os.hpp, which includes
 // arch specific functions, SMP locks etc.
+#ifndef Expects
 #define Expects assert
+#endif
 
 
 struct Elf32 {

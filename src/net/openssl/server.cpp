@@ -29,6 +29,8 @@ namespace openssl
     auto* kbio = BIO_new_mem_buf(key_buffer.data(), key_buffer.size());
     auto* key = PEM_read_bio_RSAPrivateKey(kbio, NULL, 0, NULL);
     assert(key != NULL);
+
+    // TODO: -Wdeprecated-declarations
     SSL_CTX_use_RSAPrivateKey(ctx, key);
     BIO_free(kbio);
   }
@@ -37,6 +39,7 @@ namespace openssl
                          const std::string& key_file)
   {
     /* create the SSL server context */
+    // TODO: -Wdeprecated-declarations
     auto* ctx = SSL_CTX_new(TLSv1_2_method());
     if (!ctx) throw std::runtime_error("SSL_CTX_new()");
 

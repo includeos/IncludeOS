@@ -23,6 +23,7 @@
 #include "apic_regs.hpp"
 #include <arch/x86/cpu.hpp>
 #include <kernel/events.hpp>
+#include <expects>
 #include <debug>
 #include <info>
 
@@ -66,7 +67,7 @@ namespace x86 {
       CPU::write_msr(IA32_APIC_BASE_MSR, base_msr, 0);
       // verify that x2APIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
-      assert(verify & MSR_ENABLE_X2APIC);
+      Ensures(verify & MSR_ENABLE_X2APIC);
       INFO2("APIC id: %x  ver: %x", get_id(), version());
     }
 

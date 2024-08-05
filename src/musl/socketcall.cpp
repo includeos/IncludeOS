@@ -108,24 +108,24 @@ long socketcall_socket(int domain, int type, int protocol)
   return strace(sock_socket, "socket", domain, type, protocol);
 }
 
-long socketcall_getsockopt(int sockfd,
-    int level, int optname, void *optval, socklen_t *optlen)
+long socketcall_getsockopt(int /* sockfd */,
+                           int /* level */, int /* optname */, void* /* optval */, socklen_t* /* optlen */)
 {
   return -ENOSYS;
 }
-long socketcall_setsockopt(int sockfd,
-    int level, int optname, const void *optval, socklen_t optlen)
+  long socketcall_setsockopt(int /* sockfd */,
+                             int /* level */, int /* optname */, const void* /* optval */, socklen_t /* optlen */)
 {
   return -ENOSYS;
 }
-long socketcall_getsockname(int sockfd,
-    struct sockaddr *addr, socklen_t *addrlen)
+long socketcall_getsockname(int /* sockfd */,
+                            struct sockaddr* /* addr */, socklen_t* /* addrlen */)
 
 {
   return -ENOSYS;
 }
-long socketcall_getpeername(int sockfd,
-    struct sockaddr *addr, socklen_t *addrlen)
+long socketcall_getpeername(int /* sockfd */,
+                            struct sockaddr* /* addr */, socklen_t* /* addrlen */)
 
 {
   return -ENOSYS;

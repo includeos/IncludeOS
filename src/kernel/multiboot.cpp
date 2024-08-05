@@ -77,7 +77,7 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
   if (info->flags & MULTIBOOT_INFO_CMDLINE
       and info->cmdline > multi_end)
   {
-    debug("* Multiboot cmdline @ 0x%x: %s \n", info->cmdline, (char*)(info->cmdline));
+    debug("* Multiboot cmdline @ 0x%x: %s \n", info->cmdline, reinterpret_cast<char*>(info->cmdline));
     // We can't use a cmdline that's either insde our ELF or pre-ELF area
     Expects(info->cmdline > multi_end
             or info->cmdline < 0x100000);
