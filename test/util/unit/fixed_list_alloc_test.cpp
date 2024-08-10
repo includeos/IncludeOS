@@ -32,6 +32,64 @@ struct Block {
 template <std::size_t N>
 using Block_list = std::list<Block, Fixed_list_alloc<Block, N>>;
 
+// Note: this should be moved to a separate test if Fixed_storage gets used by
+//       anything other than Fixed_list_alloc.
+CASE("Using Fixed_storage directly for a small buffer")
+{
+  Fixed_storage<int, 5, alignof(int)> some_ints;
+
+  // Verify initial state
+  EXPECT(some_ints.buffer_size() == 5 * alignof(int));
+  EXPECT(some_ints.aligned_size() == alignof(int));
+  EXPECT(some_ints.used() == 0);
+  EXPECT(some_ints.available() == some_ints.buffer_size());
+
+  // Test invalid allocations
+  EXPECT_THROWS(some_ints.allocate<alignof(int)>(6));
+  EXPECT_THROWS(some_ints.allocate<alignof(int)>(0));
+
+  // Test a valid allocation
+  char* int1 = some_ints.allocate<alignof(int)>(sizeof(int));
+  EXPECT(int1 != nullptr);
+
+  // Validate resulting state
+  EXPECT(some_ints.used() == sizeof(int));
+  EXPECT(some_ints.available() == some_ints.buffer_size() - sizeof(int));
+
+  // Test allocating the remainder
+  char* int2 = some_ints.allocate<alignof(int)>(sizeof(int));
+  char* int3 = some_ints.allocate<alignof(int)>(sizeof(int));
+  char* int4 = some_ints.allocate<alignof(int)>(sizeof(int));
+  char* int5 = some_ints.allocate<alignof(int)>(sizeof(int));
+
+  EXPECT(int2 != nullptr);
+  EXPECT(int3 != nullptr);
+  EXPECT(int4 != nullptr);
+  EXPECT(int5 != nullptr);
+  EXPECT(some_ints.used() == 5 * sizeof(int));
+
+  // Test allocating when depleted
+  EXPECT_THROWS(some_ints.allocate<alignof(int)>(sizeof(int)));
+
+  // Test deallocation
+  some_ints.deallocate(int1, sizeof(int));
+  EXPECT(some_ints.used() == 4 * sizeof(int));
+
+  some_ints.deallocate(int2, sizeof(int));
+  EXPECT(some_ints.used() == 3 * sizeof(int));
+
+  some_ints.deallocate(int3, sizeof(int));
+  EXPECT(some_ints.used() == 2 * sizeof(int));
+
+  some_ints.deallocate(int4, sizeof(int));
+  EXPECT(some_ints.used() == 1 * sizeof(int));
+
+  some_ints.deallocate(int5, sizeof(int));
+  EXPECT(some_ints.used() == 0);
+  EXPECT(some_ints.available() == some_ints.buffer_size());
+}
+
+
 CASE("Using Fixed_list_alloc")
 {
   const int N = 10'000;
