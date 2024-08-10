@@ -31,6 +31,7 @@ pkgs.mkShell rec {
     chainloader
     pkgs.openssl
     pkgs.rapidjson
+    pkgs.xorriso
   ];
 
   bootloader="${includeos}/boot/bootloader";

@@ -177,7 +177,6 @@ exclusions=(
   "LiveUpdate" # Missing includes
   "context"    # Outdated - references nonexisting OS::heap_end()
   "fiber"      # Crashes
-  "grub"       # Fails with grub-mkrescue: error: xorriso not found.
   "modules"    # Requires 32-bit build, which our shell.nix is not set up for
 )
 
