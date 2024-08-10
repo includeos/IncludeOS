@@ -84,7 +84,7 @@ run smoke_tests "Build and run a few key smoke tests"
 
 
 if [ -n "$QUICK_SMOKE" ]; then
-  if [ fails -eq 0 ]; then
+  if [ $fails -eq 0 ]; then
     echo ""
     echo "👷💬 A lot of things are working! 💪"
   else
