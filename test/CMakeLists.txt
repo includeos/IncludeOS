@@ -46,7 +46,7 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0  -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -std=c++20 -Wall -Wextra -Wno-frame-address -Wno-unused-function -Wno-int-to-pointer-cast -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -259,4 +259,3 @@ if (GENERATE_SUPPORT_FILES)
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
     )
 endif()
-

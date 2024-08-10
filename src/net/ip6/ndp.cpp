@@ -56,8 +56,8 @@ namespace net
     bool any_src = src == IP6::ADDR_ANY;
 
     // drop if the packet is too small
-    if (res.ip().capacity() < IP6_HEADER_LEN
-     + (int) res.header_size() + req.payload().size())
+    if (res.ip().capacity() < (int) IP6_HEADER_LEN
+        + (int) res.header_size() + (int) req.payload().size())
     {
       PRINT("WARNING: Network MTU too small for ICMP response, dropping\n");
       return;
@@ -274,7 +274,8 @@ namespace net
       return;
     }
 
-    bool is_dest_multicast = req.ip().ip_dst().is_multicast();
+    // TODO: Currently unused
+    // bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
     // TODO: Change this. Can be targeted to many ip6 address on this inet
     if (not inet_.is_valid_source6(target))
@@ -304,7 +305,7 @@ namespace net
     send_neighbour_advertisement(req);
   }
 
-  void Ndp::receive_redirect(icmp6::Packet& req)
+  void Ndp::receive_redirect(icmp6::Packet& /* req */)
   {
     /*
     auto dest = req.ndp().router_redirect().dest();

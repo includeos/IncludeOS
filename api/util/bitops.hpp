@@ -25,9 +25,28 @@
 namespace util {
 inline namespace bitops {
 
-//
-// Enabling bitmask ops for enum class etc.
-//
+/**
+ * Utilities for enabling bitmask ops for enum class etc.
+ *
+ * Usage:
+ * For a an enum class of flags F, enable bitwise operators with:
+ *
+ * namespace util {
+ * inline namespace bitops {
+ *
+ * template <>
+ * struct enable_bitmask_ops<F> {
+ *   using type = std::underlying_type<F>::type;
+ *   static constexpr bool enable = true;
+ * }
+ *
+ * }
+ * }
+ *
+ * After which the operations can be enabled with
+ * using namespace util:bitops
+ * inside the namespace they are used.
+ */
 
 template<typename E>
 struct enable_bitmask_ops{
@@ -35,6 +54,7 @@ struct enable_bitmask_ops{
   static constexpr bool enable=false;
 };
 
+// operator|
 template<typename E, typename F>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type
 operator|(E lhs,F rhs){
@@ -42,6 +62,7 @@ operator|(E lhs,F rhs){
   return static_cast<E>(static_cast<type>(lhs) | static_cast<type>(rhs));
 }
 
+// operator&
 template<typename E, typename F>
 typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type
 constexpr operator&(E lhs,F rhs){
@@ -49,6 +70,7 @@ constexpr operator&(E lhs,F rhs){
   return static_cast<E>(static_cast<type>(lhs) & static_cast<type>(rhs));
 }
 
+// operator^
 template<typename E, typename F>
 typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type
 constexpr operator^(E lhs,F rhs){
@@ -56,6 +78,7 @@ constexpr operator^(E lhs,F rhs){
   return static_cast<E>(static_cast<type>(lhs) ^ static_cast<type>(rhs));
 }
 
+// operator|=
 template<typename E, typename F>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type
 operator|=(E& lhs,F rhs){
@@ -64,6 +87,7 @@ operator|=(E& lhs,F rhs){
   return lhs;
 }
 
+// operator&=
 template<typename E, typename F>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type&
 operator&=(E& lhs,F rhs){
@@ -72,6 +96,7 @@ operator&=(E& lhs,F rhs){
   return lhs;
 }
 
+// operator^=
 template<typename E, typename F>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type&
 operator^=(E& lhs,F rhs){
@@ -80,6 +105,7 @@ operator^=(E& lhs,F rhs){
   return lhs;
 }
 
+// operator~
 template<typename E>
 typename std::enable_if<enable_bitmask_ops<E>::enable, E>::type
 constexpr operator~(E flag){
@@ -87,7 +113,7 @@ constexpr operator~(E flag){
   return static_cast<E>(~static_cast<base_type>(flag));
 }
 
-
+// bool has_flag(flag)
 template<typename E>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
 has_flag(E flag){
@@ -95,24 +121,49 @@ has_flag(E flag){
   return static_cast<base_type>(flag);
 }
 
+// bool has_flag(field, flags)
 template<typename E>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
 has_flag(E field, E flags){
   return (field & flags) == flags ;
 }
 
+
+// Enable for uint8_t
 template<>
-struct enable_bitmask_ops<uintptr_t> {
-  using type = uintptr_t;
+struct enable_bitmask_ops<uint8_t> {
+  using type = uint8_t;
+  static constexpr bool enable = true;
+};
+
+// Enable for uint16_t
+template<>
+struct enable_bitmask_ops<uint16_t> {
+  using type = uint16_t;
+  static constexpr bool enable = true;
+};
+
+// Enable for uint32_t
+template<>
+struct enable_bitmask_ops<uint32_t> {
+  using type = uint32_t;
+  static constexpr bool enable = true;
+};
+
+// Enable for uint64_t
+template<>
+struct enable_bitmask_ops<uint64_t> {
+  using type = uint64_t;
   static constexpr bool enable = true;
 };
 }
 
+
+/**
+ * Various bit operations
+ */
 namespace bits {
 
-//
-// Various bit operations
-//
 // Number of bits per word
 constexpr int bitcnt()
 { return sizeof(uintptr_t) * 8; }

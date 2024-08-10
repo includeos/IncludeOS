@@ -51,6 +51,8 @@ namespace openssl
       ios_rand_pseudorand,
       ios_rand_status
     };
+
+    // TODO: -Wdeprecated-declarations
     RAND_set_rand_method(&ios_rand);
   }
   void verify_rng()
@@ -77,6 +79,8 @@ namespace openssl
       printf("ERR_load_crypto_strings\n");
       ERR_load_crypto_strings();
       printf("ERR_load_BIO_strings\n");
+
+      // TODO: -Wdeprecated-declarations
       ERR_load_BIO_strings();
     }
   }

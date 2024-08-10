@@ -93,7 +93,7 @@ void os::reboot() noexcept {}
 void __x86_init_paging(void*){};
 namespace x86 {
 namespace paging {
-  void invalidate(void* pageaddr){};
+  void invalidate(void* /* pageaddr */){};
 }}
 
 //void OS::multiboot(unsigned) {}
@@ -235,7 +235,7 @@ namespace os {
     return "unittests";
   }
 
-  void print(const char* ptr, const size_t len) {
+  void print(const char* /* ptr */, const size_t /* len */) {
     // print?
   }
 

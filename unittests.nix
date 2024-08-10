@@ -33,12 +33,18 @@ stdenv.mkDerivation rec {
       rev = "1eda2f7c33941617fc368ce764b5fbeffccb59bc";
     };
 
+    cmakeBuildType = "Debug";
+
     postBuild = ''
       mkdir -p "$out/include"
       cp -r include "$out/"
     '';
 
   };
+
+  hardeningDisable = [ "all" ];
+
+  cmakeBuildType = "Debug";
 
   uzlib = pkgs.callPackage ./deps/uzlib {};
 

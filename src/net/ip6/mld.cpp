@@ -48,7 +48,7 @@ namespace net
       &Mld::MulticastHostNode::idle_listener_state_handler};
   }
 
-  void Mld::MulticastHostNode::non_listener_state_handler(icmp6::Packet& pckt)
+  void Mld::MulticastHostNode::non_listener_state_handler(icmp6::Packet& /* pckt */)
   {
   }
 
@@ -68,7 +68,7 @@ namespace net
     }
   }
 
-  void Mld::MulticastHostNode::idle_listener_state_handler(icmp6::Packet& pckt)
+  void Mld::MulticastHostNode::idle_listener_state_handler(icmp6::Packet& /* pckt */)
   {
   }
 
@@ -81,8 +81,7 @@ namespace net
 
     if (mcast_addr != IP6::ADDR_ANY) {
       if (addr() == mcast_addr) {
-        if (auto diff = now_ms - timestamp();
-            now_ms < timestamp() &&
+        if (now_ms < timestamp() &&
             resp_delay < timestamp()) {
           update_timestamp(rand() % resp_delay);
         }
@@ -91,8 +90,7 @@ namespace net
       if (UNLIKELY(addr() == ip6::Addr::node_all_nodes)) {
         return;
       }
-      if (auto diff = now_ms - timestamp();
-          now_ms < timestamp() &&
+      if (now_ms < timestamp() &&
           resp_delay < timestamp()) {
         update_timestamp(rand() % resp_delay);
       }
@@ -102,14 +100,14 @@ namespace net
   Mld::MulticastRouterNode::MulticastRouterNode()
   {
     state_handlers_[Mld::RouterStates::QUERIER] =
-        [this] (icmp6::Packet& pckt)
-        {
-        };
+      [ /*this*/ ] (icmp6::Packet& /* pckt */)
+      {
+      };
 
     state_handlers_[Mld::RouterStates::NON_QUERIER] =
-        [this] (icmp6::Packet& pckt)
-        {
-        };
+      [ /*this*/ ] (icmp6::Packet& /* pckt */)
+      {
+      };
   }
 
   void Mld::Host::expiry()
@@ -205,16 +203,16 @@ namespace net
     }
   }
 
-  void Mld::recv_report(icmp6::Packet& pckt)
+  void Mld::recv_report(icmp6::Packet& /* pckt */)
   {}
 
-  void Mld::recv_done(icmp6::Packet& pckt)
+  void Mld::recv_done(icmp6::Packet& /* pckt */)
   {}
 
-  void Mld::recv_query_v2(icmp6::Packet& pckt)
+  void Mld::recv_query_v2(icmp6::Packet& /* pckt */)
   {}
 
-  void Mld::recv_report_v2(icmp6::Packet& pckt)
+  void Mld::recv_report_v2(icmp6::Packet& /* pckt */)
   {}
 
   void Mld::transmit(icmp6::Packet& pckt, MAC::Addr mac)
@@ -233,7 +231,7 @@ namespace net
     req.set_code(0);
     req.ip().set_ip_dst(mcast);
 
-    auto& report = req.emplace<mld::Report>(mcast);
+    req.emplace<mld::Report>(mcast);
 
     auto dest = req.ip().ip_dst();
     MAC::Addr dest_mac(0x33,0x33,
@@ -286,79 +284,85 @@ namespace net
     transmit(req, dest_mac);
   }
 
-  Mld2::Mld2(Stack& inet) noexcept:
-  inet_ {inet}
-  {}
+  namespace experimental {
+    Mld2::Mld2(Stack& /* inet */) noexcept
+    // : inet_ {inet} // TODO: -Wunused-variable
+    {}
 
-  void Mld2::receive_query(icmp6::Packet& pckt)
-  {
-    if (!pckt.ip().ip_src().is_linklocal()) {
-      PRINT("MLD2: Query does not have linklocal source address\n");
-      return;
+
+    void Mld2::receive_query(icmp6::Packet& pckt)
+    {
+      if (!pckt.ip().ip_src().is_linklocal()) {
+        PRINT("MLD2: Query does not have linklocal source address\n");
+        return;
+      }
+
+      const auto& query = pckt.view_payload_as<mld::v2::Query>();
+
+      auto max_res_code = ntohs(query.max_res_code);
+      auto mcast = query.mcast_addr;
+
+      // TODO: Unused.
+      // auto num_sources = ntohs(query.num_srcs);
+
+
+      if (max_res_code < 32768) {
+        //max_resp_delay = max_res_code;
+      } else {
+        //max_resp_delay = ((0x0fff & max_res_code) | 0x1000) <<
+        //((0x7000 & max_res_code) + 3);
+      }
+
+      if (mcast == IP6::ADDR_ANY) {
+        // mcast specific query
+      } else {
+        // General query
+        if (pckt.ip().ip_dst() != ip6::Addr::node_all_nodes) {
+          PRINT("MLD2: General Query does not have all nodes multicast "
+                "destination address\n");
+          return;
+        }
+      }
     }
 
-    const auto& query = pckt.view_payload_as<mld::v2::Query>();
-
-    auto max_res_code = ntohs(query.max_res_code);
-    auto mcast = query.mcast_addr;
-    auto num_sources = ntohs(query.num_srcs);
-
-
-    if (max_res_code < 32768) {
-      //max_resp_delay = max_res_code;
-    } else {
-      //max_resp_delay = ((0x0fff & max_res_code) | 0x1000) <<
-      //((0x7000 & max_res_code) + 3);
+    void Mld2::receive_report(icmp6::Packet& /* pckt */)
+    {
+      // TODO: Unused:
+      // const auto& report = pckt.view_payload_as<mld::v2::Report>();
+      // auto num_records = ntohs(report.num_records);
     }
 
-    if (mcast == IP6::ADDR_ANY) {
-      // mcast specific query
-    } else {
-      // General query
-      if (pckt.ip().ip_dst() != ip6::Addr::node_all_nodes) {
-        PRINT("MLD2: General Query does not have all nodes multicast "
-            "destination address\n");
+    void Mld2::receive(icmp6::Packet& pckt)
+    {
+      switch(pckt.type()) {
+      case (ICMP_type::MULTICAST_LISTENER_QUERY):
+        break;
+      case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
+        break;
+      default:
         return;
       }
     }
-  }
 
-  void Mld2::receive_report(icmp6::Packet& pckt)
-  {
-    const auto& report = pckt.view_payload_as<mld::v2::Report>();
-    auto num_records = ntohs(report.num_records);
-  }
-
-  void Mld2::receive(icmp6::Packet& pckt)
-  {
-    switch(pckt.type()) {
-    case (ICMP_type::MULTICAST_LISTENER_QUERY):
-      break;
-    case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
-      break;
-    default:
-      return;
+    bool Mld2::allow(ip6::Addr /* source_addr */, ip6::Addr /* mcast */)
+    {
+      return true;
     }
-  }
 
-  bool Mld2::allow(ip6::Addr source_addr, ip6::Addr mcast)
-  {
-  }
+    void Mld2::join(ip6::Addr mcast, FilterMode filtermode, SourceList source_list)
+    {
+      auto rec = mld_records_.find(mcast);
 
-  void Mld2::join(ip6::Addr mcast, FilterMode filtermode, SourceList source_list)
-  {
-    auto rec = mld_records_.find(mcast);
-
-    if (rec != mld_records_.end()) {
-      if (filtermode == FilterMode::EXCLUDE) {
-        rec->second.exclude(source_list);
+      if (rec != mld_records_.end()) {
+        if (filtermode == FilterMode::EXCLUDE) {
+          rec->second.exclude(source_list);
+        } else {
+          rec->second.include(source_list);
+        }
       } else {
-        rec->second.include(source_list);
+        mld_records_.emplace(std::make_pair(mcast,
+                                            Multicast_listening_record{filtermode, source_list}));
       }
-    } else {
-      mld_records_.emplace(std::make_pair(mcast,
-            Multicast_listening_record{filtermode, source_list}));
     }
-  }
-
+  } // net::experimental
 } //net

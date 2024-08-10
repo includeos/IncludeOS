@@ -41,6 +41,8 @@ void blocking_cycle_irq_handler() {
 
 namespace x86
 {
+  using namespace util::bitops;
+
   constexpr MHz PIT::FREQUENCY;
 
   // Bit 0-3: Mode 0 - "Interrupt on terminal count"
@@ -50,7 +52,7 @@ namespace x86
 
   void PIT::disable_regular_interrupts()
   {
-    if (current_mode_ != ONE_SHOT)
+    if (current_mode_ != OperatingMode::ONE_SHOT)
         enable_oneshot(1);
   }
 
@@ -67,7 +69,7 @@ namespace x86
     __arch_install_irq(0, cpu_sampling_irq_entry);
 
     // GO!
-    get().set_mode(RATE_GEN);
+    get().set_mode(OperatingMode::RATE_GEN);
     get().set_freq_divider(_cpu_sampling_freq_divider_);
 
     // BLOCKING call to external measurment.
@@ -91,7 +93,7 @@ namespace x86
     blocking_cycle_done = 0;
     __arch_install_irq(0, blocking_cycle_irq_entry);
     // GO!
-    get().set_mode(RATE_GEN);
+    get().set_mode(OperatingMode::RATE_GEN);
     get().set_freq_divider(MILLISEC_INTERVAL);
 
     while (blocking_cycle_done < total) {
@@ -110,8 +112,8 @@ namespace x86
 
   void PIT::oneshot(milliseconds timeval, timeout_handler handler)
   {
-    if (get().current_mode_ != RATE_GEN)
-      get().set_mode(RATE_GEN);
+    if (get().current_mode_ != OperatingMode::RATE_GEN)
+      get().set_mode(OperatingMode::RATE_GEN);
     if (get().current_freq_divider_ != MILLISEC_INTERVAL)
       get().set_freq_divider(MILLISEC_INTERVAL);
 
@@ -169,16 +171,16 @@ namespace x86
     Events::get().subscribe(0, {this, &PIT::irq_handler});
   }
 
-  void PIT::set_mode(Mode mode)
+  void PIT::set_mode(OperatingMode opmode)
   {
     // Channel is the last two bits in the PIT mode register
     // ...we always use channel 0
     auto channel = 0x00;
-    uint8_t config = mode | LO_HI | channel;
-    debug("<PIT::set_mode> Setting mode %#x, config: %#x \n", mode, config);
+    uint8_t config = static_cast<uint8_t>(opmode | AccessMode::LO_HI | channel);
+    debug("<PIT::set_mode> Setting mode %#x, config: %#x \n", opmode, config);
 
     hw::outb(PIT_mode_register, config);
-    current_mode_ = mode;
+    current_mode_ = opmode;
   }
 
   void PIT::set_freq_divider(uint16_t value)
@@ -193,7 +195,7 @@ namespace x86
   void PIT::enable_oneshot(uint16_t t)
   {
     // Enable 1-shot mode
-    set_mode(ONE_SHOT);
+    set_mode(OperatingMode::ONE_SHOT);
 
     // Set a frequency for shot
     set_freq_divider(t);

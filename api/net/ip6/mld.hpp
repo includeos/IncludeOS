@@ -131,7 +131,7 @@ namespace net {
       ip6::Addr               mcast_addr_;
       RouterStates            state_;
       State_handler           state_handlers_[RouterStates::MAX_ROUTER_STATE];
-      RTC::timestamp_t        timestamp_;
+      /* RTC::timestamp_t     timestamp_; // TODO: -Wunused-variable */
     };
 
     using RouterMlist = std::deque<MulticastRouterNode>;
@@ -163,7 +163,9 @@ namespace net {
     Router router_;
     downstream_link linklayer_out_;
   };
+}
 
+namespace net::experimental {
   class Mld2 {
   public:
     static const int  ROBUSTNESS_VAR  = 2;
@@ -234,7 +236,7 @@ namespace net {
     };
 
     using MldRec = std::unordered_map<ip6::Addr, Multicast_listening_record>;
-    Stack& inet_;
+    // Stack& inet_; // TODO: -Wunused-variable
     MldRec mld_records_;
   };
 }

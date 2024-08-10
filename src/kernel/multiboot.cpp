@@ -73,11 +73,11 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
   auto* info = bootinfo(boot_addr);
   uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
 
-  debug("* Multiboot begin: 0x%x \n", info);
+  debug("* Multiboot begin: 0x%lx \n", (uintptr_t)info);
   if (info->flags & MULTIBOOT_INFO_CMDLINE
       and info->cmdline > multi_end)
   {
-    debug("* Multiboot cmdline @ 0x%x: %s \n", info->cmdline, (char*)info->cmdline);
+    debug("* Multiboot cmdline @ 0x%x: %s \n", info->cmdline, reinterpret_cast<char*>(info->cmdline));
     // We can't use a cmdline that's either insde our ELF or pre-ELF area
     Expects(info->cmdline > multi_end
             or info->cmdline < 0x100000);
@@ -89,7 +89,7 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
     }
   }
 
-  debug("* Multiboot end: 0x%x \n", multi_end);
+  debug("* Multiboot end: 0x%lx \n", multi_end);
   if (info->mods_count == 0)
       return multi_end;
 
@@ -109,7 +109,7 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
 
   }
 
-  debug("* Multiboot end: 0x%x \n", multi_end);
+  debug("* Multiboot end: 0x%lx \n", multi_end);
   return multi_end;
 }
 

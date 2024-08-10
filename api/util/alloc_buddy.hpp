@@ -46,12 +46,6 @@ namespace os::mem::buddy {
 
 namespace util {
   template<>
-  struct enable_bitmask_ops<uint8_t> {
-    using type = uint8_t;
-    static constexpr bool enable = true;
-  };
-
-  template<>
   struct enable_bitmask_ops<os::mem::buddy::Flags> {
     using type = uint8_t;
     static constexpr bool enable = true;
@@ -405,7 +399,8 @@ namespace os::mem::buddy {
       }
 
       bool is_leaf() const noexcept {
-        return i_ >= alloc_->nodes_.size() / 2;
+        Expects(alloc_->nodes_.size() / 2 <= std::numeric_limits<int>::max());
+        return i_ >= static_cast<int>(alloc_->nodes_.size() / 2);
       }
 
       bool is_taken() const noexcept {

@@ -42,10 +42,14 @@ tls_private_key_for_ctx(SSL_CTX* ctx, int bits = 2048)
   assert(res == 1);
   (void)res;
 
+  // TODO: -Wdeprecated-declarations
   RSA* rsa = RSA_new();
+
+  // TODO: -Wdeprecated-declarations
   int ret = RSA_generate_key_ex(rsa, bits, bne, NULL);
   assert(ret == 1);
 
+  // TODO: -Wdeprecated-declarations
   ret = SSL_CTX_use_RSAPrivateKey(ctx, rsa);
   assert(ret == 1 && "OpenSSL context did not accept the private key");
 }
@@ -54,6 +58,7 @@ static SSL_CTX*
 tls_init_client(fs::List ents)
 {
   /* create the SSL server context */
+  // TODO: -Wdeprecated-declarations
   auto meth = TLSv1_2_method();
   auto* ctx = SSL_CTX_new(meth);
   if (!ctx) throw std::runtime_error("SSL_CTX_new()");

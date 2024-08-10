@@ -31,6 +31,8 @@ int main(int argc, const char** args)
   char* fdata = new char[size];
 
   rewind(f);
+
+  [[ maybe_unused ]]
   int res = fread(fdata, sizeof(char), size, f);
   assert(res == size);
   fclose(f);

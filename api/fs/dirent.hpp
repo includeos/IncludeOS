@@ -40,7 +40,10 @@ namespace fs {
         size_{sz}, attrib_ {attr},
         modif {modt}
     {}
+
     Dirent(const Dirent&) noexcept;
+
+    Dirent& operator=(const Dirent& copy) noexcept;
 
     Enttype type() const noexcept
     { return this->ftype; }

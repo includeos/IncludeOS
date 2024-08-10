@@ -41,7 +41,8 @@ struct alignas(64) smp_table
 };
 static SMP::Array<smp_table> cpu_tables;
 
-static util::KHz cpu_freq_{};
+// TODO: -Wunused-variable
+// static util::KHz cpu_freq_{};
 
 namespace x86 {
   void initialize_cpu_tables_for_cpu(int cpu);
