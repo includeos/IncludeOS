@@ -22,4 +22,4 @@ vm.on_output("Connect to terminal", begin_test)
 if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(40,image_name='kernel_term').clean()
+    vm.boot(40,image_name='kernel_term.elf.bin')

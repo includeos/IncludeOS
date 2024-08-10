@@ -14,4 +14,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(60,image_name="plugin_unik").clean()
+    vm.boot(60,image_name="plugin_unik.elf.bin")

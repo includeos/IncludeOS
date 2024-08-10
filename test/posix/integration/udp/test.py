@@ -83,4 +83,4 @@ vm.on_output("reading from buffer", UDP_send_much)
 if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(10,image_name='posix_udp').clean()
+    vm.boot(10,image_name='posix_udp.elf.bin')

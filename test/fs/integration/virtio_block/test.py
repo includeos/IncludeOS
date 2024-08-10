@@ -19,4 +19,4 @@ vm.on_exit(cleanup)
 if len(sys.argv) > 1:
     vm.boot(thread_timeout,image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(thread_timeout,image_name='fs_virtio_block').clean()
+    vm.boot(thread_timeout,image_name='fs_virtio_block.elf.bin')

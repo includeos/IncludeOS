@@ -7,9 +7,7 @@ import os
 
 from vmrunner import vmrunner
 
-image_name="build/service"
-if len(sys.argv) > 1:
-    image_name=str(sys.argv[1])
+image_name="kernel_memmap.elf.bin"
 
 def test2():
   print("Booting VM 2 - lots of memory")
@@ -23,4 +21,4 @@ print("Booting VM 1 - default amount of memory")
 if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(20,image_name='kernel_memmap').clean()
+    vm.boot(20,image_name=image_name)

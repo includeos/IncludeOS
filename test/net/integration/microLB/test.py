@@ -66,4 +66,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(20,image_name='net_microLB').clean()
+    vm.boot(20,image_name='net_microLB.elf.bin')

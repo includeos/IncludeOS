@@ -6,10 +6,5 @@ import os
 
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
-vm.cmake()
 
-# Boot the VM, taking a timeout as parameter
-if len(sys.argv) > 1:
-    vm.boot(20,image_name=str(sys.argv[1]))
-else:
-    vm.cmake().boot(20,image_name='posix_pthread').clean()
+vm.boot(20,image_name='posix_pthread.elf.bin')

@@ -125,4 +125,4 @@ vm.on_output("Service started", run_dhclient)
 if len(sys.argv) > 1:
     vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(thread_timeout).clean()
+    vm.boot(thread_timeout)

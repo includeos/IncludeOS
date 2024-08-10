@@ -7,4 +7,4 @@ from vmrunner import vmrunner
 
 vm = vmrunner.vms[0];
 # Build, run and clean
-vm.cmake().boot(image_name='kernel_modules').clean()
+vm.boot(image_name='kernel_modules.elf.bin')

@@ -1,16 +1,8 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 #option(threading "" ON)
 
-# Service
 project (tls)
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
-if (NOT HAS_CONAN)
-  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
-endif()
-conan_basic_setup()
-
 include(os)
 
 set(SOURCES

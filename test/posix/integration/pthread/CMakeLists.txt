@@ -1,22 +1,14 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-#service
-project (service)
-
-if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
-  conan_basic_setup()
-else()
-  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
-endif()
-
+project(service)
 include(os)
 
 set(SOURCES
-    service.cpp
-  )
+  service.cpp
+)
 
-os_add_executable(posix_pthread "POSIX pthread test" ${SOURCES})
+os_add_executable(pthread_test "pthread test" ${SOURCES})
+os_add_stdout(pthread_test default_stdout)
 
-os_add_plugins(posix_pthread vfs)
-os_add_stdout(posix_pthread default_stdout)
+configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

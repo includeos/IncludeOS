@@ -28,9 +28,10 @@ vm = vmrunner.vms[0]
 # ICMP waiting 30 seconds for ping reply
 
 num_successes = 0
+expected_successes = 3
 
 def start_icmp_test(trigger_line):
-  global num_successes
+  global num_successes, expected_successes
 
   # Installing hping3 on linux
   #TODO if not found ping3.. do fail and tell user to install !!!
@@ -64,34 +65,38 @@ def start_icmp_test(trigger_line):
   else:
     print(color.FAIL("<Test.py>"), "Ping test FAILED")
 
-  # 2 Port unreachable
-  print(color.INFO("<Test.py>"), "Performing Destination Unreachable (port) test")
-  # Sending 1 udp packet to 10.0.0.45 to port 8080
-  udp_port_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"], timeout=thread_timeout).decode("utf-8")
-  print(udp_port_output)
+  if os.getenv("ALLOW_SUDO", "").lower() in ["1", "true", "yes"]:
+      # 2 Port unreachable
+      print(color.INFO("<Test.py>"), "Performing Destination Unreachable (port) test")
+      # Sending 1 udp packet to 10.0.0.45 to port 8080
+      udp_port_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"], timeout=thread_timeout).decode("utf-8")
+      print(udp_port_output)
 
-  # Validate content in udp_port_output:
-  if "ICMP Port Unreachable from ip=10.0.0.45" in udp_port_output:
-    print(color.INFO("<Test.py>"), "Port Unreachable test succeeded")
-    num_successes += 1
+      # Validate content in udp_port_output:
+      if "ICMP Port Unreachable from ip=10.0.0.45" in udp_port_output:
+          print(color.INFO("<Test.py>"), "Port Unreachable test succeeded")
+          num_successes += 1
+      else:
+          print(color.FAIL("<Test.py>"), "Port Unreachable test FAILED")
+
+      # 3 Protocol unreachable
+      print(color.INFO("<Test.py>"), "Performing Destination Unreachable (protocol) test")
+      # Sending 1 raw ip packet to 10.0.0.45 with protocol 16
+      rawip_protocol_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"], timeout=thread_timeout).decode("utf-8")
+      print(rawip_protocol_output)
+
+      # Validate content in rawip_protocol_output:
+      if "ICMP Protocol Unreachable from ip=10.0.0.45" in rawip_protocol_output:
+          print(color.INFO("<Test.py>"), "Protocol Unreachable test succeeded")
+          num_successes += 1
+      else:
+          print(color.FAIL("<Test.py>"), "Protocol Unreachable test FAILED")
   else:
-    print(color.FAIL("<Test.py>"), "Port Unreachable test FAILED")
-
-  # 3 Protocol unreachable
-  print(color.INFO("<Test.py>"), "Performing Destination Unreachable (protocol) test")
-  # Sending 1 raw ip packet to 10.0.0.45 with protocol 16
-  rawip_protocol_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"], timeout=thread_timeout).decode("utf-8")
-  print(rawip_protocol_output)
-
-  # Validate content in rawip_protocol_output:
-  if "ICMP Protocol Unreachable from ip=10.0.0.45" in rawip_protocol_output:
-    print(color.INFO("<Test.py>"), "Protocol Unreachable test succeeded")
-    num_successes += 1
-  else:
-    print(color.FAIL("<Test.py>"), "Protocol Unreachable test FAILED")
+      print(color.WARNING("<Test.py>"), "Skipping further test steps requiring hping3 and sudo. Enable with ALLOW_SUDO=1")
+      expected_successes -= 2
 
   # 4 Check result of tests
-  if num_successes == 3:
+  if num_successes == expected_successes:
     vm.exit(0, "<Test.py> All ICMP tests succeeded. Process returned 0 exit status")
   else:
     num_fails = 3 - num_successes
@@ -104,4 +109,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.cmake().boot(thread_timeout,image_name='net_icmp').clean()
+    vm.boot(thread_timeout,image_name='net_icmp.elf.bin')

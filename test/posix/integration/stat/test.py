@@ -44,9 +44,4 @@ vm.on_output("fstatat\(\) of file that exists is ok", increment)
 
 vm.on_output("All done!", check_num_outputs)
 
-# Boot the VM, taking a timeout as parameter
-if len(sys.argv) > 1:
-    vm.boot(20,image_name=str(sys.argv[1]))
-else:
-    vm.cmake()
-    vm.boot(20,image_name='posix_stat').clean()
+vm.boot(20,image_name='posix_stat.elf.bin')

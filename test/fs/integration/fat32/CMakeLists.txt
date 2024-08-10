@@ -1,13 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
-#service
+cmake_minimum_required(VERSION 3.5
+)set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
 project(service)
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE HAS_CONAN)
-if (NOT HAS_CONAN)
-  message(FATAL_ERROR "missing conanbuildinfo.cmake did you forget to run conan install ?")
-endif()
-conan_basic_setup()
-
 include(os)
 
 os_add_executable(fs_fat32 "FAT32 filesystem test" fat32.cpp)

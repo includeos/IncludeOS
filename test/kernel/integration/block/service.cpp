@@ -17,6 +17,8 @@
 
 #include <os>
 #include <timers>
+#include <expects>
+
 using namespace std::chrono;
 
 extern "C" uint32_t os_get_blocking_level();

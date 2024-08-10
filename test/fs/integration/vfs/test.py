@@ -28,4 +28,4 @@ vm.on_exit_success(cleanup)
 if len(sys.argv) > 1:
     vm.boot(thread_timeout,image_name=str(sys.argv[1]))
 else:
-    vm.cmake().boot(thread_timeout,image_name='fs_vfs').clean()
+    vm.boot(thread_timeout,image_name='fs_vfs.elf.bin')

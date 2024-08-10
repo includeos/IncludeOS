@@ -47,4 +47,4 @@ vm.on_output("Client 3 got IP from IncludeOS DHCP server", DHCP_test)
 if len(sys.argv) > 1:
     vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
 else:
-    vmrunner.vms[0].cmake().boot(thread_timeout,image_name='net_dhcpd').clean()
+    vmrunner.vms[0].boot(thread_timeout,image_name='net_dhcpd.elf.bin')

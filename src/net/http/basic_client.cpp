@@ -69,7 +69,7 @@ namespace http {
     if(on_send_)
       on_send_(*req, options, host);
 
-    conn.send(move(req), move(cb), options.follow_redirect, options.timeout);
+    conn.send(std::move(req), std::move(cb), options.follow_redirect, options.timeout);
   }
 
   void Basic_client::send(Request_ptr req, URI url, Response_handler cb, Options options)
@@ -89,7 +89,7 @@ namespace http {
       std::string host(url.host());
       auto ip = net::ip4::Addr(host);
 
-      send(move(req), {ip, port}, move(cb), secure, move(options));
+      send(std::move(req), {ip, port}, std::move(cb), secure, std::move(options));
     }
     else
     {
@@ -97,10 +97,10 @@ namespace http {
       ResolveCallback::make_packed(
       [
         this,
-        request = move(req),
-        url{move(url)},
-        cb{move(cb)},
-        opt{move(options)},
+        request = std::move(req),
+        url{std::move(url)},
+        cb{std::move(cb)},
+        opt{std::move(options)},
         secure,
         port
       ]
@@ -113,7 +113,7 @@ namespace http {
           return;
         }
         // Host resolved
-        send(move(request), {addr, port}, move(cb), secure, move(opt));
+        send(std::move(request), {addr, port}, std::move(cb), secure, std::move(opt));
       }));
     }
   }
@@ -144,7 +144,7 @@ namespace http {
       // Default to port 80 if non given
       const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-      send(move(req), {ip, port}, move(cb), secure, move(options));
+      send(std::move(req), {ip, port}, std::move(cb), secure, std::move(options));
     }
     else
     {
@@ -153,10 +153,10 @@ namespace http {
       [
         this,
         method,
-        url{move(url)},
-        hfields{move(hfields)},
-        cb{move(cb)},
-        opt{move(options)},
+        url{std::move(url)},
+        hfields{std::move(hfields)},
+        cb{std::move(cb)},
+        opt{std::move(options)},
         secure
       ]
         (net::dns::Response_ptr res, const net::Error& err)
@@ -180,7 +180,7 @@ namespace http {
           // Default to port 80 if non given
           const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          send(move(req), {addr, port}, move(cb), secure, move(opt));
+          send(std::move(req), {addr, port}, std::move(cb), secure, std::move(opt));
         }
         else
         {
@@ -202,9 +202,9 @@ namespace http {
     *req << hfields;
 
     //set uri (default "/")
-    req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
+    req->set_uri((!path.empty()) ? URI{std::move(path)} : URI{"/"});
 
-    send(move(req), move(host), move(cb), secure, move(options));
+    send(std::move(req), std::move(host), std::move(cb), secure, std::move(options));
   }
 
   void Basic_client::request(Method method, URI url, Header_set hfields,
@@ -234,7 +234,7 @@ namespace http {
       // Default to port 80 if non given
       const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-      send(move(req), {ip, port}, move(cb), secure, move(options));
+      send(std::move(req), {ip, port}, std::move(cb), secure, std::move(options));
     }
     else
     {
@@ -244,11 +244,11 @@ namespace http {
         [
           this,
           method,
-          url{move(url)},
-          hfields{move(hfields)},
-          data{move(data)},
-          cb{move(cb)},
-          opt{move(options)},
+          url{std::move(url)},
+          hfields{std::move(hfields)},
+          data{std::move(data)},
+          cb{std::move(cb)},
+          opt{std::move(options)},
           secure
         ]
           (net::dns::Response_ptr res, const net::Error& err)
@@ -275,7 +275,7 @@ namespace http {
             // Default to port 80 if non given
             const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-            this->send(move(req), {addr, port}, move(cb), secure, move(opt));
+            this->send(std::move(req), {addr, port}, std::move(cb), secure, std::move(opt));
           }
           else
           {
@@ -298,12 +298,12 @@ namespace http {
     *req << hfields;
 
     // set uri (default "/")
-    req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
+    req->set_uri((!path.empty()) ? URI{std::move(path)} : URI{"/"});
 
     // Add data and content length
     add_data(*req, data);
 
-    send(move(req), move(host), move(cb), secure, move(options));
+    send(std::move(req), std::move(host), std::move(cb), secure, std::move(options));
   }
 
   void Basic_client::add_data(Request& req, const std::string& data)

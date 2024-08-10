@@ -42,4 +42,4 @@ vm.on_output("Got IP from DHCP", DHCP_test)
 if len(sys.argv) > 1:
     vmrunner.vms[0].boot(image_name=str(sys.argv[1]))
 else:
-    vmrunner.vms[0].cmake().boot(thread_timeout,image_name='net_dhclient').clean()
+    vmrunner.vms[0].boot(thread_timeout,image_name='net_dhclient.elf.bin')

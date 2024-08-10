@@ -37,4 +37,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     #the corutines is set in the CMakelists.
-    vm.cmake().boot(30,image_name='stl_exceptions').clean()
+    vm.boot(30,image_name='stl_exceptions.elf.bin')

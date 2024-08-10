@@ -151,6 +151,7 @@ namespace net {
     struct Router {
     public:
       Router(Mld& ref) : mld_{ref} {}
+      const Mld& mld () const { return mld_; }
     private:
       Mld         &mld_;
       RouterMlist mlist_;
