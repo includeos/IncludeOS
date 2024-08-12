@@ -19,19 +19,7 @@
 #include <util/fixed_list_alloc.hpp>
 #include <list>
 
-struct Block {
-  size_t id;
-
-  Block(size_t i)
-    : id{i} {}
-
-  bool operator==(const Block& other) const
-  { return id == other.id; }
-};
-
-template <std::size_t N>
-using Block_list = std::list<Block, Fixed_list_alloc<Block, N>>;
-
+// Test cases for the fixed storage backend for Fixed_alloc
 // Note: this should be moved to a separate test if Fixed_storage gets used by
 //       anything other than Fixed_list_alloc.
 CASE("Using Fixed_storage directly for a small buffer")
@@ -89,8 +77,87 @@ CASE("Using Fixed_storage directly for a small buffer")
   EXPECT(some_ints.available() == some_ints.buffer_size());
 }
 
+struct Block {
+  size_t id;
 
-CASE("Using Fixed_list_alloc")
+  Block(size_t i)
+    : id{i} {}
+
+  bool operator==(const Block& other) const
+  { return id == other.id; }
+};
+
+template <std::size_t N>
+using Block_list = std::list<Block, Fixed_list_alloc<Block, N>>;
+
+
+CASE("Using Fixed_list_alloc directly")
+{
+  const int N = 10;//'000;
+  Fixed_list_alloc<int, N> alloc;
+
+  std::vector<int*> ints;
+
+  for (int i = 0; i < N; i++){
+    int* int1 = alloc.allocate(1);
+    EXPECT(int1 != nullptr);
+    EXPECT(std::find(ints.begin(), ints.end(), int1) == ints.end());
+    ints.emplace_back(int1);
+  }
+
+  EXPECT_THROWS(alloc.allocate(1));
+
+  for (int* i : ints) {
+    alloc.deallocate(i, 1);
+  }
+
+  int* int1 = alloc.allocate(1);
+  EXPECT(int1 != nullptr);
+}
+
+CASE("Using Fixed_list_alloc with a small buffer")
+{
+  const int N = 10;
+  Block_list<N> list{};
+
+  EXPECT(list.empty());
+
+  Block& first = list.emplace_back(42);
+
+  EXPECT(! list.empty());
+
+  Block& second = list.emplace_back(43);
+
+  EXPECT(&first != &second);
+  EXPECT(! list.empty());
+
+  // Testing destruction
+  auto listptr = std::make_unique<Block_list<N>>();
+  EXPECT(listptr != nullptr);
+
+  // Delete an empty list
+  delete listptr.release();
+
+  EXPECT(listptr == nullptr);
+  listptr = std::make_unique<Block_list<N>>();
+  listptr->push_back({42});
+
+  EXPECT(! listptr->empty());
+  EXPECT(listptr->front().id == 42);
+  EXPECT(listptr->back().id == 42);
+
+  listptr->push_back({43});
+
+  EXPECT(! listptr->empty());
+  EXPECT(listptr->front().id == 42);
+  EXPECT(listptr->back().id == 43);
+
+  // Delete a non-empty list
+  delete listptr.release();
+  EXPECT(listptr == nullptr);
+}
+
+CASE("Using Fixed_list_alloc with a large buffer")
 {
   const int N = 10'000;
   Block_list<N> list{{0},{1},{2}};
