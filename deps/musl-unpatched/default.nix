@@ -17,7 +17,7 @@ stdenv.mkDerivation rec {
   configurePhase = ''
     echo "Configuring with musl's configure script"
     echo "Target platform is ${stdenv.targetPlatform.config}"
-    ./configure --prefix=$out --disable-shared --enable-debug CROSS_COMPILE=${stdenv.targetPlatform.config}-
+    ./configure --prefix=$out --with-malloc=oldmalloc --disable-shared --enable-debug CROSS_COMPILE=${stdenv.targetPlatform.config}-
   '';
 
   # Copy linux headers - taken from upstream nixpkgs musl, needed for libcxx to build

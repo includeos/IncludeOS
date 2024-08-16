@@ -34,7 +34,7 @@ stdenv.mkDerivation rec {
  configurePhase = ''
     echo "Configuring with musl's configure script"
     echo "Target platform is ${stdenv.targetPlatform.config}"
-    ./configure --prefix=$out --disable-shared --enable-debug CROSS_COMPILE=${stdenv.targetPlatform.config}-
+    ./configure --prefix=$out --disable-shared --enable-debug --with-malloc=oldmalloc CROSS_COMPILE=${stdenv.targetPlatform.config}-
   '';
 
   CFLAGS = "-Wno-error=int-conversion -nostdinc";
