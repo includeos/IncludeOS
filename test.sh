@@ -10,6 +10,7 @@
 
 steps=0
 fails=0
+failed_tests=()
 
 success(){
   echo ""
@@ -26,7 +27,8 @@ success(){
 
 fail(){
   echo ""
-  echo "👷⛔ Step $1 failed"
+  echo "👷⛔ Step $1 failed ($2)"
+  failed_tests+=("step $1: $2")
 }
 
 run(){
@@ -49,7 +51,7 @@ run(){
     success $steps
   else
     echo "‼️  Error: Command failed with exit status $?"
-    fail $steps
+    fail $steps "$1"
     fails=$((fails + 1))
     return $?
   fi
@@ -154,7 +156,7 @@ run_testsuite() {
     if [ $? -eq 0 ]; then
       success "$steps.$substeps"
     else
-      fail "$steps.$substeps"
+      fail "$steps.$substeps" "$cmd"
       subfails=$((subfails + 1))
     fi
 
@@ -211,5 +213,10 @@ else
   echo ""
   echo "👷🧰 $fails / $steps steps failed. There's some work left to do. 🛠  "
   echo ""
+  echo "Failed tests:"
+  for t in "${failed_tests[@]}"; do
+    echo "$t"
+  done
+
   exit 1
 fi

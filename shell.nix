@@ -40,7 +40,9 @@ pkgs.mkShell rec {
     CC=${stdenv.cc}/bin/clang
     CXX=${stdenv.cc}/bin/clang++
 
-    # The 'boot' utility in the vmrunner package requires this env var
+
+    # The 'boot' utility in the vmrunner package requires these env vars
+    export INCLUDEOS_VMRUNNER=${vmrunner}
     export INCLUDEOS_CHAINLOADER=${chainloader}/bin
 
     unikernel=$(realpath ${unikernel})
