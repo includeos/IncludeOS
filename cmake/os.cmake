@@ -208,8 +208,10 @@ function(os_add_executable TARGET NAME)
         ${TARGET} ALL
         COMMENT "elf.syms"
         COMMAND ${ELF_SYMS} $<TARGET_FILE:${ELF_TARGET}>
+        # Copy symbols to .elf_symbols section
         COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin  $<TARGET_FILE:${ELF_TARGET}> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
-        #COMMAND ${STRIP_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
+        # Strip regular symbols
+        COMMAND ${CMAKE_STRIP} --strip-all ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}
         COMMAND mv $<TARGET_FILE:${ELF_TARGET}> $<TARGET_FILE:${ELF_TARGET}>.copy
         DEPENDS ${ELF_TARGET}
       )
