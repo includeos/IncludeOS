@@ -50,9 +50,13 @@ static const char* boot_stringz = "Bootloader area";
 extern "C" char _ELF_START_;
 static const uintptr_t ELF_START = reinterpret_cast<uintptr_t>(&_ELF_START_);
 
+/* Calls __builtin_frame_address to determine if the top of the stack has been reached,
+ * then calls __builtin_return_address to get the return address at level N. Note that
+ * __builtin_frame_address can crash the program if frame address is not set up correctly.
+ */
 #define frp(N, ra)                                 \
   (__builtin_frame_address(N) != nullptr) &&       \
-  (ra = __builtin_return_address(N)) != nullptr && ra != (void*)-1 \
+  (ra = __builtin_return_address(N)) != nullptr && ra != (void*)-1
 
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
@@ -273,12 +277,11 @@ void os::print_backtrace(void(*stdout_function)(const char*, size_t)) noexcept
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
             "[%d] 0x%016lx + 0x%.3x: %s\n",       \
             N, symb.addr, symb.offset, symb.name);\
-            stdout_function(_btrace_buffer, len);
+    stdout_function(_btrace_buffer, len);
 #else
   #error "Implement me"
 #endif
 
-  printf("\n");
   void* ra;
   if (frp(0, ra)) {
     PRINT_TRACE(0, ra);
@@ -337,6 +340,9 @@ void Elf::print_info()
   _print_elf_symbols();
 }
 
+/* This static struct stores the ELF symbol table details before we init BSS.
+ * To avoid it partially being cleared again when we initialise BSS to zero, we
+ * store it in a different ELF section with __attribute__. */
 static struct relocated_header {
   ElfSym*   syms = (ElfSym*) 0x0;
   uint32_t  entries = 0xFFFF;
@@ -347,7 +353,7 @@ static struct relocated_header {
   const char* strings() const {
     return (char*) &syms[entries];
   }
-} relocs;
+} relocs __attribute__((section(".data")));
 
 struct elfsyms_header {
   uint32_t  symtab_entries;
@@ -386,11 +392,13 @@ void _move_elf_syms_location(const void* location, void* new_location)
   hdr->sanity_check = temp_hdr;
   if (hdr->sanity_check != our_sanity)
   {
-    kprintf("ELF syms header CRC failed! "
+    kprintf("* ELF syms header CRC failed! "
             "(%08x vs %08x)\n", hdr->sanity_check, our_sanity);
     relocs.entries = 0;
     relocs.strsize = 0;
     return;
+  } else {
+    kprintf("* ELF syms header CRC OK\n");
   }
 
   // verify separate checksums of symbols and strings
@@ -400,13 +408,13 @@ void _move_elf_syms_location(const void* location, void* new_location)
   if (csum_syms != hdr->checksum_syms || csum_strs != hdr->checksum_strs)
   {
     if (csum_syms != hdr->checksum_syms)
-      kprintf("ELF symbol tables checksum failed! "
+      kprintf("  * ELF symbol tables checksum failed! "
               "(%08x vs %08x)\n", csum_syms, hdr->checksum_syms);
     if (csum_strs != hdr->checksum_strs)
-      kprintf("ELF string tables checksum failed! "
+      kprintf("  * ELF string tables checksum failed! "
               "(%08x vs %08x)\n", csum_strs, hdr->checksum_strs);
     uint32_t all = crc32c(hdr, sizeof(elfsyms_header) + size);
-    kprintf("Checksum ELF section: %08x\n", all);
+    kprintf("  * Checksum ELF section: %08x\n", all);
 
     relocs.entries = 0;
     relocs.strsize = 0;
@@ -479,7 +487,16 @@ void elf_protect_symbol_areas()
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
   if (size % os::mem::min_psize()) size += os::mem::min_psize() - (size & (os::mem::min_psize()-1));
-  if (size == 0) return;
+  if (size == 0) {
+    INFO2("* ELF symbol table size 0, ignoring.");
+    return;
+  }
+
+  if (src == 0) {
+    INFO2("ERROR: Symbol stable base address is 0x0, while size > 0. Not protecting. ELF symbol inspection may crash later.");
+    return;
+  }
+
   // create the ELF symbols & strings area
   os::mem::vmmap().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
