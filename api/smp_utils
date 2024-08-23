@@ -20,38 +20,85 @@
 #ifndef API_SMP_UTILS_HEADER
 #define API_SMP_UTILS_HEADER
 
+#include <chrono>
 #include <arch.hpp>
 
-/// x86-related locking stuff ///
-#if defined(ARCH_x86)
-// Intel 3a  8.10.6.7: 128-byte boundary
-typedef unsigned int spinlock_t __attribute__((aligned(128)));
+/* TTAS[1] spinlock implementation.
+ *
+ * Implements C++ named requirements BasicLockable, Lockable and TimedLockable
+ * for use with e.g. std::lock_guard.
+ *
+ * Loosely follows C++ spinlock implementation by Erik Rigtorp[2].
+ *
+ * References:
+ * 1. https://en.wikipedia.org/wiki/Test_and_test-and-set
+ * 2. https://rigtorp.se/spinlock/
+ * */
+class Spinlock {
+  public:
+    void lock() noexcept {
+      // See https://rigtorp.se/spinlock/ for details on memory ordering
+      //
+      // Optimised for uncontended locks as it starts with exchange, which
+      // requires a write.
+      while (lock_.exchange(true, std::memory_order_acquire)) {
+        while (lock_.load(std::memory_order_relaxed)) {
+          os::Arch::cpu_relax();
+        }
+      }
+    }
 
-#ifdef INCLUDEOS_SMP_ENABLE
-inline void lock(spinlock_t& lock) {
-  while (!__sync_bool_compare_and_swap(&lock, 0, 1)) {
-    while (lock) asm("pause");
-  }
-}
-inline void unlock(spinlock_t& lock) {
-  __sync_lock_release(&lock, 0); // barrier
-}
-#else
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
-#endif
+    void unlock() noexcept {
+      lock_.store(false, std::memory_order_release);
+    }
 
-struct scoped_spinlock
-{
-  scoped_spinlock(spinlock_t& ref) noexcept : spinlock(ref) {
-    //asm("" : : : "memory");
-    lock(this->spinlock);
-  }
-  ~scoped_spinlock() noexcept {
-    unlock(spinlock); // barrier
-  }
-private:
-    spinlock_t& spinlock;
+    bool is_locked() noexcept {
+      return lock_.load(std::memory_order_relaxed);
+    }
+
+    // try_lock() returns true on success, false on failure. Needed for Lockable.
+    bool try_lock() noexcept {
+      // Fast path first. Return false if the lock is taken
+      if (lock_.load(std::memory_order_relaxed)) {
+        return false;
+      }
+      // Try to take the lock, .exchange returns false if the lock was available
+      return !lock_.exchange(true, std::memory_order_acquire);
+    }
+
+    // Try to lock for duration. Needed for TimedLockable.
+    bool try_lock_for(std::chrono::nanoseconds t) noexcept {
+      using namespace std::chrono;
+
+      // Try to take lock first
+      if (try_lock()) {
+        return true;
+      }
+
+      // Try to take again until deadline has passed
+      auto deadline = high_resolution_clock::now() + t;
+
+      do {
+        os::Arch::cpu_relax();
+        if (try_lock()) {
+          return true;
+        }
+      } while (deadline > high_resolution_clock::now());
+
+      return false;
+    }
+
+    // Try to lock until timestamp. Needed for TimedLockable.
+    template<class T>
+      bool try_lock_until(typename std::chrono::time_point<T> t) noexcept {
+        // Convert to duration
+        auto d = t - T::now();
+        return try_lock_for(d);
+      }
+
+  private:
+    std::atomic<bool> lock_ = {0};
+
 };
 
 struct minimal_barrier_t
@@ -78,7 +125,5 @@ struct minimal_barrier_t
 private:
   volatile int val = 0;
 };
-
-#endif // arch
 
 #endif // hdr

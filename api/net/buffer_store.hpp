@@ -85,8 +85,7 @@ namespace net
     std::vector<uint8_t*> available_;
     std::vector<uint8_t*> pools_;
 #ifdef INCLUDEOS_SMP_ENABLE
-    // has strict alignment reqs, so put at end
-    spinlock_t           plock = 0;
+    Spinlock              plock;
 #endif
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;
@@ -99,7 +98,7 @@ namespace net
     auto* buff = (uint8_t*) addr;
     if (LIKELY(this->is_valid(buff))) {
 #ifdef INCLUDEOS_SMP_ENABLE
-      scoped_spinlock spinlock(this->plock);
+      std::lock_guard<Spinlock> lock(this->plock);
 #endif
       this->available_.push_back(buff);
       return;
