@@ -88,6 +88,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/unit_liveupdate.cpp
   ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
+  ${TEST}/kernel/unit/spinlocks.cpp
   ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
