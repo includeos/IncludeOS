@@ -76,16 +76,20 @@ pkgs.mkShell rec {
     echo $(which $CXX)
     echo -e "\nIncludeOS package:"
     echo ${includeos}
-    echo -e "\n----------------------  Qemu bridge setup  ---------------------"
+    echo -e "\n---------------------- Network privileges  ---------------------"
     echo "The vmrunner for IncludeOS tests requires bridged networking for full functionality."
-    echo "In order to use bridge networking, you need the following:"
-    echo "1. the qemu-bridge-helper needs sudo. Can be enabled with:"
+    echo "The following commands requiring sudo privileges can be used to set this up:"
+    echo "1. the qemu-bridge-helper needs sudo to create a bridge. Can be enabled with:"
     echo "   sudo chmod u+s ${pkgs.qemu}/libexec/qemu-bridge-helper"
-    echo "2. bridge43 must exist. Can be set up with \$create_bridge :"
+    echo "2. bridge43 must exist. Can be set up with vmrunner's create_bridge.sh script:"
     echo "   ${vmrunner.create_bridge}"
     echo "3. /etc/qemu/bridge.conf must contain this line:"
     echo "   allow bridge43"
-    echo "These steps require sudo. Without them we're restricted to usermode networking."
+    echo ""
+    echo "Some tests require ping, which requires premissions to send raw packets. On some hosts"
+    echo "this is not enabled by default for iputils provided by nix. It can be enabled with:"
+    echo "4. sudo setcap cap_net_raw+ep ${pkgs.iputils}/bin/ping"
+    echo " "
     echo
   '';
 }
