@@ -25,6 +25,10 @@ pkgs.mkShell rec {
     stdenv.cc
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
+    pkgs.qemu
+    pkgs.which
+    pkgs.grub2
+    pkgs.iputils
   ];
 
   buildInputs = [
@@ -39,7 +43,6 @@ pkgs.mkShell rec {
   shellHook = ''
     CC=${stdenv.cc}/bin/clang
     CXX=${stdenv.cc}/bin/clang++
-
 
     # The 'boot' utility in the vmrunner package requires these env vars
     export INCLUDEOS_VMRUNNER=${vmrunner}
@@ -73,5 +76,16 @@ pkgs.mkShell rec {
     echo $(which $CXX)
     echo -e "\nIncludeOS package:"
     echo ${includeos}
+    echo -e "\n----------------------  Qemu bridge setup  ---------------------"
+    echo "The vmrunner for IncludeOS tests requires bridged networking for full functionality."
+    echo "In order to use bridge networking, you need the following:"
+    echo "1. the qemu-bridge-helper needs sudo. Can be enabled with:"
+    echo "   sudo chmod u+s ${pkgs.qemu}/libexec/qemu-bridge-helper"
+    echo "2. bridge43 must exist. Can be set up with \$create_bridge :"
+    echo "   ${vmrunner.create_bridge}"
+    echo "3. /etc/qemu/bridge.conf must contain this line:"
+    echo "   allow bridge43"
+    echo "These steps require sudo. Without them we're restricted to usermode networking."
+    echo
   '';
 }

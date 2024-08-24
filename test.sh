@@ -70,10 +70,10 @@ build_example(){
 }
 
 smoke_tests(){
-  nix-shell --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-shell --pure  --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --argstr unikernel ./test/net/integration/tcp --run ./test.py
+  nix-shell --pure --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
 run unittests "Build and run unit tests"
@@ -139,7 +139,7 @@ run_testsuite() {
 
 
     # The command to run, as string to be able to print the fully expanded command
-    cmd="nix-shell --argstr unikernel $subfolder --run ./test.py"
+    cmd="nix-shell --pure --argstr unikernel $subfolder --run ./test.py"
 
     echo ""
     echo "🚧 Step $steps.$substeps"
