@@ -10,7 +10,8 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(kernel_exception "CPU exception test" ${SOURCES})
-os_add_stdout(kernel_exception default_stdout)
+os_add_executable(kernel_stacktrace "Stacktrace test" ${SOURCES})
+os_add_stdout(kernel_stacktrace default_stdout)
+os_add_drivers(kernel_stacktrace boot_logger)
 
 configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

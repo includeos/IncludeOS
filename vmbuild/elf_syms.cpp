@@ -52,7 +52,8 @@ int main(int argc, const char** args)
   // write symbols to binary file
   f = fopen(syms_file, "w");
   assert(f);
-  fwrite(pruned_location, sizeof(char), pruned_size, f);
+  res = fwrite(pruned_location, sizeof(char), pruned_size, f);
+  assert(res == pruned_size);
   fclose(f);
   return 0;
 }
