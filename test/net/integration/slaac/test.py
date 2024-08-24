@@ -26,7 +26,7 @@ def Slaac_test(trigger_line):
   print(color.INFO("<Test.py>"), "Trying to ping")
   time.sleep(1)
   try:
-    command = ["ping6", "-I", "bridge43", ip_string.rstrip(), "-c",
+    command = ["ping", "-I", "bridge43", ip_string.rstrip(), "-c",
             str(ping_count) ]
     print(color.DATA(" ".join(command)))
     print(subprocess.check_output(command))
