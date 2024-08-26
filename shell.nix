@@ -25,6 +25,10 @@ pkgs.mkShell rec {
     stdenv.cc
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
+    pkgs.qemu
+    pkgs.which
+    pkgs.grub2
+    pkgs.iputils
   ];
 
   buildInputs = [
@@ -39,7 +43,6 @@ pkgs.mkShell rec {
   shellHook = ''
     CC=${stdenv.cc}/bin/clang
     CXX=${stdenv.cc}/bin/clang++
-
 
     # The 'boot' utility in the vmrunner package requires these env vars
     export INCLUDEOS_VMRUNNER=${vmrunner}
@@ -73,5 +76,20 @@ pkgs.mkShell rec {
     echo $(which $CXX)
     echo -e "\nIncludeOS package:"
     echo ${includeos}
+    echo -e "\n---------------------- Network privileges  ---------------------"
+    echo "The vmrunner for IncludeOS tests requires bridged networking for full functionality."
+    echo "The following commands requiring sudo privileges can be used to set this up:"
+    echo "1. the qemu-bridge-helper needs sudo to create a bridge. Can be enabled with:"
+    echo "   sudo chmod u+s ${pkgs.qemu}/libexec/qemu-bridge-helper"
+    echo "2. bridge43 must exist. Can be set up with vmrunner's create_bridge.sh script:"
+    echo "   ${vmrunner.create_bridge}"
+    echo "3. /etc/qemu/bridge.conf must contain this line:"
+    echo "   allow bridge43"
+    echo ""
+    echo "Some tests require ping, which requires premissions to send raw packets. On some hosts"
+    echo "this is not enabled by default for iputils provided by nix. It can be enabled with:"
+    echo "4. sudo setcap cap_net_raw+ep ${pkgs.iputils}/bin/ping"
+    echo " "
+    echo
   '';
 }
