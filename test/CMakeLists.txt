@@ -232,14 +232,14 @@ add_custom_target( unittests ALL
 
 add_custom_command(TARGET unittests
                    POST_BUILD
-                   COMMAND ctest --output-on-failure -L unit )
+                   COMMAND ctest --output-on-failure -L unit --timeout 5)
 
 add_custom_target( memcheck
   DEPENDS ${TEST_BINARIES})
 
 add_custom_command(TARGET memcheck
                    POST_BUILD
-                   COMMAND ctest --output-on-failure -L memcheck)
+                   COMMAND ctest --output-on-failure -L memcheck --timeout 5)
 
 add_custom_target( clangtidy
   DEPENDS ${TEST_BINARIES})
