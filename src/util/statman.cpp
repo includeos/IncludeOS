@@ -75,7 +75,7 @@ Statman::Statman() {
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
-  volatile scoped_spinlock lock(this->stlock);
+  const std::lock_guard<Spinlock> lock(this->stlock);
 #endif
   if (name.empty())
     throw Stats_exception("Cannot create Stat with no name");
@@ -95,7 +95,7 @@ Stat& Statman::create(const Stat::Stat_type type, const std::string& name)
 Stat& Statman::get(const Stat* st)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
-  volatile scoped_spinlock lock(this->stlock);
+  const std::lock_guard<Spinlock> lock(this->stlock);
 #endif
   for (auto& stat : this->m_stats) {
     if (&stat == st) {
@@ -110,7 +110,7 @@ Stat& Statman::get(const Stat* st)
 Stat& Statman::get_by_name(const char* name)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
-  volatile scoped_spinlock lock(this->stlock);
+  const std::lock_guard<Spinlock> lock(this->stlock);
 #endif
   for (auto& stat : this->m_stats)
   {
@@ -140,7 +140,7 @@ void Statman::free(void* addr)
 {
   auto& stat = this->get((Stat*) addr);
 #ifdef INCLUDEOS_SMP_ENABLE
-  volatile scoped_spinlock lock(this->stlock);
+  const std::lock_guard<Spinlock> lock(this->stlock);
 #endif
   // delete entry
   new (&stat) Stat(Stat::FLOAT, "");

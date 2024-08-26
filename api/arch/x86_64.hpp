@@ -21,6 +21,8 @@
 
 #define ARCH_x86
 
+#include <emmintrin.h>
+
 namespace os {
 
   // Concept / base class Arch
@@ -33,6 +35,7 @@ namespace os {
     static inline uint64_t cpu_cycles() noexcept;
     static inline void read_memory_barrier() noexcept;
     static inline void write_memory_barrier() noexcept;
+    static inline void cpu_relax() noexcept;
   };
 
 }
@@ -50,6 +53,10 @@ inline void os::Arch::read_memory_barrier() noexcept {
 
 inline void os::Arch::write_memory_barrier() noexcept {
   __asm volatile("mfence" ::: "memory");
+}
+
+inline void os::Arch::cpu_relax() noexcept {
+  _mm_pause();
 }
 
 #endif

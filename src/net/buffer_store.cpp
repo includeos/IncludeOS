@@ -61,7 +61,7 @@ namespace net {
   uint8_t* BufferStore::get_buffer()
   {
 #ifdef INCLUDEOS_SMP_ENABLE
-    scoped_spinlock spinlock(this->plock);
+    std::lock_guard<Spinlock> lock(this->plock);
 #endif
 
     if (UNLIKELY(available_.empty())) {

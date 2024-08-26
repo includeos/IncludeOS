@@ -20,6 +20,7 @@
 #include <cassert>
 #include <statman>
 #include <smp>
+#include <arch.hpp>
 //#define DEBUG_SMP
 
 static SMP::Array<Events> managers;

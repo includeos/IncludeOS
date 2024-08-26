@@ -88,6 +88,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/unit_liveupdate.cpp
   ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
+  ${TEST}/kernel/unit/spinlocks.cpp
   ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
@@ -231,14 +232,14 @@ add_custom_target( unittests ALL
 
 add_custom_command(TARGET unittests
                    POST_BUILD
-                   COMMAND ctest --output-on-failure -L unit )
+                   COMMAND ctest --output-on-failure -L unit --timeout 5)
 
 add_custom_target( memcheck
   DEPENDS ${TEST_BINARIES})
 
 add_custom_command(TARGET memcheck
                    POST_BUILD
-                   COMMAND ctest --output-on-failure -L memcheck)
+                   COMMAND ctest --output-on-failure -L memcheck --timeout 5)
 
 add_custom_target( clangtidy
   DEPENDS ${TEST_BINARIES})
