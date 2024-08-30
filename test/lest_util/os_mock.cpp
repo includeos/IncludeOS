@@ -101,6 +101,7 @@ namespace paging {
 #include <system_log>
 void SystemLog::initialize() {}
 void SystemLog::set_flags(uint32_t) {}
+bool SystemLog::is_initialized() { return false; }
 
 /// Kernel ///
 char _binary_apic_boot_bin_end;

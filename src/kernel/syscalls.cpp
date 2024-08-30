@@ -125,10 +125,14 @@ void os::panic(const char* why) noexcept
 
   const int current_cpu = SMP::cpu_id();
 
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
+#endif
 
   // Tell the System log that we have paniced
-  SystemLog::set_flags(SystemLog::PANIC);
+  if (SystemLog::is_initialized()) {
+    SystemLog::set_flags(SystemLog::PANIC);
+  }
 
   /// display informacion ...
   fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",
@@ -165,14 +169,18 @@ void os::panic(const char* why) noexcept
   // last packet
   net::print_last_packet();
 
-  // finally, backtrace
-  fprintf(stderr, "\n*** Backtrace:");
+  // backtrace
+  fprintf(stderr, "\n*** Backtrace:\n");
   print_backtrace([] (const char* text, size_t len) {
     fprintf(stderr, "%.*s", (int) len, text);
   });
 
+
   fflush(stderr);
+
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
+#endif
 
   // action that restores some system functionality intended for inspection
   // NB: Don't call this from double faults

@@ -60,6 +60,10 @@ void SystemLog::clear_flags()
   get_log_buffer().flags = 0;
 }
 
+bool SystemLog::is_initialized() {
+  return mrb != nullptr;
+}
+
 void SystemLog::write(const char* buffer, size_t length)
 {
   size_t free = get_mrb()->free_space();
