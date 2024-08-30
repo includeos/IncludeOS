@@ -48,26 +48,63 @@ uintptr_t mmap_allocation_end() {
   return alloc->highest_used();
 }
 
-static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
+static void* sys_mmap(void * addr, size_t length, int /*prot*/, int flags,
                       int fd, off_t /*offset*/)
 {
-  // TODO: Mapping to file descriptor
-  if (fd > 0) {
-    assert(false && "Mapping to file descriptor not yet implemented");
-  }
 
-  // TODO: mapping virtual address
-  if (addr) {
+  // TODO: Implement minimal functionality to be POSIX compliant
+  // https://pubs.opengroup.org/onlinepubs/009695399/functions/mmap.html
+
+  if (fd > -1) {
+    // None of our file systems support memory mapping at the moment
+    Expects(false && "Mapping to file descriptor not supported");
+    errno = ENODEV;
     return MAP_FAILED;
   }
+
+  if ((flags & MAP_ANONYMOUS) == 0) {
+    Expects(false && "We only support MAP_ANONYMOUS calls to mmap()");
+    errno = ENOTSUP;
+    return MAP_FAILED;
+  }
+
+  if ((flags & MAP_FIXED) > 0) {
+    Expects(false && "MAP_FIXED not supported.");
+    errno = ENOTSUP;
+    return MAP_FAILED;
+  }
+
+  if (((flags & MAP_PRIVATE) > 0) && ((flags & MAP_ANONYMOUS) == 0)) {
+    Expects(false && "MAP_PRIVATE only supported for MAP_ANONYMOUS");
+    errno = ENOTSUP;
+    return MAP_FAILED;
+  }
+
+  if (((flags & MAP_PRIVATE) > 0) && (addr != 0)) {
+    Expects(false && "MAP_PRIVATE only supported for new allocations (address=0).");
+    errno = ENOTSUP;
+    return MAP_FAILED;
+  }
+
+  if (((flags & MAP_SHARED) == 0) && ((flags & MAP_PRIVATE) == 0)) {
+    Expects(false && "MAP_SHARED or MAP_PRIVATE must be set.");
+    errno = ENOTSUP;
+    return MAP_FAILED;
+  }
+
+  // If we get here, the following should be true:
+  // MAP_ANONYMOUS set + MAP_SHARED or MAP_PRIVATE
+  // fd should be 0, address should be 0 for MAP_PRIVATE
+  // (address is in any case ignored)
 
   auto* res = kalloc(length);
 
-  if (UNLIKELY(res == nullptr))
+  if (UNLIKELY(res == nullptr)) {
+    errno = ENOMEM;
     return MAP_FAILED;
+  }
 
   return res;
-
 }
 
 extern "C"
