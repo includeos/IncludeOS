@@ -32,6 +32,12 @@ void* kalloc(size_t size) {
 }
 
 extern "C" __attribute__((weak))
+void* kalloc_aligned(size_t alignment, size_t size) {
+  Expects(kernel::heap_ready());
+  return alloc->do_allocate(size, alignment);
+}
+
+extern "C" __attribute__((weak))
 void kfree (void* ptr, size_t size) {
   alloc->deallocate(ptr, size);
 }
