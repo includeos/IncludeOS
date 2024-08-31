@@ -110,6 +110,7 @@ static void* sys_mmap(void * addr, size_t length, int /*prot*/, int flags,
     return MAP_FAILED;
   }
 
+  memset(res, 0, length);
   return res;
 }
 
