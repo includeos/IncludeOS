@@ -10,18 +10,27 @@
   buildpath ? "",
 
   # The unikernel to build
-  unikernel ? "./example"
+  unikernel ? "./example",
+
+  # vmrunner path, for vmrunner development
+  vmrunner ? ""
 }:
 pkgs.mkShell rec {
   includeos = pkgs.pkgsIncludeOS.includeos;
   stdenv = pkgs.pkgsIncludeOS.stdenv;
 
-  vmrunner = pkgs.callPackage (builtins.fetchGit {
-    url = "https://github.com/includeos/vmrunner";
-  }) {};
+  vmrunnerPkg =
+    if vmrunner == "" then
+      pkgs.callPackage (builtins.fetchGit {
+        url = "https://github.com/includeos/vmrunner";
+      }) {}
+    else
+      pkgs.callPackage (builtins.toPath /. + vmrunner) {};
+
+  lest = pkgs.callPackage ./deps/lest {};
 
   packages = [
-    vmrunner
+    vmrunnerPkg
     stdenv.cc
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
@@ -33,6 +42,7 @@ pkgs.mkShell rec {
 
   buildInputs = [
     chainloader
+    lest
     pkgs.openssl
     pkgs.rapidjson
     pkgs.xorriso
@@ -45,7 +55,7 @@ pkgs.mkShell rec {
     CXX=${stdenv.cc}/bin/clang++
 
     # The 'boot' utility in the vmrunner package requires these env vars
-    export INCLUDEOS_VMRUNNER=${vmrunner}
+    export INCLUDEOS_VMRUNNER=${vmrunnerPkg}
     export INCLUDEOS_CHAINLOADER=${chainloader}/bin
 
     unikernel=$(realpath ${unikernel})
@@ -82,7 +92,7 @@ pkgs.mkShell rec {
     echo "1. the qemu-bridge-helper needs sudo to create a bridge. Can be enabled with:"
     echo "   sudo chmod u+s ${pkgs.qemu}/libexec/qemu-bridge-helper"
     echo "2. bridge43 must exist. Can be set up with vmrunner's create_bridge.sh script:"
-    echo "   ${vmrunner.create_bridge}"
+    echo "   ${vmrunnerPkg.create_bridge}"
     echo "3. /etc/qemu/bridge.conf must contain this line:"
     echo "   allow bridge43"
     echo ""

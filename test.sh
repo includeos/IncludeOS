@@ -82,10 +82,10 @@ run build_chainloader "Build the 32-bit chainloader"
 
 run build_example "Build the basic example"
 
-run smoke_tests "Build and run a few key smoke tests"
+if [ "$QUICK_SMOKE" ]; then
 
+  run smoke_tests "Build and run a few key smoke tests"
 
-if [ -n "$QUICK_SMOKE" ]; then
   if [ $fails -eq 0 ]; then
     echo ""
     echo "👷💬 A lot of things are working! 💪"
@@ -183,6 +183,16 @@ exclusions=(
 )
 
 run_testsuite "./test/kernel/integration" "${exclusions[@]}"
+
+#
+# C++ STL runtime tests
+#
+exclusions=(
+
+)
+
+run_testsuite "./test/stl/integration" "${exclusions[@]}"
+
 
 #
 # Networking tests
