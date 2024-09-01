@@ -1,7 +1,6 @@
 #include "tss.hpp"
 
 #include <cstdio>
-#include <malloc.h>
 #include <smp>
 #include <kernel/memory.hpp>
 
@@ -12,6 +11,7 @@
 #endif
 
 extern "C" void __amd64_load_tr(uint16_t);
+extern "C" void* kalloc_aligned(size_t, size_t);
 
 struct gdtr64 {
   uint16_t limit;
@@ -45,7 +45,7 @@ static stack create_stack_virt(size_t size, const char* name)
   static uintptr_t stacks_begin = stack_area + GUARD_SIZE;
 
   // Allocate physical memory
-  auto* phys = (char*)memalign(4096, size);
+  auto* phys = (char*)kalloc_aligned(4096, size);
   IST_PRINT("* Creating stack '%s' @ %p (%p phys) \n",
          name, (void*)stacks_begin, phys);
 

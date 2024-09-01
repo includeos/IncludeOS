@@ -17,13 +17,12 @@
 
 #include "string.h"
 
-#include <malloc.h>
-#include <string.h>
+extern void* kalloc(size_t size);
 
 char* strdup(const char* string)
 {
 	size_t len = (strlen(string) + 1) * sizeof(char);
-	char* dup = (char*) malloc(len);
+	char* dup = (char*) kalloc(len);
 	memcpy(dup, string, len);
 	return dup;
 }

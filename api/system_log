@@ -44,6 +44,7 @@ public:
 
   // platform will initialize (create new or restore)
   static void initialize();
+  static bool is_initialized();
 };
 
 
