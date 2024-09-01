@@ -1,3 +1,3 @@
-# Test Coroutines TS
+# Test Coroutines
 
-Test the C++ Couroutines TS compatibility with IncludeOS and SMP
+Test the C++ Couroutines compatibility with IncludeOS and SMP

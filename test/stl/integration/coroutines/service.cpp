@@ -23,8 +23,9 @@
 #define SMP_DEBUG 1
 
 #include <os>
+#include <expects>
 #include <iostream>
-#include <experimental/coroutine>
+#include <coroutine>
 #include <smp>
 #include <vector>
 
@@ -32,7 +33,7 @@ using namespace std;
 template<typename T>
 struct smp_future {
   struct promise_type;
-  using handle_type = std::experimental::coroutine_handle<promise_type>;
+  using handle_type = std::coroutine_handle<promise_type>;
   handle_type coro;
 
 #ifdef INCLUDEOS_SMP_ENABLE
@@ -79,7 +80,7 @@ struct smp_future {
     return coro.done();
   }
 
-  void await_suspend(std::experimental::coroutine_handle<> awaiting) {
+  void await_suspend(std::coroutine_handle<> awaiting) {
     CPULOG("await_suspend: spinwaiting for coro \n");
     while(!done);
     CPULOG("await_suspend: spinwaiting done, resuming awaiting coro \n");
@@ -111,16 +112,16 @@ struct smp_future {
     }
     auto initial_suspend() {
       //std::cout << "Started the coroutine, don't stop now!" << std::endl;
-      return std::experimental::suspend_always{};
+      return std::suspend_always{};
     }
     auto return_value(T v) {
       //std::cout << "Got an answer of " << v << std::endl;
       value = v;
-      return std::experimental::suspend_never{};
+      return std::suspend_never{};
     }
-    auto final_suspend() {
+    auto final_suspend() noexcept {
       //std::cout << "Finished the coro" << std::endl;
-      return std::experimental::suspend_always{};
+      return std::suspend_always{};
     }
 
 
@@ -131,12 +132,12 @@ struct smp_future {
 };
 
 
-smp_future<int> answer(int i) {
+smp_future<int> answer(int i) noexcept {
   CPULOG("Computing answer for %i \n", i);
   co_return i * 2;
 }
 
-smp_future<int> reduce() {
+smp_future<int> reduce() noexcept {
 
 
   std::vector< decltype(answer(10)) > futures;
@@ -182,7 +183,7 @@ smp_future<int> reduce() {
   co_return sum;
 }
 
-smp_future<int> reduce1 () {
+smp_future<int> reduce1 () noexcept {
   co_return co_await answer(1);
 }
 
