@@ -1,6 +1,11 @@
-{ nixpkgs ? ./pinned.nix,
+{
+  withCcache ? false, # Enable ccache. Requires /nix/var/cache/ccache to exist with correct permissions.
+
+  nixpkgs ? ./pinned.nix,
   overlays ? [
-    (import ./overlay.nix)
+    (import ./overlay.nix {
+      inherit withCcache;
+    })
   ],
   pkgs ? import nixpkgs {
       config = { };
@@ -9,7 +14,6 @@
         config = "i686-unknown-linux-musl";
       };
   },
-  llvmPkgs ? pkgs.llvmPackages_18
 }:
 let
   includeos = pkgs.pkgsIncludeOS.includeos;

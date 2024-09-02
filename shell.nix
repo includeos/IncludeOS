@@ -1,10 +1,4 @@
-{ nixpkgs ? ./pinned.nix,
-  overlays ? [ (import ./overlay.nix) ],
-  chainloader ? (import ./chainloader.nix {}),
-  pkgs ? import nixpkgs {
-    config = {};
-    inherit overlays;
-  },
+{
   # Will create a temp one if none is passed, for example:
   # nix-shell --argstr buildpath .
   buildpath ? "",
@@ -13,7 +7,18 @@
   unikernel ? "./example",
 
   # vmrunner path, for vmrunner development
-  vmrunner ? ""
+  vmrunner ? "",
+
+  # Enable ccache support. See overlay.nix for details.
+  withCcache ? false,
+
+  nixpkgs ? ./pinned.nix,
+  overlays ? [ (import ./overlay.nix { inherit withCcache; }) ],
+  chainloader ? (import ./chainloader.nix { inherit withCcache; }),
+  pkgs ? import nixpkgs {
+    config = {};
+    inherit overlays;
+  },
 }:
 pkgs.mkShell rec {
   includeos = pkgs.pkgsIncludeOS.includeos;
