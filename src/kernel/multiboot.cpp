@@ -141,7 +141,7 @@ void kernel::multiboot(uint32_t boot_addr)
   if (info->flags & MULTIBOOT_INFO_CMDLINE) {
     const auto* cmdline = (const char*) (uintptr_t) info->cmdline;
     INFO2("* Booted with parameters @ %p: %s", cmdline, cmdline);
-    kernel::state().cmdline = strdup(cmdline);
+    kernel::state().cmdline = std::pmr::string(cmdline).data();
   }
 
   if (info->flags & MULTIBOOT_INFO_MEM_MAP) {
