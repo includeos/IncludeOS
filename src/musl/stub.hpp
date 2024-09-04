@@ -13,6 +13,11 @@ inline void stubtrace_print(const char* name, R ret, Args&&... args) {
 // calling the syscall, recording return value and only printing when strace is on
 template<typename Fn, typename ...Args>
 inline auto stubtrace(Fn func, const char* name[[maybe_unused]], Args&&... args) {
+  if (!kernel::state().allow_syscalls) {
+    fprintf(stderr, "Syscalls not allowed here. Unexpected call to %s (stub) - terminating\n", name);
+    Expects(kernel::state().allow_syscalls);
+  }
+
   auto ret = func(args...);
 
   if constexpr (__strace)

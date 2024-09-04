@@ -161,6 +161,7 @@ namespace x86
 
     // GDB_ENTRY;
     PRATTLE("* Starting libc initialization\n");
+    kernel::state().allow_syscalls = true;
     __libc_start_main(kernel_main, argc, argv.data());
   }
 }
