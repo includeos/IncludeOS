@@ -324,7 +324,7 @@ private:
 class Memory_map {
 public:
   using Key = uintptr_t;
-  using Map = std::map<Key, Fixed_memory_range>;
+  using Map = std::pmr::map<Key, Fixed_memory_range>;
 
   /**
    * Assign a fixed range of memory to a named purpose
