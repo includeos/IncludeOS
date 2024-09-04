@@ -43,8 +43,4 @@ stdenv.mkDerivation rec {
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
   ];
-
-  buildInputs = [
-    pkgs.microsoft_gsl
-  ];
 }
