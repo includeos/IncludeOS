@@ -178,7 +178,7 @@ void kernel::multiboot(uint32_t boot_addr)
         //os::mem::map_avail({map.addr, map.addr, {os::mem::Access::read | os::mem::Access::write}, map.len}, "Reserved (Multiboot)");
       }
     }
-    printf("\n");
+    INFO2("");
   }
 
   auto mods = os::modules();
