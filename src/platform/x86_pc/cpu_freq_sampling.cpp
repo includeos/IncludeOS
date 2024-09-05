@@ -54,14 +54,14 @@ namespace x86 {
     auto t3 = os::cycles_since_boot();
     auto overhead = (t3 - t1) * 2;
 
-    std::vector<double> cpu_freq_samples;
+    std::array<double, CPU_FREQUENCY_SAMPLES> cpu_freq_samples;
 
     for (size_t i = 1; i < CPU_FREQUENCY_SAMPLES; i++){
       // Compute delta in cycles
       auto cycles = cpu_timestamps[i] - cpu_timestamps[i-1] + overhead;
       // Cycles pr. second == Hertz
       auto freq = cycles * test_frequency().count();
-      cpu_freq_samples.push_back(freq);
+      cpu_freq_samples[i] = freq;
     }
 
     std::sort(cpu_freq_samples.begin(), cpu_freq_samples.end());
