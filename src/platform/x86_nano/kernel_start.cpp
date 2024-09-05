@@ -25,8 +25,8 @@
 extern "C" {
   void __init_sanity_checks();
   uintptr_t _move_symbols(uintptr_t loc);
-  void _init_bss();
   void _init_heap(uintptr_t);
+  void _init_elf_parser();
   void _init_syscalls();
 }
 
@@ -56,6 +56,9 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Initialize heap
   kernel::init_heap(free_mem_begin, mem_end);
+
+  // Get backtrace on nano too
+  _init_elf_parser();
 
   // Initialize system calls
   _init_syscalls();

@@ -70,7 +70,7 @@ static stack create_stack_virt(size_t size, const char* name)
 }
 static stack create_stack_simple(size_t size, const char* /*name*/)
 {
-  auto* phys = (char*)memalign(4096, size);
+  auto* phys = (char*)kalloc_aligned(4096, size);
   uintptr_t sp = (uintptr_t) phys + size - 8;
   sp &= ~uintptr_t(0xf);
   return {(void*) sp, phys};

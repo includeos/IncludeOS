@@ -30,7 +30,8 @@ namespace kernel {
   struct State {
     bool running               = true;
     bool boot_sequence_passed  = false;
-    bool libc_initialized      = false;
+    bool libc_initialized      = false; // Set when __libc_main returns
+    bool allow_syscalls        = false; // Set before calling into libc
     bool block_drivers_ready   = false;
     bool timestamps            = false;
     bool timestamps_ready      = false;
@@ -60,6 +61,10 @@ namespace kernel {
 
   inline bool libc_initialized() noexcept {
     return state().libc_initialized;
+  }
+
+  inline bool allow_syscalls() noexcept {
+    return state().allow_syscalls;
   }
 
   inline bool block_drivers_ready() noexcept {

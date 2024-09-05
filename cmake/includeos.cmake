@@ -72,7 +72,7 @@ if (NOT ${PLATFORM} STREQUAL "userspace")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CAPABS} ${WARNS}  -nostdlib -fno-omit-frame-pointer -c")
   else()
     # these kinda work with llvm
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -fno-threadsafe-statics")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CAPABS} ${WARNS} -nostdlib  -nostdlibinc -fno-omit-frame-pointer -c")
   endif()
 endif()

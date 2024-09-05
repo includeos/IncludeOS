@@ -14,4 +14,4 @@ grubify = "grubiso.sh"
 
 # Create the GRUB image
 subprocess.check_call(["bash",grubify,"kernel_grub.elf.bin"])
-vm.boot(multiboot = False)
+vm.boot(20, multiboot = False)

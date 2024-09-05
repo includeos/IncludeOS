@@ -70,5 +70,10 @@ void kernel::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept 
   auto brk_end  = __init_brk(kernel::heap_begin(), __brk_max);
   Expects(brk_end <= memory_end);
   __init_mmap(brk_end, memory_end);
+
+  // Also set the PMR default allocator to use the same allocator as mmap
+  auto& alloc = os::mem::raw_allocator();
+  std::pmr::set_default_resource(&alloc);
+
   __heap_ready = true;
 }

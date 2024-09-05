@@ -51,8 +51,6 @@ inline constexpr auto& pr_param(std::ostream& out,  L lhs, Args&&... rest){
 
 template <typename Ret, typename ...Args>
 inline void strace_print(const char* name, Ret ret, Args&&... args){
-  if (not kernel::state().libc_initialized)
-    return;
 
   std::stringstream out;
   out << name << "(";
@@ -74,6 +72,11 @@ inline void strace_print(const char* name, Ret ret, Args&&... args){
 // strace, calling the syscall, recording return value and printing if enabled
 template<typename Fn, typename ...Args>
 inline auto strace(Fn func, [[maybe_unused]]const char* name, Args&&... args) {
+  if (!kernel::state().allow_syscalls) {
+    fprintf(stderr, "Syscalls not allowed here. Unexpected call to %s - terminating\n", name);
+    Expects(kernel::state().allow_syscalls);
+  }
+
   auto ret = func(args...);
 
   if constexpr (__strace)
