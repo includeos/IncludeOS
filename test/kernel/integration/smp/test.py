@@ -6,5 +6,17 @@ import os
 
 from vmrunner import vmrunner
 
-vmrunner.vms[0].boot(20,image_name='kernel_smp.elf.bin')
-#vm.cmake(["-Dsingle_threaded=OFF"]).boot(20).clean()
+boot_count = 0
+success = False
+
+def booted(line):
+    global boot_count
+    boot_count += 1;
+    if boot_count > 1:
+        vm.exit(1, "VM rebooted unexpectedly")
+
+vm = vmrunner.vms[0]
+
+vm.on_output("#include<os> // Literally", booted);
+
+vm.boot(20,image_name='kernel_smp.elf.bin')
