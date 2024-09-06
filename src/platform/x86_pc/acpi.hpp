@@ -61,10 +61,10 @@ namespace x86 {
       uint8_t   lint;
     } __attribute__((packed));
 
-    typedef std::vector<LAPIC> lapic_list;
-    typedef std::vector<IOAPIC> ioapic_list;
-    typedef std::vector<override_t> override_list;
-    typedef std::vector<nmi_t>  nmi_list;
+    typedef std::pmr::vector<LAPIC> lapic_list;
+    typedef std::pmr::vector<IOAPIC> ioapic_list;
+    typedef std::pmr::vector<override_t> override_list;
+    typedef std::pmr::vector<nmi_t>  nmi_list;
 
     static void init() {
       get().discover();
