@@ -192,10 +192,14 @@ void os::panic(const char* why) noexcept
 extern "C"
 void double_fault(const char* why)
 {
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
+#endif
   fprintf(stderr, "\n\n%s\nDouble fault! \nCPU: %d, Reason: %s\n",
           panic_signature, SMP::cpu_id(), why);
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
+#endif
 
   panic_epilogue(why);
 }
@@ -213,10 +217,14 @@ void panic_epilogue(const char* why)
   }
 
 #if defined(ARCH_x86)
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
+#endif
   // Signal End-Of-Transmission
   kprint("\x04");
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
+#endif
 
 #else
 #warning "panic() handler not implemented for selected arch"
