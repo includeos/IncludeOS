@@ -80,6 +80,10 @@ struct Sampler
 };
 
 static Sampler& get() {
+#ifdef INCLUDEOS_SMP_ENABLE
+  static Spinlock lock;
+  std::lock_guard<Spinlock> guard(lock);
+#endif
   static Sampler sampler;
   return sampler;
 }
