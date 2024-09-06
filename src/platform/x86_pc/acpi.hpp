@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <vector>
+#include <smp_utils>
 
 namespace x86 {
 
@@ -72,6 +73,10 @@ namespace x86 {
     static uint64_t time();
 
     static ACPI& get() {
+  #ifdef INCLUDEOS_SMP_ENABLE
+      static Spinlock lock;
+      std::lock_guard<Spinlock> guard(lock);
+  #endif
       static ACPI acpi;
       return acpi;
     }

@@ -232,6 +232,10 @@ namespace x86 {
     }
 
     static x2apic& get() {
+#ifdef INCLUDEOS_SMP_ENABLE
+      static Spinlock lock;
+      std::lock_guard<Spinlock> guard(lock);
+#endif
       static x2apic instance;
       return instance;
     }

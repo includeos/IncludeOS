@@ -224,6 +224,10 @@ namespace x86 {
     }
 
     static xapic& get() {
+#ifdef INCLUDEOS_SMP_ENABLE
+      static Spinlock lock;
+      std::lock_guard<Spinlock> guard(lock);
+#endif
       static xapic instance;
       return instance;
     }
