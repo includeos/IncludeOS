@@ -146,7 +146,7 @@ void init_SMP()
       // remove bit
       smp_main.bitmap.atomic_reset(next);
       // get jobs from other CPU
-      std::vector<smp_done_func> done;
+      std::pmr::vector<smp_done_func> done;
       smp_system[next].flock.lock();
       smp_system[next].completed.swap(done);
       smp_system[next].flock.unlock();
@@ -185,7 +185,7 @@ int SMP::cpu_id() noexcept
 int SMP::cpu_count() noexcept {
   return x86::smp_main.initialized_cpus.size();
 }
-const std::vector<int>& SMP::active_cpus() {
+const std::pmr::vector<int>& SMP::active_cpus() {
   return x86::smp_main.initialized_cpus;
 }
 

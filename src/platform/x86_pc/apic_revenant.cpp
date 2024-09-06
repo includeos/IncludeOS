@@ -33,7 +33,7 @@ static bool revenant_task_doer(smp_system_stuff& system)
   }
 
   // create local vector which holds tasks
-  std::vector<smp_task> tasks;
+  std::pmr::vector<smp_task> tasks;
   system.tasks.swap(tasks);
 
   system.tlock.unlock();
