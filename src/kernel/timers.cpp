@@ -94,6 +94,10 @@ void timer_system::free_timer(Timers::id_t id)
 }
 
 static inline timer_system& get() {
+#ifdef INCLUDEOS_SMP_ENABLE
+  static Spinlock lock;
+  std::lock_guard<Spinlock> guard(lock);
+#endif
   return PER_CPU(systems);
 }
 
