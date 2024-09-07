@@ -40,3 +40,10 @@ int syscall_SYS_futex(int *uaddr, int futex_op, int val,
 {
   return stubtrace(sys_futex, "futex", uaddr, futex_op, val, timeout, val3);
 }
+
+extern "C"
+int syscall_SYS_futex_time64(int *uaddr, int futex_op, int val,
+                      const struct timespec *timeout, int val3)
+{
+  return stubtrace(sys_futex, "futex_time64", uaddr, futex_op, val, timeout, val3);
+}
