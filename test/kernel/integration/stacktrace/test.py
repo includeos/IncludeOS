@@ -19,7 +19,7 @@ def is_good(line):
 
 vm.on_output("Service::start()", is_good)
 vm.on_output("kernel_main", is_good)
-vm.on_output("__libc_start_main", is_good)
+vm.on_output("libc_start_main", is_good)
 vm.on_output("long_mode", is_good)
 
 vm.boot(20,image_name='kernel_stacktrace')
