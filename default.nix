@@ -1,6 +1,8 @@
-{ nixpkgs ? ./pinned.nix,
+{ withCcache ? false, # Enable ccache. Requires correct permissions, see overlay.nix.
+
+  nixpkgs ? ./pinned.nix,
   overlays ? [
-    (import ./overlay.nix)
+    (import ./overlay.nix { inherit withCcache; } )
   ],
   pkgs ? import nixpkgs { config = {}; inherit overlays; }
 }:

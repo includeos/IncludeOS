@@ -1,5 +1,7 @@
-{ nixpkgs ? ./pinned.nix,
-  includeos ? import ./default.nix { },
+{ withCcache ? false,
+
+  nixpkgs ? ./pinned.nix,
+  includeos ? import ./default.nix { inherit withCcache; },
   pkgs ? (import nixpkgs { }).pkgsStatic,
   llvmPkgs ? pkgs.llvmPackages_18
 }:
