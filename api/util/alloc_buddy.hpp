@@ -62,6 +62,10 @@ namespace os::mem::buddy {
   using Node_arr  = std::span<Node_t>;
   using Index_t   = Node_arr::size_type;
 
+#ifdef INCLUDEOS_SMP_ENABLE
+  static Spinlock pmr_lock; // Lock PMR operations for SMP
+#endif
+
   /**
    * A buddy allocator over a fixed size pool
    **/
@@ -309,6 +313,9 @@ namespace os::mem::buddy {
     }
 
     void* allocate(Size_t size) noexcept {
+#ifdef INCLUDEOS_SMP_ENABLE
+      std::lock_guard<Spinlock> guard(pmr_lock);
+#endif
 
       Expects(start_addr_);
 
@@ -334,6 +341,9 @@ namespace os::mem::buddy {
     }
 
     void deallocate(void* addr, Size_t size) {
+#ifdef INCLUDEOS_SMP_ENABLE
+      std::lock_guard<Spinlock> guard(pmr_lock);
+#endif
       auto sz = size ? chunksize(size) : 0;
       Expects(reinterpret_cast<uintptr_t>(addr) + size < addr_limit_);
       auto res = root().deallocate((Addr_t)addr, sz);
@@ -353,6 +363,9 @@ namespace os::mem::buddy {
     }
 
     bool do_is_equal(const memory_resource& other) const noexcept override {
+#ifdef INCLUDEOS_SMP_ENABLE
+      std::lock_guard<Spinlock> guard(pmr_lock);
+#endif
       return &other == this;
     }
 

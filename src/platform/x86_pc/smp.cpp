@@ -30,6 +30,7 @@ extern "C" {
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
   extern void __apic_trampoline(); // 64-bit entry
+  extern void* kalloc_aligned(size_t, size_t);
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
@@ -82,7 +83,7 @@ void init_SMP()
   memcpy((char*) BOOTLOADER_LOCATION, start, bootl_size);
 
   // allocate revenant main stacks
-  void* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
+  void* stack = kalloc_aligned(4096, CPUcount * REV_STACK_SIZE);
   smp_main.stack_base = (uintptr_t) stack;
   smp_main.stack_size = REV_STACK_SIZE;
 
@@ -146,7 +147,7 @@ void init_SMP()
       // remove bit
       smp_main.bitmap.atomic_reset(next);
       // get jobs from other CPU
-      std::vector<smp_done_func> done;
+      std::pmr::vector<smp_done_func> done;
       smp_system[next].flock.lock();
       smp_system[next].completed.swap(done);
       smp_system[next].flock.unlock();
@@ -185,7 +186,7 @@ int SMP::cpu_id() noexcept
 int SMP::cpu_count() noexcept {
   return x86::smp_main.initialized_cpus.size();
 }
-const std::vector<int>& SMP::active_cpus() {
+const std::pmr::vector<int>& SMP::active_cpus() {
   return x86::smp_main.initialized_cpus;
 }
 

@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <vector>
+#include <smp_utils>
 
 namespace x86 {
 
@@ -60,10 +61,10 @@ namespace x86 {
       uint8_t   lint;
     } __attribute__((packed));
 
-    typedef std::vector<LAPIC> lapic_list;
-    typedef std::vector<IOAPIC> ioapic_list;
-    typedef std::vector<override_t> override_list;
-    typedef std::vector<nmi_t>  nmi_list;
+    typedef std::pmr::vector<LAPIC> lapic_list;
+    typedef std::pmr::vector<IOAPIC> ioapic_list;
+    typedef std::pmr::vector<override_t> override_list;
+    typedef std::pmr::vector<nmi_t>  nmi_list;
 
     static void init() {
       get().discover();
@@ -72,6 +73,10 @@ namespace x86 {
     static uint64_t time();
 
     static ACPI& get() {
+  #ifdef INCLUDEOS_SMP_ENABLE
+      static Spinlock lock;
+      std::lock_guard<Spinlock> guard(lock);
+  #endif
       static ACPI acpi;
       return acpi;
     }

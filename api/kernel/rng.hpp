@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <delegate>
+#include <smp_utils>
 
 // Incorporate seed data into the system RNG state
 extern void rng_absorb(const void* input, size_t bytes);
@@ -54,14 +55,18 @@ class RNG : public FD_compatible {
 public:
   static RNG& get()
   {
-    static RNG rng;
+#ifdef INCLUDEOS_SMP_ENABLE
+    static Spinlock lock_;
+    std::lock_guard<Spinlock> lock(lock_);
+#endif
+    static RNG rng = RNG();
     return rng;
   }
 
   static void init();
 
 private:
-  RNG() {}
+  RNG() {};
 
 };
 

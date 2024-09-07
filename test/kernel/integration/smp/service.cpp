@@ -20,102 +20,18 @@
 #include <smp>
 #include <timers>
 #include <kernel/events.hpp>
-
-static int irq_times = 0;
-
-struct alignas(SMP_ALIGN) per_cpu_test
-{
-  int value;
-
-};
-static SMP::Array<per_cpu_test> testing;
-
+#include <string.h>
 #include <malloc.h>
-void smp_advanced_test()
-{
-  for (size_t i = 0; i < testing.size(); i++) {
-    testing[i].value = i;
-  }
+#include <expects>
 
-  static int completed = 0;
-  static uint32_t job = 0;
-  static const int TASKS = 8 * sizeof(job);
-
-  // schedule tasks
-  for (int i = 0; i < TASKS; i++)
-  SMP::add_task(
-  [i] {
-    // the job is to set the bit if the per-cpu
-    // value matches the CPU id.. just as a test
-    if (PER_CPU(testing).value == SMP::cpu_id())
-        __sync_fetch_and_or(&job, 1 << i);
-  },
-  [i] {
-    // job completion
-    completed++;
-
-    if (completed == TASKS) {
-      SMP::global_lock();
-      printf("All jobs are done now, compl = %d\n", completed);
-      printf("bits = %#x\n", job);
-      SMP::global_unlock();
-      assert(job = 0xffffffff && "All 32 bits must be set");
-      if (SMP::cpu_count() == 1)
-          printf("SUCCESS\n");
-    }
-    volatile void* test = calloc(4, 128u);
-    assert(test);
-    __sw_barrier();
-    test = realloc((void*) test, 128u);
-    assert(test);
-    __sw_barrier();
-    free((void*) test);
-  });
-
-  // have one CPU enter an event loop
-  for (int i = 1; i < SMP::cpu_count(); i++)
-  SMP::add_task(
-  [] {
-    Timers::oneshot(std::chrono::seconds(1),
-    [] (int) {
-      static int times = 0;
-      SMP::global_lock();
-      printf("This is timer from CPU core %d\n", SMP::cpu_id());
-      times++;
-
-      if (times     == SMP::cpu_count()-1
-       && irq_times == SMP::cpu_count()-1) {
-        printf("SUCCESS!\n");
-      }
-      SMP::global_unlock();
-    });
-  }, i);
-  // start working on tasks
-  SMP::signal();
-}
-
-static void random_irq_handler()
-{
-  SMP::global_lock();
-  irq_times++;
-  bool done = (irq_times == SMP::cpu_count()-1);
-  SMP::global_unlock();
-
-  if (done) {
-    SMP::global_lock();
-    printf("Random IRQ handler called %d times\n", irq_times);
-    SMP::global_unlock();
-  }
-}
-
-static const uint8_t IRQ = 110;
-void SMP::init_task()
-{
-  Events::get().subscribe(IRQ, random_irq_handler);
-}
+static minimal_barrier_t barry;
 
 void Service::start()
 {
+
+  barry.reset(0);
+
+  printf("Testing memory allocation...\n");
 
   for (const auto& i : SMP::active_cpus())
   {
@@ -124,16 +40,45 @@ void Service::start()
     SMP::global_unlock();
 
     SMP::add_task([i]{
-        SMP::global_lock();
-        printf("CPU %i, id %i running task \n", i, SMP::cpu_id());
-        SMP::global_unlock();
+        // NOTE: We can't call printf here as it's not SMP safe
+
+        // Test regular malloc
+        {
+          auto* m = malloc(0xffff);
+          memset(m, 0, 0xffff);
+          free(m);
+        }
+
+        // Test small std::array write/read on stack
+        {
+          std::array<std::byte, 1000> m;
+          std::fill(m.begin(), m.end(), std::byte{8});
+
+          for (auto j : m) {
+            Expects(j == std::byte{8});
+          }
+        }
+
+        // Test pmr vector
+        {
+          std::pmr::vector<std::byte> m;
+          for (int j = 0; j < 0xffff; j++) {
+            m.push_back(std::byte{32});
+          }
+        }
+
+        barry.inc();
+
+
       }, i);
 
     SMP::signal(i);
   }
   // trigger interrupt
-  SMP::broadcast(IRQ);
+  SMP::signal();
 
-  // the rest
-  smp_advanced_test();
+  printf("Waiting for %i to exit...\n", SMP::cpu_count());
+  barry.spin_wait(SMP::cpu_count());
+
+  printf("SUCCESS\n");
 }

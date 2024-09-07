@@ -24,10 +24,12 @@
 //#define DEBUG_SMP
 
 static SMP::Array<Events> managers;
+static Spinlock em_lock_;
 
 Events& Events::get(int cpuid)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
+  std::lock_guard<Spinlock> guard(em_lock_);
   return managers.at(cpuid);
 #else
   (void) cpuid;
@@ -36,6 +38,10 @@ Events& Events::get(int cpuid)
 }
 Events& Events::get()
 {
+#ifdef INCLUDEOS_SMP_ENABLE
+  static Spinlock lock;
+  std::lock_guard<Spinlock> guard(em_lock_);
+#endif
   return PER_CPU(managers);
 }
 

@@ -43,7 +43,7 @@ struct smp_stuff
   uintptr_t stack_size;
   minimal_barrier_t boot_barrier;
   uint32_t  bmp_storage[1] = {0};
-  std::vector<int> initialized_cpus {0};
+  std::pmr::vector<int> initialized_cpus {0};
   MemBitmap bitmap{&bmp_storage[0], 1};
 };
 
@@ -54,8 +54,8 @@ struct smp_system_stuff
 {
   Spinlock tlock;
   Spinlock flock;
-  std::vector<smp_task> tasks;
-  std::vector<SMP::done_func> completed;
+  std::pmr::vector<smp_task> tasks;
+  std::pmr::vector<SMP::done_func> completed;
   bool work_done;
 };
  extern SMP::Array<smp_system_stuff> smp_system;

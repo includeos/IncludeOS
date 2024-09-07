@@ -52,7 +52,7 @@ public:
   static int cpu_count() noexcept;
 
   // Return the indices of all initialized CPU cores
-  static const std::vector<int>& active_cpus();
+  static const std::pmr::vector<int>& active_cpus();
 
   static int active_cpus(int index){
     return active_cpus().at(index);
