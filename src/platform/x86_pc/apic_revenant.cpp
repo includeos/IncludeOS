@@ -91,24 +91,28 @@ void revenant_main(int cpu)
   assert(cpu == SMP::cpu_id());
   assert(stack >= this_stack_end && stack < this_stack);
 
+  static Spinlock lock;
+  {
+    std::lock_guard<Spinlock> guard(lock);
 #ifdef ARCH_x86_64
-  // interrupt stack tables
-  ist_initialize_for_cpu(cpu, this_stack);
+    // interrupt stack tables
+    ist_initialize_for_cpu(cpu, this_stack);
 #endif
 
-  auto& ev = Events::get(cpu);
-  ev.init_local();
-  // subscribe to task and timer interrupts
-  ev.subscribe(0, revenant_task_handler);
-  ev.subscribe(1, APIC_Timer::start_timers);
-  // enable interrupts
-  asm volatile("sti");
-  // init timer system
-  APIC_Timer::init();
-  // initialize clocks
-  Clocks::init();
-  // seed RNG
-  RNG::get().init();
+    auto& ev = Events::get(cpu);
+    ev.init_local();
+    // subscribe to task and timer interrupts
+    ev.subscribe(0, revenant_task_handler);
+    ev.subscribe(1, APIC_Timer::start_timers);
+    // enable interrupts
+    asm volatile("sti");
+    // init timer system
+    APIC_Timer::init();
+    // initialize clocks
+    Clocks::init();
+    // seed RNG
+    RNG::get().init();
+  }
 
   // allow programmers to do stuff on each core at init
   SMP::init_task();
