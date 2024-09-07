@@ -5,6 +5,7 @@
   overlays ? [
     (import ./overlay.nix {
       inherit withCcache;
+      smp = false; # No SMP for chainloader
     })
   ],
   pkgs ? import nixpkgs {

@@ -6,7 +6,7 @@ include(os)
 
 os_add_executable(net_udp "UDP test" service.cpp)
 
-os_add_drivers(net_udp virtionet ip4_reassembly)
+os_add_drivers(net_udp virtionet ip4_reassembly boot_logger)
 os_add_stdout(net_udp default_stdout)
 
 configure_file(test.py ${CMAKE_CURRENT_BINARY_DIR})

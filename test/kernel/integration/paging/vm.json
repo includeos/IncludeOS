@@ -1,5 +1,6 @@
 {
   "description" : "Page protection test",
   "mem" : 3584,
-  "time_sensitive": "True"
+  "time_sensitive": "True",
+  "smp" : 16
 }
