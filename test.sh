@@ -7,6 +7,7 @@
 
 : "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
+: "${CCACHE_FLAG:=--arg withCcache true}" # Undefine to dosable ccache.
 
 steps=0
 fails=0
@@ -62,18 +63,18 @@ unittests(){
 }
 
 build_chainloader(){
-  nix-build chainloader.nix
+  nix-build $CCACHE_FLAG chainloader.nix
 }
 
 build_example(){
-  nix-build example.nix
+  nix-build $CCACHE_FLAG example.nix
 }
 
 smoke_tests(){
-  nix-shell --pure  --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --pure --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --pure --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
 run unittests "Build and run unit tests"
@@ -139,7 +140,7 @@ run_testsuite() {
 
 
     # The command to run, as string to be able to print the fully expanded command
-    cmd="nix-shell --pure --argstr unikernel $subfolder --run ./test.py"
+    cmd="nix-shell --pure $CCACHE_FLAG --argstr unikernel $subfolder --run ./test.py"
 
     echo ""
     echo "🚧 Step $steps.$substeps"
