@@ -10,4 +10,5 @@ set(SOURCES
 
 os_add_executable(stl_exceptions "C++ exceptions test" ${SOURCES})
 os_add_stdout(stl_exceptions default_stdout)
+os_add_drivers(stl_exceptions boot_logger)
 configure_file (test.py ${CMAKE_CURRENT_BINARY_DIR})

@@ -33,6 +33,7 @@ fail(){
 }
 
 run(){
+  steps=$((steps + 1))
   echo ""
   echo "🚧 Step $steps) $2"
   echo "⚙️  Running this command:"
@@ -42,7 +43,6 @@ run(){
   declare -f $1 | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
   echo "-------------------------------------- 💣 --------------------------------------"
 
-  steps=$((steps + 1))
 
   if [ ! $DRY_RUN ]
   then
@@ -70,6 +70,15 @@ build_example(){
   nix-build $CCACHE_FLAG example.nix
 }
 
+multicore_subset(){
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+
+  # The following tests are not using multiple CPU's, but have been equippedd with some anyway
+  # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+}
+
 smoke_tests(){
   nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
   nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --run ./test.py
@@ -82,6 +91,8 @@ run unittests "Build and run unit tests"
 run build_chainloader "Build the 32-bit chainloader"
 
 run build_example "Build the basic example"
+
+run multicore_subset "Run selected tests with multicore enabled"
 
 if [ "$QUICK_SMOKE" ]; then
 

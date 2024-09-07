@@ -1,5 +1,6 @@
 {
   withCcache, # Enable ccache. Requires correct permissions, see below.
+  smp,      # Enable multicore support (SMP)
 } :
 final: prev: {
 
@@ -154,7 +155,9 @@ final: prev: {
       else
         [ "-DARCH=x86_64"];
 
-      cmakeFlags = archFlags;
+      smpFlags = if smp then [ "-DSMP=ON" ] else [];
+
+      cmakeFlags = archFlags ++ smpFlags;
 
       # Add some pasthroughs, for easily building the depdencies (for debugging):
       # $ nix-build -A NAME
