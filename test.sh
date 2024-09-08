@@ -7,7 +7,7 @@
 
 : "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
-: "${CCACHE_FLAG:=--arg withCcache true}" # Undefine to dosable ccache.
+: "${CCACHE_FLAG:=}" # Define as "--arg withCcache true" to enable ccache.
 
 steps=0
 fails=0
