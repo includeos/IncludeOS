@@ -12,8 +12,11 @@
   # Enable ccache support. See overlay.nix for details.
   withCcache ? false,
 
+  # Enable multicore suport.
+  smp ? false,
+
   nixpkgs ? ./pinned.nix,
-  overlays ? [ (import ./overlay.nix { inherit withCcache; }) ],
+  overlays ? [ (import ./overlay.nix { inherit withCcache; inherit smp; }) ],
   chainloader ? (import ./chainloader.nix { inherit withCcache; }),
   pkgs ? import nixpkgs {
     config = {};
