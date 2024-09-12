@@ -18,7 +18,6 @@ includeos.stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    pkgs.microsoft_gsl
     includeos
   ];
 
