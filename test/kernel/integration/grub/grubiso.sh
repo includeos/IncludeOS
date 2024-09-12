@@ -9,5 +9,5 @@ echo "Building $GRUBIMG..."
 mkdir -p $LOCAL_DISK/boot/grub
 cp $SERVICE $LOCAL_DISK/boot/service
 cp grub.cfg $LOCAL_DISK/boot/grub
-grub-mkrescue -d /usr/lib/grub/i386-pc -o $GRUBIMG $LOCAL_DISK
+grub-mkrescue -o $GRUBIMG $LOCAL_DISK
 rm -rf $LOCAL_DISK
