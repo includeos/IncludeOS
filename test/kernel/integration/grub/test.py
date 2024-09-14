@@ -9,9 +9,5 @@ from vmrunner import vmrunner
 
 vm = vmrunner.vms[0];
 
-# Use grubify-script
-grubify = "grubiso.sh"
-
 # Create the GRUB image
-subprocess.check_call(["bash",grubify,"kernel_grub.elf.bin"])
 vm.boot(20, multiboot = False)

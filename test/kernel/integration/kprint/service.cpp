@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include "../../../../src/include/kprint"
+#include <kprint>
 
 
 void Service::start()
