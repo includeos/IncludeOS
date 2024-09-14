@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
 
 project(hello_includeos)
 
-include("${INCLUDEOS_PACKAGE}/cmake/os.cmake")
+find_package(IncludeOS)
+
+include(os)
 
 os_add_executable(hello_includeos "Hello world - OS included" src/main.cpp)
 os_add_drivers(hello_includeos virtionet vmxnet3 boot_logger)
