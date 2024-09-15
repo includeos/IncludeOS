@@ -1,5 +1,0 @@
-[requires]
-solo5/0.4.1@includeos/stable
-
-[generators]
-virtualenv
