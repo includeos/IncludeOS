@@ -20,8 +20,7 @@
 #include <expects>
 #include "fieldmedic.hpp"
 
-namespace medic {
-namespace diag {
+namespace medic::diag {
 
   thread_local std::array<char, diag::bufsize> __tl_bss;
   thread_local std::array<int, 256> __tl_data {
@@ -130,5 +129,4 @@ namespace diag {
     return check1 == check2 - 90;
   }
 
-}
 }

@@ -19,38 +19,51 @@
 #include <os>
 
 //#include <atomic>
+static int diag_failures  = 0;
+static int diag_successes = 0;
 
 #define DIAGNOSE(TEST, TEXT, ...) \
-  try { printf("%16s[%s] " TEXT "\n","", TEST ? "+" : " ",  ##__VA_ARGS__); } \
-  catch (const std::runtime_error& e) {                                 \
-    printf("%16s[ ] " TEXT " failed: %s\n", "", e.what()); }
+try {  \
+  if (! TEST) throw(std::runtime_error(TEXT));                          \
+  printf("%16s[%s] " TEXT "\n", "", "+",  ##__VA_ARGS__);               \
+  diag_successes++;                                                     \
+} catch (const std::runtime_error& e) {                                 \
+  diag_failures++;                                                      \
+  printf("%16s[ ] " TEXT " failed: %s\n", "", e.what());                \
+}                                                                       \
+
+#define MYINFO(X,...) INFO("Field Medic","⛑️  " X,##__VA_ARGS__)
 
 extern "C" char get_single_tbss();
 namespace medic{
 
-void init(){
-  using namespace diag;
-  INFO("Field medic", "Checking vital signs");
-  printf(
-         "\t         ____n_\n"
-         "\t------  | +  |_\\-; ---------\n"
-         "\t ====== ;@-----@-'  ===========\n"
-         "\t  _______________________________\n\n"
-         );
+  void init(){
+    using namespace diag;
+    MYINFO("Checking vital signs");
+    printf(
+           "\t         ____n_\n"
+           "\t------  | +  |_\\-; ---------\n"
+           "\t ====== ;@-----@-'  ===========\n"
+           "\t  _______________________________\n\n"
+           );
 
-  /* TODO:
-     init_tls();
-     DIAGNOSE(timers(),     "Timers active");
-     DIAGNOSE(elf(),        "ELF binary intact");
-     DIAGNOSE(virtmem(),    "Virtual memory active");
-     DIAGNOSE(heap(),       "Heap fragments intact");
-     DIAGNOSE(tls(),        "Thread local storage intact");
-  */
+    /* TODO:
+       DIAGNOSE(timers(),     "Timers active");
+       DIAGNOSE(elf(),        "ELF binary intact");
+       DIAGNOSE(virtmem(),    "Virtual memory active");
+       DIAGNOSE(heap(),       "Heap fragments intact");
+    */
 
-  DIAGNOSE(stack(),      "Stack check");
-  DIAGNOSE(exceptions(), "Exceptions test");
+    init_tls();
+    DIAGNOSE(tls(),        "Thread local storage intact, single CPU");
+    DIAGNOSE(stack(),      "Stack check");
+    DIAGNOSE(exceptions(), "Exceptions test");
 
-  INFO("Field medic", "Diagnose complete");
+    if (diag_failures == 0){
+      MYINFO("Diagnose complete: Healthy ✅");
+    } else {
+      MYINFO("Diagnose complete: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
+    }
   }
 
   __attribute__ ((constructor))
