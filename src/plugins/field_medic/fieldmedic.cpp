@@ -40,12 +40,6 @@ namespace medic{
   void init(){
     using namespace diag;
     MYINFO("Checking vital signs");
-    printf(
-           "\t         ____n_\n"
-           "\t------  | +  |_\\-; ---------\n"
-           "\t ====== ;@-----@-'  ===========\n"
-           "\t  _______________________________\n\n"
-           );
 
     /* TODO:
        DIAGNOSE(timers(),     "Timers active");
@@ -60,9 +54,9 @@ namespace medic{
     DIAGNOSE(exceptions(), "Exceptions test");
 
     if (diag_failures == 0){
-      MYINFO("Diagnose complete: Healthy ✅");
+      MYINFO("OS initialization: All checks passed ✅");
     } else {
-      MYINFO("Diagnose complete: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
+      MYINFO("OS initialization: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
     }
   }
 

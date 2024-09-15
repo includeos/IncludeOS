@@ -26,6 +26,7 @@
 
 #include <array>
 #include <stdexcept>
+#include <kernel/diag.hpp>
 
 namespace medic{
   namespace diag
@@ -52,5 +53,12 @@ namespace medic{
     using Tl_bss_arr  = std::array<char, bufsize>;
     using Tl_data_arr = std::array<int, 256>;
 
+    /**
+     * Global invariants expected to return true forever after
+     * the respective hooks have been run.
+     */
+    bool invariant_post_bss();
+    bool invariant_post_machine_init();
+    bool invariant_post_init_libc();
   }
 }
