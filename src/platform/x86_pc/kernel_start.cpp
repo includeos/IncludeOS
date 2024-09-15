@@ -37,7 +37,7 @@ extern "C" {
   void _init_bss();
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_elf_parser();
-  void _init_syscalls();
+  void __init_crash_contexts();
   void __elf_validate_section(const void*);
 }
 
@@ -108,7 +108,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   RNG::init();
 
   PRATTLE("* Init syscalls\n");
-  _init_syscalls();
+  __init_crash_contexts();
 
   PRATTLE("* Init CPU exceptions\n");
   x86::idt_initialize_for_cpu(0);
