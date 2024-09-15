@@ -8,6 +8,7 @@ namespace kernel::diag {
   void post_bss() noexcept;
   void post_machine_init() noexcept;
   void post_init_libc() noexcept;
+  void post_service() noexcept;
 
   void default_post_init_libc() noexcept;
 

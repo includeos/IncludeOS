@@ -21,6 +21,7 @@
 //#include <atomic>
 static int diag_failures  = 0;
 static int diag_successes = 0;
+static bool fieldmedic_registered = false;
 
 #define DIAGNOSE(TEST, TEXT, ...) \
 try {  \
@@ -63,6 +64,7 @@ namespace medic{
   __attribute__ ((constructor))
   void register_medic() {
     os::register_plugin(medic::init, "Field medic");
+    fieldmedic_registered = true;
   }
 
 
@@ -92,4 +94,22 @@ extern "C" char get_single_tbss(){
 
 extern "C" int get_single_tdata(){
   return medic::diag::__tl_data[0];
+}
+
+
+using namespace medic::diag;
+
+void kernel::diag::post_service() noexcept {
+  MYINFO("Service finished. Diagnosing.");
+  DIAGNOSE(fieldmedic_registered && diag_successes > 0 && diag_failures == 0,
+             "Field medic plugin active");
+  DIAGNOSE(invariant_post_bss(), "Post .bss invariant still holds");
+  DIAGNOSE(invariant_post_machine_init(), "Post machine init invariant still holds");
+  DIAGNOSE(invariant_post_init_libc(), "Post init libc invariant still holds");
+
+  if (diag_failures == 0){
+    MYINFO("Diagnose complete. Healthy  ✅");
+  } else {
+    MYINFO("Diagnose complete: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
+  }
 }
