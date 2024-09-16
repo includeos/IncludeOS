@@ -15,56 +15,39 @@
   # Enable multicore suport.
   smp ? false,
 
-  nixpkgs ? ./pinned.nix,
-  overlays ? [ (import ./overlay.nix { inherit withCcache; inherit smp; }) ],
-  chainloader ? (import ./chainloader.nix { inherit withCcache; }),
-  pkgs ? import nixpkgs {
-    config = {};
-    inherit overlays;
-  },
-}:
-pkgs.mkShell rec {
-  includeos = pkgs.pkgsIncludeOS.includeos;
-  stdenv = pkgs.pkgsIncludeOS.stdenv;
+  includeos ? import ./default.nix { inherit withCcache; inherit smp; }
 
+}:
+
+includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
   vmrunnerPkg =
     if vmrunner == "" then
-      pkgs.callPackage (builtins.fetchGit {
-        url = "https://github.com/includeos/vmrunner";
-      }) {}
+      includeos.vmrunner
     else
-      pkgs.callPackage (builtins.toPath /. + vmrunner) {};
-
-  lest = pkgs.callPackage ./deps/lest {};
+      includeos.pkgs.callPackage (builtins.toPath /. + vmrunner) {};
 
   packages = [
-    vmrunnerPkg
-    stdenv.cc
-    pkgs.buildPackages.cmake
-    pkgs.buildPackages.nasm
-    pkgs.qemu
-    pkgs.which
-    pkgs.grub2
-    pkgs.iputils
+    (includeos.pkgs.python3.withPackages (p: [
+      vmrunnerPkg
+    ]))
+    includeos.pkgs.buildPackages.cmake
+    includeos.pkgs.buildPackages.nasm
+    includeos.pkgs.qemu
+    includeos.pkgs.which
+    includeos.pkgs.grub2
+    includeos.pkgs.iputils
+    includeos.pkgs.xorriso
   ];
 
   buildInputs = [
-    chainloader
-    lest
-    pkgs.openssl
-    pkgs.rapidjson
-    pkgs.xorriso
+    includeos
+    includeos.chainloader
+    includeos.lest
+    includeos.pkgs.openssl
+    includeos.pkgs.rapidjson
   ];
 
-  bootloader="${includeos}/boot/bootloader";
-
   shellHook = ''
-    CC=${stdenv.cc}/bin/clang
-    CXX=${stdenv.cc}/bin/clang++
-
-    # The 'boot' utility in the vmrunner package requires these env vars
-    export INCLUDEOS_VMRUNNER=${vmrunnerPkg}
-    export INCLUDEOS_CHAINLOADER=${chainloader}/bin
 
     unikernel=$(realpath ${unikernel})
     echo -e "Attempting to build unikernel: \n$unikernel"
@@ -74,13 +57,13 @@ pkgs.mkShell rec {
     fi
     export BUILDPATH=${buildpath}
     if [ -z "${buildpath}" ]; then
-        export BUILDPATH=$(mktemp -d)
-        pushd $BUILDPATH
+        export BUILDPATH="$(mktemp -d)"
+        pushd "$BUILDPATH"
     else
-        mkdir -p $BUILDPATH
-        pushd $BUILDPATH
+        mkdir -p "$BUILDPATH"
+        pushd "$BUILDPATH"
     fi
-    cmake $unikernel -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos} -DCMAKE_MODULE_PATH=${includeos}/cmake \
+    cmake "$unikernel" -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos} -DCMAKE_MODULE_PATH=${includeos}/cmake \
                      -DFOR_PRODUCTION=OFF
     make -j $NIX_BUILD_CORES
     echo -e "\n====================== IncludeOS nix-shell ====================="
@@ -98,7 +81,7 @@ pkgs.mkShell rec {
     echo "The vmrunner for IncludeOS tests requires bridged networking for full functionality."
     echo "The following commands requiring sudo privileges can be used to set this up:"
     echo "1. the qemu-bridge-helper needs sudo to create a bridge. Can be enabled with:"
-    echo "   sudo chmod u+s ${pkgs.qemu}/libexec/qemu-bridge-helper"
+    echo "   sudo chmod u+s ${includeos.pkgs.qemu}/libexec/qemu-bridge-helper"
     echo "2. bridge43 must exist. Can be set up with vmrunner's create_bridge.sh script:"
     echo "   ${vmrunnerPkg.create_bridge}"
     echo "3. /etc/qemu/bridge.conf must contain this line:"
@@ -106,7 +89,7 @@ pkgs.mkShell rec {
     echo ""
     echo "Some tests require ping, which requires premissions to send raw packets. On some hosts"
     echo "this is not enabled by default for iputils provided by nix. It can be enabled with:"
-    echo "4. sudo setcap cap_net_raw+ep ${pkgs.iputils}/bin/ping"
+    echo "4. sudo setcap cap_net_raw+ep ${includeos.pkgs.iputils}/bin/ping"
     echo " "
     echo
   '';
