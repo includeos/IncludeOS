@@ -159,8 +159,17 @@ final: prev: {
 
       cmakeFlags = archFlags ++ smpFlags;
 
-      # Add some pasthroughs, for easily building the depdencies (for debugging):
+      # Add some pasthroughs, for easily building the dependencies (for debugging):
       # $ nix-build -A NAME
+
+      passthru.vmrunner = prev.callPackage (builtins.fetchGit {
+          url = "https://github.com/includeos/vmrunner";
+        }) {};
+      passthru.chainloader = import ./chainloader.nix { inherit withCcache; };
+      passthru.lest = self.callPackage ./deps/lest {};
+      passthru.pkgsStatic = prev.pkgsStatic; # this is for convenience for other packages that depend on includeos
+      passthru.pkgs = prev.pkgs; # this is for convenience for other packages that depend on includeos
+
       passthru = {
         inherit (self) uzlib;
         inherit (self) http-parser;
