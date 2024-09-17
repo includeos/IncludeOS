@@ -67,6 +67,7 @@ void Service::ready()
   printf("Service::ready() called\n");
 }
 
+__attribute__ ((format (printf, 1, 2)))
 extern "C"
 void kprintf(const char* format, ...)
 {
@@ -77,9 +78,9 @@ void kprintf(const char* format, ...)
 }
 
 extern "C"
-void kprint(char* str)
+void kprint(const char* str)
 {
-printf("%s", str);
+  printf("%s", str);
 }
 
 #include <os.hpp>
@@ -157,8 +158,8 @@ extern "C" {
     printf("<serial print1> %s\n", cstr);
   }
 
-  void __serial_print(const char* cstr, int len) {
-    printf("<serial print> %.*s", len, cstr);
+  void __serial_print(const char* cstr, size_t len) {
+    printf("<serial print> %.*s", static_cast<int>(len), cstr);
   }
 } // ~ extern "C"
 

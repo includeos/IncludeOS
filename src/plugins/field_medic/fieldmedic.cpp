@@ -108,7 +108,7 @@ void kernel::diag::post_service() noexcept {
   DIAGNOSE(invariant_post_init_libc(), "Post init libc invariant still holds");
 
   if (diag_failures == 0){
-    MYINFO("Diagnose complete. Healthy  ✅");
+    MYINFO("Diagnose complete. Healthy ✅");
   } else {
     MYINFO("Diagnose complete: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
   }
