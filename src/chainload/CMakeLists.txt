@@ -1,13 +1,15 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 # IncludeOS install location
 project(chainloader C CXX)
+
+find_package(IncludeOS REQUIRED)
 
 set(ARCH i686)
 set(PLATFORM nano)
 set(ELF_SYMBOLS true)
 
-include(${INCLUDEOS_PACKAGE}/cmake/os.cmake)
+include(os)
 
 option(default_stdout "" ON)
 set(SOURCES

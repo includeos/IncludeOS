@@ -1,25 +1,33 @@
 { withCcache ? false,
 
-  nixpkgs ? ./pinned.nix,
+  doCheck ? true, # boot unikernel after building it
   includeos ? import ./default.nix { inherit withCcache; },
-  pkgs ? (import nixpkgs { }).pkgsStatic,
-  llvmPkgs ? pkgs.llvmPackages_18
 }:
 
 includeos.stdenv.mkDerivation rec {
   pname = "includeos_example";
-  src = pkgs.lib.cleanSource ./example;
-  doCheck = false;
+  src = includeos.pkgs.lib.cleanSource ./example;
   dontStrip = true;
+  inherit doCheck;
 
   nativeBuildInputs = [
-    pkgs.buildPackages.nasm
-    pkgs.buildPackages.cmake
+    includeos.pkgs.buildPackages.nasm
+    includeos.pkgs.buildPackages.cmake
   ];
 
   buildInputs = [
     includeos
+    includeos.chainloader
   ];
+
+  nativeCheckInputs = [
+    includeos.vmrunner
+    includeos.pkgs.qemu
+  ];
+
+  checkPhase = ''
+    boot *.elf.bin
+  '';
 
   version = "dev";
 }

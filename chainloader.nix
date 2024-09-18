@@ -34,8 +34,8 @@ stdenv.mkDerivation rec {
 
   sourceRoot = "./src/chainload/";
 
-  cmakeFlags = [
-    "-DINCLUDEOS_PACKAGE=${includeos}"
+  buildInputs = [
+    includeos
   ];
 
   srcs = [
