@@ -29,7 +29,7 @@
 #define INFO2(TEXT, ...) kprintf("%16s" TEXT "\n"," ", ##__VA_ARGS__)
 #define CENTER(TEXT) kprintf("%*s%*s\n",LINEWIDTH/2 + (int)strlen(TEXT)/2,TEXT,LINEWIDTH/2-(int)strlen(TEXT)/2,"")
 #include <string>
-#define FILLINE(CHAR) kprintf("%s\n",std::string(LINEWIDTH,CHAR).c_str())
+#define FILLINE(CHAR) kprintf("%s\n",std::pmr::string(LINEWIDTH,CHAR).c_str())
 #define CAPTION(TEXT) FILLINE('='); kprintf("\n"); CENTER(TEXT); kprintf("\n"); FILLINE('=')
 
 // Checkboxes - for initialization output and testing
