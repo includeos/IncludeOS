@@ -1,16 +1,11 @@
-![IncludeOS Logo](./etc/logo.png)
+IncludeOS
 ================================================
 
 **IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud and on real HW. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
-[![Pre-release](https://img.shields.io/github/release-pre/includeos/IncludeOS.svg)](https://github.com/hioa-cs/IncludeOS/releases)
-[![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Join the chat](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://join.slack.com/t/includeos/shared_invite/zt-5z7ts29z-_AX0kZNiUNE7eIMUP60GmQ)
-
 **Note:** *IncludeOS is under active development. The public API should not be considered stable.*
-
 
 ## <a name="features"></a> Key features
 
@@ -18,7 +13,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 * **KVM, VirtualBox and VMWare support** with full virtualization, using [x86 hardware virtualization](https://en.wikipedia.org/wiki/X86_virtualization), available on most modern x86 CPUs. IncludeOS will run on any x86 hardware platform, even on a physical x86 computer, given appropriate drivers. Officially, we develop for- and test on [Linux KVM](http://www.linux-kvm.org/page/Main_Page), and VMWare [ESXi](https://www.vmware.com/products/esxi-and-esx.html)/[Fusion](https://www.vmware.com/products/fusion.html) which means that you can run your IncludeOS service on Linux, Microsoft Windows and macOS, as well as on cloud providers such as [Google Compute Engine](http://www.includeos.org/blog/2017/includeos-on-google-compute-engine.html), [OpenStack](https://www.openstack.org/) and VMWare [vcloud](https://www.vmware.com/products/vcloud-suite.html).
 * **Instant boot:** IncludeOS on Qemu/kvm boots in about 300ms but IBM Research has also integrated IncludeOS with [Solo5/uKVM](https://github.com/Solo5/solo5), providing boot times as low as 10 milliseconds.
 * **Modern C++ support**
-    * Full C++11/14/17 language support with [clang](http://clang.llvm.org) 5 and later.
+    * Full C++11/14/17/20 language support with [clang](http://clang.llvm.org) 18 and later.
     * Standard C++ library (STL) [libc++](http://libcxx.llvm.org) from [LLVM](http://llvm.org/).
     * Exceptions and stack unwinding (currently using [libgcc](https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html)).
     * *Note:* Certain language features, such as threads and filestreams are currently missing backend support but is beeing worked on.
@@ -31,11 +26,10 @@ A longer list of features and limitations can be found on our [documentation sit
 ## Contents
 
 - [Getting started](#getting_started)
-  - [Dependencies](#dependencies)
-  - [Hello world](#hello_world)
-  - [Getting started developing packages](#develop_pkg)
-- [Managing dependencies](#repositories_and_channels)
-- [Building with IncludeOS in editable mode](#editing_includeos)
+    - [Dependencies](#dependencies)
+    - [Hello world](#hello_world)
+    - [Kernel development](#develop_kernel)
+    - [Running tests](#running_tests)
 - [Contributing to IncludeOS](#contribute)
 - [C++ Guidelines](#guideline)
 - [Security contact](#security)
@@ -44,241 +38,95 @@ A longer list of features and limitations can be found on our [documentation sit
 
 ### <a name="dependencies"></a> Dependencies
 
-For building IncludeOS services you will need:
+For building and booting IncludeOS services you will need [nix](https://nixos.org) and Linux. Nix will automatically download and set up the correct versions of all the required libraries and compilers.
 
-* [The conan package manager](https://docs.conan.io/en/latest/installation.html) (1.13.1 or newer)
-* cmake, make, nasm (x86/x86_64 only)
-* clang, or alternatively gcc on linux. Prebuilt packages are available for clang 6.0 and gcc 7.3.
+To speed up local builds we also recommend configuring nix with [ccache support](https://nixos.wiki/wiki/CCache) but this is not a requirement. To use ccache, `--arg withCcache true` can be added to most `nix-build` and `nix-shell` commands shown below.
 
-To boot VMs locally with our tooling you will also need:
-
-* qemu
-* python3 packages: psutil, jsonschema
-
-The following command will configure conan to use our build profiles and remote repositories. (**Note:** this overwrites any existing conan configuration. Set `CONAN_USER_HOME` to create a separate conan home folder for testing.)
-
-```text
-$ conan config install https://github.com/includeos/conan_config.git
-```
-
-**Note:** If you prefer to set up conan manually the full configuration can be found in the [conan_config](https://github.com/includeos/conan_config.git) repository. You can browse our prebuilt conan packages in [bintray.com/includeos](https://bintray.com/includeos). 
-
-
-
-#### Ubuntu
-
-```text
-$ apt-get install python3-pip python3-dev git cmake clang-6.0 gcc nasm make qemu
-$ pip3 install setuptools wheel conan psutil jsonschema
-$ conan config install https://github.com/includeos/conan_config.git
-```
-
-#### macOS
-If you have [homebrew](https://brew.sh/) you can use our `brew tap` to install the dependencies.
-
-```text
-$ brew tap includeos/includeos
-$ brew install includeos
-$ conan config install https://github.com/includeos/conan_config.git
-```
-#### Vagrant
-If you want to use a Vagrant box to explore IncludeOS and contribute to IncludeOS development, you can read the getting started with Vagrant. See [etc/vagrant.md](etc/vagrant.md)
+IncludeOS can currently not be built on macOS or Windows.
 
 ### <a href="hello_world"></a> Hello World
 
-First select an appropriate [conan profile](https://docs.conan.io/en/latest/reference/profiles.html) for the target you want to boot on. `conan profile list` will show the profiles available, including the ones installed in the previous step. When developing for the machine you're currently on, Linux users can typically use `clang-6.0-linux-x86_64`, and MacOS users can use `clang-6.0-macos-x86_64`. You can also make your own.
+A minimal IncludeOS "hello world" looks like a regular C++ program:
 
-The following steps let you build and boot the IncludeOS hello world example.
+```c++
+#include <iostream>
 
-```text
-$ git clone https://github.com/includeos/hello_world.git
-$ mkdir your_build_dir && cd "$_"
-$ conan install ../hello_world -pr <your_conan_profile>
-$ source activate.sh
-$ cmake ../hello_world
-$ cmake --build .
-$ boot hello
-```
-You can use the [hello world repo](https://github.com/includeos/hello_world) as a starting point for developing your own IncludeOS services. For more advanced examples see the [examples repo](https://github.com/includeos/demo-examples) or the integration tests (under ./IncludeOS/test/\*/integration).
-
-Once you're done `$ source deactivate.sh` will reset the environment to its previous state.
-
-### <a name="develop_pkg"></a> Getting started developing packages
-
-If you are interested in editing/building our dependency packages on your own, you can checkout our repositories at [includeos/](https://github.com/includeos/). Some of our tools and libraries are listed below under [Tools and Libraries](#libs_tools). You can find the external dependency recipes at [includeos/conan](https://github.com/includeos/conan). Currently we build with `clang-6` and `gcc-7.3.0` compiler toolchains. It is expected that these are already installed on your system (see [Dependencies](#dependencies) for details).
-
-## <a href="repositories_and_channels"></a> Managing dependencies
-
-Prebuilt conan packages are uploaded to our [bintray repository](https://bintray.com/includeos/includeos).
-
-We upload to two channels:
-
-- `stable`: this channel has all the stable packages.
-- `latest`: this channel will have the latest packages in development/test phase (including stable releases).
-
-**Note:** We only guarantee that the **latest 10 packages** are kept in the `latest` channel. All `stable` packages will be kept in the stable channel unless proven unsafe. One suggested workaround is to copy packages into your own repository.
-
-To set up our remote, we recommend following the steps listed in [Dependencies](#dependencies).
-
-### Search
-
-If you want to check if a package exists you can search for it with `conan search`. To list all the available packages on our remote `includeos`, you can use:
-
-```text
-$ conan search -r includeos
+int main(){
+  std::cout << "Hello world\n";
+}
 ```
 
-This should list all the packages we have uploaded to the includeos repository.
+A full "Hello world" service with a working nix workflow is available in the [hello world repo](https://github.com/includeos/hello_world). The repository can also be used as a a starting point for developing your own IncludeOS service.
 
-To find all the stable versions uploaded for a particular package:
+For more advanced service examples see the the integration tests (under ./IncludeOS/test/\*/integration).
 
-```text
-$ conan search -r includeos '<package_name>/*@includeos/stable'
+### <a name="develop_kernel"></a> Kernel development
+
+To build IncludeOS, run
+
+```bash
+$ nix-build
 ```
 
-### Prebuilt profiles
-The profiles we are using for development can be found in the [includeos/conan_config](https://github.com/includeos/conan_config) repository under `conan_config/profiles/`.
+This will build the toolchain and all IncludeOS kernel libraries.
 
-The target profiles we have verified are the following:
+Note that the first build will take some time to complete, as the IncludeOS toolchain is rebuilt from source code. This includes clang, llvm, libcxx, musl and so on. There is no nix binary cache available for these files at the moment. Subsequent builds will go much faster when the toolchain has been cached in the local nix-store.
 
-- [clang-6.0-linux-x86](https://github.com/includeos/conan_config/tree/master/profiles/clang-6.0-linux-x86)
-- [clang-6.0-linux-x86_64](https://github.com/includeos/conan_config/tree/master/profiles/clang-6.0-linux-x86_64)
-- [gcc-7.3.0-linux-x86_64](https://github.com/includeos/conan_config/tree/master/profiles/gcc-7.3.0-linux-x86_64)
-- [clang-6.0-macos-x86_64](https://github.com/includeos/conan_config/tree/master/profiles/clang-6.0-macos-x86_64)
+After making changes to the kernel, run `nix-build` again to get new binaries. If you are iterating on changes in one section of the kernel you can speed up the build significantly by using ccache. All `nix-build` and `nix-shell` commands in this section support the optional parameter `--arg withCcache true`.
 
-These profiles should have prebuilt packages available and are tested in CI. If you create a custom profile (or use a different profile provided by us) the dependencies may have to be rebuilt locally.
+It's not always practical to rebuild the whole kernel during development. You can get a development shell with a preconfigured environment using `shell.nix`:
 
-## <a name="editing_includeos"></a> Building with IncludeOS in editable mode
-
-If you are a kernel developer or are simple interested in fiddling with our kernel code, you can use the includeos-package in editable mode. When you rebuild the package will then automatically be updated so it can be used by other packages locally. This is useful when working with several interconnected components and you would like to test your changes across several libraries.
-
-You can read more about how editable mode works in the [Conan documentation](https://docs.conan.io/en/latest/developing_packages/editable_packages.html).
-
-Below we have written down a few steps to get you started with editable packages and IncludeOS.
-
-**Note:** Currently this is an experimental feature on conan version 1.13 and they have mentioned that for future releases the feature is subject to breaking changes.
-
-Start by cloning the IncludeOS source code and create a `build` folder. You have to edit `etc/layout.txt` in the source code to point to the `build` folder you created, by updating the `build_dir` variable.
-
-The layout will look similar to the example below. You only have to update `build_dir`.
-
-```text
-  {% set simple=true%}
-
-  {% set build_dir='build' %}
-
-  {% if simple==false %}
-  {% set arch=settings.arch|string %}
-  {% set platform=options.platform|string %}
-  {% set build_dir=build_dir+'/'+arch+'/'+platform %}
-  {% endif %}
-
-  [bindirs]
-  {#This is so that we can find os.cmake after including conanbuildinfo.cmake #}
-  cmake
-
-  [includedirs]
-  {#This is to ensure the include directory in conanbuildinfo.cmake includes our API#}
-  api
-
-  [libdirs]
-  {#This is so that we can find our libraries #}
-  {{ build_dir }}/plugins
-  {{ build_dir }}/drivers
-  {{ build_dir }}/lib
-  {{ build_dir }}/platform
-
-  [resdirs]
-  {#This is so that we can find ldscript and search for drivers plugins etc#}
-  {{ build_dir }}
-
-```
-**Note:** in the non simple form it is possible to have multiple build folders from the same source which allows multiple architectures and configurations to be tested from the same source however the complexity increases.
-
-You should now be able to set the package in editable mode. The following command will add the package as editable based on the specified layout. We inspect the package to get the version, as this has to match exactly.
-
-```text
-$ conan editable add . includeos/$(conan inspect -a version . | cut -d " " -f 2)@includeos/latest --layout=etc/layout.txt
+```bash
+$ nix-shell
 ```
 
-The package is now in **editable mode** and any dependencies of IncludeOS will pick this IncludeOS package from your local cache.
+Further instructions will be shown for optionally configuring VM networking or overriding the build path when starting the shell.
 
-Here is an example on how it looks when its pulled into cache as editable:
+By default th shell will also build the unikernel from `example.nix`. The example unikernel can be booted from within the shell:
 
-```text
-$ conan editable list
-  includeos/0.14.1-1052@includeos/latest
-    Path: ~/git/IncludeOS
-    Layout: ~/git/IncludeOS/etc/layout.txt
+```bash
+$ nix-shell
+[...]
+nix$ boot hello_includeos.elf.bin
 ```
 
-We are now ready to build the package. Assuming the build-folder is called `build` under the includeos source directory the following is enough.
+If you want to build a different unikernel than the example, this can be specified with the `--argstr unikernel [path]` parameter. This is primarily used for integration tests. For example, to build and run the stacktrace-test:
 
-```text
-$ cd [includeos source root]
-$ conan install -if build . -pr <conan_profile> (-o options like platform=nano etc)
-$ conan build -bf build .
+```bash
+$ nix-shell --argstr unikernel ./test/kernel/integration/stacktrace
+[...]
+nix$ ls -l kernel*
+kernel_stacktrace
+nix$ boot kernel_stacktrace
+[...]
+Calling os::print_backtrace()
+symtab or strtab is empty, indicating image may be stripped
+[0] 0x000000000025dcd2 + 0x000: 0x25dcd2
+[1] 0x000000000021097d + 0x000: 0x21097d
+[2] 0x00000000002b370a + 0x000: 0x2b370a
+[3] 0x0000000000210eea + 0x000: 0x210eea
+We reached the end.
 ```
 
-After making changes to the code you can rebuild the package with
+To build and run the test VM as a single command:
 
-```text
-$ cd build && make
-   or
-$ cmake build --build
+```bash
+$ nix-shell --argstr unikernel ./test/kernel/integration/stacktrace --run ./test.py
 ```
 
-Once you have made your changes and the code is **finalized** you should verify that the conan package still builds. Remove the editable and do a conan create on the package:
+### <a name="running_tests"></a> Running tests
 
-```text
-$ conan editable remove includeos/<version>@includeos/test
-$ conan create <source_path> includeos/latest -pr <conan_profile>
-```
+You can run all the integration tests using the script `./test.sh`. The tests will run locally in the nix environment. We recommend manually verifying that all the tests pass locally before submitting a new PR to IncludeOS to save review time.
 
-## Libraries and tools
-
-We have moved the libraries and tools created by IncludeOS outside the includeos-repository. You can now find them all in their own repositories inside the IncludeOS organization.
-
-To build the libraries and tools, see build instructions in each repository. Typically, the instructions will be in the form:
-
-```text
-$ git clone https://github.com/includeos/mana.git
-$ cd mana
-$ conan create . includeos/latest -pr clang-6.0-linux-x86_64
-```
-
-<a name="libs_tools"></a> Below is a list of some of our Libraries/Tools:
-
-- [Vmbuild](https://github.com/includeos/vmbuild) -
-Vmbuild is an utility for building the IncludeOS virtual machines.
-
-- [Vmrunner](https://github.com/includeos/vmrunner) -
-Vmrunner is a utility developed for booting IncludeOS binaries.
-
-- [Mana](https://github.com/includeos/mana) -
-Mana is a web application framework which is used to build a IncludeOS webserver.
-We have an example named [acorn](https://github.com/includeos/demo-examples/tree/master/acorn) which demonstrates mana's potential.
-
-- [Microlb](https://github.com/includeos/microlb) -
-Microlb is a library written for building the IncludeOS load balancer.
-We have an example named [microlb](https://github.com/includeos/demo-examples/tree/master/microLB) which demonstrates our load balancer.
-
-- [Diskbuilder](https://github.com/includeos/diskbuilder) -
-Diskbuilder is a tool used for building disks for IncludeOS.
-
-- [NaCl](https://github.com/includeos/NaCl) -
-NaCl is the configuration language tool we have tailored for IncludeOS to allow users to configure various network settings such as firewall rules, vlans, ip configurations etc.
+Individual tests can be run with `nix-shell` directly. See `test.sh` for more details.
 
 ## <a name="contribute"></a> Contributing to IncludeOS
 
-IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Slack](https://join.slack.com/t/includeos/shared_invite/zt-5z7ts29z-_AX0kZNiUNE7eIMUP60GmQ). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
+IncludeOS is being developed on GitHub. Create your own fork and send us a pull request. Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 ## <a name="guideline"></a> C++ Guidelines
 
 We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://github.com/isocpp/CppCoreGuidelines). When you find code in IncludeOS which doesn't adhere, please let us know in the [issue tracker](https://github.com/includeos/IncludeOS/issues) - or even better, fix it in your own fork and send us a [pull-request](https://github.com/includeos/IncludeOS/pulls).
-
-[brew]: https://brew.sh/
-[qemu]: https://www.qemu.org/
 
 ## <a name="security"></a> Security contact
 If you discover a security issue in IncludeOS please avoid the public issue tracker. Instead send an email to security@includeos.org. For more information and encryption please refer to the [documentation](http://includeos.readthedocs.io/en/latest/Security.html).
