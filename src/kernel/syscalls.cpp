@@ -252,7 +252,7 @@ void kernel::default_exit() {
 }
 
 extern "C"
-void _init_syscalls()
+void __init_crash_contexts()
 {
   // make sure each buffer is zero length so it won't always show up in crashes
   for (auto& ctx : contexts)

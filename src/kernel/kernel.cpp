@@ -18,6 +18,7 @@
 #include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/cpuid.hpp>
+#include <kernel/diag.hpp>
 #include <kernel/rng.hpp>
 #include <service>
 #include <cstdio>
@@ -168,6 +169,7 @@ void kernel::post_start()
 
   // service program start
   Service::start();
+  kernel::diag::hook<kernel::diag::post_service>();
 }
 
 void os::add_stdout(os::print_func func)
@@ -227,3 +229,5 @@ void os::print_timestamps(const bool enabled)
 {
   kernel::state().timestamps = enabled;
 }
+
+void __attribute__((weak)) kernel::diag::post_service() noexcept {}

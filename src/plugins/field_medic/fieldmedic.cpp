@@ -19,43 +19,52 @@
 #include <os>
 
 //#include <atomic>
+static int diag_failures  = 0;
+static int diag_successes = 0;
+static bool fieldmedic_registered = false;
 
 #define DIAGNOSE(TEST, TEXT, ...) \
-  try { printf("%16s[%s] " TEXT "\n","", TEST ? "+" : " ",  ##__VA_ARGS__); } \
-  catch (const std::runtime_error& e) {                                 \
-    printf("%16s[ ] " TEXT " failed: %s\n", "", e.what()); }
+try {  \
+  if (! TEST) throw(std::runtime_error(TEXT));                          \
+  printf("%16s[%s] " TEXT "\n", "", "+",  ##__VA_ARGS__);               \
+  diag_successes++;                                                     \
+} catch (const std::runtime_error& e) {                                 \
+  diag_failures++;                                                      \
+  printf("%16s[ ] " TEXT " failed: %s\n", "", e.what());                \
+}                                                                       \
+
+#define MYINFO(X,...) INFO("Field Medic","⛑️  " X,##__VA_ARGS__)
 
 extern "C" char get_single_tbss();
 namespace medic{
 
-void init(){
-  using namespace diag;
-  INFO("Field medic", "Checking vital signs");
-  printf(
-         "\t         ____n_\n"
-         "\t------  | +  |_\\-; ---------\n"
-         "\t ====== ;@-----@-'  ===========\n"
-         "\t  _______________________________\n\n"
-         );
+  void init(){
+    using namespace diag;
+    MYINFO("Checking vital signs");
 
-  /* TODO:
-     init_tls();
-     DIAGNOSE(timers(),     "Timers active");
-     DIAGNOSE(elf(),        "ELF binary intact");
-     DIAGNOSE(virtmem(),    "Virtual memory active");
-     DIAGNOSE(heap(),       "Heap fragments intact");
-     DIAGNOSE(tls(),        "Thread local storage intact");
-  */
+    /* TODO:
+       DIAGNOSE(timers(),     "Timers active");
+       DIAGNOSE(elf(),        "ELF binary intact");
+       DIAGNOSE(virtmem(),    "Virtual memory active");
+       DIAGNOSE(heap(),       "Heap fragments intact");
+    */
 
-  DIAGNOSE(stack(),      "Stack check");
-  DIAGNOSE(exceptions(), "Exceptions test");
+    init_tls();
+    DIAGNOSE(tls(),        "Thread local storage intact, single CPU");
+    DIAGNOSE(stack(),      "Stack check");
+    DIAGNOSE(exceptions(), "Exceptions test");
 
-  INFO("Field medic", "Diagnose complete");
+    if (diag_failures == 0){
+      MYINFO("OS initialization: All checks passed ✅");
+    } else {
+      MYINFO("OS initialization: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
+    }
   }
 
   __attribute__ ((constructor))
   void register_medic() {
     os::register_plugin(medic::init, "Field medic");
+    fieldmedic_registered = true;
   }
 
 
@@ -85,4 +94,22 @@ extern "C" char get_single_tbss(){
 
 extern "C" int get_single_tdata(){
   return medic::diag::__tl_data[0];
+}
+
+
+using namespace medic::diag;
+
+void kernel::diag::post_service() noexcept {
+  MYINFO("Service finished. Diagnosing.");
+  DIAGNOSE(fieldmedic_registered && diag_successes > 0 && diag_failures == 0,
+             "Field medic plugin active");
+  DIAGNOSE(invariant_post_bss(), "Post .bss invariant still holds");
+  DIAGNOSE(invariant_post_machine_init(), "Post machine init invariant still holds");
+  DIAGNOSE(invariant_post_init_libc(), "Post init libc invariant still holds");
+
+  if (diag_failures == 0){
+    MYINFO("Diagnose complete. Healthy ✅");
+  } else {
+    MYINFO("Diagnose complete: %i / %i checks failed", diag_failures, (diag_failures + diag_successes));
+  }
 }

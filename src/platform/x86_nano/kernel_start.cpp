@@ -27,7 +27,7 @@ extern "C" {
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_heap(uintptr_t);
   void _init_elf_parser();
-  void _init_syscalls();
+  void __init_crash_contexts();
 }
 
 uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
@@ -61,7 +61,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   _init_elf_parser();
 
   // Initialize system calls
-  _init_syscalls();
+  __init_crash_contexts();
 
   // Initialize stdout handlers
   if (os_default_stdout)

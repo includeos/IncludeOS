@@ -4,6 +4,7 @@
 #include <kernel.hpp>
 #include <kernel/auxvec.h>
 #include <kernel/cpuid.hpp>
+#include <kernel/diag.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/service.hpp>
 #include <util/elf_binary.hpp>
@@ -12,9 +13,9 @@
 
 //#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
-#define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define KDEBUG(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #else
-#define PRATTLE(fmt, ...) /* fmt */
+#define KDEBUG(fmt, ...) /* fmt */
 #endif
 
 extern char _ELF_START_;
@@ -31,17 +32,24 @@ static void global_ctor_test(){
   global_ctors_ok = 42;
 }
 
+namespace kernel::diag {
+  void default_post_init_libc() noexcept {
+    Expects(global_ctors_ok == 42 && "Global constructors functional");
+    Elf_binary<Elf64> elf{{(char*)&_ELF_START_, static_cast<size_t>(&_ELF_END_ - &_ELF_START_)}};
+    Expects(elf.is_ELF() && "ELF header intact");
+  }
+  void __attribute__((weak)) post_init_libc() noexcept {
+    default_post_init_libc();
+  }
+}
+
 extern "C"
 int kernel_main(int, char * *, char * *)
 {
-  PRATTLE("<kernel_main> libc initialization complete \n");
-  LL_ASSERT(global_ctors_ok == 42);
+  KDEBUG("<kernel_main> libc initialization complete \n");
   kernel::state().libc_initialized = true;
-
-  Elf_binary<Elf64> elf{{(char*)&_ELF_START_, static_cast<size_t>(&_ELF_END_ - &_ELF_START_)}};
-  LL_ASSERT(elf.is_ELF() && "ELF header intact");
-
-  PRATTLE("<kernel_main> OS start \n");
+  kernel::diag::hook<kernel::diag::post_init_libc>();
+  KDEBUG("<kernel_main> OS start \n");
 
   // Initialize early OS, platform and devices
 #if defined(PLATFORM_x86_pc)
@@ -57,7 +65,7 @@ int kernel_main(int, char * *, char * *)
   // NOTE: because of page protection we can choose to stop checking here
   kernel_sanity_checks();
 
-  PRATTLE("<kernel_main> post start \n");
+  KDEBUG("<kernel_main> post start \n");
   // Initialize common subsystems and call Service::start
   kernel::post_start();
 
@@ -77,7 +85,7 @@ namespace x86
     grub_magic = magic;
     grub_addr  = addr;
 
-    PRATTLE("* Elf start: %p\n", &_ELF_START_);
+    KDEBUG("* Elf start: %p\n", &_ELF_START_);
     auto* ehdr = (Elf64_Ehdr*)&_ELF_START_;
     auto* phdr = (Elf64_Phdr*)((char*)ehdr + ehdr->e_phoff);
     LL_ASSERT(phdr);
@@ -86,12 +94,12 @@ namespace x86
     LL_ASSERT(phdr[0].p_type == PT_LOAD);
 
   #ifdef KERN_DEBUG
-    PRATTLE("* Elf ident: %s, program headers: %p\n", ehdr->e_ident, ehdr);
+    KDEBUG("* Elf ident: %s, program headers: %p\n", ehdr->e_ident, ehdr);
     size_t size =  &_ELF_END_ - &_ELF_START_;
-    PRATTLE("\tElf size: %zu \n", size);
+    KDEBUG("\tElf size: %zu \n", size);
     for (int i = 0; i < ehdr->e_phnum; i++)
     {
-      PRATTLE("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
+      KDEBUG("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
     }
   #endif
 
@@ -110,7 +118,7 @@ namespace x86
 
     // auxiliary vector
     auxv_t* aux = (auxv_t*) &argv[6];
-    PRATTLE("* Initializing aux-vector @ %p\n", aux);
+    KDEBUG("* Initializing aux-vector @ %p\n", aux);
 
     int i = 0;
     aux[i++].set_long(AT_PAGESZ, 4096);
@@ -147,20 +155,20 @@ namespace x86
 #ifdef PLATFORM_x86_pc
     // SYSCALL instruction
   #if defined(__x86_64__)
-    PRATTLE("* Initialize syscall MSR (64-bit)\n");
+    KDEBUG("* Initialize syscall MSR (64-bit)\n");
     uint64_t star_kernel_cs = 8ull << 32;
     uint64_t star_user_cs   = 8ull << 48;
     uint64_t star = star_kernel_cs | star_user_cs;
     x86::CPU::write_msr(IA32_STAR, star);
     x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
   #elif defined(__i386__)
-    PRATTLE("Initialize syscall intr (32-bit)\n");
+    KDEBUG("Initialize syscall intr (32-bit)\n");
     #warning Classical syscall interface missing for 32-bit
   #endif
 #endif
 
     // GDB_ENTRY;
-    PRATTLE("* Starting libc initialization\n");
+    KDEBUG("* Starting libc initialization\n");
     kernel::state().allow_syscalls = true;
     __libc_start_main(kernel_main, argc, argv.data());
   }

@@ -129,14 +129,14 @@ extern "C" {/*
   uintptr_t _move_symbols(uintptr_t loc);
 //  void _init_bss();
   void _init_heap(uintptr_t);
-  void _init_syscalls();
+  void __init_crash_contexts();
 */
   void __init_sanity_checks();
   void kernel_sanity_checks();
   void _init_bss();
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_elf_parser();
-  void _init_syscalls();
+  void __init_crash_contexts();
   void __elf_validate_section(const void*);
 }
 
@@ -241,7 +241,7 @@ void kernel_start(uintptr_t magic, uintptr_t addrin)
   __machine->init();
 
   // Initialize system calls
-  _init_syscalls();
+  __init_crash_contexts();
 
   //probably not very sane!
   cpu_debug_enable();

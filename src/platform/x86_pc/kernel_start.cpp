@@ -16,6 +16,7 @@
 
 #include <kernel.hpp>
 #include <kernel/rng.hpp>
+#include <kernel/diag.hpp>
 #include <os.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
@@ -26,9 +27,9 @@
 
 //#define KERN_DEBUG 1
 #ifdef KERN_DEBUG
-#define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define KDEBUG(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #else
-#define PRATTLE(fmt, ...) /* fmt */
+#define KDEBUG(fmt, ...) /* fmt */
 #endif
 
 extern "C" {
@@ -37,8 +38,13 @@ extern "C" {
   void _init_bss();
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_elf_parser();
-  void _init_syscalls();
+  void __init_crash_contexts();
   void __elf_validate_section(const void*);
+}
+
+namespace kernel::diag {
+  void __attribute__((weak)) post_bss() noexcept {}
+  void __attribute__((weak)) post_machine_init() noexcept {}
 }
 
 uintptr_t _multiboot_free_begin(uintptr_t bootinfo);
@@ -57,18 +63,22 @@ os::Machine& os::machine() noexcept {
   return *__machine;
 }
 
+const char* os::Machine::name() noexcept {
+  return "x86 PC";
+}
+
 // x86 kernel start
 extern "C"
 __attribute__((no_sanitize("all")))
 void kernel_start(uint32_t magic, uint32_t addr)
 {
-  PRATTLE("\n//////////////////  IncludeOS kernel start ////////////////// \n");
-  PRATTLE("* Booted with magic 0x%x, grub @ 0x%x \n",
+  KDEBUG("\n//////////////////  IncludeOS kernel start ////////////////// \n");
+  KDEBUG("* Booted with magic 0x%x, grub @ 0x%x \n",
           magic, addr);
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
-  PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n", magic, addr);
+  KDEBUG("* Grub magic: 0x%x, grub info @ 0x%x\n", magic, addr);
 
   // Determine where free memory starts
   extern char _end;
@@ -83,34 +93,36 @@ void kernel_start(uint32_t magic, uint32_t addr)
   {
     memory_end = kernel::softreset_memory_end(addr);
   }
-  PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
+  KDEBUG("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
           free_mem_begin, memory_end);
 
-  PRATTLE("* Moving symbols. \n");
+  KDEBUG("* Moving symbols. \n");
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-  PRATTLE("* Free mem moved to: %p \n", (void*) free_mem_begin);
+  KDEBUG("* Free mem moved to: %p \n", (void*) free_mem_begin);
 
-  PRATTLE("* Init .bss\n");
+  KDEBUG("* Init .bss\n");
   _init_bss();
+  kernel::diag::hook<kernel::diag::post_bss>();
 
   // Instantiate machine
   size_t memsize = memory_end - free_mem_begin;
   __machine = os::Machine::create((void*)free_mem_begin, memsize);
 
-  PRATTLE("* Init ELF parser\n");
+  KDEBUG("* Init ELF parser\n");
   _init_elf_parser();
 
   // Begin portable HAL initialization
   __machine->init();
+  kernel::diag::hook<kernel::diag::post_machine_init>();
 
   // TODO: Move more stuff into Machine::init
   RNG::init();
 
-  PRATTLE("* Init syscalls\n");
-  _init_syscalls();
+  KDEBUG("* Init per CPU crash contexts\n");
+  __init_crash_contexts();
 
-  PRATTLE("* Init CPU exceptions\n");
+  KDEBUG("* Init CPU exceptions\n");
   x86::idt_initialize_for_cpu(0);
 
   x86::init_libc(magic, addr);
