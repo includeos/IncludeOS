@@ -10,12 +10,6 @@ pkgs.botan2.overrideAttrs (oldAttrs: {
     ln -sr "$out/include/botan-2/botan" "$out/include"
   '';
 
-  configurePhase = ''
-    runHook preConfigure
-    python3 configure.py --prefix=$out --with-bzip2 --with-zlib --build-targets=static --cpu=${cpuFlag} --os=linux
-    runHook postConfigure
-  '';
-
   buildPhase = ''
     runHook preBuild
 
