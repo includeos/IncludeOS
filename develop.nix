@@ -10,7 +10,7 @@
   vmrunner ? "",
 
   # Enable ccache support. See overlay.nix for details.
-  withCcache ? false,
+  withCcache ? true,
 
   # Enable multicore suport.
   smp ? false,
