@@ -56,7 +56,20 @@ final: prev: {
     };
   });
 
-  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
+  pkgsIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self:
+    let
+      ccacheNoticeHook = prev.writeTextFile {
+        name = "ccache-notice-hook";
+        destination = "/nix-support/setup-hook";
+        text = ''
+          echo "====="
+          echo "ccache is enabled!"
+          echo "If you run into any issues, try: --arg withCcache false"
+          echo "It's recommended to run tests with ccache disabled to avoid cache incoherencies."
+          echo "====="
+        '';
+      };
+    in {
     # self.callPackage will use this stdenv.
     stdenv = final.stdenvIncludeOS.includeos_stdenv;
 
@@ -70,26 +83,30 @@ final: prev: {
     ccacheWrapper = prev.ccacheWrapper.override {
         inherit (self.stdenv) cc;
         extraConfig = ''
-          export CCACHE_COMPRESS=1
           export CCACHE_DIR="/nix/var/cache/ccache"
-          export CCACHE_UMASK=007
-          export CCACHE_SLOPPINESS=random_seed
           if [ ! -d "$CCACHE_DIR" ]; then
             echo "====="
             echo "Directory '$CCACHE_DIR' does not exist"
             echo "Please create it with:"
             echo "  sudo mkdir -m0770 '$CCACHE_DIR'"
             echo "  sudo chown root:nixbld '$CCACHE_DIR'"
+            echo ""
+            echo 'Alternatively, disable ccache with `--arg withCcache false`'
             echo "====="
             exit 1
           fi
           if [ ! -w "$CCACHE_DIR" ]; then
             echo "====="
-            echo "Directory '$CCACHE_DIR' is not accessible for user $(whoami)"
+            echo "Directory '$CCACHE_DIR' exists, but is not accessible for user $(whoami)"
             echo "Please verify its access permissions"
+            echo 'Alternatively, disable ccache with `--arg withCcache false`'
             echo "====="
             exit 1
           fi
+
+          export CCACHE_COMPRESS=1
+          export CCACHE_UMASK=007
+          export CCACHE_SLOPPINESS=random_seed
         '';
       };
 
@@ -123,7 +140,7 @@ final: prev: {
       nativeBuildInputs = [
         prev.buildPackages.cmake
         prev.buildPackages.nasm
-      ] ++ prev.lib.optionals withCcache [self.ccacheWrapper];
+      ] ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
 
       buildInputs = [
         self.botan2
@@ -145,7 +162,7 @@ final: prev: {
         cp -r -v ${final.stdenvIncludeOS.libraries.libcxx.include} $out/libcxx/include
         cp -r -v ${final.stdenvIncludeOS.libraries.libunwind} $out/libunwind
         cp -r -v ${final.stdenvIncludeOS.libraries.libgcc} $out/libgcc
-        '';
+      '';
 
       archFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
         [

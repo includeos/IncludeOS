@@ -58,9 +58,9 @@ int main(){
 
 A full "Hello world" service with a working nix workflow is available in the [hello world repo](https://github.com/includeos/hello_world). The repository can also be used as a a starting point for developing your own IncludeOS service.
 
-For more advanced service examples see the the integration tests (under ./IncludeOS/test/\*/integration).
+For more advanced service examples see the the integration tests (under `./IncludeOS/test/\*/integration`).
 
-### <a name="develop_kernel"></a> Kernel development
+### <a name="build_kernel"></a> Building IncludeOS
 
 To build IncludeOS, run
 
@@ -70,24 +70,35 @@ $ nix-build
 
 This will build the toolchain and all IncludeOS kernel libraries.
 
-Note that the first build will take some time to complete, as the IncludeOS toolchain is rebuilt from source code. This includes clang, llvm, libcxx, musl and so on. There is no nix binary cache available for these files at the moment. Subsequent builds will go much faster when the toolchain has been cached in the local nix-store.
+Note that the first build will take some time (~7 hours on our machines) to complete, as the IncludeOS toolchain is rebuilt from source code. This includes clang, llvm, libcxx, musl and so on. There is no nix binary cache available for these files at the moment. Subsequent builds will go much faster when the toolchain has been cached in the local nix-store.
 
-After making changes to the kernel, run `nix-build` again to get new binaries. If you are iterating on changes in one section of the kernel you can speed up the build significantly by using ccache. All `nix-build` and `nix-shell` commands in this section support the optional parameter `--arg withCcache true`.
+After making changes to the kernel, run `nix-build` again to get new binaries. If you are iterating on changes in one section of the kernel you can speed up the build significantly (from a few minutes to a matter of seconds) by using ccache. All `nix-build` and `nix-shell` commands in this section support the optional parameter `--arg withCcache <true|false>` (this is only enabled by default for the development shell). We strongly advise setting up the ccache before you start iterating on the code. For NixOS, you can [check the wiki](https://nixos.wiki/wiki/CCache) on how to do this, other distros will have different instructions.
 
-It's not always practical to rebuild the whole kernel during development. You can get a development shell with a preconfigured environment using `shell.nix`:
+### <a name="develop_kernel"></a> Kernel development workflow
+It's not always practical to rebuild the whole kernel during development. You can get a development shell with a preconfigured environment using `develop.nix`:
 
 ```bash
-$ nix-shell
+$ nix-shell ./develop.nix
 ```
 
-Further instructions will be shown for optionally configuring VM networking or overriding the build path when starting the shell.
+From here, you will be put in a shell suited for development. If your editor has LSP support with clangd (e.g. neovim, emacs, VSCode, Zed), you will get proper goto-declarations and warnings. You can quickly rebuild the kernel library from here with `cmake -B build && (cd build; make)`, with all build dependencies handled by the shell. You can also build and run a unikernel from the shell with this oneliner: `(cd ./example && cmake -B build && (cd build && make) && boot ./build/hello_includeos.elf.bin)` after building IncludeOS. It might be convenient to use one terminal (or tab) for your editor, a second for building IncludeOS, and a third for building a unikernel.
 
-By default th shell will also build the unikernel from `example.nix`. The example unikernel can be booted from within the shell:
+In summary:
+```bash
+~/repos/IncludeOS $ nix-shell ./develop.nix
+[nix-shell:~/repos/IncludeOS]$ cmake -B build && (cd build; make)            # rebuilds IncludeOS
+[nix-shell:~/repos/IncludeOS]$ cd example
+[nix-shell:~/repos/IncludeOS/example]$ cmake -B build && (cd build; make)    # rebuilds a bootable unikernel
+[nix-shell:~/repos/IncludeOS/example]$ boot ./build/hello_includeos.elf.bin  # runs the unikernel image with qemu through vmrunner
+```
+
+Alternatively, you may want to use `nix-shell` by itself (or nested inside the development shell), which handles both building the unikernel found under `./example/` and puts you in a convenient shell for testing out a unikernel.
 
 ```bash
-$ nix-shell
-[...]
-nix$ boot hello_includeos.elf.bin
+~/repos/IncludeOS $ nix-shell --run 'boot hello_includeos.elf.bin'
+# or
+~/repos/IncludeOS $ nix-shell  # updating IncludeOS after entering this shell won't rebuild the os library automatically!
+[nix-shell:~/repos/IncludeOS]$ boot hello_includeos.elf.bin
 ```
 
 If you want to build a different unikernel than the example, this can be specified with the `--argstr unikernel [path]` parameter. This is primarily used for integration tests. For example, to build and run the stacktrace-test:
