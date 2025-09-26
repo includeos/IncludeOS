@@ -30,13 +30,7 @@ using Driver_entry = std::pair<uint32_t, Driver>;
 template <typename Driver>
 using fixed_factory_t = std::vector<Driver_entry<Driver>>;
 
-struct pcidev_info {
-  const uintptr_t pci_addr;
-  uint32_t vendor;
-  hw::PCI_Device::class_revision_t dev_class;
-};
 static std::vector<pcidev_info> devinfos_;
-
 static std::vector<hw::PCI_Device> devices_;
 static std::vector<Driver_entry<PCI_manager::NIC_driver>> nic_fact;
 static std::vector<Driver_entry<PCI_manager::BLK_driver>> blk_fact;
@@ -73,6 +67,10 @@ PCI_manager::Device_vector PCI_manager::devices () {
   for (const auto& dev : devices_)
     device_vec.push_back(&dev);
   return device_vec;
+}
+
+const PCI_manager::Devinfo_vector& PCI_manager::devinfos() {
+  return devinfos_;
 }
 
 void PCI_manager::scan_bus(const int bus)
