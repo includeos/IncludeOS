@@ -1,0 +1,5 @@
+{
+  "virtiocon" : {
+    "path" : "./anything_is_fine.txt"
+  }
+}
