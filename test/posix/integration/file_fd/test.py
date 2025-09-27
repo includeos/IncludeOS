@@ -12,9 +12,6 @@ vm = vmrunner.vms[0]
 
 num_outputs = 0
 
-def cleanup():
-  vm.clean()
-
 def increment(line):
   global num_outputs
   num_outputs += 1
@@ -29,8 +26,6 @@ def check_num_outputs(line):
 vm.on_output("All \d+ selected tests passed", increment)
 
 vm.on_output("All done!", check_num_outputs)
-
-vm.on_exit(cleanup)
 
 # Boot the VM, taking a timeout as parameter
 if len(sys.argv) > 1:

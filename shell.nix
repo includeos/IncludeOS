@@ -9,6 +9,9 @@
   # vmrunner path, for vmrunner development
   vmrunner ? "",
 
+  # diskbuilder path, for file system development
+  diskbuilder ? "",
+
   # Enable ccache support. See overlay.nix for details.
   withCcache ? false,
 
@@ -26,10 +29,17 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
     else
       includeos.pkgs.callPackage (builtins.toPath /. + vmrunner) {};
 
+  diskbuilderPkg =
+    if diskbuilder == "" then
+      includeos.diskbuilder
+    else
+      includeos.pkgs.callPackage (builtins.toPath /. + diskbuilder) {};
+
   packages = [
     (includeos.pkgs.python3.withPackages (p: [
       vmrunnerPkg
     ]))
+    diskbuilderPkg
     includeos.pkgs.buildPackages.cmake
     includeos.pkgs.buildPackages.nasm
     includeos.pkgs.qemu

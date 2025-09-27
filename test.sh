@@ -225,6 +225,19 @@ exclusions=(
 
 run_testsuite "./test/net/integration" "${exclusions[@]}"
 
+#
+# File system tests
+#
+exclusions=(
+  "fat16"        # Uses FAT32 diskbuilder
+  "ide"          # IDE is broken and deprecated
+  "ide_write"    # Same as above exclusion
+  "virtio_block" # Requires sudo and needs to be rewritten to run without
+)
+
+run_testsuite "./test/fs/integration" "${exclusions[@]}"
+nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/posix/integration/file_fd --run ./test.py
+
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 if [ $fails -eq 0 ]; then

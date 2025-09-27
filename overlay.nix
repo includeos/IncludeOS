@@ -165,6 +165,9 @@ final: prev: {
       passthru.vmrunner = prev.callPackage (builtins.fetchGit {
           url = "https://github.com/includeos/vmrunner";
         }) {};
+      passthru.diskbuilder = prev.callPackage (builtins.fetchGit {
+          url = "https://github.com/includeos/diskbuilder";
+        }) {};
       passthru.chainloader = import ./chainloader.nix { inherit withCcache; };
       passthru.lest = self.callPackage ./deps/lest {};
       passthru.pkgsStatic = prev.pkgsStatic; # this is for convenience for other packages that depend on includeos

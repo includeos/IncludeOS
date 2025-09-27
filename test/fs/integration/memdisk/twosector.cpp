@@ -18,7 +18,7 @@
 #include <service>
 #include <stdio.h>
 #include <cassert>
-#include <common>
+#include <info>
 
 #include <memdisk>
 
