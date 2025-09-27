@@ -16,4 +16,4 @@ if len(sys.argv) > 1:
     vm.boot(image_name=str(sys.argv[1]))
 else:
     # Boot the VM, taking a timeout as parameter
-    vm.boot(120,image_name='modern_virtio.elf.bin')
+    vm.boot(7,image_name='modern_virtio.elf.bin')

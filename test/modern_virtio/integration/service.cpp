@@ -68,6 +68,7 @@ int main() {
 	while(xmit_queue->has_processed_used());
 	Expects(xmit_queue->dequeue().size() == 4);
 	Expects(xmit_queue->desc_space_cap() == xmit_queue->free_desc_space());
+	printf("Sent a chained buffer!\n");
 
 	/* Having multiple chains in flight */
 	VirtTokens send_tokens1;
@@ -93,6 +94,7 @@ int main() {
 		xmit_queue->dequeue();
 	}
 	Expects(xmit_queue->desc_space_cap() == xmit_queue->free_desc_space());
+	printf("Sent 10 chained buffers successfully!\n");
 
 	/* Sending hundred of messages */
 	VirtTokens send_tokens2;
@@ -109,6 +111,7 @@ int main() {
 		xmit_queue->dequeue();
 	}
 	Expects(xmit_queue->desc_space_cap() == xmit_queue->free_desc_space());
+	printf("Sent hundreds of messages successfully!\n");
 
 	/* Reenabling interrupts and checking that interrupts/callback work */
 	xmit_queue->unsuppress();
