@@ -68,8 +68,8 @@ Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id,
     _free_list.push_back(i);
   }
 }
-  
-Split_queue::~Split_queue() {
+
+void Split_queue::deactivate_split_queue() {
   free(_desc_table);
   free(_avail_ring);
   free(_used_ring);
