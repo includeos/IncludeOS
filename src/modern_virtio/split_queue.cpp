@@ -1,14 +1,12 @@
 #include <span>
 #include <memory>
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <kernel/events.hpp>
 #include <modern_virtio/split_queue.hpp>
 #include <util/bitops.hpp>
 #include <expects>
-
-//extern void *aligned_alloc(size_t, size_t);
 
 using util::bits::is_aligned;
 Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id, 
@@ -44,19 +42,19 @@ Split_queue::Split_queue(Virtio_control& virtio_dev, int vqueue_id,
   size_t desc_table_size = DESC_TBL_SIZE(queue_size);
   _desc_table = reinterpret_cast<virtq_desc*>(aligned_alloc(DESC_TBL_ALIGN, desc_table_size));
   Expects((_desc_table != NULL) && is_aligned<DESC_TBL_ALIGN>(reinterpret_cast<uintptr_t>(_desc_table)));
-  memset(_desc_table, 0, desc_table_size);
+  std::memset(_desc_table, 0, desc_table_size);
   cfg.queue_desc = reinterpret_cast<uint64_t>(_desc_table);
   
   size_t avail_ring_size = AVAIL_RING_SIZE(queue_size);
   _avail_ring = reinterpret_cast<virtq_avail*>(aligned_alloc(AVAIL_RING_ALIGN, avail_ring_size));
   Expects((_avail_ring != NULL) && is_aligned<AVAIL_RING_ALIGN>(reinterpret_cast<uintptr_t>(_avail_ring)));
-  memset(_avail_ring, 0, avail_ring_size);
+  std::memset(_avail_ring, 0, avail_ring_size);
   cfg.queue_driver = reinterpret_cast<uint64_t>(_avail_ring);
   
   size_t used_ring_size = USED_RING_SIZE(queue_size);
   _used_ring  = reinterpret_cast<virtq_used*>(aligned_alloc(USED_RING_ALIGN, used_ring_size));
   Expects((_used_ring != NULL) && is_aligned<USED_RING_ALIGN>(reinterpret_cast<uintptr_t>(_used_ring)));
-  memset(_used_ring, 0, used_ring_size);
+  std::memset(_used_ring, 0, used_ring_size);
   cfg.queue_device = reinterpret_cast<uint64_t>(_used_ring);
   
   /* Completing formal Virtio queue spec initialization! */
