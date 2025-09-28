@@ -25,7 +25,9 @@ namespace hw {
     enum class Type
     {
       Block,
-      Nic
+      Nic,
+      Dax,
+      Vfs
     };
 
     virtual void deactivate() = 0;
@@ -43,6 +45,8 @@ namespace hw {
       {
         case Type::Block: return "Block device";
         case Type::Nic:   return "NIC";
+        case Type::Dax:   return "DAX";
+        case Type::Vfs:   return "VFS";
         default:          return "Unknown device";
       }
     }

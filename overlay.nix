@@ -163,7 +163,8 @@ final: prev: {
       # $ nix-build -A NAME
 
       passthru.vmrunner = prev.callPackage (builtins.fetchGit {
-          url = "https://github.com/includeos/vmrunner";
+          # url = "https://github.com/includeos/vmrunner";
+          url = "https://github.com/torgeiru/vmrunner";
         }) {};
       passthru.diskbuilder = prev.callPackage (builtins.fetchGit {
           url = "https://github.com/includeos/diskbuilder";

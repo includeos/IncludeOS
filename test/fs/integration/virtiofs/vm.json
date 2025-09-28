@@ -1,0 +1,5 @@
+{
+  "virtiofs" : {
+    "shared" : "./shared"
+  }
+}

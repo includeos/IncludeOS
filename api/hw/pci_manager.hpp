@@ -21,6 +21,8 @@
 #include <cstdint>
 #include <hw/nic.hpp>
 #include <hw/block_device.hpp>
+#include <hw/dax_device.hpp>
+#include <hw/vfs_device.hpp>
 #include <hw/pci_device.hpp>
 
 namespace hw {
@@ -42,6 +44,12 @@ public:
 
   using BLK_driver = delegate< std::unique_ptr<hw::Block_device> (PCI_Device&) >;
   static void register_blk(uint16_t, uint16_t, BLK_driver);
+
+  using DAX_driver = delegate< std::unique_ptr<hw::DAX_device> (PCI_Device&) >;
+  static void register_dax(uint16_t, uint16_t, DAX_driver);
+
+  using VFS_driver = delegate< std::unique_ptr<hw::VFS_device> (PCI_Device&) >;
+  static void register_vfs(uint16_t, uint16_t, VFS_driver);
 
   static void init();
   static void init_devices(uint8_t classcode);

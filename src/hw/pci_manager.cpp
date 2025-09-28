@@ -34,6 +34,8 @@ static std::vector<pcidev_info> devinfos_;
 static std::vector<hw::PCI_Device> devices_;
 static std::vector<Driver_entry<PCI_manager::NIC_driver>> nic_fact;
 static std::vector<Driver_entry<PCI_manager::BLK_driver>> blk_fact;
+static std::vector<Driver_entry<PCI_manager::DAX_driver>> dax_fact;
+static std::vector<Driver_entry<PCI_manager::VFS_driver>> vfs_fact;
 
 template <typename Factory, typename Class>
 static inline bool register_device(hw::PCI_Device& dev,
@@ -123,11 +125,18 @@ void PCI_manager::init_devices(const uint8_t classcode)
     switch (devclass.classcode)
     {
       case PCI::STORAGE: {
-        register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
+        if (id == 0x105a1af4)
+          register_device<VFS_driver, hw::VFS_device>(stored_dev, vfs_fact);
+        else
+          register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
         break;
       }
       case PCI::NIC: {
         register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
+        break;
+      }
+      case PCI::OLD: {
+        register_device<DAX_driver, hw::DAX_device>(stored_dev, dax_fact);
         break;
       }
       default:
@@ -160,6 +169,14 @@ void PCI_manager::register_nic(uint16_t vendor, uint16_t prod, NIC_driver factor
 void PCI_manager::register_blk(uint16_t vendor, uint16_t prod, BLK_driver factory)
 {
   blk_fact.emplace_back(driver_id(vendor, prod), factory);
+}
+void PCI_manager::register_dax(uint16_t vendor, uint16_t prod, DAX_driver factory)
+{
+  dax_fact.emplace_back(driver_id(vendor, prod), factory);
+}
+void PCI_manager::register_vfs(uint16_t vendor, uint16_t prod, VFS_driver factory)
+{
+  vfs_fact.emplace_back(driver_id(vendor, prod), factory);
 }
 
 }
