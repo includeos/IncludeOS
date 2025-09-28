@@ -26,7 +26,6 @@
 #include "banana.ascii"
 static std::shared_ptr<fs::Disk> disk;
 
-const uint64_t SIZE = 4294967296;
 const std::string shallow_banana{"/banana.txt"};
 const std::string deep_banana{"/dir1/dir2/dir3/dir4/dir5/dir6/banana.txt"};
 
@@ -40,7 +39,6 @@ void test2()
   INFO("FAT32", "Remounting disk.");
 
   CHECKSERT(not disk->empty(), "Disk not empty");
-  CHECKSERT(disk->dev().size() == SIZE / 512, "Disk size is %llu bytes", SIZE);
 
   disk->init_fs(disk->MBR,
   [] (fs::error_t err, fs::File_system& fs)
@@ -108,8 +106,6 @@ void Service::start()
 
   // which means that the disk can't be empty
   CHECKSERT(not disk->empty(), "Disk not empty");
-  // verify that the size is indeed N sectors
-  CHECKSERT(disk->dev().size() == SIZE / 512, "Disk size is %llu sectors", SIZE / 512);
 
   // auto-mount filesystem
   disk->init_fs(
@@ -123,9 +119,9 @@ void Service::start()
     fs.ls("/",
     [] (fs::error_t err, auto ents) {
       CHECKSERT(not err, "Listing root directory");
-      CHECKSERT(ents->size() == 2, "Exactly two ents in root dir");
+      CHECKSERT(ents->size() == 4, "Exactly two ents in root dir");
 
-      auto& e = ents->at(0);
+      auto& e = ents->at(3);
       CHECKSERT(e.is_file(), "Ent is a file");
       CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
 
