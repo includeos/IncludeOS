@@ -21,7 +21,7 @@ Virtio_control(d), _req(*this, 1, true), _unique_counter(0)
   VirtTokens init_req_tokens;
   init_req_tokens.reserve(2);
   init_req_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT, 
+    VIRTQ_DESC_F_NOFLAGS, 
     reinterpret_cast<uint8_t*>(&init_req), 
     sizeof(virtio_fs_init_req)
   );
@@ -80,12 +80,12 @@ uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t /*mode*/) 
   VirtTokens lookup_tokens;
   lookup_tokens.reserve(3);
   lookup_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT,
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(&lookup_req),
     sizeof(virtio_fs_lookup_req)
   );
   lookup_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT,
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(pathname),
     pathname_len
   );
@@ -115,7 +115,7 @@ uint64_t VirtioFS_device::open(char *pathname, uint32_t flags, mode_t /*mode*/) 
   VirtTokens open_tokens;
   open_tokens.reserve(2);
   open_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT,
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(&open_req),
     sizeof(virtio_fs_open_req)
   );
@@ -178,12 +178,12 @@ ssize_t VirtioFS_device::write(uint64_t fh, void *buf, uint32_t count) {
   write_tokens.reserve(3);
 
   write_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT,
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(&write_req),
     sizeof(virtio_fs_write_req)
   );
   write_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT,
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(buf),
     count
   );
@@ -222,12 +222,12 @@ ssize_t VirtioFS_device::read(uint64_t fh, void *buf, uint32_t count) {
   read_tokens.reserve(3);
 
   read_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT, 
+    VIRTQ_DESC_F_NOFLAGS, 
     reinterpret_cast<uint8_t*>(&read_req),
     sizeof(virtio_fs_read_req)
   );
   read_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE, 
+    VIRTQ_DESC_F_WRITE, 
     reinterpret_cast<uint8_t*>(&read_res),
     sizeof(virtio_fs_read_res)
   );
@@ -264,7 +264,7 @@ int VirtioFS_device::close(uint64_t fh) {
   VirtTokens close_tokens;
   close_tokens.reserve(2);
   close_tokens.emplace_back(
-    VIRTQ_DESC_F_NEXT,
+    VIRTQ_DESC_F_NOFLAGS,
     reinterpret_cast<uint8_t*>(&close_req),
     sizeof(virtio_fs_close_req)
   );
