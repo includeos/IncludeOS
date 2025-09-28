@@ -94,7 +94,7 @@ int main() {
 		xmit_queue->dequeue();
 	}
 	Expects(xmit_queue->desc_space_cap() == xmit_queue->free_desc_space());
-	printf("Sent 10 chained buffers successfully!\n");
+	printf("Sent 5 chained buffer chains successfully!\n");
 
 	/* Sending hundred of messages */
 	VirtTokens send_tokens2;
