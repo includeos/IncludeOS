@@ -31,19 +31,19 @@ inline namespace literals
    */
   using int_t = unsigned long long;
 
-  constexpr auto operator"" _b ( int_t x)
+  constexpr auto operator""_b ( int_t x)
   { return 1ULL * x; }
 
-  constexpr auto operator"" _KiB ( int_t x)
+  constexpr auto operator""_KiB ( int_t x)
   { return 1024_b * x; }
 
-  constexpr auto operator"" _MiB ( int_t x )
+  constexpr auto operator""_MiB ( int_t x )
   { return 1024_KiB * x; }
 
-  constexpr auto operator"" _GiB ( int_t x )
+  constexpr auto operator""_GiB ( int_t x )
   { return 1024_MiB *  x; }
 
-  constexpr auto operator"" _TiB ( int_t x )
+  constexpr auto operator""_TiB ( int_t x )
   { return 1024_GiB *  x; }
 
 
@@ -56,19 +56,19 @@ inline namespace literals
   using MHz = std::chrono::duration<double, std::mega>;
   using GHz = std::chrono::duration<double, std::giga>;
 
-  constexpr Hz operator"" _hz(long double d) {
+  constexpr Hz operator""_hz(long double d) {
     return Hz(d);
   }
 
-  constexpr KHz operator"" _khz(long double d) {
+  constexpr KHz operator""_khz(long double d) {
     return KHz(d);
   }
 
-  constexpr MHz operator"" _mhz(long double d) {
+  constexpr MHz operator""_mhz(long double d) {
     return MHz(d);
   }
 
-  constexpr GHz operator"" _ghz(long double d) {
+  constexpr GHz operator""_ghz(long double d) {
     return GHz(d);
   }
 
