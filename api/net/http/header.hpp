@@ -79,12 +79,12 @@ public:
   ///
   /// Default assignment operator
   ///
-  Header& operator = (const Header&) = default;
+  Header& operator=(const Header&) = default;
 
   ///
   /// Default move assignemt operator
   ///
-  Header& operator = (Header&&) noexcept = default;
+  Header& operator=(Header&&) noexcept = default;
 
   ///
   /// Add a new field to the current set

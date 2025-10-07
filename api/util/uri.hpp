@@ -267,7 +267,7 @@ class URI {
   ///
   /// @return The object that invoked this method
   ///
-  URI& operator << (const std::string& chunk);
+  URI& operator<<(const std::string& chunk);
 
   ///
   /// Parse the information supplied to the URI object
@@ -316,7 +316,7 @@ private:
 ///
 /// @return true if lhs is less-than rhs, false otherwise
 ///
-bool operator < (const URI& lhs, const URI& rhs) noexcept;
+bool operator<(const URI& lhs, const URI& rhs) noexcept;
 
 ///
 /// Operator to compare two {URI} objects for equality
@@ -331,7 +331,7 @@ bool operator < (const URI& lhs, const URI& rhs) noexcept;
 ///
 /// @todo IPv6 authority comparison
 ///
-bool operator == (const URI& lhs, const URI& rhs) noexcept;
+bool operator==(const URI& lhs, const URI& rhs) noexcept;
 
 ///
 /// Operator to stream the contents of a {URI} to the specified

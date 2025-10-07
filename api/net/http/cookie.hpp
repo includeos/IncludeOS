@@ -51,9 +51,9 @@ public:
 
   Cookie(Cookie&&) noexcept = default;
 
-  Cookie& operator = (const Cookie&) = default;
+  Cookie& operator=(const Cookie&) = default;
 
-  Cookie& operator = (Cookie&&) = default;
+  Cookie& operator=(Cookie&&) = default;
 
   ~Cookie() = default;
 
@@ -219,11 +219,11 @@ private:
 // Because we want a map of Cookies in CookieJar we need to set rules
 // for comparing Cookies and deciding if two Cookies are the same or not:
 
-bool operator < (const Cookie& a, const Cookie& b) noexcept;
+bool operator<(const Cookie& a, const Cookie& b) noexcept;
 
-bool operator == (const Cookie& a, const Cookie& b) noexcept;
+bool operator==(const Cookie& a, const Cookie& b) noexcept;
 
-std::ostream& operator << (std::ostream& output_device, const Cookie& cookie);
+std::ostream& operator<<(std::ostream& output_device, const Cookie& cookie);
 
 };  // < namespace http
 

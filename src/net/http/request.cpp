@@ -149,7 +149,7 @@ static size_t parse_request(Request* req, const std::string& data) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Request& Request::operator << (const std::string& chunk) {
+Request& Request::operator<<(const std::string& chunk) {
   request_.append(chunk);
   return *this;
 }
