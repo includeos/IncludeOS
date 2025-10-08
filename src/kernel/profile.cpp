@@ -203,24 +203,60 @@ void StackSampler::set_mask(bool mask)
   get().discard = mask;
 }
 
-std::string HeapDiag::to_string()
-{
-  static intptr_t last = 0;
-  // show information on heap status, to discover leaks etc.
-  auto heap_begin = kernel::heap_begin();
-  auto heap_end   = kernel::heap_end();
-  auto heap_usage = kernel::heap_usage();
-  intptr_t heap_size = heap_end - heap_begin;
-  last = heap_size - last;
 
-  char buffer[256];
-  int len = snprintf(buffer, sizeof(buffer),
-          "Heap begin  %#lx  size %lu Kb\n"
-          "Heap end    %#lx  diff %lu (%ld Kb)\n"
-          "Heap usage  %lu kB\n",
-          heap_begin, heap_size / 1024,
-          heap_end,  last, last / 1024,
-          heap_usage / 1024);
-  last = (int32_t) heap_size;
-  return std::string(buffer, len);
+inline std::string to_human_size(std::uint64_t bytes) {
+  constexpr std::string_view size_suffixes[] = {
+    "B", "KiB", "MiB", "GiB", "TiB", "PiB"
+  };
+  double value = static_cast<double>(bytes);
+  std::size_t exponent = 0;
+
+  while (value >= 1024.0 && exponent + 1 < std::size(size_suffixes)) {
+    value /= 1024.0;
+    exponent++;
+  }
+
+  if (exponent == 0)
+    return std::format("{} {}", static_cast<std::uint64_t>(value), size_suffixes[exponent]);
+  else
+    return std::format("{:.2f} {}", value, size_suffixes[exponent]);
+}
+
+inline std::string with_thousands_sep(uint64_t value, char sep = '_', char every = 3) {
+    std::string s = std::to_string(value);
+    for (int i = s.size() - every; i > 0; i -= every)
+        s.insert(i, 1, sep);
+    return s;
+}
+
+std::string HeapDiag::to_string() {
+  // TODO: check if heap should be 64 bit instead
+  static intptr_t last_size = 0;
+
+  // show information on heap status, to discover leaks etc.
+  const uintptr_t heap_begin = kernel::heap_begin();
+  const uintptr_t heap_end   = kernel::heap_end();
+  const size_t    heap_usage = kernel::heap_usage();
+
+  const size_t    heap_size   = heap_end - heap_begin;
+  const size_t    heap_growth = heap_size - last_size;
+
+  auto buffer = std::format(
+    "Logged last size     {} ({} bytes)\n"
+    "Reported heap begin  {:#010x}\n"  // 32-bit system = 8 hex chars ("0x" += 2)
+    "Reported heap end    {:#010x}\n"
+    "(end-begin) usage    {} ({} bytes)\n"
+    "Reported usage       {} ({} bytes)\n"
+    "Δ(end-begin)         {} ({} bytes)\n"
+    ,
+    to_human_size(last_size),   with_thousands_sep(last_size),
+    heap_begin,
+    heap_end,
+    to_human_size(heap_size),   with_thousands_sep(heap_size),
+    to_human_size(heap_usage),  with_thousands_sep(heap_usage),
+    to_human_size(heap_growth), with_thousands_sep(heap_growth)
+  );
+
+  last_size = (int32_t) heap_size;
+  return buffer;
 }
