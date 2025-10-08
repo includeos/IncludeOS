@@ -211,7 +211,7 @@ int main(int argc, char** argv)
   // 32-bit ELF
   if (binary_imgloc[EI_CLASS] == ELFCLASS32)
    {
-    Elf_binary<Elf32> binary ({binary_imgloc, stat_binary.st_size});
+    Elf_binary<Elf32> binary ({binary_imgloc, static_cast<size_t>(stat_binary.st_size)});
     binary.validate();
     srv_entry = binary.entry();
 
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
   // 64-bit ELF
   else if (binary_imgloc[EI_CLASS] == ELFCLASS64)
   {
-    Elf_binary<Elf64> binary ({binary_imgloc, stat_binary.st_size});
+    Elf_binary<Elf64> binary ({binary_imgloc, static_cast<size_t>(stat_binary.st_size)});
     binary.validate();
     srv_entry = binary.entry();
 
