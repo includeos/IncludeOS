@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6.0)
+cmake_minimum_required(VERSION 3.31.6)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
@@ -29,7 +29,6 @@ set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 add_custom_command(
-  PRE_BUILD
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/hotswap64.bin
 	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o ${CMAKE_CURRENT_BINARY_DIR}/hotswap64.bin ${CMAKE_CURRENT_SOURCE_DIR}/src/hotswap64.asm
   COMMENT "Building hotswap binary"
