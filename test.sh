@@ -14,49 +14,20 @@ fails=0
 failed_tests=()
 
 success() {
-  echo ""
   if [[ $1 =~ ^[0-9]+$ ]]; then
     echo -n "👷💬 Step $1 succeeded "
     for ((i=1; i<=$1; i++)); do
       echo -n "👏"
     done
   else
-    echo "👷💬 Step $1 succeeded ✅"
+    echo -n "👷💬 Step $1 succeeded ✅"
   fi
-  echo ""
 }
 
 fail() {
   echo ""
   echo "👷⛔ Step $1 failed ($2)"
   failed_tests+=("step $1: $2")
-}
-
-run() {
-  steps=$((steps + 1))
-  echo ""
-  echo "🚧 Step $steps) $2"
-  echo "⚙️  Running this command:"
-  # This will print the body of a bash function, but won't expand variables
-  # inside. It works well for bundling simple commands together and allows us to
-  # print them without wrapping them in qotes.
-  declare -f "$1" | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
-  echo "-------------------------------------- 💣 --------------------------------------"
-
-
-  if [ "$DRY_RUN" != true ]
-  then
-    $1
-  fi
-  errno=$?
-  if [ $errno -eq 0 ]; then
-    success $steps
-  else
-    echo "‼️  Error: Command failed with exit status $errno"
-    fail $steps "$1"
-    fails=$((fails + 1))
-    return $?
-  fi
 }
 
 unittests() {
@@ -87,32 +58,55 @@ smoke_tests() {
   nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
-run_test() {
-    if [ "$DRY_RUN" ]; then return; fi
+run() {
+  if [ "$DRY_RUN" = true ]; then
+    echo "-------------------------------------- 💣 --------------------------------------"
+    return;
+  fi
+
+  echo "-------------------------------------- 🗲 --------------------------------------"
+  "${@}"
+  errno=$?
+  echo "-------------------------------------- 󱦟 --------------------------------------"
+
+  if [ $errno -eq 0 ]; then
+    success "$steps.$substeps"
+  else
+    fail "$steps.$substeps" "${cmd[*]}"
+  fi
+  printf "\n\n\n"
+}
+
+run_single_test() {
     subfolder="$1"; shift
 
-    # The command to run, as string to be able to print the fully expanded command
     cmd=(
       nix-shell
       --pure
-      --arg withCcache "$CCACHE_FLAG"
+      --arg withCcache "$USE_CCACHE"
       --argstr unikernel "$subfolder"
       --run "./test.py"
     )
 
     echo "⚙️  Running this command:"
-    printf '%s\n' "${cmd[*]}"
-    echo "-------------------------------------- 💣 --------------------------------------"
+    printf '%q ' "${cmd[@]}"
+    printf '\n'
 
-    "${cmd[@]}"
-    errno=$?
-    if $? -eq 0; then
-      success "$steps.$substeps"
-    else
-      fail "$steps.$substeps" "${cmd[*]}"
-    fi
+    run "${cmd[@]}"
+    return $?
+}
 
-    return $errno
+run_function() {
+  steps=$((steps + 1))
+  echo "🚧 Step ${steps}: $2"
+  echo "⚙️  Running this command:"
+  # This will print the body of a bash function, but won't expand variables
+  # inside. It works well for bundling simple commands together and allows us to
+  # print them without wrapping them in qotes.
+  declare -f "$1" | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
+
+  run "$1"
+  return $?
 }
 
 run_testsuite() {
@@ -120,11 +114,9 @@ run_testsuite() {
   shift
   local exclusion_list=("$@")
 
-  steps=$((steps + 1))
-  substeps=1
+  substeps=0
   subfails=0
 
-  echo ""
   echo "====================================== 🚜 ======================================"
   echo ""
   echo "🚧 $steps) Running integration tests in $base_folder"
@@ -152,16 +144,13 @@ run_testsuite() {
       continue
     fi
 
-
-    echo ""
+    substeps=$((substeps + 1))
     echo "🚧 Step $steps.$substeps"
     echo "📂 $subfolder"
 
-    if ! run_test "$subfolder"; then
+    if ! run_single_test "$subfolder"; then
       subfails=$((subfails + 1))
     fi
-
-    substeps=$((substeps + 1))
 
   done
 
@@ -171,6 +160,9 @@ run_testsuite() {
     fail $steps
     fails=$((fails + 1))
   fi
+
+  echo "Test suite finished (ran ${substeps} tests)"
+  echo "--------------------------------------------------------------------------------"
 }
 
 kernel_tests() {
@@ -210,7 +202,7 @@ net_tests() {
 }
 
 custom_tests() {
-  # write your custom tests here
+  # add your custom tests here
   local exclusions=()
 
   # for testing all subdirectories in path
@@ -222,17 +214,17 @@ custom_tests() {
 
 
 run_all() {
-  run unittests "Build and run unit tests"
+  run_function unittests "Build and run unit tests"
 
-  run build_chainloader "Build the 32-bit chainloader"
+  run_function build_chainloader "Build the 32-bit chainloader"
 
-  run build_example "Build the basic example"
+  run_function build_example "Build the basic example"
 
-  run multicore_subset "Run selected tests with multicore enabled"
+  run_function multicore_subset "Run selected tests with multicore enabled"
 
-  if [ "$QUICK_SMOKE" ]; then
+  if [ "$QUICK_SMOKE" = true ]; then
 
-    run smoke_tests "Build and run a few key smoke tests"
+    run_function smoke_tests "Build and run a few key smoke tests"
 
     if [ $fails -eq 0 ]; then
       echo ""
@@ -248,11 +240,11 @@ run_all() {
 
   # Continuing from here will run all integration tests.
 
-  run kernel_tests "Run kernel integration tests"
+  run_function kernel_tests "Run kernel integration tests"
 
-  run stl_tests "Run C++ STL integration tests"
+  run_function stl_tests "Run C++ STL integration tests"
 
-  run net_tests "Run networking integration tests"
+  run_function net_tests "Run networking integration tests"
 
 }
 
@@ -272,7 +264,7 @@ main() {
     for t in "$@"; do
       case "$t" in
         unittests|build_chainloader|build_example|multicore_subset|smoke_tests|kernel_tests|stl_tests|net_tests|custom_tests)
-          run "$t" "Run target: $t"
+          run_function "$t" "Run target: $t"
           ;;
         all)
           run_all
@@ -304,7 +296,7 @@ else
   echo ""
   echo "Failed tests:"
   for t in "${failed_tests[@]}"; do
-    echo "$t"
+    printf '%s\n' "$t"
   done
 
   exit 1
