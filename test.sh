@@ -11,10 +11,16 @@
 : "${TESTS_STDOUT:=/dev/stdout}"  # Set to /dev/null (or a file) to silence stdout of tests
 : "${TESTS_STDERR:=/dev/stderr}"  # Set to /dev/null (or a file) to silence stderr of tests
 
+#
+# counters
+#
 steps=0
 fails=0
 failed_tests=()
 
+#
+# helpers
+#
 success() {
   if [[ $1 =~ ^[0-9]+$ ]]; then
     echo -n "👷💬 Step $1 succeeded "
@@ -32,34 +38,9 @@ fail() {
   failed_tests+=("step $1: $2")
 }
 
-unittests() {
-  nix-build unittests.nix
-}
-
-build_chainloader() {
-  nix-build --arg withCcache "${USE_CCACHE}" chainloader.nix
-}
-
-build_example() {
-  nix-build --arg withCcache "${USE_CCACHE}" example.nix
-}
-
-multicore_subset() {
-  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
-
-  # The following tests are not using multiple CPU's, but have been equippedd with some anyway
-  # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
-  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-}
-
-smoke_tests() {
-  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
-}
-
+#
+# runners
+#
 run() {
   if [ "$DRY_RUN" = true ]; then
     echo "-------------------------------------- 💣 --------------------------------------"
@@ -167,6 +148,42 @@ run_testsuite() {
   echo "--------------------------------------------------------------------------------"
 }
 
+#
+# function suites
+# used as targets for `./test.sh ...`
+#
+unittests() {
+  nix-build unittests.nix
+}
+
+build_chainloader() {
+  nix-build --arg withCcache "${USE_CCACHE}" chainloader.nix
+}
+
+build_example() {
+  nix-build --arg withCcache "${USE_CCACHE}" example.nix
+}
+
+multicore_subset() {
+  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+
+  # The following tests are not using multiple CPU's, but have been equippedd with some anyway
+  # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
+  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+}
+
+smoke_tests() {
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/tcp --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+}
+
+#
+# wrappers for testsuites
+# also acts as wrappers for `./test.sh ...`
+#
 kernel_tests() {
   local exclusions=(
     "LiveUpdate" # Missing includes
@@ -183,7 +200,6 @@ stl_tests() {
 
   run_testsuite "./test/stl/integration" "${exclusions[@]}"
 }
-
 
 net_tests() {
   local exclusions=(
@@ -214,10 +230,19 @@ custom_tests() {
   : run_test "./test/path/to/single_test*"
 }
 
+#
+# entry points
+#
 
 run_all() {
+  #
+  # unit tests
+  #
   run_function unittests "Build and run unit tests"
 
+  #
+  # build tests
+  #
   run_function build_chainloader "Build the 32-bit chainloader"
 
   run_function build_example "Build the basic example"
@@ -240,7 +265,7 @@ run_all() {
     exit 0
   fi
 
-  # Continuing from here will run all integration tests.
+  # all integration tests should go here
 
   run_function kernel_tests "Run kernel integration tests"
 
@@ -250,7 +275,7 @@ run_all() {
 
 }
 
-list_targets(){
+list_targets() {
   cat <<EOF
 Available targets:
   unittests        build_chainloader     build_example
@@ -275,10 +300,13 @@ main() {
           list_targets
           ;;
         help|-h|--help)
-          echo "Usage: $0 [target ...]"; list_targets
+          echo "Usage: $0 [target ...]"
+          list_targets
           ;;
         *)
-          echo "Unknown target: $t"; list_targets; exit 2
+          echo "Unknown target: $t"
+          list_targets;
+          exit 2
           ;;
       esac
     done
