@@ -13,7 +13,7 @@ includeos.stdenv.mkDerivation rec {
   nativeBuildInputs = [
     includeos.pkgs.buildPackages.nasm
     includeos.pkgs.buildPackages.cmake
-  ];
+  ] ++ [ includeos.pkgs.pkgsIncludeOS.suppressTargetWarningHook ];
 
   buildInputs = [
     includeos

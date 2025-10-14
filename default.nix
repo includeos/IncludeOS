@@ -2,7 +2,7 @@
   smp ? false, # Enable multcore support (SMP)
   nixpkgs ? ./pinned.nix,
   overlays ? [
-    (import ./overlay.nix { inherit withCcache; inherit smp; } )
+    (import ./overlay.nix { inherit withCcache; inherit smp; disableTargetWarning = true; } )
   ],
   pkgs ? import nixpkgs { config = {}; inherit overlays; }
 }:
