@@ -13,7 +13,7 @@ steps=0
 fails=0
 failed_tests=()
 
-success(){
+success() {
   echo ""
   if [[ $1 =~ ^[0-9]+$ ]]; then
     echo -n "👷💬 Step $1 succeeded "
@@ -26,13 +26,13 @@ success(){
   echo ""
 }
 
-fail(){
+fail() {
   echo ""
   echo "👷⛔ Step $1 failed ($2)"
   failed_tests+=("step $1: $2")
 }
 
-run(){
+run() {
   steps=$((steps + 1))
   echo ""
   echo "🚧 Step $steps) $2"
@@ -40,50 +40,51 @@ run(){
   # This will print the body of a bash function, but won't expand variables
   # inside. It works well for bundling simple commands together and allows us to
   # print them without wrapping them in qotes.
-  declare -f $1 | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
+  declare -f "$1" | sed '1d;2d;$d' | sed 's/^[[:space:]]*//' # Print the function body
   echo "-------------------------------------- 💣 --------------------------------------"
 
 
-  if [ ! $DRY_RUN ]
+  if [ ! "$DRY_RUN" ]
   then
     $1
   fi
-  if [ $? -eq 0 ]; then
+  errno=$?
+  if [ $errno -eq 0 ]; then
     success $steps
   else
-    echo "‼️  Error: Command failed with exit status $?"
+    echo "‼️  Error: Command failed with exit status $errno"
     fail $steps "$1"
     fails=$((fails + 1))
     return $?
   fi
 }
 
-unittests(){
+unittests() {
   nix-build unittests.nix
 }
 
-build_chainloader(){
-  nix-build $CCACHE_FLAG chainloader.nix
+build_chainloader() {
+  nix-build "${CCACHE_FLAG[@]}" chainloader.nix
 }
 
-build_example(){
-  nix-build $CCACHE_FLAG example.nix
+build_example() {
+  nix-build "${CCACHE_FLAG[@]}" example.nix
 }
 
-multicore_subset(){
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+multicore_subset() {
+  nix-shell --pure --arg smp true "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure --arg smp true "${CCACHE_FLAG[@]}" --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --arg smp true "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
 }
 
-smoke_tests(){
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+smoke_tests() {
+  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/net/integration/tcp --run ./test.py
+  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
 run unittests "Build and run unit tests"
@@ -157,19 +158,18 @@ run_testsuite() {
     echo "🚧 Step $steps.$substeps"
     echo "📂 $subfolder"
     echo "⚙️  Running this command:"
-    echo $cmd
+    printf '%s\n' "$cmd"
     echo "-------------------------------------- 💣 --------------------------------------"
 
 
-    if [ ! $DRY_RUN ]
+    if [ ! "$DRY_RUN" ]
     then
-      $cmd
-    fi
-    if [ $? -eq 0 ]; then
-      success "$steps.$substeps"
-    else
-      fail "$steps.$substeps" "$cmd"
-      subfails=$((subfails + 1))
+      if $cmd; then
+        success "$steps.$substeps"
+      else
+        fail "$steps.$substeps" "$cmd"
+        subfails=$((subfails + 1))
+      fi
     fi
 
     substeps=$((substeps + 1))
