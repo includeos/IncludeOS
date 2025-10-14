@@ -209,6 +209,17 @@ net_tests() {
   run_testsuite "./test/net/integration" "${exclusions[@]}"
 }
 
+custom_tests() {
+  # write your custom tests here
+  local exclusions=()
+
+  # for testing all subdirectories in path
+  : run_testsuite "./test/path/to/custom/tests*" "${exclusions[@]}"
+
+  # for testing a single test
+  : run_test "./test/path/to/single_test*"
+}
+
 
 run_all() {
   run unittests "Build and run unit tests"
@@ -250,7 +261,7 @@ list_targets(){
 Available targets:
   unittests        build_chainloader     build_example
   multicore_subset smoke_tests           kernel_tests
-  stl_tests        net_tests             all
+  stl_tests        net_tests             custom_tests
 EOF
 }
 
@@ -260,7 +271,7 @@ main() {
   else
     for t in "$@"; do
       case "$t" in
-        unittests|build_chainloader|build_example|multicore_subset|smoke_tests|kernel_tests|stl_tests|net_tests)
+        unittests|build_chainloader|build_example|multicore_subset|smoke_tests|kernel_tests|stl_tests|net_tests|custom_tests)
           run "$t" "Run target: $t"
           ;;
         all)
