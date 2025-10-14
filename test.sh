@@ -87,6 +87,34 @@ smoke_tests() {
   nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
+run_test() {
+    if [ "$DRY_RUN" ]; then return; fi
+    subfolder="$1"; shift
+
+    # The command to run, as string to be able to print the fully expanded command
+    cmd=(
+      nix-shell
+      --pure
+      --arg withCcache "$CCACHE_FLAG"
+      --argstr unikernel "$subfolder"
+      --run "./test.py"
+    )
+
+    echo "⚙️  Running this command:"
+    printf '%s\n' "${cmd[*]}"
+    echo "-------------------------------------- 💣 --------------------------------------"
+
+    "${cmd[@]}"
+    errno=$?
+    if $? -eq 0; then
+      success "$steps.$substeps"
+    else
+      fail "$steps.$substeps" "${cmd[*]}"
+    fi
+
+    return $errno
+}
+
 run_testsuite() {
   local base_folder="$1"
   shift
@@ -125,25 +153,12 @@ run_testsuite() {
     fi
 
 
-    # The command to run, as string to be able to print the fully expanded command
-    cmd="nix-shell --pure --arg withCcache ${USE_CCACHE} --argstr unikernel $subfolder --run ./test.py"
-
     echo ""
     echo "🚧 Step $steps.$substeps"
     echo "📂 $subfolder"
-    echo "⚙️  Running this command:"
-    printf '%s\n' "$cmd"
-    echo "-------------------------------------- 💣 --------------------------------------"
 
-
-    if [ ! "$DRY_RUN" ]
-    then
-      if $cmd; then
-        success "$steps.$substeps"
-      else
-        fail "$steps.$substeps" "$cmd"
-        subfails=$((subfails + 1))
-      fi
+    if ! run_test "$subfolder"; then
+      subfails=$((subfails + 1))
     fi
 
     substeps=$((substeps + 1))
