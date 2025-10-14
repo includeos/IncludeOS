@@ -42,6 +42,10 @@ CMakeFiles*
 CMakeCache*
 cmake_install.cmake
 
+# clangd related
+.cache/
+compile_commands.json
+
 # Name of installation folder
 IncludeOS_install
 
