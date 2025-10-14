@@ -5,9 +5,11 @@
 # A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
 
-: "${QUICK_SMOKE:=false}"  # Set to "true" for a ~1–5 min smoke test.
-: "${DRY_RUN:=false}"      # Set to "true" to print steps without running them.
-: "${USE_CCACHE:=false}"   # Set to "true" to enable ccache.
+: "${QUICK_SMOKE:=false}"         # Set to "true" for a ~1–5 min smoke test.
+: "${DRY_RUN:=false}"             # Set to "true" to print steps without running them.
+: "${USE_CCACHE:=false}"          # Set to "true" to enable ccache.
+: "${TESTS_STDOUT:=/dev/stdout}"  # Set to /dev/null (or a file) to silence stdout of tests
+: "${TESTS_STDERR:=/dev/stderr}"  # Set to /dev/null (or a file) to silence stderr of tests
 
 steps=0
 fails=0
@@ -65,7 +67,7 @@ run() {
   fi
 
   echo "-------------------------------------- 🗲 --------------------------------------"
-  "${@}"
+  "${@}" >"${TESTS_STDOUT}" 2>"${TESTS_STDERR}"
   errno=$?
   echo "-------------------------------------- 󱦟 --------------------------------------"
 
