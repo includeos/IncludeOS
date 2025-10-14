@@ -230,7 +230,41 @@ run_all() {
 
 }
 
-run_all
+list_targets(){
+  cat <<EOF
+Available targets:
+  unittests        build_chainloader     build_example
+  multicore_subset smoke_tests           kernel_tests
+  stl_tests        net_tests             all
+EOF
+}
+
+main() {
+  if [ $# -eq 0 ]; then
+    run_all
+  else
+    for t in "$@"; do
+      case "$t" in
+        unittests|build_chainloader|build_example|multicore_subset|smoke_tests|kernel_tests|stl_tests|net_tests)
+          run "$t" "Run target: $t"
+          ;;
+        all)
+          run_all
+          ;;
+        list|-l|--list)
+          list_targets
+          ;;
+        help|-h|--help)
+          echo "Usage: $0 [target ...]"; list_targets
+          ;;
+        *)
+          echo "Unknown target: $t"; list_targets; exit 2
+          ;;
+      esac
+    done
+  fi
+}
+main "$@"
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
