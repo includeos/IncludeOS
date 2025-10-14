@@ -6,6 +6,7 @@
     (import ./overlay.nix {
       inherit withCcache;
       smp = false; # No SMP for chainloader
+      disableTargetWarning = true;
     })
   ],
   pkgs ? import nixpkgs {
@@ -47,5 +48,5 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
-  ];
+  ] ++ [ pkgs.pkgsIncludeOS.suppressTargetWarningHook ];
 }
