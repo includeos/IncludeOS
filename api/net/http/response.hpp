@@ -83,12 +83,12 @@ public:
   ///
   /// Default copy assignment operator
   ///
-  Response& operator = (const Response&) = default;
+  Response& operator=(const Response&) = default;
 
   ///
   /// Default move assignment operator
   ///
-  Response& operator = (Response&&) = default;
+  Response& operator=(Response&&) = default;
 
   ///
   /// Parse the information supplied to the Response object
@@ -170,7 +170,7 @@ public:
   ///
   /// @return The object that invoked this method
   ///
-  Response& operator << (const std::string& chunk);
+  Response& operator<<(const std::string& chunk);
 private:
   ///
   /// Class data members

@@ -206,7 +206,7 @@ namespace std {
   template<>
   struct hash<net::Quadruple> {
   public:
-    size_t operator () (const net::Quadruple& key) const noexcept {
+    size_t operator()(const net::Quadruple& key) const noexcept {
       const auto h1 = std::hash<net::Socket>{}(key.src);
       const auto h2 = std::hash<net::Socket>{}(key.dst);
       return h1 ^ h2;

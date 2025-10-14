@@ -79,12 +79,12 @@ public:
   ///
   /// Default copy assignment operator
   ///
-  Request& operator = (Request&) = default;
+  Request& operator=(Request&) = default;
 
   ///
   /// Default move assignment operator
   ///
-  Request& operator = (Request&&) = default;
+  Request& operator=(Request&&) = default;
 
   ///
   /// Parse the information supplied to the Request object
@@ -199,7 +199,7 @@ public:
   ///
   /// @return The object that invoked this method
   ///
-  Request& operator << (const std::string& chunk);
+  Request& operator<<(const std::string& chunk);
 private:
   ///
   /// Class data members

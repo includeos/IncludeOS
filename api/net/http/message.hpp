@@ -68,12 +68,12 @@ public:
   ///
   /// Default copy assignment operator
   ///
-  Message& operator = (const Message&) = default;
+  Message& operator=(const Message&) = default;
 
   ///
   /// Default move assignment operator
   ///
-  Message& operator = (Message&&) = default;
+  Message& operator=(Message&&) = default;
 
   ///
   /// Get a modifiable reference to the header object
@@ -207,7 +207,7 @@ private:
 ///
 /// Add a set of headers to a message
 ///
-Message& operator << (Message& res, const Header_set& headers);
+Message& operator<<(Message& res, const Header_set& headers);
 
 /**--^----------- Helper Functions -----------^--**/
 

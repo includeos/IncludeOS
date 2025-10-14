@@ -19,17 +19,17 @@
 
 namespace http {
 
-bool operator < (const Cookie& a, const Cookie& b) noexcept {
+bool operator<(const Cookie& a, const Cookie& b) noexcept {
   return std::hash<std::string>{}(a.get_name() + a.get_value())
     < std::hash<std::string>{}(b.get_name() + b.get_value());
 }
 
-bool operator == (const Cookie& a, const Cookie& b) noexcept {
+bool operator==(const Cookie& a, const Cookie& b) noexcept {
   return std::hash<std::string>{}(a.get_name() + a.get_value())
     == std::hash<std::string>{}(b.get_name() + b.get_value());
 }
 
-std::ostream& operator << (std::ostream& output_device, const Cookie& cookie) {
+std::ostream& operator<<(std::ostream& output_device, const Cookie& cookie) {
   return output_device << cookie.to_string();
 }
 

@@ -44,38 +44,38 @@ namespace fs {
     size_t size() const noexcept
     { return stk.size(); }
 
-    const std::string& operator [] (const int i) const
+    const std::string& operator[](const int i) const
     { return stk.at(i); }
 
     int state() const noexcept
     { return state_; }
 
-    Path& operator = (const std::string& p) {
+    Path& operator=(const std::string& p) {
       stk.clear();
       parse_add(p);
       return *this;
     }
 
-    Path& operator += (const std::string& p) {
+    Path& operator+=(const std::string& p) {
       this->state_ = parse_add(p);
       return *this;
     }
 
-    Path operator + (const std::string& p) const {
+    Path operator+(const std::string& p) const {
       Path np  = Path(*this);
       np.state_ = np.parse_add(p);
       return np;
     }
 
-    bool operator == (const Path& p) const {
+    bool operator==(const Path& p) const {
       if (stk.size() not_eq p.stk.size()) return false;
       return this->to_string() == p.to_string();
     }
 
-    bool operator != (const Path& p) const
-    { return not this->operator == (p); }
+    bool operator!=(const Path& p) const
+    { return not this->operator==(p); }
 
-    bool operator == (const std::string& p) const
+    bool operator==(const std::string& p) const
     { return *this == Path(p); }
 
     bool empty() const noexcept
