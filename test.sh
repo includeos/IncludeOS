@@ -87,32 +87,6 @@ smoke_tests() {
   nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
-run unittests "Build and run unit tests"
-
-run build_chainloader "Build the 32-bit chainloader"
-
-run build_example "Build the basic example"
-
-run multicore_subset "Run selected tests with multicore enabled"
-
-if [ "$QUICK_SMOKE" ]; then
-
-  run smoke_tests "Build and run a few key smoke tests"
-
-  if [ $fails -eq 0 ]; then
-    echo ""
-    echo "👷💬 A lot of things are working! 💪"
-  else
-    echo ""
-    echo "👷🧰 $fails / $steps steps failed. There's some work left to do. 🛠  "
-    echo ""
-    exit 1
-  fi
-  exit 0
-fi
-
-# Continuing from here will run all integration tests.
-
 run_testsuite() {
   local base_folder="$1"
   shift
@@ -184,46 +158,79 @@ run_testsuite() {
   fi
 }
 
-#
-# Kernel tests
-#
-exclusions=(
-  "LiveUpdate" # Missing includes
-  "context"    # Outdated - references nonexisting OS::heap_end()
-  "fiber"      # Crashes
-  "modules"    # Requires 32-bit build, which our shell.nix is not set up for
-)
+kernel_tests() {
+  local exclusions=(
+    "LiveUpdate" # Missing includes
+    "context"    # Outdated - references nonexisting OS::heap_end()
+    "fiber"      # Crashes
+    "modules"    # Requires 32-bit build, which our shell.nix is not set up for
+  )
 
-run_testsuite "./test/kernel/integration" "${exclusions[@]}"
+  run_testsuite "./test/kernel/integration" "${exclusions[@]}"
+}
 
-#
-# C++ STL runtime tests
-#
-exclusions=(
+stl_tests() {
+  local exclusions=()
 
-)
-
-run_testsuite "./test/stl/integration" "${exclusions[@]}"
+  run_testsuite "./test/stl/integration" "${exclusions[@]}"
+}
 
 
-#
-# Networking tests
-#
-exclusions=(
-  "dhclient"  # Times out because it requires DHCP server on the bridge.
-  "dhcpd"     # Times out, requires certain routes to be set up. Seems easy.
-  "dhcpd_dhclient_linux" # We can't run userspace tests with this setup yet.
-  "gateway"   # Requires NaCl which is currently not integrated
-  "http"      # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
-  "microLB"   # Missing dependencies: microLB, diskbuilder, os_add_os_library
-  "nat"       # Times out after 3 / 6 tests seem to pass. Might be a legit bug here.
-  "router"    # Times out, requies sudo and has complex network setup.
-  "router6"   # Times out: iperf3: error - unable to connect to server
-  "vlan"      # Times out. Looks similar to the nat test - maybe similar cause?
-  "websocket" # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
-)
+net_tests() {
+  local exclusions=(
+    "dhclient"  # Times out because it requires DHCP server on the bridge.
+    "dhcpd"     # Times out, requires certain routes to be set up. Seems easy.
+    "dhcpd_dhclient_linux" # We can't run userspace tests with this setup yet.
+    "gateway"   # Requires NaCl which is currently not integrated
+    "http"      # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
+    "microLB"   # Missing dependencies: microLB, diskbuilder, os_add_os_library
+    "nat"       # Times out after 3 / 6 tests seem to pass. Might be a legit bug here.
+    "router"    # Times out, requies sudo and has complex network setup.
+    "router6"   # Times out: iperf3: error - unable to connect to server
+    "vlan"      # Times out. Looks similar to the nat test - maybe similar cause?
+    "websocket" # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
+  )
 
-run_testsuite "./test/net/integration" "${exclusions[@]}"
+  run_testsuite "./test/net/integration" "${exclusions[@]}"
+}
+
+
+run_all() {
+  run unittests "Build and run unit tests"
+
+  run build_chainloader "Build the 32-bit chainloader"
+
+  run build_example "Build the basic example"
+
+  run multicore_subset "Run selected tests with multicore enabled"
+
+  if [ "$QUICK_SMOKE" ]; then
+
+    run smoke_tests "Build and run a few key smoke tests"
+
+    if [ $fails -eq 0 ]; then
+      echo ""
+      echo "👷💬 A lot of things are working! 💪"
+    else
+      echo ""
+      echo "👷🧰 $fails / $steps steps failed. There's some work left to do. 🛠  "
+      echo ""
+      exit 1
+    fi
+    exit 0
+  fi
+
+  # Continuing from here will run all integration tests.
+
+  run kernel_tests "Run kernel integration tests"
+
+  run stl_tests "Run C++ STL integration tests"
+
+  run net_tests "Run networking integration tests"
+
+}
+
+run_all
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
