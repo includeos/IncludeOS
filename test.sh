@@ -5,9 +5,9 @@
 # A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
 
-: "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
-: "${DRY_RUN:=}"     # Define this to expand all steps without running any
-: "${CCACHE_FLAG:=}" # Define as "--arg withCcache true" to enable ccache.
+: "${QUICK_SMOKE:=false}"  # Set to "true" for a ~1–5 min smoke test.
+: "${DRY_RUN:=false}"      # Set to "true" to print steps without running them.
+: "${USE_CCACHE:=false}"   # Set to "true" to enable ccache.
 
 steps=0
 fails=0
@@ -44,7 +44,7 @@ run() {
   echo "-------------------------------------- 💣 --------------------------------------"
 
 
-  if [ ! "$DRY_RUN" ]
+  if [ "$DRY_RUN" != true ]
   then
     $1
   fi
@@ -64,27 +64,27 @@ unittests() {
 }
 
 build_chainloader() {
-  nix-build "${CCACHE_FLAG[@]}" chainloader.nix
+  nix-build --arg withCcache "${USE_CCACHE}" chainloader.nix
 }
 
 build_example() {
-  nix-build "${CCACHE_FLAG[@]}" example.nix
+  nix-build --arg withCcache "${USE_CCACHE}" example.nix
 }
 
 multicore_subset() {
-  nix-shell --pure --arg smp true "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
-  nix-shell --pure --arg smp true "${CCACHE_FLAG[@]}" --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --arg smp true "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --arg smp true --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
 }
 
 smoke_tests() {
-  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --pure "${CCACHE_FLAG[@]}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/udp --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/net/integration/tcp --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure --arg withCcache "${USE_CCACHE}" --argstr unikernel ./test/kernel/integration/smp --run ./test.py
 }
 
 run unittests "Build and run unit tests"
@@ -152,7 +152,7 @@ run_testsuite() {
 
 
     # The command to run, as string to be able to print the fully expanded command
-    cmd="nix-shell --pure $CCACHE_FLAG --argstr unikernel $subfolder --run ./test.py"
+    cmd="nix-shell --pure --arg withCcache ${USE_CCACHE} --argstr unikernel $subfolder --run ./test.py"
 
     echo ""
     echo "🚧 Step $steps.$substeps"
