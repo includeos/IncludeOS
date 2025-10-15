@@ -25,7 +25,7 @@
 #include <format>
 template<class... Args>
 static inline void _kfmt(const char* prefix, std::format_string<Args...> fmt, Args&&... args) {
-  char buf[512];
+  char buf[kernel::kprintf_max_size];
   auto res = std::format_to_n(buf, sizeof(buf) - 1, fmt, std::forward<Args>(args)...);
   *res.out = '\0';
   kprintf("%s%s", prefix, buf);
