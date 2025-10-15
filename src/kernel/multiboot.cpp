@@ -21,16 +21,16 @@
 #include <kprint>
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
+#include <fmt/format.h>
 
-#include <format>
 template<class... Args>
-static inline void _kfmt(const char* prefix, std::format_string<Args...> fmt, Args&&... args) {
-  char buf[kernel::kprintf_max_size];
-  auto res = std::format_to_n(buf, sizeof(buf) - 1, fmt, std::forward<Args>(args)...);
-  *res.out = '\0';
-  kprintf("%s%s", prefix, buf);
-}
+static inline void _kfmt(fmt::string_view prefix, fmt::format_string<Args...> fmtstr, Args&&... args) {
+  fmt::basic_memory_buffer<char, kernel::kprintf_max_size> buf;
+  fmt::format_to_n(std::back_inserter(buf), buf.capacity(), "%s", prefix);
+  fmt::format_to_n(std::back_inserter(buf), buf.capacity() - buf.size(), fmtstr, std::forward<Args>(args)...);
 
+  kprintf("%.*s", (int)buf.size(), buf.data());
+}
 #define DEBUG_MULTIBOOT
 #if defined(DEBUG_MULTIBOOT)
 #undef debug
