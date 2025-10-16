@@ -6,11 +6,17 @@
   # Boot unikernel after building it
   doCheck ? true,
 
+  # Which architecture to build against
+  arch ? "x86_64",
+
   # Enable multicore suport.
   smp ? false,
 
   # Enable ccache support. See overlay.nix for details.
   withCcache ? false,
+
+  # Enable stricter requirements
+  forProduction ? false,
 
   # The includeos library to build and link against
   includeos ? import ./default.nix { inherit withCcache; inherit smp; },
@@ -18,6 +24,7 @@
 
 includeos.stdenv.mkDerivation rec {
   pname = "includeos_example";
+  version = "dev";
   src = includeos.pkgs.lib.cleanSource "${unikernel}";
   dontStrip = true;
   inherit doCheck;
@@ -33,10 +40,10 @@ includeos.stdenv.mkDerivation rec {
   ];
 
   cmakeFlags = [
-    "-DARCH=x86_64"
+    "-DARCH=${arch}"
     "-DINCLUDEOS_PACKAGE=${includeos}"
     "-DCMAKE_MODULE_PATH=${includeos}/cmake"
-    "-DFOR_PRODUCTION=OFF"
+    "-DFOR_PRODUCTION=${if forProduction then "ON" else "OFF"}"
   ];
 
   nativeCheckInputs = [
@@ -49,6 +56,4 @@ includeos.stdenv.mkDerivation rec {
     boot *.elf.bin
     runHook postCheck
   '';
-
-  version = "dev";
 }
