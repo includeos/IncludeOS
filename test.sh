@@ -67,23 +67,23 @@ build_chainloader(){
 }
 
 build_example(){
-  nix-build $CCACHE_FLAG example.nix
+  nix-build $CCACHE_FLAG unikernel.nix
 }
 
 multicore_subset(){
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --arg doCheck true
 
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp
+  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --arg doCheck true
 }
 
 smoke_tests(){
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --arg doCheck true
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --arg doCheck true
 }
 
 run unittests "Build and run unit tests"
@@ -112,6 +112,7 @@ fi
 
 # Continuing from here will run all integration tests.
 
+sandboxed=true
 run_testsuite() {
   local base_folder="$1"
   shift
@@ -151,7 +152,11 @@ run_testsuite() {
 
 
     # The command to run, as string to be able to print the fully expanded command
-    cmd="nix-shell --pure $CCACHE_FLAG --argstr unikernel $subfolder --run ./test.py"
+    if $sandboxed; then
+      cmd="nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${subfolder%/} --arg doCheck true"
+    else
+      cmd="nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${subfolder%/}"
+    fi
 
     echo ""
     echo "🚧 Step $steps.$substeps"
@@ -223,7 +228,9 @@ exclusions=(
   "websocket" # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
 )
 
+sandboxed=false
 run_testsuite "./test/net/integration" "${exclusions[@]}"
+sandboxed=true
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
