@@ -39,7 +39,7 @@ void Service::start()
     printf("CPU %i active \n", i);
     SMP::global_unlock();
 
-    SMP::add_task([i]{
+    SMP::add_task([]{
         // NOTE: We can't call printf here as it's not SMP safe
 
         // Test regular malloc
