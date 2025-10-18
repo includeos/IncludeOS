@@ -24,7 +24,9 @@
 //#define DEBUG_SMP
 
 static SMP::Array<Events> managers;
+#ifdef INCLUDEOS_SMP_ENABLE
 static Spinlock em_lock_;
+#endif
 
 Events& Events::get(int cpuid)
 {
