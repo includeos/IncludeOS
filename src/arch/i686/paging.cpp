@@ -28,7 +28,7 @@ void __arch_init_paging()
 namespace os {
 namespace mem {
   __attribute__((weak))
-  Map map(Map m, const char* name) {
+  Map map(Map m, const char* name) {  // FIXME: use params, remove or mark unused
     return {};
   }
 
