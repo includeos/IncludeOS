@@ -17,7 +17,7 @@ def is_good(line):
     if (counter == expected):
         vm.exit(0, "All tests passed")
 
-vm.on_output("\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*", is_good)
+vm.on_output("\\x15\\x07\\t\\*\\*\\*\\* PANIC \\*\\*\\*\\*", is_good)
 vm.on_output("Divide-by-zero Error", is_good)
 
 vm.on_output("__cpu_exception", is_good)
