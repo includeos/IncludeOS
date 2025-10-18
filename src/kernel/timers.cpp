@@ -8,6 +8,9 @@
 #include <statman>
 #include <map>
 #include <vector>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 using namespace std::chrono;
 typedef Timers::duration_t duration_t;

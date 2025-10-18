@@ -1,6 +1,7 @@
 #include <os>
 #include <cassert>
 #include <smp>
+#include <mutex>
 
 void Service::start()
 {
