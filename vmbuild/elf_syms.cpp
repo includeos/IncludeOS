@@ -18,9 +18,11 @@ static const char* syms_file = "_elf_symbols.bin";
 
 static int prune_elf_symbols(char*);
 
-int main(int argc, const char** args)
+int main(int argc, const char* args[])
 {
-  assert(argc > 1);
+  if (!(argc > 1)) {
+    return -1;
+  };
   FILE* f = fopen(args[1], "r");
   assert(f);
 
@@ -32,8 +34,7 @@ int main(int argc, const char** args)
 
   rewind(f);
 
-  [[ maybe_unused ]]
-  int res = fread(fdata, sizeof(char), size, f);
+  [[maybe_unused]] int res = fread(fdata, sizeof(char), size, f);
   assert(res == size);
   fclose(f);
 
