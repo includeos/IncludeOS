@@ -23,6 +23,9 @@
 #include <vector>
 #include <smp>
 #include <likely>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 namespace net
 {

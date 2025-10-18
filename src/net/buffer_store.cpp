@@ -23,6 +23,9 @@
 #include <smp>
 #include <cstddef>
 #include <likely>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 #ifdef __MACH__
 extern void* aligned_alloc(size_t alignment, size_t size);

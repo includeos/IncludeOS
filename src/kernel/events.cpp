@@ -22,6 +22,9 @@
 #include <smp>
 #include <arch.hpp>
 //#define DEBUG_SMP
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 static SMP::Array<Events> managers;
 #ifdef INCLUDEOS_SMP_ENABLE
