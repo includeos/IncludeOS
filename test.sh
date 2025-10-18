@@ -80,8 +80,8 @@ multicore_subset(){
 }
 
 smoke_tests(){
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --arg doCheck true
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --arg doCheck true
   nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --arg doCheck true
   nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --arg doCheck true
 }
