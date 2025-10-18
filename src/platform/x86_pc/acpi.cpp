@@ -271,7 +271,7 @@ namespace x86 {
 
     auto  dsdt_addr = (uintptr_t) facp->DSDT;
     // verify DSDT
-    constexpr uint32_t DSDT_t = bake('D', 'S', 'D', 'T');
+    [[maybe_unused]] constexpr uint32_t DSDT_t = bake('D', 'S', 'D', 'T');
     assert(*(uint32_t*) dsdt_addr == DSDT_t);
 
     /// big thanks to kaworu from OSdev.org forums for algo

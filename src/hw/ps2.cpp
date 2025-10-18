@@ -217,7 +217,7 @@ namespace hw
 
     // self-test (port1)
     write_port1(0xFF);
-    const uint8_t selftest = read_data();
+    [[maybe_unused]] const uint8_t selftest = read_data();
     assert(selftest == 0xAA && "PS/2 controller self-test");
 
     write_port1(DEV_IDENTIFY);
