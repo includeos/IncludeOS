@@ -414,6 +414,7 @@ int main()
   auto pml3 = __pml4->page_dir(__pml4->entry(magic_loc));
   auto pml2 = pml3->page_dir(pml3->entry(magic_loc));
   auto pml1 = pml2->page_dir(pml2->entry(magic_loc));
+  (void) pml1;
 
   // Write-protect
   if (magic->reboots == 0) {
@@ -421,6 +422,7 @@ int main()
     pml3 = __pml4->page_dir(__pml4->entry(mapped.lin));
     pml2 = pml3->page_dir(pml3->entry(mapped.lin));
     pml1 = pml2->page_dir(pml2->entry(mapped.lin));
+    (void) pml1;
 
     protected_page[magic->i] = 'a';
     mem::protect_range((uint64_t)protected_page, mem::Access::read);
