@@ -74,10 +74,11 @@ final: prev: {
     stdenv = final.stdenvIncludeOS.includeos_stdenv;
 
     # Deps
-    uzlib = self.callPackage ./deps/uzlib/default.nix { };
     botan2 = self.callPackage ./deps/botan2/default.nix { };
-    s2n-tls = self.callPackage ./deps/s2n-tls/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
+    libfdt = self.callPackage ./deps/libfdt/default.nix { };
+    s2n-tls = self.callPackage ./deps/s2n-tls/default.nix { };
+    uzlib = self.callPackage ./deps/uzlib/default.nix { };
     vmbuild = self.callPackage ./vmbuild.nix { };
 
     ccacheWrapper = prev.ccacheWrapper.override {
@@ -143,10 +144,11 @@ final: prev: {
       ] ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
 
       buildInputs = [
-        self.botan2
-        self.http-parser
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
+        self.botan2
+        self.http-parser
+        self.libfdt
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
         self.vmbuild
@@ -188,11 +190,12 @@ final: prev: {
       passthru.pkgs = prev.pkgs; # this is for convenience for other packages that depend on includeos
 
       passthru = {
-        inherit (self) uzlib;
-        inherit (self) http-parser;
         inherit (self) botan2;
-        #inherit (self) s2n-tls;
         inherit (self) cmake;
+        inherit (self) http-parser;
+        inherit (self) libfdt;
+        # inherit (self) s2n-tls;
+        inherit (self) uzlib;
         inherit (self) vmbuild;
       };
 
