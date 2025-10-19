@@ -1,0 +1,142 @@
+diff --git a/crypto/s2n_aead_cipher_aes_gcm.c b/crypto/s2n_aead_cipher_aes_gcm.c
+index 36820ab20..1c12eb4ed 100644
+--- a/crypto/s2n_aead_cipher_aes_gcm.c
++++ b/crypto/s2n_aead_cipher_aes_gcm.c
+@@ -23,12 +23,12 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
+-static uint8_t s2n_aead_cipher_aes128_gcm_available()
++static uint8_t s2n_aead_cipher_aes128_gcm_available(void)
+ {
+     return (EVP_aes_128_gcm() ? 1 : 0);
+ }
+ 
+-static uint8_t s2n_aead_cipher_aes256_gcm_available()
++static uint8_t s2n_aead_cipher_aes256_gcm_available(void)
+ {
+     return (EVP_aes_256_gcm() ? 1 : 0);
+ }
+diff --git a/crypto/s2n_cbc_cipher_3des.c b/crypto/s2n_cbc_cipher_3des.c
+index 0a9aae2ed..3e7cc3227 100644
+--- a/crypto/s2n_cbc_cipher_3des.c
++++ b/crypto/s2n_cbc_cipher_3des.c
+@@ -23,7 +23,7 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
+-static uint8_t s2n_cbc_cipher_3des_available()
++static uint8_t s2n_cbc_cipher_3des_available(void)
+ {
+     return (EVP_des_ede3_cbc() ? 1 : 0);
+ }
+diff --git a/crypto/s2n_cbc_cipher_aes.c b/crypto/s2n_cbc_cipher_aes.c
+index a504fd103..8818a5f8d 100644
+--- a/crypto/s2n_cbc_cipher_aes.c
++++ b/crypto/s2n_cbc_cipher_aes.c
+@@ -23,12 +23,12 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
+-static uint8_t s2n_cbc_cipher_aes128_available()
++static uint8_t s2n_cbc_cipher_aes128_available(void)
+ {
+     return (EVP_aes_128_cbc() ? 1 : 0);
+ }
+ 
+-static uint8_t s2n_cbc_cipher_aes256_available()
++static uint8_t s2n_cbc_cipher_aes256_available(void)
+ {
+     return (EVP_aes_256_cbc() ? 1 : 0);
+ }
+diff --git a/crypto/s2n_stream_cipher_null.c b/crypto/s2n_stream_cipher_null.c
+index 2d2093ca4..5ff3ea6be 100644
+--- a/crypto/s2n_stream_cipher_null.c
++++ b/crypto/s2n_stream_cipher_null.c
+@@ -20,7 +20,7 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
+-static uint8_t s2n_stream_cipher_null_available()
++static uint8_t s2n_stream_cipher_null_available(void)
+ {
+     return 1;
+ }
+diff --git a/crypto/s2n_stream_cipher_rc4.c b/crypto/s2n_stream_cipher_rc4.c
+index bf94aad7a..8abd3223f 100644
+--- a/crypto/s2n_stream_cipher_rc4.c
++++ b/crypto/s2n_stream_cipher_rc4.c
+@@ -21,7 +21,7 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
+-static uint8_t s2n_stream_cipher_rc4_available()
++static uint8_t s2n_stream_cipher_rc4_available(void)
+ {
+     return (EVP_rc4() ? 1 : 0);
+ }
+diff --git a/utils/s2n_map.c b/utils/s2n_map.c
+index b76d44057..4d4d78272 100644
+--- a/utils/s2n_map.c
++++ b/utils/s2n_map.c
+@@ -81,7 +81,7 @@ static int s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
+     return 0;
+ }
+ 
+-struct s2n_map *s2n_map_new()
++struct s2n_map *s2n_map_new(void)
+ {
+     struct s2n_blob mem = {0};
+     struct s2n_map *map;
+diff --git a/utils/s2n_map.h b/utils/s2n_map.h
+index abea548f1..25a5a4bab 100644
+--- a/utils/s2n_map.h
++++ b/utils/s2n_map.h
+@@ -22,7 +22,7 @@
+ 
+ struct s2n_map;
+ 
+-extern struct s2n_map *s2n_map_new();
++extern struct s2n_map *s2n_map_new(void);
+ extern int s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
+ extern int s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value);
+ extern int s2n_map_complete(struct s2n_map *map);
+diff --git a/utils/s2n_random.c b/utils/s2n_random.c
+index 6066d1564..4a2100ac7 100644
+--- a/utils/s2n_random.c
++++ b/utils/s2n_random.c
+@@ -313,7 +313,7 @@ int s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
+ }
+ 
+ 
+-int s2n_cpu_supports_rdrand()
++int s2n_cpu_supports_rdrand(void)
+ {
+ #if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+     uint32_t eax, ebx, ecx, edx;
+diff --git a/utils/s2n_safety.c b/utils/s2n_safety.c
+index 7e110b75f..90339d926 100644
+--- a/utils/s2n_safety.c
++++ b/utils/s2n_safety.c
+@@ -29,7 +29,7 @@
+  * Returns:
+  *  The process ID of the current process
+  */
+-pid_t s2n_actual_getpid()
++pid_t s2n_actual_getpid(void)
+ {
+ #if defined(__GNUC__) && defined(SYS_getpid)
+     /* http://yarchive.net/comp/linux/getpid_caching.html */
+diff --git a/utils/s2n_safety.h b/utils/s2n_safety.h
+index 5768f86f8..5f9fad752 100644
+--- a/utils/s2n_safety.h
++++ b/utils/s2n_safety.h
+@@ -108,7 +108,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
+  * Returns:
+  *  The process ID of the current process
+  */
+-extern pid_t s2n_actual_getpid();
++extern pid_t s2n_actual_getpid(void);
+ 
+ /* Returns 1 if a and b are equal, in constant time */
+ extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len);

@@ -11,14 +11,18 @@ let
 
     src = pkgs.fetchzip {
       url = "https://github.com/aws/s2n-tls/archive/v${version}.tar.gz";
-      sha256 = "18qjqc2jrpiwdpzqxl6hl1cq0nfmqk8qas0ijpwr0g606av0aqm9";
+      sha256 = "18qjqc2jrpiwdpzqxl6hl1cq0nfmqk8qas0ijpwr0g606av0aqm9";  # v0.9.0
+      # hash = "sha256-aJRw1a/XJivNZS3NkZ4U6nC12+wY/aoNv33mbAzNl0k=";  # v1.5.27
     };
+
+    patches = [ ./fix-strict-prototypes.patch ];
 
     buildInputs = [
       pkgs.pkgsStatic.openssl
     ];
 
-    # the default 'all' target depends on tests which are broken (see below)
+    # ld: cannot find -lgcc_eh: No such file or directory
+    # ld: have you installed the static version of the gcc_eh library ?
     buildPhase = ''
       runHook preBuild
 
@@ -27,17 +31,8 @@ let
       runHook postBuild
     '';
 
-    # TODO: tests fail:
-    # make -C unit
-    # make[2]: Entering directory '/build/source/tests/unit'
-    # Running s2n_3des_test.c                                    ... FAILED test 1
-    # !((conn = s2n_connection_new(S2N_SERVER)) == (((void *)0))) is not true  (s2n_3des_test.c line 44)
-    # Error Message: 'error calling mlock (Did you run prlimit?)'
-    #  Debug String: 'Error encountered in s2n_mem.c line 103'
-    # make[2]: *** [Makefile:44: s2n_3des_test] Error 1
-    doCheck = false;
-
     # Upstream Makefile has no install target
+    # FIXME: looks like it does now: https://github.com/aws/s2n-tls/blame/73720795dbc37d295592f427e8c225cfafef39a0/Makefile#L106
     installPhase = ''
       runHook preInstall
 
