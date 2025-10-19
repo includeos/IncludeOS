@@ -61,4 +61,10 @@ let
   lib = pkgs.lib.getLib self;
 in
   self.overrideAttrs (oldAttrs: {
+    # TODO: verify the {include, lib} paths. commented are Gentoo artifacts
+    passthru = (prev.passthru or {}) // {
+      include_root = "${dev}/include"; # /usr/include/s2n.h
+      include = "${dev}/include/s2n";  # /usr/include/s2n/unstable/*.h
+      lib = "${self}/lib";  # /usr/lib64 on Gentoo...
+    };
   })
