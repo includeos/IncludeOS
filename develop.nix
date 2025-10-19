@@ -111,7 +111,7 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
 
 
       # most clangd configurations and editors will look in ./build/, but this just makes it easier to find for some niche edge cases
-      ln -sfn "${buildpath}/compile_commands.json" "$IOS_SRC/compile_commands.json"
+      # ln -sfn "${buildpath}/compile_commands.json" "$IOS_SRC/compile_commands.json"
   '';
 }
 
