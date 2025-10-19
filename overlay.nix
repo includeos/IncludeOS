@@ -74,10 +74,12 @@ final: prev: {
     stdenv = final.stdenvIncludeOS.includeos_stdenv;
 
     # Deps
-    uzlib = self.callPackage ./deps/uzlib/default.nix { };
     botan2 = self.callPackage ./deps/botan/default.nix { };
-    s2n-tls = self.callPackage ./deps/s2n/default.nix { };
+    libfmt = self.callPackage ./deps/libfmt/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
+    s2n-tls = self.callPackage ./deps/s2n/default.nix { };
+    uzlib = self.callPackage ./deps/uzlib/default.nix { };
+
     vmbuild = self.callPackage ./vmbuild.nix { };
 
     ccacheWrapper = prev.ccacheWrapper.override {
@@ -143,6 +145,7 @@ final: prev: {
       ] ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
 
       buildInputs = [
+        self.libfmt
         self.botan2
         self.http-parser
         prev.pkgsStatic.openssl
@@ -191,6 +194,7 @@ final: prev: {
         inherit (self) uzlib;
         inherit (self) http-parser;
         inherit (self) botan2;
+        inherit (self) libfmt;
         #inherit (self) s2n-tls;
         inherit (self) cmake;
         inherit (self) vmbuild;

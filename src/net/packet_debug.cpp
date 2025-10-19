@@ -39,7 +39,7 @@ namespace net {
     fprintf(stderr, "Buffer: Begin: %p End: %p Size: %i\n",
       pkt->buf(), pkt->buffer_end(), pkt->bufsize());
     const size_t offset = pkt->layer_begin() - layer_begin;
-    fprintf(stderr, "Layer: Recorded: %p Current: %p (%lub offset)\n",
+    fprintf(stderr, "Layer: Recorded: %p Current: %p (%zub offset)\n",
       layer_begin, pkt->layer_begin(), offset);
     fprintf(stderr, "Size: %i ", pkt->size());
     fprintf(stderr, "Capacity: %i ", pkt->capacity());

@@ -4,6 +4,7 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 project(chainloader C CXX)
 
 find_package(IncludeOS REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 set(ARCH i686)
 set(PLATFORM nano)

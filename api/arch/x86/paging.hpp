@@ -317,7 +317,7 @@ public:
         auto* sub = page_dir(&ent);
         Expects(sub != nullptr);
         if (print) {
-          printf("%.*s-+<%s> 0x%zx\n", print_lvl * 2, pad,
+          printf("%.*s-+<%s> %p\n", print_lvl * 2, pad,
                  util::Byte_r(page_size).to_string().c_str(), (void*)sub->start_addr());
         }
         sum += sub->summary(print, print_lvl + 1);

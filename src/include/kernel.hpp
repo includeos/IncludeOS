@@ -26,6 +26,7 @@ namespace kernel {
   using namespace util;
   constexpr size_t default_max_mem = 2_GiB;
   constexpr uintptr_t page_shift   = 12;
+  constexpr size_t kprintf_max_size = 8192;
 
   struct State {
     bool running               = true;

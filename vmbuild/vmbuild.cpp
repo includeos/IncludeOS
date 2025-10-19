@@ -36,12 +36,30 @@
 #define SECT_SIZE_ERR  666
 #define DISK_SIZE_ERR  999
 
-bool verb = false;
+#include <format>
+static bool verbose = false;
 
-#define INFO_(FROM, TEXT, ...) if (verb) fprintf(stderr, "%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
-#define INFO(X,...) INFO_("Vmbuild", X, ##__VA_ARGS__)
-#define WARN(X,...) fprintf(stderr, "[ vmbuild ] Warning: " X "\n", ##__VA_ARGS__)
-#define ERROR(X,...) fprintf(stderr, "[ vmbuild ] Error: " X "\n", ##__VA_ARGS__); std::terminate()
+template<class... Args>
+inline void infof(const char* from, std::format_string<Args...> fmt, Args&&... args) {
+  if (!verbose) return;
+  auto msg = std::format(fmt, std::forward<Args>(args)...);
+  std::fprintf(stderr, "[ %13s ] %s\n", from, msg.c_str());
+}
+template<class... Args>
+inline void warnf(const char* from, std::format_string<Args...> fmt, Args&&... args) {
+  auto msg = std::format(fmt, std::forward<Args>(args)...);
+  std::fprintf(stderr, "[ %13s ] Warning: %s\n", from, msg.c_str());
+}
+template<class... Args>
+[[noreturn]] inline void errorf(const char* from, std::format_string<Args...> fmt, Args&&... args) {
+  auto msg = std::format(fmt, std::forward<Args>(args)...);
+  std::fprintf(stderr, "[ %13s ] Error: %s\n", from, msg.c_str());
+  std::terminate();
+}
+
+#define INFO(FMT, ...) infof("vmbuild", FMT, ##__VA_ARGS__)
+#define WARN(FMT, ...) warnf("vmbuild", FMT, ##__VA_ARGS__)
+#define ERROR(FMT, ...) errorf("vmbuild", FMT, ##__VA_ARGS__)
 
 
 // Special variables inside the bootloader
@@ -95,26 +113,26 @@ int main(int argc, char** argv)
   // Set verbose from environment
   const char* env_verb = getenv("VERBOSE");
   if (env_verb && strlen(env_verb) > 0)
-      verb = true;
+      verbose = true;
 
   const std::string bootloader_path = get_bootloader_path(argc, argv);
 
   if (argc > 2)
     const std::string bootloader_path {argv[2]};
 
-  INFO("Using bootloader %s" , bootloader_path.c_str());
+  INFO("Using bootloader {}", bootloader_path);
 
   const std::string elf_binary_path  {argv[1]};
   const std::string img_name {elf_binary_path.substr(elf_binary_path.find_last_of("/") + 1, std::string::npos) + ".img"};
 
-  INFO("Creating image '%s'" , img_name.c_str());
+  INFO("Creating image '{}'", img_name);
 
   if (argc > 3) {
     if (std::string{argv[3]} == "-test") {
       test = true;
-      verb = true;
+      verbose = true;
     } else if (std::string{argv[3]} == "-v"){
-      verb = true;
+      verbose = true;
     }
   }
 
@@ -123,39 +141,39 @@ int main(int argc, char** argv)
 
   // Validate boot loader
   if (stat(bootloader_path.c_str(), &stat_boot) == -1) {
-    INFO("Could not open %s, exiting\n" , bootloader_path.c_str());
+    INFO("Could not open {}, exiting", bootloader_path);
     return errno;
   }
 
   if (stat_boot.st_size != SECT_SIZE) {
-    INFO("Boot sector not exactly one sector in size (%ld bytes, expected %i)",
+    INFO("Boot sector not exactly one sector in size ({} bytes, expected {})",
          stat_boot.st_size, SECT_SIZE);
     return SECT_SIZE_ERR;
   }
 
-  INFO("Size of bootloader: %ld\t" , stat_boot.st_size);
+  INFO("Size of bootloader: {}", stat_boot.st_size);
 
   // Validate service binary location
   if (stat(elf_binary_path.c_str(), &stat_binary) == -1) {
-    ERROR("vmbuild: Could not open '%s'\n" , elf_binary_path.c_str());
+    ERROR("vmbuild: Could not open '{}'", elf_binary_path);
     return errno;
   }
 
   intmax_t binary_sectors = stat_binary.st_size / SECT_SIZE;
   if (stat_binary.st_size & (SECT_SIZE-1)) binary_sectors += 1;
 
-  INFO("Size of service: \t%ld bytes" , stat_binary.st_size);
+  INFO("Size of service: {} bytes", stat_binary.st_size);
 
   const decltype(binary_sectors) img_size_sect  {1 + binary_sectors};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};
   assert((img_size_bytes & (SECT_SIZE-1)) == 0);
 
-  INFO("Total disk size: \t%ld bytes, => %ld sectors",
+  INFO("Total disk size: {} bytes, => {} sectors",
        img_size_bytes, img_size_sect);
 
   const auto disk_size = img_size_bytes;
 
-  INFO("Creating disk of size %ld sectors / %ld bytes" ,
+  INFO("Creating disk of size {} sectors / {} bytes" ,
        (disk_size / SECT_SIZE), disk_size);
 
   std::vector<char> disk (disk_size);
@@ -165,14 +183,14 @@ int main(int argc, char** argv)
   std::ifstream file_boot {bootloader_path}; //< Load the boot loader into memory
 
   auto read_bytes = file_boot.read(disk_head, stat_boot.st_size).gcount();
-  INFO("Read %ld bytes from boot image", read_bytes);
+  INFO("Read {} bytes from boot image", read_bytes);
 
   std::ifstream file_binary {elf_binary_path}; //< Load the service into memory
 
   auto* binary_imgloc = disk_head + SECT_SIZE; //< Location of service code within the image
 
   read_bytes = file_binary.read(binary_imgloc, stat_binary.st_size).gcount();
-  INFO("Read %ld bytes from service image" , read_bytes);
+  INFO("Read {} bytes from service image", read_bytes);
 
   // only accept ELF binaries
   if (not (binary_imgloc[EI_MAG0] == ELFMAG0
@@ -193,15 +211,15 @@ int main(int argc, char** argv)
   // 32-bit ELF
   if (binary_imgloc[EI_CLASS] == ELFCLASS32)
    {
-    Elf_binary<Elf32> binary ({binary_imgloc, stat_binary.st_size});
+    Elf_binary<Elf32> binary ({binary_imgloc, static_cast<size_t>(stat_binary.st_size)});
     binary.validate();
     srv_entry = binary.entry();
 
-    INFO("Found 32-bit ELF with entry at 0x%x", srv_entry);
+    INFO("Found 32-bit ELF with entry at {:#010x}", srv_entry);
 
     auto loadable = binary.loadable_segments();
     if (loadable.size() > 1) {
-      WARN("found %zu loadable segments. Loading as one.",loadable.size());
+      WARN("found {} loadable segments. Loading as one.", loadable.size());
     }
     srv_load_addr = loadable[0]->p_paddr;
     binary_load_offs = loadable[0]->p_offset;
@@ -214,11 +232,11 @@ int main(int argc, char** argv)
   // 64-bit ELF
   else if (binary_imgloc[EI_CLASS] == ELFCLASS64)
   {
-    Elf_binary<Elf64> binary ({binary_imgloc, stat_binary.st_size});
+    Elf_binary<Elf64> binary ({binary_imgloc, static_cast<size_t>(stat_binary.st_size)});
     binary.validate();
     srv_entry = binary.entry();
 
-    INFO("Found 64-bit ELF with entry at 0x%x", srv_entry);
+    INFO("Found 64-bit ELF with entry at {:#010x}", srv_entry);
 
     auto loadable = binary.loadable_segments();
     // Expects(loadable.size() == 1);
@@ -238,25 +256,25 @@ int main(int argc, char** argv)
 
 
   INFO("Verifying multiboot header:");
-  INFO("Magic value: 0x%x" , multiboot_hdr->magic);
+  INFO("Magic value: {:#010x}", multiboot_hdr->magic);
   if (multiboot_hdr->magic != MULTIBOOT_HEADER_MAGIC) {
-    ERROR("Multiboot magic mismatch: 0x%08x vs %#x",
+    ERROR("Multiboot magic mismatch: {:#010x} vs {:#x}",
           multiboot_hdr->magic, MULTIBOOT_HEADER_MAGIC);
   }
 
-
-  INFO("Flags: 0x%x" , multiboot_hdr->flags);
-  INFO("Checksum: 0x%x" , multiboot_hdr->checksum);
-  INFO("Checksum computed: 0x%x", multiboot_hdr->checksum + multiboot_hdr->flags + multiboot_hdr->magic);
+  INFO("Flags: {:#010x}", multiboot_hdr->flags);
+  INFO("Checksum: {:#010x}", multiboot_hdr->checksum);
+  INFO("Checksum computed: {:#010x}",
+       multiboot_hdr->checksum + multiboot_hdr->flags + multiboot_hdr->magic);
 
   // Verify multiboot header checksum
   assert(multiboot_hdr->checksum + multiboot_hdr->flags + multiboot_hdr->magic == 0);
 
-  INFO("Header addr: 0x%x" , multiboot_hdr->header_addr);
-  INFO("Load start: 0x%x" , multiboot_hdr->load_addr);
-  INFO("Load end: 0x%x" , multiboot_hdr->load_end_addr);
-  INFO("BSS end: 0x%x" , multiboot_hdr->bss_end_addr);
-  INFO("Entry: 0x%x" , multiboot_hdr->entry_addr);
+  INFO("Header addr: {:#010x}", multiboot_hdr->header_addr);
+  INFO("Load start:  {:#010x}", multiboot_hdr->load_addr);
+  INFO("Load end:    {:#010x}", multiboot_hdr->load_end_addr);
+  INFO("BSS end:     {:#010x}", multiboot_hdr->bss_end_addr);
+  INFO("Entry:       {:#010x}", multiboot_hdr->entry_addr);
 
   assert(multiboot_hdr->entry_addr == srv_entry);
 
@@ -272,9 +290,9 @@ int main(int argc, char** argv)
   boot->entry      = srv_entry;
   boot->load_addr  = srv_load_addr;
 
-  INFO("srv_size: %i", srv_size);
-  INFO("srv_entry: 0x%x", srv_entry);
-  INFO("srv_load: 0x%x", srv_load_addr);
+  INFO("srv_size:  {}", srv_size);
+  INFO("srv_entry: {:#010x}", srv_entry);
+  INFO("srv_load:  {:#010x}", srv_load_addr);
 
   if (test) {
     INFO("\nTEST overwriting service with testdata");
@@ -287,8 +305,8 @@ int main(int argc, char** argv)
   auto* image = fopen(img_name.c_str(), "w");
   auto  wrote = fwrite(disk_head, 1, disk_size, image);
 
-  INFO("Wrote %ld bytes => %ld sectors to '%s'",
-       wrote, (wrote / SECT_SIZE), img_name.c_str());
+  INFO("Wrote {} bytes => {} sectors to '{}'",
+       wrote, (wrote / SECT_SIZE), img_name);
 
   fclose(image);
 }

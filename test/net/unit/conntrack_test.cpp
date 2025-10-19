@@ -181,7 +181,7 @@ CASE("Testing Conntrack serialization")
   // This one aint gonna be serialized
 
   auto* with_close_handler = ct->simple_track_in(rquad, Protocol::ICMPv4);
-  with_close_handler->on_close = [](auto* ent) { ent->state; };
+  with_close_handler->on_close = [](auto* ent) { (void)ent->state; };
 
   EXPECT(ct->number_of_entries() == 6);
 

@@ -149,7 +149,7 @@ const typename Elf_binary<Arch>::Section_header& Elf_binary<Arch>::section_heade
 
 template <typename Arch>
 const typename Elf_binary<Arch>::Span Elf_binary<Arch>::section_data(const Section_header& sh) const {
-  return {data_.data() + sh.sh_offset, static_cast<std::ptrdiff_t>(sh.sh_size)};
+  return {data_.data() + static_cast<std::size_t>(sh.sh_offset), static_cast<std::size_t>(sh.sh_size)};
 };
 
 template <typename Arch>

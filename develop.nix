@@ -83,11 +83,13 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
     jq \
       --arg libcxx "${includeos.libraries.libcxx.include}" \
       --arg libc "${includeos.libraries.libc}"             \
-      --arg localsrc "${toString ./.}"                           \
+      --arg libfmt "${includeos.passthru.libfmt.include}"  \
+      --arg localsrc "${toString ./.}"                     \
       '
       map(.command |= ( .
           + " -isystem \($libcxx)"
           + " -isystem \($libc)/include"
+          + " -I \($libfmt)"
           | gsub("(?<a>-I)(?<b>/lib/LiveUpdate/include)"; .a + $localsrc + .b)
       ))
     ' "$CCDB" > "$tmp" && mv "$tmp" "$CCDB"

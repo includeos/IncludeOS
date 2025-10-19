@@ -17,6 +17,7 @@ namespace x86 {
 
 extern "C" void*  get_cpu_esp();
 extern "C" void   lapic_exception_handler();
+#undef INFO  // api/info uses kprint
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 using namespace x86;

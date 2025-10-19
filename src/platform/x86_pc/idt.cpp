@@ -276,7 +276,7 @@ void __page_fault(uintptr_t* regs, uint32_t code) {
   if (not(code & 1))
     reason = "Page not present";
 
-  fprintf(stderr,"%s, trying to access 0x%lx\n", reason, addr);
+  fprintf(stderr,"%s, trying to access %p\n", reason, (void*)addr);
 
   if (code & 2)
     fprintf(stderr,"Page write failed.\n");

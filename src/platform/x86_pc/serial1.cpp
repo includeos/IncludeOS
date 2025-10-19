@@ -1,3 +1,4 @@
+#include "kernel.hpp"
 #include <hw/serial.hpp>
 #include <stdarg.h>
 static const uint16_t port = 0x3F8; // Serial 1
@@ -44,7 +45,7 @@ void kprint(const char* c){
 
 extern "C" void kprintf(const char* format, ...)
 {
-  char buf[8192];
+  char buf[kernel::kprintf_max_size];
   va_list aptr;
   va_start(aptr, format);
   vsnprintf(buf, sizeof(buf), format, aptr);

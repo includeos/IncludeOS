@@ -60,6 +60,11 @@ static void* sys_mmap(void * addr, size_t length, int /*prot*/, int flags,
 
   // TODO: Implement minimal functionality to be POSIX compliant
   // https://pubs.opengroup.org/onlinepubs/009695399/functions/mmap.html
+  if (length <= 0) {
+    Expectsf(false, "Must always allocate at least 1 byte. Got {}", length);
+    errno = EINVAL;
+    return MAP_FAILED;
+  }
 
   if (fd > -1) {
     // None of our file systems support memory mapping at the moment

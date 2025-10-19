@@ -45,7 +45,7 @@ void Service::start()
   memset(a, 0, BUFLEN);
   memset(b, 0, BUFLEN);
 
-  CHECKSERT(read(rand_fd, a, sizeof(a)) == sizeof(a), "read returns the correct length (%u)", BUFLEN);
+  CHECKSERT(read(rand_fd, a, sizeof(a)) == sizeof(a), "read returns the correct length (%zu)", BUFLEN);
 
   read(rand_fd, b, sizeof(b));
   CHECKSERT(memcmp(a, b, BUFLEN) != 0, "reading returns new data");

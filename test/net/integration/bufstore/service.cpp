@@ -70,7 +70,7 @@ void Service::start(const std::string&)
             "Bufcount is now %u", BUFFER_CNT - 1);
 
   // Chain
-  for (int i = 0; i < TOTAL_BUFFERS-1; i++){
+  for (size_t i = 0; i < TOTAL_BUFFERS-1; i++){
     auto chained_packet = create_packet(bufstore);
     packet->chain(std::move(chained_packet));
   }
@@ -87,7 +87,7 @@ void Service::start(const std::string&)
   tail = 0;
   packet = 0;
   CHECK(bufstore.available() == TOTAL_BUFFERS,
-        "Bufcount is now %u / %u", bufstore.available(), TOTAL_BUFFERS);
+        "Bufcount is now %zu / %u", bufstore.available(), TOTAL_BUFFERS);
   //assert(bufstore.available() == TOTAL_BUFFERS);
   INFO("Tests","SUCCESS");
 }
