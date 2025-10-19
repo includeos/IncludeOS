@@ -30,6 +30,10 @@ let
   dev = pkgs.lib.getDev self;
   lib = pkgs.lib.getLib self;
 in
-  self.overrideAttrs (oldAttrs: {
+  self.overrideAttrs (prev: {
+    passthru = (prev.passthru or {}) // {
+      include_root = "${dev}/include";
+      include = "${dev}/include/lest";
+      # lib = "${self}";  # TODO: consider precompiling
+    };
   })
-

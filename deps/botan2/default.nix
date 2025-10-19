@@ -23,3 +23,10 @@ in
       runHook postBuild
     '';
   })
+
+  passthru = (oldAttrs.passthru or {}) // {
+    include_root = "${dev}/include";
+    include = "${dev}/include/botan-2";  # include/botan2/botan/*.h
+    lib = "${lib}/lib";
+  };
+})

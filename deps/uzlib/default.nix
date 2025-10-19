@@ -6,6 +6,7 @@ let
   self = stdenv.mkDerivation rec {
     pname = "uzlib";
 
+    # TODO: update?
     # Latest version, seems incompatible with IncludeOS.
     #version = "2.9.5";
     #
@@ -63,5 +64,10 @@ let
   dev = pkgs.lib.getDev self;
   lib = pkgs.lib.getLib self;
 in
-  self.overrideAttrs (oldAttrs: {
+  self.overrideAttrs (prev: {
+    passthru = (prev.passthru or {}) // {
+      include_root = "${dev}/include";
+      include = "${dev}/include";  # TODO: consider subdir?
+      lib = "${self}/lib";
+    };
   })
