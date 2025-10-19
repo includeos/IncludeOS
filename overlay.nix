@@ -87,10 +87,10 @@ final: prev: {
     inherit suppressTargetWarningHook;
 
     # Deps
-    botan2 = self.callPackage ./deps/botan/default.nix { };
+    botan2 = self.callPackage ./deps/botan2/default.nix { };
     libfmt = self.callPackage ./deps/libfmt/default.nix { };
+    s2n-tls = self.callPackage ./deps/s2n-tls/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
-    s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
 
     vmbuild = self.callPackage ./vmbuild.nix { };
