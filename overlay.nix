@@ -75,8 +75,8 @@ final: prev: {
 
     # Deps
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
-    botan2 = self.callPackage ./deps/botan/default.nix { };
-    s2n-tls = self.callPackage ./deps/s2n/default.nix { };
+    botan2 = self.callPackage ./deps/botan2/default.nix { };
+    s2n-tls = self.callPackage ./deps/s2n-tls/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
     vmbuild = self.callPackage ./vmbuild.nix { };
 
