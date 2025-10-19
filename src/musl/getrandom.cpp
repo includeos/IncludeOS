@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include <kernel/rng.hpp>
 
-// TODO Flags are ignored.
+// TODO: flags are ignored.
 static long sys_getrandom(void* buf, size_t len, unsigned int flags)
 {
   rng_absorb(buf, len);

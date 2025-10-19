@@ -45,7 +45,7 @@ namespace net
   {
     // default timed out handler spams logs
     this->on_config(
-    [this] (bool completed)
+    [&] (bool completed)
     {
       if (completed) {
         INFO("SLAAC", "Autoconf completed for (%s)",

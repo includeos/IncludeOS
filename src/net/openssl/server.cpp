@@ -43,7 +43,7 @@ namespace openssl
     auto* ctx = SSL_CTX_new(TLSv1_2_method());
     if (!ctx) throw std::runtime_error("SSL_CTX_new()");
 
-    int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
+    [[maybe_unused]] int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
     assert(res == 1);
 
   #ifdef LOAD_FROM_MEMDISK

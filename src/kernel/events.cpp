@@ -24,7 +24,9 @@
 //#define DEBUG_SMP
 
 static SMP::Array<Events> managers;
+#ifdef INCLUDEOS_SMP_ENABLE
 static Spinlock em_lock_;
+#endif
 
 Events& Events::get(int cpuid)
 {
@@ -39,7 +41,7 @@ Events& Events::get(int cpuid)
 Events& Events::get()
 {
 #ifdef INCLUDEOS_SMP_ENABLE
-  static Spinlock lock;
+  static Spinlock lock;  // FIXME: this seems unused.
   std::lock_guard<Spinlock> guard(em_lock_);
 #endif
   return PER_CPU(managers);

@@ -178,7 +178,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   assert(this->ptbase);
 
   // verify and select version
-  bool ok = check_version();
+  [[maybe_unused]] bool ok = check_version();
   assert(ok);
 
   // reset device
