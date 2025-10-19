@@ -92,6 +92,7 @@ final: prev: {
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
+    libfdt = self.callPackage ./deps/libfdt/default.nix { };
 
     vmbuild = self.callPackage ./vmbuild.nix { };
 
@@ -165,6 +166,7 @@ final: prev: {
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
+        self.libfdt
         self.uzlib
         self.vmbuild
       ];
@@ -209,6 +211,7 @@ final: prev: {
         inherit (self) http-parser;
         inherit (self) botan2;
         inherit (self) libfmt;
+        inherit (self) libfdt;
         #inherit (self) s2n-tls;
         inherit (self) cmake;
         inherit (self) vmbuild;
