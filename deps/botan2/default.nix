@@ -3,8 +3,11 @@
 }:
 let
   cpuFlag = if pkgs.stdenv.system == "i686-linux" then "x86_32" else "x86_64";
+  self = pkgs.botan2;
+  dev = pkgs.lib.getDev self;
+  lib = pkgs.lib.getLib self;
 in
-pkgs.botan2.overrideAttrs (oldAttrs: {
+self.overrideAttrs (oldAttrs: {
 
   postInstall = (oldAttrs.postInstall or "") + ''
     ln -sr "$out/include/botan-2/botan" "$out/include"
@@ -17,4 +20,10 @@ pkgs.botan2.overrideAttrs (oldAttrs: {
 
     runHook postBuild
   '';
+
+  passthru = (oldAttrs.passthru or {}) // {
+    include_root = "${dev}/include";
+    include = "${dev}/include/botan-2";  # include/botan2/botan/*.h
+    lib = "${lib}/lib";
+  };
 })
