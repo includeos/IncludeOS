@@ -79,6 +79,7 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
         "${includeos.botan2.include}" \
         "${includeos.http-parser.include}" \
         "${includeos.lest.include}" \
+        "${includeos.libfdt.include}" \
         "${includeos.uzlib.include}" \
         "${includeos.pkgs.rapidjson}/include" \
         "${includeos.pkgs.openssl}/include"
