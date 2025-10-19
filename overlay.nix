@@ -92,6 +92,7 @@ final: prev: {
     s2n-tls = self.callPackage ./deps/s2n-tls/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
+    libfdt = self.callPackage ./deps/libfdt/default.nix { };
 
     vmbuild = self.callPackage ./vmbuild.nix { };
 
@@ -165,6 +166,7 @@ final: prev: {
         self.http-parser
         self.libfmt
       # self.s2n-tls          👈 This is postponed until we can fix the s2n build.
+        self.libfdt
         self.uzlib
         self.vmbuild
       ];
@@ -208,8 +210,14 @@ final: prev: {
         inherit (self) botan2;
         inherit (self) cmake;
         inherit (self) http-parser;
+<<<<<<< HEAD
         inherit (self) libfmt;
       # inherit (self) s2n-tls;
+||||||| parent of c0f128940 (enable libfdt dependency)
+=======
+        inherit (self) libfdt;
+        # inherit (self) s2n-tls;
+>>>>>>> c0f128940 (enable libfdt dependency)
         inherit (self) uzlib;
         inherit (self) vmbuild;
       };
