@@ -72,6 +72,22 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
       -D ARCH=${arch} \
       -D CMAKE_MODULE_PATH=${includeos}/cmake
 
+    # TODO: missing s2n-tls (postponed in overlay.nix)
+    # TODO: missing libfdt (no default.nix target)
+    DEP_INCLUDE_PATH="$(
+      for d in \
+        "$IOS_SRC/test/lest_util" \
+        "${includeos.botan2.include}" \
+        "${includeos.http-parser.include}" \
+        "${includeos.lest.include}" \
+        "${includeos.uzlib.include}" \
+        "${includeos.pkgs.rapidjson}/include" \
+        "${includeos.pkgs.openssl}/include"
+      do
+        printf ' -I %s' "$d"
+      done
+    )"
+
     # procuced by CMake
     CCDB="${buildpath}/compile_commands.json"
 
@@ -83,11 +99,13 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
     jq \
       --arg libcxx "${includeos.libraries.libcxx.include}" \
       --arg libc "${includeos.libraries.libc}"             \
-      --arg localsrc "${toString ./.}"                           \
+      --arg localsrc "${toString ./.}"                     \
+      --arg extra "$DEP_INCLUDE_PATH"                      \
       '
       map(.command |= ( .
           + " -isystem \($libcxx)"
           + " -isystem \($libc)/include"
+          + " \($extra)"
           | gsub("(?<a>-I)(?<b>/lib/LiveUpdate/include)"; .a + $localsrc + .b)
       ))
     ' "$CCDB" > "$tmp" && mv "$tmp" "$CCDB"
