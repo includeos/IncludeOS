@@ -27,4 +27,4 @@
 
 ### Testing it
 
-Run one of the Linux platform tests in /test/linux. If you get the error `RTNETLINK answers: File exists`, flush the interace with `sudo ip addr flush dev bridge43`. Where bridge43 is the interface name.
+Run one of the Linux platform tests in /test/userspace. If you get the error `RTNETLINK answers: File exists`, flush the interace with `sudo ip addr flush dev bridge43`. Where bridge43 is the interface name.
