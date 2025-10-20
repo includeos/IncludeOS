@@ -79,13 +79,13 @@ multicore_subset(){
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
   nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --run ./test.py
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --run ./test.py
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --run ./test.py
 }
 
 smoke_tests(){
   nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --run ./test.py
   nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/tcp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --run ./test.py
   nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --run ./test.py
 }
 
