@@ -1,13 +1,16 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 # Run all known IncludeOS tests.
 #
 # A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
 
+pushd "$(dirname "$0")" >/dev/null
 : "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
 : "${CCACHE_FLAG:=}" # Define as "--arg withCcache true" to enable ccache.
+
+UNIT_TESTS=./test/tests-unit
+INTEGRATION_TESTS=./test/tests-integration
 
 steps=0
 fails=0
@@ -58,7 +61,7 @@ run(){
   fi
 }
 
-unittests(){
+run_unittests(){
   nix-build unittests.nix
 }
 
@@ -71,22 +74,22 @@ build_example(){
 }
 
 multicore_subset(){
-  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --arg doCheck true
+  nix-build --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --arg doCheck true
 
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
-  nix-shell ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --arg doCheck true
-  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --arg doCheck true
+  nix-shell ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --arg doCheck true
+  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --arg doCheck true
 }
 
 smoke_tests(){
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --arg doCheck true
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --arg doCheck true
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --arg doCheck true
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --arg doCheck true
+  nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --arg doCheck true
+  nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/tcp --arg doCheck true
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --arg doCheck true
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --arg doCheck true
 }
 
-run unittests "Build and run unit tests"
+run run_unittests "Build and run unit tests"
 
 run build_chainloader "Build the 32-bit chainloader"
 
@@ -207,7 +210,7 @@ exclusions=(
 unsandbox_list=(
   "term"  # fails to create the tun device, like the net integration tests
 )
-run_testsuite "./test/kernel/integration" "${exclusions[@]}"
+run_testsuite "${INTEGRATION_TESTS}/kernel" "${exclusions[@]}"
 unsandbox_list=()
 
 #
@@ -217,7 +220,7 @@ exclusions=(
 
 )
 
-run_testsuite "./test/stl/integration" "${exclusions[@]}"
+run_testsuite "${INTEGRATION_TESTS}/stl" "${exclusions[@]}"
 
 
 #
@@ -241,15 +244,15 @@ exclusions=(
 #   <vm> failed to create tun device: Operation not permitted
 #   <vm> qemu-system-x86_64: -netdev bridge,id=net0,br=bridge43: bridge helper failed
 unsandbox_list=(
-  "./test/net/integration/configure"
-  "./test/net/integration/icmp"
-  "./test/net/integration/icmp6"
-  "./test/net/integration/slaac"
-  "./test/net/integration/tcp"
-  "./test/net/integration/udp"
-  "./test/net/integration/dns"  # except this one which times out instead
+  "${INTEGRATION_TESTS}/net/configure"
+  "${INTEGRATION_TESTS}/net/icmp"
+  "${INTEGRATION_TESTS}/net/icmp6"
+  "${INTEGRATION_TESTS}/net/slaac"
+  "${INTEGRATION_TESTS}/net/tcp"
+  "${INTEGRATION_TESTS}/net/udp"
+  "${INTEGRATION_TESTS}/net/dns"  # except this one which times out instead
 )
-run_testsuite "./test/net/integration" "${exclusions[@]}"
+run_testsuite "${INTEGRATION_TESTS}/net" "${exclusions[@]}"
 unsandbox_list=()
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
