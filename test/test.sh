@@ -214,6 +214,13 @@ run_testsuite "${INTEGRATION_TESTS}/kernel" "${exclusions[@]}"
 unsandbox_list=()
 
 #
+# memory tests
+#
+exclusions=(
+)
+run_testsuite "${INTEGRATION_TESTS}/memory" "${exclusions[@]}"
+
+#
 # C++ STL runtime tests
 #
 exclusions=(
