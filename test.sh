@@ -1,13 +1,16 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 # Run all known IncludeOS tests.
 #
 # A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
 
+pushd "$(dirname "$0")" >/dev/null
 : "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
 : "${CCACHE_FLAG:=}" # Define as "--arg withCcache true" to enable ccache.
+
+UNIT_TESTS=./test/tests-unit/
+INTEGRATION_TESTS=./test/tests-integration/
 
 steps=0
 fails=0
@@ -58,7 +61,7 @@ run(){
   fi
 }
 
-unittests(){
+run_unittests(){
   nix-build unittests.nix
 }
 
@@ -71,22 +74,22 @@ build_example(){
 }
 
 multicore_subset(){
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --run ./test.py
 
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --run ./test.py
+  nix-shell --pure --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --run ./test.py
 }
 
 smoke_tests(){
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/udp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/net/integration/tcp --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/paging --run ./test.py
-  nix-shell --pure $CCACHE_FLAG --argstr unikernel ./test/kernel/integration/smp --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/tcp --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --run ./test.py
+  nix-shell --pure $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --run ./test.py
 }
 
-run unittests "Build and run unit tests"
+run run_unittests "Build and run unit tests"
 
 run build_chainloader "Build the 32-bit chainloader"
 
@@ -194,7 +197,7 @@ exclusions=(
   "modules"    # Requires 32-bit build, which our shell.nix is not set up for
 )
 
-run_testsuite "./test/kernel/integration" "${exclusions[@]}"
+run_testsuite "${INTEGRATION_TESTS}/kernel" "${exclusions[@]}"
 
 #
 # C++ STL runtime tests
@@ -203,7 +206,7 @@ exclusions=(
 
 )
 
-run_testsuite "./test/stl/integration" "${exclusions[@]}"
+run_testsuite "${INTEGRATION_TESTS}/stl" "${exclusions[@]}"
 
 
 #
@@ -223,7 +226,7 @@ exclusions=(
   "websocket" # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
 )
 
-run_testsuite "./test/net/integration" "${exclusions[@]}"
+run_testsuite "${INTEGRATION_TESTS}/net" "${exclusions[@]}"
 
 echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
