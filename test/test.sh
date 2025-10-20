@@ -4,7 +4,7 @@
 # A lot of these tests require vmrunner and a network bridge.
 # See https://github.com/includeos/vmrunner/pull/31
 
-pushd "$(dirname "$0")" >/dev/null
+pushd "$(dirname "$0")/.." >/dev/null
 : "${QUICK_SMOKE:=}" # Define this to only do a ~1-5 min. smoke test.
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
 : "${CCACHE_FLAG:=}" # Define as "--arg withCcache true" to enable ccache.
