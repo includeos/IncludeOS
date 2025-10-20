@@ -82,16 +82,16 @@ set(TEST_SOURCES
   ${UNIT_TESTS}/kernel/arch.cpp
   ${UNIT_TESTS}/kernel/blocking.cpp
   ${UNIT_TESTS}/kernel/cpuid.cpp
-  ${UNIT_TESTS}/kernel/memmap_test.cpp
-  ${UNIT_TESTS}/kernel/test_memory.cpp
+  ${UNIT_TESTS}/memory/mapping/memmap_test.cpp
+  ${UNIT_TESTS}/memory/generic/test_memory.cpp
   ${UNIT_TESTS}/kernel/os_test.cpp
   ${UNIT_TESTS}/kernel/rng.cpp
   ${UNIT_TESTS}/kernel/service_stub_test.cpp
   ${UNIT_TESTS}/kernel/test_hal.cpp
   ${UNIT_TESTS}/kernel/unit_events.cpp
-  ${UNIT_TESTS}/kernel/unit_liveupdate.cpp
   ${UNIT_TESTS}/kernel/unit_timers.cpp
-  ${UNIT_TESTS}/kernel/x86_paging.cpp
+  ${UNIT_TESTS}/memory/paging/unit_liveupdate.cpp
+  ${UNIT_TESTS}/memory/paging/x86_paging.cpp
   ${UNIT_TESTS}/kernel/spinlocks.cpp
   ${UNIT_TESTS}/net/addr_test.cpp
   ${UNIT_TESTS}/net/bufstore.cpp
@@ -137,30 +137,30 @@ set(TEST_SOURCES
   ${UNIT_TESTS}/posix/unit_fd.cpp
   ${UNIT_TESTS}/util/base64.cpp
   ${UNIT_TESTS}/util/bitops.cpp
-  ${UNIT_TESTS}/util/buddy_alloc_test.cpp
+  ${UNIT_TESTS}/memory/alloc/buddy_alloc_test.cpp
+  ${UNIT_TESTS}/memory/alloc/fixed_list_alloc_test.cpp
+  ${UNIT_TESTS}/memory/alloc/pmr_alloc_test.cpp
+  ${UNIT_TESTS}/memory/generic/membitmap.cpp
+  ${UNIT_TESTS}/memory/lstack/test_lstack_nodes.cpp
+  ${UNIT_TESTS}/memory/lstack/test_lstack_merging.cpp
+  ${UNIT_TESTS}/memory/lstack/test_lstack_nomerge.cpp
   ${UNIT_TESTS}/util/config.cpp
   ${UNIT_TESTS}/util/crc32.cpp
   ${UNIT_TESTS}/util/delegate.cpp
-  ${UNIT_TESTS}/util/fixed_list_alloc_test.cpp
   ${UNIT_TESTS}/util/fixed_queue.cpp
   ${UNIT_TESTS}/util/fixed_vector.cpp
   ${UNIT_TESTS}/util/isotime.cpp
   ${UNIT_TESTS}/util/logger_test.cpp
-  ${UNIT_TESTS}/util/membitmap.cpp
 # ${UNIT_TESTS}/util/path_to_regex_no_options.cpp
   ${UNIT_TESTS}/util/path_to_regex_parse.cpp
   ${UNIT_TESTS}/util/path_to_regex_options.cpp
   ${UNIT_TESTS}/util/percent_encoding_test.cpp
-  ${UNIT_TESTS}/util/pmr_alloc_test.cpp
   ${UNIT_TESTS}/util/ringbuffer.cpp
   ${UNIT_TESTS}/util/sha1.cpp
   ${UNIT_TESTS}/util/statman.cpp
   ${UNIT_TESTS}/util/syslogd_test.cpp
   ${UNIT_TESTS}/util/syslog_facility_test.cpp
 # ${UNIT_TESTS}/util/uri_test.cpp
-  ${UNIT_TESTS}/util/lstack/test_lstack_nodes.cpp
-  ${UNIT_TESTS}/util/lstack/test_lstack_merging.cpp
-  ${UNIT_TESTS}/util/lstack/test_lstack_nomerge.cpp
 )
 
 if(EXTRA_TESTS)
