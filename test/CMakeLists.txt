@@ -80,7 +80,7 @@ set(TEST_SOURCES
   ${UNIT_TESTS}/hw/usernet.cpp
   ${UNIT_TESTS}/hw/virtio_queue.cpp
   ${UNIT_TESTS}/kernel/arch.cpp
-  ${UNIT_TESTS}/kernel/block.cpp
+  ${UNIT_TESTS}/kernel/blocking.cpp
   ${UNIT_TESTS}/kernel/cpuid.cpp
   ${UNIT_TESTS}/kernel/memmap_test.cpp
   ${UNIT_TESTS}/kernel/test_memory.cpp
