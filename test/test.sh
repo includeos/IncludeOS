@@ -79,13 +79,13 @@ multicore_subset(){
   # The following tests are not using multiple CPU's, but have been equippedd with some anyway
   # to make sure core functionality is not broken by missing locks etc. when waking up more cores.
   nix-shell ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --arg doCheck true
-  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --arg doCheck true
+  nix-build ./unikernel.nix --arg smp true $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --arg doCheck true
 }
 
 smoke_tests(){
   nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/udp --arg doCheck true
   nix-shell ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/net/tcp --arg doCheck true
-  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/paging --arg doCheck true
+  nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/memory/paging --arg doCheck true
   nix-build ./unikernel.nix $CCACHE_FLAG --argstr unikernel ${INTEGRATION_TESTS}/kernel/smp --arg doCheck true
 }
 
