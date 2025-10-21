@@ -29,7 +29,7 @@ tls_load_from_memory(X509_STORE* store,
   auto* cbio = BIO_new_mem_buf(cert_buffer.data(), cert_buffer.size());
   auto* cert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
   assert(cert != NULL && "Invalid certificate");
-  int res = X509_STORE_add_cert(store, cert);
+  [[maybe_unused]] int res = X509_STORE_add_cert(store, cert);
   assert(res == 1 && "The X509 store did not accept the certificate");
   BIO_free(cbio);
 }
@@ -46,7 +46,7 @@ tls_private_key_for_ctx(SSL_CTX* ctx, int bits = 2048)
   RSA* rsa = RSA_new();
 
   // TODO: -Wdeprecated-declarations
-  int ret = RSA_generate_key_ex(rsa, bits, bne, NULL);
+  [[maybe_unused]] int ret = RSA_generate_key_ex(rsa, bits, bne, NULL);
   assert(ret == 1);
 
   // TODO: -Wdeprecated-declarations
@@ -63,7 +63,7 @@ tls_init_client(fs::List ents)
   auto* ctx = SSL_CTX_new(meth);
   if (!ctx) throw std::runtime_error("SSL_CTX_new()");
 
-  int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
+  [[maybe_unused]] int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
   assert(res == 1);
 
   X509_STORE* store = X509_STORE_new();

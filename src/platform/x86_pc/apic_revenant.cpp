@@ -76,20 +76,20 @@ static void revenant_task_handler()
 void revenant_main(int cpu)
 {
   uintptr_t this_stack = smp_main.stack_base + cpu * smp_main.stack_size;
-  uintptr_t this_stack_end = this_stack - smp_main.stack_size;
+  [[maybe_unused]] uintptr_t this_stack_end = this_stack - smp_main.stack_size;
   // enable Local APIC
   x86::APIC::get().smp_enable();
   // setup GDT & per-cpu feature
   x86::initialize_cpu_tables_for_cpu(cpu);
   // show we are online, and verify CPU ID is correct
   SMP::global_lock();
-  auto stack = (uintptr_t) get_cpu_esp();
+  [[maybe_unused]] auto stack = (uintptr_t) get_cpu_esp();
   INFO2("AP %d started at %p", SMP::cpu_id(), (void*) this_stack);
   SMP::global_unlock();
   // initialize exceptions before asserts
   x86::idt_initialize_for_cpu(cpu);
   assert(cpu == SMP::cpu_id());
-  assert(stack >= this_stack_end && stack < this_stack);
+  assert(stack >= this_stack_end && stack < this_stack);  // relates to [[maybe_unused]]
 
   static Spinlock lock;
   {
