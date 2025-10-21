@@ -146,7 +146,7 @@ static size_t parse_response(Response* res, const std::string& data) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Response& Response::operator << (const std::string& chunk) {
+Response& Response::operator<<(const std::string& chunk) {
   response_.append(chunk);
   return *this;
 }

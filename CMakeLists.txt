@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.31.6)
 
 #we are only creating libraries for ELF
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)

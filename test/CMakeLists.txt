@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6.0)
+cmake_minimum_required(VERSION 3.31.6)
 
 project(unittests C CXX)
 set(CMAKE_CXX_STANDARD 20)
@@ -46,7 +46,7 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0 -std=c++20 -Wall -Wextra -Wno-frame-address -Wno-unused-function -Wno-int-to-pointer-cast -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -std=c++20 -Wall -Wextra -Wno-frame-address -Wno-unused-function -Wno-int-to-pointer-cast -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN -DPAGE_SIZE=4096")
 
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -250,7 +250,6 @@ add_custom_command(TARGET clangtidy
 
 if (GENERATE_SUPPORT_FILES)
   add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar
-    PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar

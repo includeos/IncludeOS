@@ -96,7 +96,7 @@ void Message::set_private_field(const char* base, const size_t length) noexcept 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Message& operator << (Message& message, const Header_set& headers) {
+Message& operator<<(Message& message, const Header_set& headers) {
   for (const auto& field : headers) {
     message.header().add_field(field.first, field.second);
   }
@@ -104,7 +104,7 @@ Message& operator << (Message& message, const Header_set& headers) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::ostream& operator << (std::ostream& output_device, const Message& message) {
+std::ostream& operator<<(std::ostream& output_device, const Message& message) {
   return output_device << message.to_string();
 }
 

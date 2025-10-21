@@ -268,7 +268,7 @@ URI::operator std::string () const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-URI& URI::operator << (const std::string& chunk) {
+URI& URI::operator<<(const std::string& chunk) {
   uri_str_.insert(uri_str_.end(), chunk.begin(), chunk.end());
   parse();
   return *this;
@@ -354,12 +354,12 @@ void URI::load_queries() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator < (const URI& lhs, const URI& rhs) noexcept {
+bool operator<(const URI& lhs, const URI& rhs) noexcept {
   return lhs.to_string() < rhs.to_string();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator == (const URI& lhs, const URI& rhs) noexcept {
+bool operator==(const URI& lhs, const URI& rhs) noexcept {
   return icase_equal(lhs.scheme(), rhs.scheme())
          and (lhs.userinfo() == rhs.userinfo())
          and icase_equal(lhs.host(), rhs.host())

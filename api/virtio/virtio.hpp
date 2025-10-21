@@ -34,10 +34,13 @@
 
 #include "../hw/pci_device.hpp"
 #include <net/inet_common.hpp>
+#include <limits.h>
 #include <stdint.h>
 #include <vector>
 
-#define PAGE_SIZE 4096
+#if ! defined(PAGE_SIZE)
+#error "PAGE_SIZE not defined. Expected it to be defined by musl's limits.h"
+#endif
 
 #define VIRTIO_F_NOTIFY_ON_EMPTY 24
 #define VIRTIO_F_ANY_LAYOUT 27
