@@ -19,6 +19,7 @@
 #ifndef X86_PAGING_UTILS
 #define X86_PAGING_UTILS
 
+#include "arch/x86/paging.hpp"
 #include <iostream>
 #include <map>
 
