@@ -203,7 +203,7 @@ void verify_integrity(){
   mem::Map far;
   far.lin   = near + far_distance;
   far.phys  = near;
-  far.flags = mem::Access::read | mem::Access::write;
+  far.flags = mem::Permission::Data;  // TODO(mazunki): consider whether R|W is more semantic here
   far.size  = 100_MiB;
   far.page_sizes = mem::Map::any_size;
 
@@ -356,7 +356,7 @@ void map_non_aligned(){
             << Byte_r(near_addr1) << ", no page size restrictions \n";
 
   // OK - we don't supply page size, only size
-  auto res = mem::map({far_addr1, near_addr1, mem::Access::read | mem::Access::write, psize});
+  auto res = mem::map({far_addr1, near_addr1, mem::Permission::Data, psize}); // TODO(mazunki): consider whether R|W is more semantic here
   Expects(res);
   Expects(res.size == psize);
   Expects(res.page_sizes & 4_KiB);
@@ -369,7 +369,7 @@ void map_non_aligned(){
   std::cout << "* Mapping a " << util::Byte_r(psize) << " page to "
             << Byte_r(near_addr2) << ", requiring page size " << Byte_r(psize) << "\n";
   try {
-    mem::map({far_addr2, near_addr2, mem::Access::read | mem::Access::write, psize, psize});
+    mem::map({far_addr2, near_addr2, mem::Permission::Data, psize, psize});  // TODO(mazunki): consider whether R|W is more semantic here
   } catch (mem::Memory_exception& e) {
     Expects(std::string(e.what()).find(std::string("linear and physical must be aligned to requested page size")));
     std::cout << "* Exception caught as expected\n";
@@ -385,7 +385,7 @@ int main()
   void(*heap_code)() = (void(*)()) malloc(42);
 
   Expects(Byte_r{std::numeric_limits<int>::max()}.to_string() == "2.000_GiB");
-  Expects(Byte_r{std::numeric_limits<uintptr_t>::max()}.to_string() == "16777216.000_TiB");
+  Expects(Byte_r{std::numeric_limits<uintptr_t>::max()}.to_string() == "16777216.000_TiB"); // 16777216 = 2²⁴
 
   verify_magic();
   verify_integrity();
@@ -399,7 +399,7 @@ int main()
   prot.phys        = (uintptr_t) protected_page_phys;
   prot.size        = 4_KiB;
   prot.page_sizes  = 4_KiB;
-  prot.flags       = mem::Access::read | mem::Access::write;
+  prot.flags       = mem::Permission::Data;  // TODO(mazunki): consider whether R|W is more semantic here
 
   mem::Map mapped;
   int expected_reboots = 4;
@@ -407,7 +407,7 @@ int main()
     std::cout << "Protection fault test setup\n";
     std::cout << "* Mapping protected page @ " << prot << "\n";
     mapped = mem::map(prot, "Protected test page");
-    mem::protect_range((uint64_t)protected_page, mem::Access::read | mem::Access::write);
+    mem::protect_range((uint64_t)protected_page, mem::Permission::Data);
     Expects(mapped && mapped == prot);
   }
 
@@ -423,7 +423,7 @@ int main()
     pml1 = pml2->page_dir(pml2->entry(mapped.lin));
 
     protected_page[magic->i] = 'a';
-    mem::protect_range((uint64_t)protected_page, mem::Access::read);
+    mem::protect_range((uint64_t)protected_page, mem::Permission::Read);
     Expects(protected_page[magic->i] == 'a');
     std::cout << "* Writing to write-protected page, expecting page write fail\n\n";
     protected_page[magic->i] = 'b';
@@ -440,7 +440,7 @@ int main()
 
     // Read-protect (e.g. not present)
     std::cout << "* Reading non-present page, expecting page read fail\n\n";
-    mem::protect_range((uint64_t)protected_page, mem::Access::none);
+    mem::protect_range((uint64_t)protected_page, mem::Permission::Any);  // TODO(mazunki): change to Permission::None when introduced
     Expects(protected_page[magic->i] == 'b');
   }
 
@@ -454,7 +454,7 @@ int main()
 
     // Execute protected page
     std::cout << "* Executing code from execute-protected page, expecting instruction fetch fail\n\n";
-    mem::protect_range((uint64_t)protected_page, mem::Access::read);
+    mem::protect_range((uint64_t)protected_page, mem::Permission::Read);
     ((void(*)())(&protected_page[magic->i]))();
   }
 

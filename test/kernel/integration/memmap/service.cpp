@@ -52,7 +52,7 @@ void Service::start(const std::string&)
 
   // mem::map is using memory_map to keep track of virutal memory
   // TODO: we might consider consolidating ranges with mappings.
-  auto m = os::mem::map({42_GiB, 42_GiB, os::mem::Access::read, 1_GiB},
+  auto m = os::mem::map({42_GiB, 42_GiB, os::mem::Permission::Read, 1_GiB},
                         "Test range");
   Expects(m);
   Expects(map.size() == s + 1);

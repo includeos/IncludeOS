@@ -97,7 +97,7 @@ CASE ("os::mem - Trying to map the 0 page")
   m.lin = 0;
   m.phys = 4_GiB;
   m.size = 42_KiB;
-  m.flags = mem::Access::read;
+  m.flags = mem::Permission::Read;
 
   // Throw due to assert fail in map
   EXPECT_THROWS(mem::map(m, "Fail"));
@@ -153,7 +153,7 @@ CASE ("os::mem Using map and unmap")
   m.lin = 5_GiB;
   m.phys = 4_GiB;
   m.size = 42_MiB;
-  m.flags = mem::Access::read;
+  m.flags = mem::Permission::Read;
   m.page_sizes = 4_KiB | 2_MiB;
 
   // It shouldn't exist in the memory map
@@ -202,7 +202,7 @@ CASE ("os::mem Using map and unmap")
   auto un = mem::unmap(m.lin);
   EXPECT(un.lin == mapping.lin);
   EXPECT(un.phys == 0);
-  EXPECT(un.flags == mem::Access::none);
+  EXPECT(un.flags == mem::Permission::Any);  // TODO(mazunki): change this to Permission::None when introduced
   EXPECT(un.size == mapping.size);
   key = os::mem::vmmap().in_range(m.lin);
   EXPECT(key == 0);
@@ -227,21 +227,21 @@ CASE ("os::mem using protect_range and flags")
   Default_paging p{};
 
   EXPECT(__pml4 != nullptr);
-  mem::Map req = {6_GiB, 3_GiB, mem::Access::read, 15 * 4_KiB, 4_KiB};
+  mem::Map req = {6_GiB, 3_GiB, mem::Permission::Read, 15 * 4_KiB, 4_KiB};
   auto previous_flags = mem::flags(req.lin);
   mem::Map res = mem::map(req);
   EXPECT(req == res);
-  EXPECT(mem::flags(req.lin) == mem::Access::read);
+  EXPECT(mem::flags(req.lin) == mem::Permission::Read);
   EXPECT(mem::active_page_size(req.lin) == 4_KiB);
 
   auto page_below = req.lin - 4_KiB;
   auto page_above = req.lin + 4_KiB;
-  mem::protect_page(page_below, mem::Access::none);
-  EXPECT(mem::flags(page_below) == mem::Access::none);
+  mem::protect_page(page_below, mem::Permission::Any);
+  EXPECT(mem::flags(page_below) == mem::Permission::Any);
   EXPECT(mem::active_page_size(page_below) >= 2_MiB);
 
-  mem::protect_page(page_above, mem::Access::none);
-  EXPECT(mem::flags(page_above) == mem::Access::none);
+  mem::protect_page(page_above, mem::Permission::Any);
+  EXPECT(mem::flags(page_above) == mem::Permission::Any);
   EXPECT(mem::active_page_size(page_above) == 4_KiB);
 
   // The original page is untouched
@@ -249,21 +249,21 @@ CASE ("os::mem using protect_range and flags")
 
   // Can't protect a range that isn't mapped
   auto unmapped = 590_GiB;
-  EXPECT(mem::flags(unmapped) == mem::Access::none);
-  EXPECT_THROWS(mem::protect_range(unmapped, mem::Access::write | mem::Access::read));
-  EXPECT(mem::flags(unmapped) == mem::Access::none);
+  EXPECT(mem::flags(unmapped) == mem::Permission::Any);
+  EXPECT_THROWS(mem::protect_range(unmapped, mem::Permission::Data));  // TODO(mazunki): consider whether R|W is more semantic here
+  EXPECT(mem::flags(unmapped) == mem::Permission::Any);
 
   // You can still protect page
   EXPECT(mem::active_page_size(unmapped) == 512_GiB);
-  auto rw = mem::Access::write | mem::Access::read;
+  auto rw = mem::Permission::Write | mem::Permission::Read;
 
   // But a 512 GiB page can't be present without being mapped
-  EXPECT(mem::protect_page(unmapped, rw) == mem::Access::none);
+  EXPECT(mem::protect_page(unmapped, rw) == mem::Permission::Any);
 
-  mem::protect_range(req.lin, mem::Access::execute);
+  mem::protect_range(req.lin, mem::Permission::Execute);
   for (auto p = req.lin; p < req.lin + req.size; p += 4_KiB){
     EXPECT(mem::active_page_size(p) == 4_KiB);
-    EXPECT(mem::flags(p) == (mem::Access::execute | mem::Access::read));
+    EXPECT(mem::flags(p) == mem::Permission::Code);  // TODO(mazunki): consider whether W|X is more semantic here
   }
 
   EXPECT(mem::flags(req.lin + req.size) == previous_flags);
@@ -325,18 +325,18 @@ SETUP ("Assuming a default page table setup")
                             mem::active_page_size(7_GiB)};
 
     // You can't protect an unmapped range
-    EXPECT_THROWS(mem::protect(6_GiB + 900_MiB, 300_MiB, mem::Access::read));
+    EXPECT_THROWS(mem::protect(6_GiB + 900_MiB, 300_MiB, mem::Permission::Read));
 
     // Map something (a lot will be mapped by default in IncludeOS)
-    mem::Map req {6_GiB, 3_GiB, mem::Access::read | mem::Access::write, 300_MiB};
+    mem::Map req {6_GiB, 3_GiB, mem::Permission::Data, 300_MiB};  // TODO(mazunki): consider whether R|W is more semantic here
     auto res = mem::map(req);
     EXPECT(res);
-    EXPECT(res.flags == (mem::Access::write | mem::Access::read));
+    EXPECT(res.flags == mem::Permission::Data);  // TODO(mazunki): consider whether R|W is more semantic here
     EXPECT(res.lin == req.lin);
     EXPECT(res.phys == req.phys);
 
     // You can't protect a partially mapped range
-    EXPECT_THROWS(mem::protect(5_GiB + 900_MiB, 300_MiB, mem::Access::read | mem::Access::write));
+    EXPECT_THROWS(mem::protect(5_GiB + 900_MiB, 300_MiB, mem::Permission::Data));  // TODO(mazunki): consider whether R|W is more semantic here
     auto prot_offs  = 100_MiB;
     auto prot_begin = req.lin + prot_offs;
     auto prot_size  = 12_KiB;
@@ -348,7 +348,7 @@ SETUP ("Assuming a default page table setup")
     auto pres = mem::protect(prot_begin, prot_size);
 
     EXPECT(pres);
-    EXPECT(pres.flags       == mem::Access::read);
+    EXPECT(pres.flags       == mem::Permission::Read);
     EXPECT(pres.lin         == prot_begin);
     EXPECT(pres.size        == prot_size);
     EXPECT(pres.page_sizes  == 4_KiB);
@@ -378,7 +378,7 @@ SETUP ("Assuming a default page table setup")
 
 CASE("os::mem::protect try to break stuff"){
   using namespace util::literals;
-  auto init_access = mem::Access::none;
+  auto init_access = mem::Permission::Any;
   Default_paging::clear_paging();
 
   EXPECT(__pml4 == nullptr);
@@ -395,16 +395,16 @@ CASE("os::mem::protect try to break stuff"){
     mem::Map req;
     req.lin   = util::bits::roundto<4_KiB>(lin);
     req.phys  = util::bits::roundto<4_KiB>(phys);
-    req.flags = mem::Access::none;
+    req.flags = mem::Permission::Any;
     req.size  = util::bits::roundto<4_KiB>(size);
     req.page_sizes = mem::Map::any_size;
 
     if (r % 3 == 0)
-      req.flags |= mem::Access::read;
+      req.flags |= mem::Permission::Read;
     if (r % 3 == 1)
-      req.flags |= mem::Access::write;
+      req.flags |= mem::Permission::Write;
     if (r % 3 == 2)
-      req.flags |= mem::Access::execute;
+      req.flags |= mem::Permission::Execute;
 
     auto m = mem::map(req);
     EXPECT(m);
@@ -437,7 +437,7 @@ CASE("os::mem::protect try to break stuff"){
 
 CASE("os::mem::protect verify consistency"){
   using namespace util::literals;
-  auto init_access = mem::Access::none;
+  auto init_access = mem::Permission::Any;
 
   if (__pml4 != nullptr) {
     printf("NOT NULL\n");
@@ -451,10 +451,10 @@ CASE("os::mem::protect verify consistency"){
   MYINFO("Initial memory use: %zi \n", initial_use);
 
 
-  mem::Map req {6_GiB, 3_GiB, mem::Access::read | mem::Access::write, 300_MiB};
+  mem::Map req {6_GiB, 3_GiB, mem::Permission::Data, 300_MiB};  // TODO(mazunki): consider whether R|W is more semantic here
   auto res = mem::map(req);
   EXPECT(res);
-  EXPECT(res.flags == (mem::Access::write | mem::Access::read));
+  EXPECT(res.flags == mem::Permission::Data);  // TODO(mazunki): consider whether R|W is more semantic here
   EXPECT(res.lin == req.lin);
   EXPECT(res.phys == req.phys);
 
@@ -462,7 +462,7 @@ CASE("os::mem::protect verify consistency"){
   auto prot_begin = 6_GiB + prot_offs;
   auto prot_size  = 1043_KiB;
   auto diff_phys  = req.lin - req.phys;
-  auto new_flags  = mem::Access::read;
+  auto new_flags  = mem::Permission::Read;
 
   // Write-protect
   auto prot = mem::protect(prot_begin, prot_size, new_flags);
@@ -480,7 +480,7 @@ CASE("os::mem::protect verify consistency"){
   EXPECT(__pml4->bytes_allocated() > initial_use);
 
   // Protect with different flags
-  new_flags = mem::Access::read | mem::Access::write | mem::Access::execute;
+  new_flags = mem::Permission::RWX;  // TODO(mazunki): RWX should be deprecated
   auto prot2 = mem::protect(prot_begin, prot_size, new_flags);
   EXPECT(prot2);
 

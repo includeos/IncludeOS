@@ -346,20 +346,20 @@ void init_default_paging(uintptr_t exec_beg = 0xa00000, uintptr_t exec_end = 0xb
 CASE ("x86::paging Verify execute protection")
 {
     using namespace util;
-    using Access = os::mem::Access;
+    using Permission = os::mem::Permission;
 
     init_default_paging(0xa00000, 0xc00000);
     // 4KiB 0-page has no access
     EXPECT(__pml4->active_page_size(0LU) == 4_KiB);
     EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
-    EXPECT(os::mem::flags(0) == Access::none);
+    EXPECT(os::mem::flags(0) == Permission::Any);
 
     auto flags = os::mem::flags(__exec_begin);
 
     // .text segment has execute + read access up to next 4kb page
-    EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
-    EXPECT(os::mem::flags(__exec_end - 1)   == (Access::execute | Access::read));
-    EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
+    EXPECT(os::mem::flags(__exec_begin) == Permission::Code);
+    EXPECT(os::mem::flags(__exec_end - 1)   == Permission::Code);
+    EXPECT(os::mem::flags(__exec_end + 4_KiB) == Permission::Data);
 
     for (int i = 0; i < 10; i++ ) {
       auto exec_start = (rand() & ~0xfff);
@@ -369,13 +369,13 @@ CASE ("x86::paging Verify execute protection")
 
       // 4KiB 0-page has no access
       EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
-      EXPECT(os::mem::flags(0) == Access::none);
+      EXPECT(os::mem::flags(0) == Permission::Any);
 
       // .text segment has execute + read access up to next 4kb page
-      EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
+      EXPECT(os::mem::flags(__exec_begin) == Permission::Code);
 
-      EXPECT(os::mem::flags(__exec_end - 1)   == (Access::execute | Access::read));
-      EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
+      EXPECT(os::mem::flags(__exec_end - 1)   == Permission::Code);
+      EXPECT(os::mem::flags(__exec_end + 4_KiB) == Permission::Data);
     }
 }
 
@@ -447,7 +447,7 @@ CASE ("x86::paging Verify default paging setup")
     using namespace util;
 
     using Flags = x86::paging::Flags;
-    using Access = os::mem::Access;
+    using Permission = os::mem::Permission;
 
     init_default_paging();
 
@@ -455,31 +455,31 @@ CASE ("x86::paging Verify default paging setup")
     {
       // 4KiB 0-page has no access
       EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
-      EXPECT(os::mem::flags(0) == Access::none);
+      EXPECT(os::mem::flags(0) == Permission::Any);
 
       // .text segment has execute + read access up to next 4kb page
       EXPECT(os::mem::active_page_size(__exec_begin) == 4_KiB);
-      EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
-      EXPECT(os::mem::flags(__exec_end)   == (Access::execute | Access::read));
-      EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
+      EXPECT(os::mem::flags(__exec_begin) == Permission::Code);
+      EXPECT(os::mem::flags(__exec_end)   == Permission::Code);
+      EXPECT(os::mem::flags(__exec_end + 4_KiB) == Permission::Data);
 
       // Remaining address space is either read + write or not present
-      EXPECT(os::mem::flags(100_MiB)  == (Access::read | Access::write));
-      EXPECT(os::mem::flags(1_GiB)    == (Access::read | Access::write));
-      EXPECT(os::mem::flags(2_GiB)    == (Access::read | Access::write));
-      EXPECT(os::mem::flags(4_GiB)    == (Access::read | Access::write));
-      EXPECT(os::mem::flags(8_GiB)    == (Access::read | Access::write));
-      EXPECT(os::mem::flags(16_GiB)   == (Access::read | Access::write));
-      EXPECT(os::mem::flags(32_GiB)   == (Access::read | Access::write));
-      EXPECT(os::mem::flags(64_GiB)   == (Access::read | Access::write));
-      EXPECT(os::mem::flags(128_GiB)  == (Access::read | Access::write));
-      EXPECT(os::mem::flags(256_GiB)  == (Access::read | Access::write));
-      EXPECT(os::mem::flags(512_GiB)  == (Access::none));
-      EXPECT(os::mem::flags(1_TiB)    == (Access::none));
-      EXPECT(os::mem::flags(128_TiB)  == (Access::none));
-      EXPECT(os::mem::flags(256_TiB)  == (Access::none));
-      EXPECT(os::mem::flags(512_TiB)  == (Access::none));
-      EXPECT(os::mem::flags(1024_TiB) == (Access::none));
+      EXPECT(os::mem::flags(100_MiB)  == Permission::Data);
+      EXPECT(os::mem::flags(1_GiB)    == Permission::Data);
+      EXPECT(os::mem::flags(2_GiB)    == Permission::Data);
+      EXPECT(os::mem::flags(4_GiB)    == Permission::Data);
+      EXPECT(os::mem::flags(8_GiB)    == Permission::Data);
+      EXPECT(os::mem::flags(16_GiB)   == Permission::Data);
+      EXPECT(os::mem::flags(32_GiB)   == Permission::Data);
+      EXPECT(os::mem::flags(64_GiB)   == Permission::Data);
+      EXPECT(os::mem::flags(128_GiB)  == Permission::Data);
+      EXPECT(os::mem::flags(256_GiB)  == Permission::Data);
+      EXPECT(os::mem::flags(512_GiB)  == Permission::Any);
+      EXPECT(os::mem::flags(1_TiB)    == Permission::Any);
+      EXPECT(os::mem::flags(128_TiB)  == Permission::Any);
+      EXPECT(os::mem::flags(256_TiB)  == Permission::Any);
+      EXPECT(os::mem::flags(512_TiB)  == Permission::Any);
+      EXPECT(os::mem::flags(1024_TiB) == Permission::Any);
 
     }
 
