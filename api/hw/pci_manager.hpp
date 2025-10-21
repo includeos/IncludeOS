@@ -25,12 +25,19 @@
 
 namespace hw {
 
+struct pcidev_info {
+  const uintptr_t pci_addr;
+  uint32_t vendor;
+  hw::PCI_Device::class_revision_t dev_class;
+};
+
 class PCI_manager {
 public:
   // a <...> driver is constructed from a PCI device,
   //   and returns a unique_ptr to itself
   using NIC_driver = delegate< std::unique_ptr<hw::Nic> (PCI_Device&, uint16_t) >;
   using Device_vector = std::vector<const hw::PCI_Device*>;
+  using Devinfo_vector = std::vector<pcidev_info>;
   static void register_nic(uint16_t, uint16_t, NIC_driver);
 
   using BLK_driver = delegate< std::unique_ptr<hw::Block_device> (PCI_Device&) >;
@@ -38,7 +45,11 @@ public:
 
   static void init();
   static void init_devices(uint8_t classcode);
-  static  Device_vector devices();
+  /* Returns devices that were attempted to be initialized */
+  static Device_vector devices();
+  /* Returns all PCI device information except PCI bridges.
+      Useful for testing driver code outside of src. */
+  static const Devinfo_vector &devinfos();
 
 private:
   static void scan_bus(int bus);
