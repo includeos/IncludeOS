@@ -33,11 +33,7 @@ const size_t  x86::paging::Map::any_size { supported_page_sizes() };
 template<>
 const size_t  os::mem::Map::any_size { supported_page_sizes() };
 
-using namespace os::mem;
 using namespace util;
-
-using Flags = x86::paging::Flags;
-using Pml4  = x86::paging::Pml4;
 
 static void allow_executable();
 
@@ -84,13 +80,14 @@ extern uintptr_t __exec_end;
 **/
 
 // The main page directory pointer
-Pml4* __pml4;
+x86::paging::Pml4* __pml4;
 
 __attribute__((weak))
 void __arch_init_paging() {
   INFO("x86_64", "Initializing paging");
+  using Flags = x86::paging::Flags;
   auto default_fl = Flags::present | Flags::writable | Flags::huge | Flags::no_exec;
-  __pml4 = new Pml4(0);
+  __pml4 = new x86::paging::Pml4(0);
   Expects(__pml4 != nullptr);
   Expects(!__pml4->has_flag(0, Flags::present));
 
@@ -137,42 +134,44 @@ void __arch_init_paging() {
 namespace x86 {
 namespace paging {
 
-Access to_memflags(Flags f)
+os::mem::Permission to_memflags(Flags f)
 {
-  Access prot = Access::none;
+  using Permission = os::mem::Permission;
+  Permission prot = Permission::Any;  // TODO(mazunki): should probably be 0 (or introduce Permission::Empty)
 
   if (! has_flag(f, Flags::present)) {
-    prot |= Access::none;
+    prot |= Permission::Any;  // TODO(mazunki): should probably be Permission::None
     return prot;
   }
 
-  prot |= Access::read;
+  prot |= Permission::Read;
 
   if (has_flag(f, Flags::writable)) {
-    prot |= Access::write;
+    prot |= Permission::Write;
   }
 
   if (! has_flag(f, Flags::no_exec)) {
-    prot |= Access::execute;
+    prot |= Permission::Execute;
   }
 
   return prot;
 }
 
-Flags to_x86(os::mem::Access prot)
+Flags to_x86(os::mem::Permission prot)  // TODO(mazunki): probably implement Any, RWX, None here
 {
+  using Permission = os::mem::Permission;
   Flags flags = Flags::none;
-  if (prot != Access::none) {
+  if (prot != Permission::Any) {
     flags |= Flags::present;
   } else {
     return Flags::none;
   }
 
-  if (has_flag(prot, Access::write)) {
+  if (has_flag(prot, Permission::Write)) {
     flags |= Flags::writable;
   }
 
-  if (not has_flag(prot, Access::execute)) {
+  if (not has_flag(prot, Permission::Execute)) {
     flags |= Flags::no_exec;
   }
 
@@ -186,7 +185,7 @@ void invalidate(void *pageaddr){
 
 }} // x86::paging
 
-namespace os {
+namespace os {  // TODO(mazunki): could it be worth moving this into `x86::paging::` instead?
 namespace mem {
 
 using Map_x86 = Mapping<x86::paging::Flags>;
@@ -225,11 +224,11 @@ bool mem::supported_page_size(uintptr_t size)
   return bits::is_pow2(size) and (size & supported_page_sizes()) != 0;
 }
 
-Map to_mmap(Map_x86 map){
+os::mem::Map to_mmap(os::mem::Map_x86 map){
   return {map.lin, map.phys, to_memflags(map.flags), map.size, map.page_sizes};
 }
 
-Map_x86 to_x86(Map map){
+os::mem::Map_x86 to_x86(os::mem::Map map){
   return {map.lin, map.phys, x86::paging::to_x86(map.flags), map.size, map.page_sizes};
 }
 
@@ -240,7 +239,15 @@ uintptr_t mem::virt_to_phys(uintptr_t linear)
   return __pml4->addr_of(*ent);
 }
 
-Access mem::protect_page(uintptr_t linear, Access flags)
+/*
+ * TODO(mazunki):
+ * might be better to rename this to set_protection(linear, flags),
+ * and introduce permit_page() and prohibit_page() to add/remove permissions
+ *
+ * mprotect/protect_page() are misleading as we can use it to remove
+ * protections of pages too
+ */
+os::mem::Permission mem::protect_page(uintptr_t linear, Permission flags)
 {
   MEM_PRINT("::protect_page 0x%lx\n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
@@ -249,7 +256,7 @@ Access mem::protect_page(uintptr_t linear, Access flags)
   return to_memflags(f);
 };
 
-Access mem::protect_range(uintptr_t linear, Access flags)
+os::mem::Permission mem::protect_range(uintptr_t linear, Permission flags)
 {
   MEM_PRINT("::protect 0x%lx \n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
@@ -276,7 +283,7 @@ Access mem::protect_range(uintptr_t linear, Access flags)
   return to_memflags(fl);
 };
 
-Map mem::protect(uintptr_t linear, size_t len, Access flags)
+os::mem::Map mem::protect(uintptr_t linear, size_t len, Permission flags)
 {
   if (UNLIKELY(len < min_psize()))
     mem_fail_fast("Can't map less than a page\n");
@@ -300,13 +307,13 @@ Map mem::protect(uintptr_t linear, size_t len, Access flags)
   return to_mmap(res);
 }
 
-Access mem::flags(uintptr_t addr)
+os::mem::Permission mem::flags(uintptr_t addr)
 {
   return to_memflags(__pml4->flags_r(addr));
 }
 
 __attribute__((weak))
-Map mem::map(Map m, const char* name)
+os::mem::Map mem::map(Map m, const char* name)
 {
   using namespace x86::paging;
   using namespace util;
@@ -349,7 +356,7 @@ Map mem::map(Map m, const char* name)
   return to_mmap(new_map);
 };
 
-Map mem::unmap(uintptr_t lin){
+os::mem::Map mem::unmap(uintptr_t lin){
   auto key = os::mem::vmmap().in_range(lin);
   Map_x86 m;
   if (key) {
@@ -359,7 +366,7 @@ Map mem::unmap(uintptr_t lin){
     m.phys = 0;
     m.size = map_ent.size();
 
-    m = __pml4->map_r({key, 0, x86::paging::to_x86(Access::none), (size_t)map_ent.size()});
+    m = __pml4->map_r({key, 0, x86::paging::to_x86(Permission::Any), (size_t)map_ent.size()});  // TODO(mazunki): this should maybe be Permission::None
 
     Ensures(m.size == util::bits::roundto<4_KiB>(map_ent.size()));
     os::mem::vmmap().erase(key);
@@ -389,7 +396,7 @@ void allow_executable()
   m.phys       = __exec_begin;
   m.size       = exec_size;
   m.page_sizes = os::mem::Map::any_size;
-  m.flags      = os::mem::Access::execute | os::mem::Access::read;
+  m.flags      = os::mem::Permission::Code;
 
   os::mem::map(m, "ELF .text");
 }

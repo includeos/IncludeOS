@@ -164,7 +164,7 @@ void kernel::multiboot(uint32_t boot_addr)
       if (not (map.type & MULTIBOOT_MEMORY_AVAILABLE)) {
 
         if (util::bits::is_aligned<4_KiB>(map.addr)) {
-          os::mem::map({addr, addr, os::mem::Access::read | os::mem::Access::write, size},
+          os::mem::map({addr, addr, os::mem::Permission::Data, size},
                        "Reserved (Multiboot)");
           continue;
         }
@@ -175,7 +175,7 @@ void kernel::multiboot(uint32_t boot_addr)
       else
       {
         // Map as free memory
-        //os::mem::map_avail({map.addr, map.addr, {os::mem::Access::read | os::mem::Access::write}, map.len}, "Reserved (Multiboot)");
+        //os::mem::map_avail({map.addr, map.addr, {os::mem::Permission::Data}, map.len}, "Reserved (Multiboot)");
       }
     }
     INFO2("");

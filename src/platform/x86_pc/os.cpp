@@ -139,7 +139,7 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
 #if defined(ARCH_x86_64)
   // protect the basic pagetable used by LiveUpdate and any other
   // systems that need to exit long/protected mode
-  os::mem::map({0x1000, 0x1000, os::mem::Access::read, 0x7000}, "Page tables");
+  os::mem::map({0x1000, 0x1000, os::mem::Permission::Read, 0x7000}, "Page tables");
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #elif defined(ARCH_i686)
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});

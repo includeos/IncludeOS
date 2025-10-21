@@ -127,11 +127,11 @@ namespace paging {
 using namespace util::literals;
 using namespace util::bitops;
 
-/** Conversion from x86 paging flags to mem::Accessflags **/
-os::mem::Access to_memflags(Flags f);
+/** Conversion from x86 paging flags to mem::Permission flags **/
+os::mem::Permission to_memflags(Flags f);
 
-/** Conversion from mem::Access flags to x86 paging flags **/
-Flags to_x86(os::mem::Access prot);
+/** Conversion from mem::Permission flags to x86 paging flags **/
+Flags to_x86(os::mem::Permission prot);
 
 /** Summary of currently mapped page- and page directories **/
 struct Summary {

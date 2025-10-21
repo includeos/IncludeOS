@@ -38,7 +38,7 @@ static stack create_stack_virt(size_t size, const char* name)
   // TODO randomize location / ask virtual memory allocator
   const uintptr_t stack_area = 1ull << 46;
 
-  const mem::Access flags = mem::Access::read | mem::Access::write;
+  const mem::Permission flags = mem::Permission::Data;
 
   // Virtual area
   // Adds a guard page between each new stack
@@ -53,7 +53,7 @@ static stack create_stack_virt(size_t size, const char* name)
 
   Expects(map);
   Expects(mem::active_page_size(map.lin) == 4096);
-  Expects(mem::flags(map.lin - 1) == mem::Access::none
+  Expects(mem::flags(map.lin - 1) == mem::Permission::Any // TODO(mazunki): should this be Permission::None?
           && "Guard page should not present");
 
   // Next stack starts after next page

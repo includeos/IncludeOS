@@ -33,6 +33,6 @@ namespace mem {
   }
 
   template <>
-  const size_t Mapping<os::mem::Access>::any_size = 4096;
+  const size_t Mapping<os::mem::Permission>::any_size = 4096;
 }
 }
