@@ -57,7 +57,7 @@ uintptr_t mmap_allocation_end() {
 static void* sys_mmap(void * addr, size_t length, int /*prot*/, int _flags,
                       int fd, off_t /*offset*/)
 {
-  using os::mmap::Flags;
+  using os::mem::Flags;
   const Flags flags = static_cast<Flags>(_flags);
 
   // TODO: Implement minimal functionality to be POSIX compliant
