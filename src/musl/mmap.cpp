@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include <cstdint>
-#include <sys/mman.h>
+#include <sys/mman.hpp>
 #include <errno.h>
 #include <util/alloc_buddy.hpp>
 #include <os>
@@ -54,9 +54,11 @@ uintptr_t mmap_allocation_end() {
   return alloc->highest_used();
 }
 
-static void* sys_mmap(void * addr, size_t length, int /*prot*/, int flags,
+static void* sys_mmap(void * addr, size_t length, int /*prot*/, int _flags,
                       int fd, off_t /*offset*/)
 {
+  using os::mmap::Flags;
+  const Flags flags = static_cast<Flags>(_flags);
 
   // TODO: Implement minimal functionality to be POSIX compliant
   // https://pubs.opengroup.org/onlinepubs/009695399/functions/mmap.html
@@ -68,37 +70,38 @@ static void* sys_mmap(void * addr, size_t length, int /*prot*/, int flags,
     return MAP_FAILED;
   }
 
-  if ((flags & MAP_ANONYMOUS) == 0) {
+  if (util::missing_flag(flags, Flags::Anonymous)) {
     Expects(false && "We only support MAP_ANONYMOUS calls to mmap()");
     errno = ENOTSUP;
     return MAP_FAILED;
   }
 
-  if ((flags & MAP_FIXED) > 0) {
+  if (util::has_flag(flags, Flags::Fixed)) {
     Expects(false && "MAP_FIXED not supported.");
     errno = ENOTSUP;
     return MAP_FAILED;
   }
 
-  if (((flags & MAP_PRIVATE) > 0) && ((flags & MAP_ANONYMOUS) == 0)) {
-    Expects(false && "MAP_PRIVATE only supported for MAP_ANONYMOUS");
+  if (util::has_flag(flags, Flags::Private) && util::missing_flag(flags, Flags::Anonymous)) {
+    Expects(false && "MAP_PRIVATE only supported for MAP_ANONYMOS");
     errno = ENOTSUP;
     return MAP_FAILED;
   }
 
-  if (((flags & MAP_PRIVATE) > 0) && (addr != 0)) {
+  if (util::has_flag(flags, Flags::Private) && (addr != 0)) {
     Expects(false && "MAP_PRIVATE only supported for new allocations (address=0).");
     errno = ENOTSUP;
     return MAP_FAILED;
   }
 
-  if (((flags & MAP_SHARED) == 0) && ((flags & MAP_PRIVATE) == 0)) {
+  if (util::missing_flag(flags, Flags::Shared) && util::missing_flag(flags, Flags::Private)) {
     Expects(false && "MAP_SHARED or MAP_PRIVATE must be set.");
     errno = ENOTSUP;
     return MAP_FAILED;
   }
 
   // If we get here, the following should be true:
+  //
   // MAP_ANONYMOUS set + MAP_SHARED or MAP_PRIVATE
   // fd should be 0, address should be 0 for MAP_PRIVATE
   // (address is in any case ignored)
