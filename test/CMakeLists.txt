@@ -53,7 +53,7 @@ set(CMAKE_CXX_FLAGS "-g -O0 -std=c++20 -Wall -Wextra -Wno-frame-address -Wno-unu
 
 set(TESTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(TESTS_DEPS ${TESTS_ROOT}/misc)
-set(UNIT_TESTS ${TESTS_ROOT}/tests-unit)
+set(UNIT_TESTS ${TESTS_ROOT}/unit)
 set(INCLUDEOS  ${TESTS_ROOT}/..)
 
 include_directories(

@@ -9,8 +9,8 @@ pushd "$(dirname "$0")/.." >/dev/null
 : "${DRY_RUN:=}"     # Define this to expand all steps without running any
 : "${CCACHE_FLAG:=}" # Define as "--arg withCcache true" to enable ccache.
 
-UNIT_TESTS=./test/tests-unit
-INTEGRATION_TESTS=./test/tests-integration
+UNIT_TESTS=./test/unit
+INTEGRATION_TESTS=./test/integration
 
 steps=0
 fails=0
