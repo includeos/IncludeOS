@@ -3,7 +3,7 @@
 #include <elf.h>
 #include <os>
 #include <statman>
-#include "paging.inc"
+#include "paging.inc"  // FIXME: what do we need a special header here?
 using namespace liu;
 
 // #define DEBUG_UNIT
@@ -156,11 +156,11 @@ CASE("Store some data and restore it")
   Statman::get().clear();
 
   EXPECT_THROWS_AS(LiveUpdate::resume_from_heap(storage_area, "", nullptr), std::length_error);
-  
+
   EXPECT(LiveUpdate::partition_exists("test", storage_area));
   LiveUpdate::resume_from_heap(storage_area, "test", restore_something);
 
-  
+
   //LiveUpdate::resume("test", restore_something);
 
   EXPECT(stored.integer == 1234);

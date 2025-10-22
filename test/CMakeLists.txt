@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.31.6)
+#
+#  builds unit tests
+#
 
 project(unittests C CXX)
 set(CMAKE_CXX_STANDARD 20)
@@ -48,115 +51,119 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-g -O0 -std=c++20 -Wall -Wextra -Wno-frame-address -Wno-unused-function -Wno-int-to-pointer-cast -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN -DPAGE_SIZE=4096")
 
-set(TEST ${CMAKE_CURRENT_SOURCE_DIR})
+set(TESTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+set(TESTS_DEPS ${TESTS_ROOT}/misc)
+set(UNIT_TESTS ${TESTS_ROOT}/unit)
+set(INCLUDEOS  ${TESTS_ROOT}/..)
 
 include_directories(
-  ${TEST}/lest_util
-  ${TEST}/../api
-  ${TEST}/../src/include
+  ${TESTS_DEPS}/lest_util
+  ${INCLUDEOS}/api
+  ${INCLUDEOS}/src/include
   #TODO move to the right place
-  ${TEST}/../lib/LiveUpdate/include
+  ${INCLUDEOS}/lib/LiveUpdate/include
 )
 
 set(LEST_UTIL
-  ${TEST}/lest_util/lestmain.cxx
-  ${TEST}/lest_util/os_mock.cpp
-  ${TEST}/lest_util/mock_fs.cpp
-  ${TEST}/lest_util/random.cpp
+  ${TESTS_DEPS}/lest_util/lestmain.cxx
+  ${TESTS_DEPS}/lest_util/os_mock.cpp
+  ${TESTS_DEPS}/lest_util/mock_fs.cpp
+  ${TESTS_DEPS}/lest_util/random.cpp
 )
 
+# TODO: maybe just use `*.cpp *.hpp` globs here?
 set(TEST_SOURCES
-  ${TEST}/fs/unit/memdisk_test.cpp
-  ${TEST}/fs/unit/path_test.cpp
-  ${TEST}/fs/unit/vfs_test.cpp
-  ${TEST}/fs/unit/unit_fs.cpp
-  ${TEST}/fs/unit/unit_fat.cpp
-  #${TEST}/hw/unit/cpu_test.cpp
-  ${TEST}/hw/unit/mac_addr_test.cpp
-  ${TEST}/hw/unit/usernet.cpp
-  ${TEST}/hw/unit/virtio_queue.cpp
-  ${TEST}/kernel/unit/arch.cpp
-  ${TEST}/kernel/unit/block.cpp
-  ${TEST}/kernel/unit/cpuid.cpp
-  ${TEST}/kernel/unit/memmap_test.cpp
-  ${TEST}/kernel/unit/test_memory.cpp
-  ${TEST}/kernel/unit/os_test.cpp
-  ${TEST}/kernel/unit/rng.cpp
-  ${TEST}/kernel/unit/service_stub_test.cpp
-  ${TEST}/kernel/unit/test_hal.cpp
-  ${TEST}/kernel/unit/unit_events.cpp
-  ${TEST}/kernel/unit/unit_liveupdate.cpp
-  ${TEST}/kernel/unit/unit_timers.cpp
-  ${TEST}/kernel/unit/x86_paging.cpp
-  ${TEST}/kernel/unit/spinlocks.cpp
-  ${TEST}/net/unit/addr_test.cpp
-  ${TEST}/net/unit/bufstore.cpp
-  ${TEST}/net/unit/checksum.cpp
-  ${TEST}/net/unit/cidr.cpp
-  ${TEST}/net/unit/conntrack_test.cpp
-  ${TEST}/net/unit/cookie_test.cpp
-  ${TEST}/net/unit/dhcp.cpp
-  ${TEST}/net/unit/dhcp_message_test.cpp
-  ${TEST}/net/unit/error.cpp
-  ${TEST}/net/unit/http_header_test.cpp
-  ${TEST}/net/unit/http_status_codes_test.cpp
-  ${TEST}/net/unit/http_method_test.cpp
-  ${TEST}/net/unit/http_mime_types_test.cpp
-#  ${TEST}/net/unit/http_request_test.cpp
-#  ${TEST}/net/unit/http_response_test.cpp
-  ${TEST}/net/unit/http_time_test.cpp
-  ${TEST}/net/unit/http_version_test.cpp
-  ${TEST}/net/unit/interfaces_test.cpp
-  ${TEST}/net/unit/ip4_addr.cpp
-  ${TEST}/net/unit/ip4.cpp
-  ${TEST}/net/unit/ip4_packet_test.cpp
-  ${TEST}/net/unit/ip6.cpp
-  ${TEST}/net/unit/ip6_addr.cpp
-  ${TEST}/net/unit/ip6_addr_list_test.cpp
-  ${TEST}/net/unit/ip6_packet_test.cpp
-  ${TEST}/net/unit/nat_test.cpp
-  ${TEST}/net/unit/napt_test.cpp
-  ${TEST}/net/unit/packets.cpp
-  ${TEST}/net/unit/path_mtu_discovery.cpp
-  ${TEST}/net/unit/port_util_test.cpp
-  ${TEST}/net/unit/router_test.cpp
-  ${TEST}/net/unit/socket.cpp
-  ${TEST}/net/unit/stateful_addr_test.cpp
-  ${TEST}/net/unit/tcp_benchmark.cpp
-  ${TEST}/net/unit/tcp_packet_test.cpp
-  ${TEST}/net/unit/tcp_read_buffer_test.cpp
-  ${TEST}/net/unit/tcp_read_request_test.cpp
-  ${TEST}/net/unit/tcp_write_queue.cpp
-#  ${TEST}/net/unit/websocket.cpp
-  ${TEST}/posix/unit/fd_map_test.cpp
-  ${TEST}/posix/unit/inet_test.cpp
-  ${TEST}/posix/unit/unit_fd.cpp
-  ${TEST}/util/unit/base64.cpp
-  ${TEST}/util/unit/bitops.cpp
-  ${TEST}/util/unit/buddy_alloc_test.cpp
-  ${TEST}/util/unit/config.cpp
-  ${TEST}/util/unit/crc32.cpp
-  ${TEST}/util/unit/delegate.cpp
-  ${TEST}/util/unit/fixed_list_alloc_test.cpp
-  ${TEST}/util/unit/fixed_queue.cpp
-  ${TEST}/util/unit/fixed_vector.cpp
-  ${TEST}/util/unit/isotime.cpp
-  ${TEST}/util/unit/logger_test.cpp
-  ${TEST}/util/unit/membitmap.cpp
-  #${TEST}/util/unit/path_to_regex_no_options.cpp
-  ${TEST}/util/unit/path_to_regex_parse.cpp
-  ${TEST}/util/unit/path_to_regex_options.cpp
-  ${TEST}/util/unit/percent_encoding_test.cpp
-  ${TEST}/util/unit/pmr_alloc_test.cpp
-  ${TEST}/util/unit/ringbuffer.cpp
-  ${TEST}/util/unit/sha1.cpp
-  ${TEST}/util/unit/statman.cpp
-  ${TEST}/util/unit/syslogd_test.cpp
-  ${TEST}/util/unit/syslog_facility_test.cpp
-#  ${TEST}/util/unit/uri_test.cpp
-  ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
-  ${TEST}/util/unit/lstack/test_lstack_merging.cpp
-  ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
+  ${UNIT_TESTS}/fs/memdisk_test.cpp
+  ${UNIT_TESTS}/fs/path_test.cpp
+  ${UNIT_TESTS}/fs/vfs_test.cpp
+  ${UNIT_TESTS}/fs/unit_fs.cpp
+  ${UNIT_TESTS}/fs/unit_fat.cpp
+# ${UNIT_TESTS}/hw/cpu_test.cpp
+  ${UNIT_TESTS}/hw/mac_addr_test.cpp
+  ${UNIT_TESTS}/hw/usernet.cpp
+  ${UNIT_TESTS}/hw/virtio_queue.cpp
+  ${UNIT_TESTS}/kernel/arch.cpp
+  ${UNIT_TESTS}/kernel/blocking.cpp
+  ${UNIT_TESTS}/kernel/cpuid.cpp
+  ${UNIT_TESTS}/memory/mapping/memmap_test.cpp
+  ${UNIT_TESTS}/memory/generic/test_memory.cpp
+  ${UNIT_TESTS}/kernel/os_test.cpp
+  ${UNIT_TESTS}/kernel/rng.cpp
+  ${UNIT_TESTS}/kernel/service_stub_test.cpp
+  ${UNIT_TESTS}/kernel/test_hal.cpp
+  ${UNIT_TESTS}/kernel/unit_events.cpp
+  ${UNIT_TESTS}/kernel/unit_timers.cpp
+  ${UNIT_TESTS}/memory/paging/unit_liveupdate.cpp
+  ${UNIT_TESTS}/memory/paging/x86_paging.cpp
+  ${UNIT_TESTS}/kernel/spinlocks.cpp
+  ${UNIT_TESTS}/net/addr_test.cpp
+  ${UNIT_TESTS}/net/bufstore.cpp
+  ${UNIT_TESTS}/net/checksum.cpp
+  ${UNIT_TESTS}/net/cidr.cpp
+  ${UNIT_TESTS}/net/conntrack_test.cpp
+  ${UNIT_TESTS}/net/cookie_test.cpp
+  ${UNIT_TESTS}/net/dhcp.cpp
+  ${UNIT_TESTS}/net/dhcp_message_test.cpp
+  ${UNIT_TESTS}/net/error.cpp
+  ${UNIT_TESTS}/net/http_header_test.cpp
+  ${UNIT_TESTS}/net/http_status_codes_test.cpp
+  ${UNIT_TESTS}/net/http_method_test.cpp
+  ${UNIT_TESTS}/net/http_mime_types_test.cpp
+# ${UNIT_TESTS}/net/http_request_test.cpp
+# ${UNIT_TESTS}/net/http_response_test.cpp
+  ${UNIT_TESTS}/net/http_time_test.cpp
+  ${UNIT_TESTS}/net/http_version_test.cpp
+  ${UNIT_TESTS}/net/interfaces_test.cpp
+  ${UNIT_TESTS}/net/ip4_addr.cpp
+  ${UNIT_TESTS}/net/ip4.cpp
+  ${UNIT_TESTS}/net/ip4_packet_test.cpp
+  ${UNIT_TESTS}/net/ip6.cpp
+  ${UNIT_TESTS}/net/ip6_addr.cpp
+  ${UNIT_TESTS}/net/ip6_addr_list_test.cpp
+  ${UNIT_TESTS}/net/ip6_packet_test.cpp
+  ${UNIT_TESTS}/net/nat_test.cpp
+  ${UNIT_TESTS}/net/napt_test.cpp
+  ${UNIT_TESTS}/net/packets.cpp
+  ${UNIT_TESTS}/net/path_mtu_discovery.cpp
+  ${UNIT_TESTS}/net/port_util_test.cpp
+  ${UNIT_TESTS}/net/router_test.cpp
+  ${UNIT_TESTS}/net/socket.cpp
+  ${UNIT_TESTS}/net/stateful_addr_test.cpp
+  ${UNIT_TESTS}/net/tcp_benchmark.cpp
+  ${UNIT_TESTS}/net/tcp_packet_test.cpp
+  ${UNIT_TESTS}/net/tcp_read_buffer_test.cpp
+  ${UNIT_TESTS}/net/tcp_read_request_test.cpp
+  ${UNIT_TESTS}/net/tcp_write_queue.cpp
+# ${UNIT_TESTS}/net/websocket.cpp
+  ${UNIT_TESTS}/posix/fd_map_test.cpp
+  ${UNIT_TESTS}/posix/inet_test.cpp
+  ${UNIT_TESTS}/posix/unit_fd.cpp
+  ${UNIT_TESTS}/util/base64.cpp
+  ${UNIT_TESTS}/util/bitops.cpp
+  ${UNIT_TESTS}/memory/alloc/buddy_alloc_test.cpp
+  ${UNIT_TESTS}/memory/alloc/fixed_list_alloc_test.cpp
+  ${UNIT_TESTS}/memory/alloc/pmr_alloc_test.cpp
+  ${UNIT_TESTS}/memory/generic/membitmap.cpp
+  ${UNIT_TESTS}/memory/lstack/test_lstack_nodes.cpp
+  ${UNIT_TESTS}/memory/lstack/test_lstack_merging.cpp
+  ${UNIT_TESTS}/memory/lstack/test_lstack_nomerge.cpp
+  ${UNIT_TESTS}/util/config.cpp
+  ${UNIT_TESTS}/util/crc32.cpp
+  ${UNIT_TESTS}/util/delegate.cpp
+  ${UNIT_TESTS}/util/fixed_queue.cpp
+  ${UNIT_TESTS}/util/fixed_vector.cpp
+  ${UNIT_TESTS}/util/isotime.cpp
+  ${UNIT_TESTS}/util/logger_test.cpp
+# ${UNIT_TESTS}/util/path_to_regex_no_options.cpp
+  ${UNIT_TESTS}/util/path_to_regex_parse.cpp
+  ${UNIT_TESTS}/util/path_to_regex_options.cpp
+  ${UNIT_TESTS}/util/percent_encoding_test.cpp
+  ${UNIT_TESTS}/util/ringbuffer.cpp
+  ${UNIT_TESTS}/util/sha1.cpp
+  ${UNIT_TESTS}/util/statman.cpp
+  ${UNIT_TESTS}/util/syslogd_test.cpp
+  ${UNIT_TESTS}/util/syslog_facility_test.cpp
+# ${UNIT_TESTS}/util/uri_test.cpp
 )
 
 if(EXTRA_TESTS)
@@ -187,7 +194,7 @@ add_subdirectory(../src os)
 add_subdirectory(../lib/LiveUpdate liveupdate)
 add_library(lest_util ${LEST_UTIL})
 
-file(COPY memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${UNIT_TESTS}/fs/memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})  # TODO: handle special files within each unit test
 
 find_program( VALGRIND valgrind )
 
@@ -255,7 +262,7 @@ if (GENERATE_SUPPORT_FILES)
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
     COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
     COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-    COMMAND bash ${TEST}/util/unit/corrupt-tar-gz.sh ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz
+    COMMAND bash ${UNIT_TESTS}/util/corrupt-tar-gz.sh ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz
     COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
     )
 endif()
