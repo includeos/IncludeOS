@@ -63,6 +63,11 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
         mkdir -p "$BUILDPATH"
         pushd "$BUILDPATH"
     fi
+
+    # see https://github.com/NixOS/nixpkgs/issues/395191
+    # delete this export once resolved
+    export NIX_CC_WRAPPER_SUPPRESS_TARGET_WARNING=1
+
     cmake "$unikernel" -DARCH=x86_64 -DINCLUDEOS_PACKAGE=${includeos} -DCMAKE_MODULE_PATH=${includeos}/cmake \
                      -DFOR_PRODUCTION=OFF
     make -j $NIX_BUILD_CORES

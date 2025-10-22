@@ -1,5 +1,6 @@
 {
   withCcache, # Enable ccache. Requires correct permissions, see below.
+  disableTargetWarning ? true, # TODO: see https://github.com/NixOS/nixpkgs/issues/395191
   smp,      # Enable multicore support (SMP)
 } :
 final: prev: {
@@ -69,9 +70,21 @@ final: prev: {
           echo "====="
         '';
       };
+
+      suppressTargetWarningHook = prev.writeTextFile {
+        name = "suppress-target-warning-hook";
+        destination = "/nix-support/setup-hook";
+        text = ''
+          # see https://github.com/NixOS/nixpkgs/issues/395191
+          # delete this hook and downstream references once resolved
+
+          export NIX_CC_WRAPPER_SUPPRESS_TARGET_WARNING=1
+        '';
+      };
     in {
     # self.callPackage will use this stdenv.
     stdenv = final.stdenvIncludeOS.includeos_stdenv;
+    inherit suppressTargetWarningHook;
 
     # Deps
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
@@ -140,7 +153,8 @@ final: prev: {
       nativeBuildInputs = [
         prev.buildPackages.cmake
         prev.buildPackages.nasm
-      ] ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
+      ] ++ prev.lib.optionals disableTargetWarning [suppressTargetWarningHook]
+        ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
 
       buildInputs = [
         self.botan2
