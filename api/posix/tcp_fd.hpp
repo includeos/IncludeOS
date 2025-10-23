@@ -21,8 +21,29 @@
 
 #include "sockfd.hpp"
 
-struct TCP_FD_Conn;
 struct TCP_FD_Listen;
+
+struct TCP_FD_Conn
+{
+  TCP_FD_Conn(net::tcp::Connection_ptr c);
+  ~TCP_FD_Conn() = default;
+
+  void retrieve_buffer();
+  void set_default_read();
+
+  ssize_t send(const void *, size_t, int fl);
+  ssize_t recv(void*, size_t, int fl);
+  int     close();
+  int     shutdown(int);
+
+  std::string to_string() const { return conn->to_string(); }
+
+  net::tcp::Connection_ptr conn;
+  net::tcp::buffer_t buffer;
+  size_t buf_offset;
+  bool recv_disc = false;
+};
+
 
 class TCP_FD : public SockFD {
 public:
@@ -68,25 +89,6 @@ private:
   friend struct TCP_FD_Listen;
 };
 
-struct TCP_FD_Conn
-{
-  TCP_FD_Conn(net::tcp::Connection_ptr c);
-
-  void retrieve_buffer();
-  void set_default_read();
-
-  ssize_t send(const void *, size_t, int fl);
-  ssize_t recv(void*, size_t, int fl);
-  int     close();
-  int     shutdown(int);
-
-  std::string to_string() const { return conn->to_string(); }
-
-  net::tcp::Connection_ptr conn;
-  net::tcp::buffer_t buffer;
-  size_t buf_offset;
-  bool recv_disc = false;
-};
 
 struct TCP_FD_Listen
 {
