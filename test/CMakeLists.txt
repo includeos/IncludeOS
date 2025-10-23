@@ -37,7 +37,7 @@ FILE(WRITE ${CMAKE_BINARY_DIR}/version.h
 
 #include_directories(${CMAKE_BINARY_DIR})
 
-set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_C_FLAGS "-g -O0 -std=c23 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
 if(INFO)
