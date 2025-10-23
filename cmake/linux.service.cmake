@@ -2,9 +2,9 @@
 #   Linux Userspace CMake script   #
 ####################################
 
-#set(CMAKE_CXX_STANDARD 20)
+#set(CMAKE_CXX_STANDARD 23)
 set(COMMON "-g -O2  -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 ${COMMON}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23 ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON}")
 
 option(BUILD_PLUGINS "Build all plugins as libraries" OFF)
