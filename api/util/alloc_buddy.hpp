@@ -25,6 +25,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <expects>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 #include <util/bitops.hpp>
 #include <util/units.hpp>
