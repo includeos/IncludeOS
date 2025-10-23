@@ -1,6 +1,6 @@
 { nixpkgs ? ./pinned.nix,
   pkgs ? import nixpkgs { config = { }; overlays = [ ]; },
-  stdenv ? pkgs.llvmPackages_19.libcxxStdenv,
+  stdenv ? pkgs.llvmPackages_20.libcxxStdenv,
   withCcache ? false,
 }:
 stdenv.mkDerivation rec {
