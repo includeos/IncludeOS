@@ -206,9 +206,13 @@ static int prune_elf_symbols(char* location)
   assert(hdr->e_ident[EI_MAG2] == ELFMAG2);
   assert(hdr->e_ident[EI_MAG3] == ELFMAG3);
 
-  if (hdr->e_ident[EI_CLASS] == ELFCLASS32)
-      return prune_elf32_symbols(location);
-  else if (hdr->e_ident[EI_CLASS] == ELFCLASS64)
-      return prune_elf64_symbols(location);
-  assert(0 && "Unknown ELF class");
+    switch (hdr->e_ident[EI_CLASS]) {
+        case ELFCLASS32:
+            return prune_elf32_symbols(location);
+        case ELFCLASS64:
+            return prune_elf64_symbols(location);
+        default:
+            assert(false && "Unknown ELF class");
+            return 0;
+    }
 }

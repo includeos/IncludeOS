@@ -106,6 +106,12 @@ namespace x86
     }
   }
 
+  [[noreturn]] static void ioapic_panic(uint32_t entry) {
+    printf("Entry: %u\n", entry);
+    assert(0 && "Could not match I/O APIC to entry");
+    std::abort();
+  }
+
   inline IOapic& get_ioapic_for(uint32_t entry)
   {
     uint32_t current = 0;
@@ -115,8 +121,7 @@ namespace x86
       }
       current += a.entries();
     }
-    printf("Entry: %u\n", entry);
-    assert(0 && "Could not match I/O APIC to entry");
+    ioapic_panic(entry);
   }
 
   void IOAPIC::enable(uint8_t cpu, const ACPI::override_t& redir)
