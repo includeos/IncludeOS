@@ -108,7 +108,7 @@ int __vsprintf_chk(char* s, int flag, size_t slen, const char* format, va_list a
   __assert ((size_t) res < slen);
   return res;
 }
-int __vsnprintf_chk (char *s, size_t maxlen, int flags, size_t slen,
+int __vsnprintf_chk (char *s, [[maybe_unused]] size_t maxlen, int flags, size_t slen,
 		                  const char *format, va_list args)
 {
   assert (slen < maxlen);

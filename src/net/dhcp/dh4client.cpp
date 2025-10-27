@@ -42,7 +42,7 @@ namespace net {
   {
     // default timed out handler spams logs
     this->on_config(
-    [this] (bool timed_out)
+    [&] (bool timed_out)
     {
       if (timed_out)
         MYINFO("Negotiation timed out (%s)", this->stack.ifname().c_str());

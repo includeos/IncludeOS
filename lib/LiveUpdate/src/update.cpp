@@ -248,11 +248,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 #ifdef PLATFORM_x86_solo5
   solo5_exec(blob.data(), blob.size());
   throw std::runtime_error("solo5_exec returned");
+  (void) found_kernel_start;
 # elif defined(PLATFORM_UNITTEST)
   throw liveupdate_exec_success();
+  (void) found_kernel_start;
 # elif defined(USERSPACE_KERNEL)
   hotswap(phys_base, bin_data, bin_len, (void*) (uintptr_t) start_offset, sr_data);
   throw liveupdate_exec_success();
+  (void) found_kernel_start;
 # elif defined(ARCH_x86_64)
     // change to simple pagetable
     __x86_init_paging((void*) 0x1000);
@@ -270,6 +273,8 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, nullptr);
   }
   }
+#else
+  (void) found_kernel_start;
 # endif
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);

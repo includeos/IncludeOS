@@ -58,7 +58,7 @@ namespace openssl
   void verify_rng()
   {
     int random_value = 0;
-    int rc = RAND_bytes((uint8_t*) &random_value, sizeof(random_value));
+    [[maybe_unused]] int rc = RAND_bytes((uint8_t*) &random_value, sizeof(random_value));
     assert(rc == 0 || rc == 1);
   }
 
