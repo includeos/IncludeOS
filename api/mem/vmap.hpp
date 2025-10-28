@@ -224,29 +224,23 @@ namespace os::mem {
   template <typename Fl>
   inline std::string Mapping<Fl>::to_string() const {
     using namespace util::literals;
-    char buffer[1024];
-    int len = snprintf(buffer, sizeof(buffer),
-            "%p -> %p, size %s, flags %#x",
-            (void*) lin,
-            (void*) phys,
-            util::Byte_r(size).to_string().c_str(),
-            (int) flags);
 
-    const bool isseq = __builtin_popcount(page_sizes) == 1;
+    std::string s = std::format( "lin {} -> phys {}, size {}, flags {:#x}",
+        lin, phys, util::Byte_r(size).to_string(), static_cast<unsigned>(flags));
+
+    const bool isseq = std::popcount(page_sizes) == 1;
     if (isseq) {
-      len += snprintf(buffer + len, sizeof(buffer) - len,
-                      " (%lu pages á %s)",
-                      size / page_sizes,
-                      util::Byte_r(page_sizes).to_string().c_str());
+      const auto pages = size / page_sizes;
+      s += std::format(" ({} pages á {})", pages, util::Byte_r(page_sizes).to_string());
     } else {
-      len += snprintf(buffer + len, sizeof(buffer) - len,
-              " (page sizes: %s)", page_sizes_str(page_sizes).c_str());
+      s += std::format(" (page sizes: {})", page_sizes_str(page_sizes));
     }
-    return std::string(buffer, len);
+    return s;
   }
 
   inline std::string page_sizes_str(size_t bits) {
     using namespace util::literals;
+
     if (bits == 0) return "None";
 
     std::string out;
