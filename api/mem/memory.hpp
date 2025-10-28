@@ -16,8 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef KERNEL_MEMORY_HPP
-#define KERNEL_MEMORY_HPP
+#ifndef MEM_MEMORY_HPP
+#define MEM_MEMORY_HPP
 
 #include <util/bitops.hpp>
 #include <util/units.hpp>
@@ -25,7 +25,7 @@
 #include <mem/allocator.hpp>
 #include <sstream>
 #include <expects>
-#include <kernel/memmap.hpp>
+#include <mem/memmap.hpp>
 
 namespace os::mem {
 
@@ -342,4 +342,4 @@ namespace os::mem {
 }
 
 
-#endif
+#endif  // MEM_MEMORY_HPP
