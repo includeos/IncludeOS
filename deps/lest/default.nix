@@ -4,7 +4,7 @@
 }:
 stdenv.mkDerivation rec {
   pname = "lest";
-  version = "1.36.0";
+  version = "1.37.0";
 
   meta = {
     description = "A tiny C++11 test framework – lest errors escape testing.";
@@ -15,7 +15,7 @@ stdenv.mkDerivation rec {
   src = fetchGit {
     url = "https://github.com/martinmoene/lest.git";
     ref = "refs/tags/v${version}";
-    rev = "57197f32f2c7d3f3d3664a9010d3ff181a40f6ca";
+    rev = "fe1996f438ab8d1611c0324a156f9130ed971e9f";
   };
 
   cmakeBuildType = "Debug";
