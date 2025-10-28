@@ -6,7 +6,7 @@
 final: prev: {
 
   stdenvIncludeOS = prev.pkgsStatic.lib.makeScope prev.pkgsStatic.newScope (self: {
-    llvmPkgs = prev.pkgsStatic.llvmPackages_19;
+    llvmPkgs = prev.pkgsStatic.llvmPackages_20;
     stdenv = self.llvmPkgs.libcxxStdenv; # Use this as base stdenv
 
     # Import unpatched musl for building libcxx. Libcxx needs some linux headers to be passed through.

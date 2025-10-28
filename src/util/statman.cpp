@@ -18,6 +18,9 @@
 #include <statman>
 #include <info>
 #include <smp_utils>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 // this is done to make sure construction only happens here
 static Statman statman_instance;

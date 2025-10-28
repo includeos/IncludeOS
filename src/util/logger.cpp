@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <util/logger.hpp>
+#include <algorithm>
 #include <likely>
 
 Logger::Logger(Log& log, Log::size_type pos)
