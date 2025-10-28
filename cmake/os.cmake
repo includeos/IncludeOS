@@ -194,6 +194,9 @@ function(os_add_executable TARGET NAME)
     endif()
   endforeach()
 
+  find_package(fmt CONFIG REQUIRED)
+  target_link_libraries(${ELF_TARGET} fmt::fmt)
+
   # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(STRIP_LV )

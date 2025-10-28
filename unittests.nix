@@ -48,9 +48,11 @@ stdenv.mkDerivation rec {
 
   lest = pkgs.callPackage ./deps/lest {};
   uzlib = pkgs.callPackage ./deps/uzlib {};
+  libfmt = pkgs.callPackage ./deps/libfmt { stdenv = stdenv; };
 
   passthru = {
     inherit lest;
+    inherit libfmt;
   };
 
   nativeBuildInputs = [
@@ -65,5 +67,6 @@ stdenv.mkDerivation rec {
     pkgs.openssl
     lest
     uzlib
+    libfmt
   ];
 }

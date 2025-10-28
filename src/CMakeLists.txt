@@ -15,6 +15,10 @@ include_directories(
   include
 )
 
+find_package(fmt CONFIG REQUIRED)
+get_target_property(libfmt_include_path fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(${libfmt_include_path})
+
 #TODO move to util and check if needed / can be changed ?..
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate/include)
 
@@ -66,6 +70,7 @@ FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(os STATIC ${SRCS} ${OBJECTS} ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+target_link_libraries(os PRIVATE fmt::fmt)
 
 #TODO check if this is almost correct for platform userspace
 if (NOT CMAKE_TESTING_ENABLED)
