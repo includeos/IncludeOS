@@ -31,7 +31,7 @@
 #include <net/socket.hpp>
 #include <net/ip4/ip4.hpp>
 #include <util/bitops.hpp>
-#include <util/alloc_pmr.hpp>
+#include <mem/alloc/pmr.hpp>
 
 namespace net {
 
