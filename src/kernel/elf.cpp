@@ -61,12 +61,9 @@ static const uintptr_t ELF_START = reinterpret_cast<uintptr_t>(&_ELF_START_);
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
 
-template <typename N>
-static std::string to_hex_string(N n)
-{
-  char buffer[16];
-  int len = snprintf(buffer, sizeof(buffer), "%#x", n);
-  return std::string(buffer, len);
+template <std::integral N>
+[[nodiscard]] static std::string to_hex_string(N n) {
+  return std::format("{:#x}", n);
 }
 
 static ElfEhdr& elf_header() {
