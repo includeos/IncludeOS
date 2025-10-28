@@ -479,8 +479,7 @@ void elf_check_symbols_ok()
 }
 
 #ifdef ARCH_x86_64
-#include <kernel/memmap.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <os.hpp>
 void elf_protect_symbol_areas()
 {

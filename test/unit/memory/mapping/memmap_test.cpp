@@ -17,7 +17,7 @@
 
 #include <common.cxx>
 #include <iostream>
-#include <kernel/memmap.hpp>
+#include <mem/memmap.hpp>
 using namespace os::mem;
 
 CASE ("Using the fixed memory range class")

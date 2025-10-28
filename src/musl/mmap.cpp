@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <mem/alloc/buddy.hpp>
 #include <os>
-#include <kernel/memory.hpp>
+#include <mem/alloc.hpp>
 #include <kernel.hpp>
 #include <kprint>
 

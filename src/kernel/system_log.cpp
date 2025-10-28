@@ -1,7 +1,7 @@
 #include <system_log>
 #include <kernel.hpp>
 #include <os.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <ringbuffer>
 #include <kprint>
 

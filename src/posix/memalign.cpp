@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cerrno>
 #include <cstdlib>
 #include <malloc.h>
-#include <kernel/memory.hpp>
 #include <util/bitops.hpp>
 
 extern "C"

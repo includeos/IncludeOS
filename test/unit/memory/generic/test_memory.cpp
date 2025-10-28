@@ -23,7 +23,7 @@
 
 #include <common.cxx>
 #include <iostream>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <arch/x86/paging.hpp>
 #include <malloc.h>
 #include <os>
