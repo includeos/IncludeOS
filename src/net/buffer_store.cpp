@@ -18,7 +18,7 @@
 #include <cstdlib>
 #include <net/buffer_store.hpp>
 #include <os>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <cassert>
 #include <smp>
 #include <cstddef>

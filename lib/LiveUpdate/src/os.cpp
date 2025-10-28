@@ -1,6 +1,6 @@
 #include <kernel.hpp>
 #include <os.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 
 #define HIGHMEM_LOCATION  (1ull << 45)
 //#define LIU_DEBUG 1

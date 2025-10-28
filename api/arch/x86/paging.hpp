@@ -22,7 +22,7 @@
 #include <delegate>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <cstdlib>
 #include <expects>
 
