@@ -23,19 +23,12 @@
 #include <util/units.hpp>
 #include <mem/alloc/buddy.hpp>
 #include <mem/allocator.hpp>
+#include <mem/flags.hpp>
 #include <sstream>
 #include <expects>
 #include <mem/memmap.hpp>
 
 namespace os::mem {
-
-  /** POSIX mprotect compliant access bits **/
-  enum class Access : uint8_t {
-    none = 0,
-    read = 1,
-    write = 2,
-    execute = 4
-  };
 
   using Raw_allocator = buddy::Alloc<false>;
 
@@ -177,17 +170,6 @@ namespace os::mem {
 
 
 
-
-// Enable bitwise ops on access flags
-namespace util {
-inline namespace bitops {
-  template<>
-  struct enable_bitmask_ops<os::mem::Access> {
-    using type = typename std::underlying_type<os::mem::Access>::type;
-    static constexpr bool enable = true;
-  };
-}
-}
 
 
 namespace os::mem {
