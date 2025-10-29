@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 static int sys_sigaction(int signum,
                          const struct sigaction* act,

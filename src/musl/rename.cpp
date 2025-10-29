@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <stdio.h>
 
 static long sys_rename(const char* /*oldpath*/, const char* /*newpath*/)

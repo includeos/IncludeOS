@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 static long sys_set_robust_list(struct robust_list_head */*head*/, size_t /*len*/)
 {

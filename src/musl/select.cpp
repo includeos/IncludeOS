@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/select.h>
 
 long sys_select(int /*nfds*/,

@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 static long sys_pipe([[maybe_unused]]int pipefd[2])
 {

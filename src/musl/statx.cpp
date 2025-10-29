@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/stat.h>
 
 long sys_statx(int /*dirfd*/, const char* /*pathname*/, int /*flags*/,

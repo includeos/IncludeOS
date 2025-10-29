@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sched.h>
 
 static long sys_sched_getaffinity(pid_t /*pid*/, size_t /*cpusetsize*/,

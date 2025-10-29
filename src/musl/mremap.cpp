@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 static long sys_mremap(void */*old_address*/, size_t /*old_size*/,
                        size_t /*new_size*/, int /*flags*/, void */*new_address*/)

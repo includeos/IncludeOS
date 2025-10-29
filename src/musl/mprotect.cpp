@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <kernel/memory.hpp>
 
 static long sys_mprotect(void* /*addr*/, size_t /*len*/, int /*prot*/)

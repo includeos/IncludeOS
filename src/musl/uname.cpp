@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/utsname.h>
 #include <os.hpp>
 

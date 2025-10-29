@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/stat.h>
 
 #include <fs/vfs.hpp>

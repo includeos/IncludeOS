@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <signal.h>
 
 static long sys_sigaltstack(const stack_t * /*ss*/, stack_t * /*old_ss*/)

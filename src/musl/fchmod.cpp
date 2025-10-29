@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/stat.h>
 
 static long sys_fchmod(int /*fd*/, mode_t /*mode*/) {

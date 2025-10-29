@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/time.h>
 
 static long sys_gettimeofday(struct timeval *tv, struct timezone *tz)

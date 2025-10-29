@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/stat.h>
 
 static long sys_mknod(const char* /*pathname*/, mode_t /*mode*/, dev_t /*dev*/)

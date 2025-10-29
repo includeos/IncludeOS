@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sys/stat.h>
 #include <sys/time.h>

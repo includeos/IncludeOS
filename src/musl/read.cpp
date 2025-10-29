@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <posix/fd_map.hpp>
 
 static long sys_read(int fd, void* buf, size_t len)
