@@ -21,25 +21,6 @@
 #include <hw/pci_device.hpp>
 #include <hw/msi.hpp>
 
-/* PCI Register Config Space */
-#define PCI_DEV_VEND_REG	0x00	/* for the 32 bit read of dev/vend */
-#define PCI_VENDID_REG		0x00
-#define PCI_DEVID_REG		0x02
-#define PCI_CMD_REG			0x04
-#define PCI_STATUS_REG		0x06
-#define PCI_REVID_REG		0x08
-#define PCI_PROGIF_REG		0x09
-#define PCI_SUBCLASS_REG	0x0a
-#define PCI_CLASS_REG		0x0b
-#define PCI_CLSZ_REG		0x0c
-#define PCI_LATTIM_REG		0x0d
-#define PCI_HEADER_REG		0x0e
-#define PCI_BIST_REG		0x0f
-
-#define PCI_COMMAND_IO			0x01
-#define PCI_COMMAND_MEM			0x02
-#define PCI_COMMAND_MASTER	0x04
-
 namespace hw {
 
   static constexpr std::array<const char*,3> bridge_subclasses {
@@ -190,7 +171,7 @@ namespace hw {
     //printf("read16 %#x  status %#x\n", PCI_STATUS_REG, status);
     if ((status & 0x10) == 0) return;
     // this offset works for non-cardbus bridges
-    uint32_t offset = 0x34;
+    uint32_t offset = PCI_CAPABILITY_REG;
     // read first capability
     offset = read16(offset) & 0xff;
     offset &= ~0x3; // lower 2 bits reserved
