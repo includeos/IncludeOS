@@ -88,7 +88,7 @@ void Service::ready()
       printf("Error: %s \n", err.to_string().c_str());
 
     CHECKSERT(!err, "No error");
-    printf("Received body: %s\n", res->body());
+    printf("Received body: %.*s\n", static_cast<int>(res->body().length()), res->body().data());
     CHECKSERT(res->body() == "/testing", "Received body: \"/testing\"");
 
     printf("SUCCESS\n");
