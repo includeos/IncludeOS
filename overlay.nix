@@ -159,12 +159,12 @@ final: prev: {
         ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
 
       buildInputs = [
-        self.libfmt
-        self.botan2
-        self.http-parser
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
-        #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
+        self.botan2
+        self.http-parser
+        self.libfmt
+      # self.s2n-tls          👈 This is postponed until we can fix the s2n build.
         self.uzlib
         self.vmbuild
       ];
@@ -205,12 +205,12 @@ final: prev: {
       passthru.pkgs = prev.pkgs; # this is for convenience for other packages that depend on includeos
 
       passthru = {
-        inherit (self) uzlib;
-        inherit (self) http-parser;
         inherit (self) botan2;
-        inherit (self) libfmt;
-        #inherit (self) s2n-tls;
         inherit (self) cmake;
+        inherit (self) http-parser;
+        inherit (self) libfmt;
+      # inherit (self) s2n-tls;
+        inherit (self) uzlib;
         inherit (self) vmbuild;
       };
 
