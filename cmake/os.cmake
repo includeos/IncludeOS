@@ -177,6 +177,7 @@ function(os_add_executable TARGET NAME)
     ${INCLUDEOS_PACKAGE}/lib/libos.a
     ${INCLUDEOS_PACKAGE}/libcxx/lib/libc++.a
     ${INCLUDEOS_PACKAGE}/libc/lib/libc.a
+    ${INCLUDEOS_PACKAGE}/http-parser/lib/libhttp_parser.a
     ${INCLUDEOS_PACKAGE}/lib/libmusl_syscalls.a
     ${INCLUDEOS_PACKAGE}/libunwind/lib/libunwind.a
     ${INCLUDEOS_PACKAGE}/libgcc/lib/linux/${LIBGCC}
