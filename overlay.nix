@@ -89,7 +89,6 @@ final: prev: {
     # Deps
     botan2 = self.callPackage ./deps/botan/default.nix { };
     libfmt = self.callPackage ./deps/libfmt/default.nix { };
-    http-parser = self.callPackage ./deps/http-parser/default.nix { };
     s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
 
@@ -161,7 +160,7 @@ final: prev: {
       buildInputs = [
         self.libfmt
         self.botan2
-        self.http-parser
+        prev.pkgsStatic.http-parser
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
         #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
@@ -179,6 +178,7 @@ final: prev: {
         cp -r -v ${final.stdenvIncludeOS.libraries.libcxx.include} $out/libcxx/include
         cp -r -v ${final.stdenvIncludeOS.libraries.libunwind} $out/libunwind
         cp -r -v ${final.stdenvIncludeOS.libraries.libgcc} $out/libgcc
+        cp -r -v ${final.pkgsStatic.http-parser} $out/http-parser
       '';
 
       archFlags = if self.stdenv.targetPlatform.system == "i686-linux" then
@@ -206,7 +206,6 @@ final: prev: {
 
       passthru = {
         inherit (self) uzlib;
-        inherit (self) http-parser;
         inherit (self) botan2;
         inherit (self) libfmt;
         #inherit (self) s2n-tls;
