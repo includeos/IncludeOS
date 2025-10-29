@@ -136,7 +136,7 @@ if (NOT ${PLATFORM} STREQUAL "nano")
   if (NOT CMAKE_TESTING_ENABLED)
     list(APPEND OBJLIST
       ${BOTAN_MODULES}
-      ${OPENSSL_MODULES}
+      # ${OPENSSL_MODULES}
     )
     list(APPEND SRCS
       configure.cpp
