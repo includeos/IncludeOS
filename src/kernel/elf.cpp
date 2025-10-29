@@ -502,6 +502,6 @@ void elf_protect_symbol_areas()
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
 
   INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);
-  os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
+  os::mem::protect((uintptr_t) src, size, os::mem::Permission::Read);
 }
 #endif

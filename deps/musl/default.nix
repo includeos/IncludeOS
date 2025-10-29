@@ -17,6 +17,7 @@ stdenv.mkDerivation rec {
   patches = [
     ./patches/musl.patch
     ./patches/endian.patch
+    ./patches/mmap.patch
   ];
 
   passthru.linuxHeaders = linuxHeaders;

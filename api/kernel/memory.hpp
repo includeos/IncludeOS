@@ -26,16 +26,9 @@
 #include <sstream>
 #include <expects>
 #include <kernel/memmap.hpp>
+#include <sys/mman.hpp>
 
 namespace os::mem {
-
-  /** POSIX mprotect compliant access bits **/
-  enum class Access : uint8_t {
-    none = 0,
-    read = 1,
-    write = 2,
-    execute = 4
-  };
 
   using Raw_allocator = buddy::Alloc<false>;
 
@@ -68,7 +61,7 @@ namespace os::mem {
    * Virtual to physical memory mapping.
    * For interfacing with the virtual memory API, e.g. mem::map / mem::protect.
    **/
-  template <typename Fl = Access>
+  template <typename Fl = os::mem::Permission>
   struct Mapping
   {
     static const size_t any_size;
@@ -126,7 +119,7 @@ namespace os::mem {
   Map unmap(uintptr_t addr);
 
   /** Get protection flags for page enclosing a given address */
-  Access flags(uintptr_t addr);
+  Permission flags(uintptr_t addr);
 
   /** Determine active page size of a given linear address **/
   uintptr_t active_page_size(uintptr_t addr);
@@ -142,20 +135,20 @@ namespace os::mem {
    * might result in 513 4KiB pages or 1 2MiB page and 1 4KiB page getting
    * protected.
    **/
-  Map protect(uintptr_t linear, size_t len, Access flags = Access::read);
+  Map protect(uintptr_t linear, size_t len, Permission flags = Permission::Read);  // TODO(mazunki): consider whether we should default to Read here
 
   /**
    * Set and return access flags for a given linear address range
    * The range is expected to be mapped by a previous call to map.
    **/
-  Access protect_range(uintptr_t linear, Access flags = Access::read);
+  Permission protect_range(uintptr_t linear, Permission flags = Permission::Read);  // TODO(mazunki): consider whether we should default to Read here
 
   /**
    * Set and return access flags for a page starting at linear.
    * @note : the page size can be any of the supported sizes and
    *         protection will apply for that whole page.
    **/
-  Access protect_page(uintptr_t linear, Access flags = Access::read);
+  Permission protect_page(uintptr_t linear, Permission flags = Permission::Read);  // TODO(mazunki): consider whether we should default to Read here
 
 
   /** Get the physical address to which linear address is mapped **/
@@ -174,20 +167,6 @@ namespace os::mem {
 
 } // os::mem
 
-
-
-
-
-// Enable bitwise ops on access flags
-namespace util {
-inline namespace bitops {
-  template<>
-  struct enable_bitmask_ops<os::mem::Access> {
-    using type = typename std::underlying_type<os::mem::Access>::type;
-    static constexpr bool enable = true;
-  };
-}
-}
 
 
 namespace os::mem {
@@ -333,11 +312,12 @@ namespace os::mem {
   virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label)
   {
     using namespace util::bitops;
-    const auto flags = os::mem::Access::read | os::mem::Access::write;
+    const auto flags = os::mem::Permission::Data;  // TODO(mazunki): shouldn't this inherit flags from @src?
     // setup @dst as new virt area for @src
     os::mem::map({dst, src, flags, size}, label);
+
     // unpresent @src
-    os::mem::protect(src, size, os::mem::Access::none);
+    os::mem::protect(src, size, os::mem::Permission::Any);  // TODO(mazunki): change to Permission::None when introduced
   }
 }
 

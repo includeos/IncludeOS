@@ -115,7 +115,7 @@ constexpr operator~(E flag){
 
 // bool has_flag(flag)
 template<typename E>
-constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
+[[nodiscard]] constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
 has_flag(E flag){
   using base_type = typename std::underlying_type<E>::type;
   return static_cast<base_type>(flag);
@@ -123,9 +123,24 @@ has_flag(E flag){
 
 // bool has_flag(field, flags)
 template<typename E>
-constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
+[[nodiscard]] constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
 has_flag(E field, E flags){
   return (field & flags) == flags ;
+}
+
+// bool missing_flag(flag)
+template<typename E>
+[[nodiscard]] constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
+missing_flag(E flag){
+  using base_type = typename std::underlying_type<E>::type;
+  return static_cast<base_type>(flag) == 0;
+}
+
+// bool missing_flag(field, flags)
+template<typename E>
+[[nodiscard]] constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
+missing_flag(E field, E flags) noexcept {
+  return (field & flags) != flags;
 }
 
 
