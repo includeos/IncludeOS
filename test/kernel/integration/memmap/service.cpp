@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <util/bitops.hpp>
 
 

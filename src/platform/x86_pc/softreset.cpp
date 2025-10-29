@@ -1,6 +1,5 @@
 #include <os>
 #include <kprint>
-#include <kernel/memory.hpp>
 #include <kernel.hpp>
 #include <util/crc32.hpp>
 using namespace util::literals;

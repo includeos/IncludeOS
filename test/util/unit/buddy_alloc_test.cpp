@@ -17,8 +17,8 @@
 // #define DEBUG_UNIT
 
 #include <common.cxx>
-#include <util/alloc_buddy.hpp>
-#include <util/allocator.hpp>
+#include <mem/alloc/buddy.hpp>
+#include <mem/allocator.hpp>
 #include <vector>
 
 struct Pool {

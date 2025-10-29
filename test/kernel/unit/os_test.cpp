@@ -17,7 +17,7 @@
 
 #include <common.cxx>
 #include <os.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 
 CASE("version() returns string representation of OS version")
 {

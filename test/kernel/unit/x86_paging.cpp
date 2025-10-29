@@ -21,7 +21,7 @@
 #include <os>
 #include <arch/x86/paging.hpp>
 #include <arch/x86/paging_utils.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <cmath>
 
 using namespace util;

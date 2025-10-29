@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "mem/vmap.hpp"
 #include <arch.hpp>
 #include <info>
-#include <kernel/memory.hpp>
 
 __attribute__((weak))
 void __arch_init_paging()
