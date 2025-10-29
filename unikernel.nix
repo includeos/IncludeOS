@@ -103,7 +103,7 @@ includeos.stdenv.mkDerivation rec {
     runHook postCheck
   '';
 
-  # this is a hack
+  # the doCheck shell is a hack
   # some tests need to be run through a shell because of net_cap_raw+ep and net_cap_admin+ep
   # replace nix-build with nix-shell to test without dropping capabilities
   packages = [
@@ -111,7 +111,7 @@ includeos.stdenv.mkDerivation rec {
       vmrunnerPkg
     ]))
   ];
-  shellHook = ''
+  shellHook = if doCheck then ''
     set -eu
     pkg="$(nix-build ./unikernel.nix --arg doCheck false --arg unikernel ${unikernel})"
 
@@ -120,6 +120,11 @@ includeos.stdenv.mkDerivation rec {
     "$testPath" || exit 1
 
     exit 0
+  '' else ''
+    echo "entering unikernel build shell."
+    echo "if you want to run tests, you can do so with:"
+    echo "  --arg doCheck true"
+    cd result/
   '';
 
 }

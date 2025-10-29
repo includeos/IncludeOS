@@ -81,30 +81,32 @@ It's not always practical to rebuild the whole kernel during development. You ca
 $ nix-shell ./develop.nix
 ```
 
-From here, you will be put in a shell suited for development. If your editor has LSP support with clangd (e.g. neovim, emacs, VSCode, Zed), you will get proper goto-declarations and warnings. You can quickly rebuild the kernel library from here with `cmake -B build && (cd build; make)`, with all build dependencies handled by the shell. You can also build and run a unikernel from the shell with this oneliner: `(cd ./example && cmake -B build && (cd build && make) && boot ./build/hello_includeos.elf.bin)` after building IncludeOS. It might be convenient to use one terminal (or tab) for your editor, a second for building IncludeOS, and a third for building a unikernel.
+From here, you will be put in a shell suited for development. If your editor has LSP support with clangd (e.g. neovim, emacs, VSCode, Zed), you will get proper goto-declarations and warnings. You can quickly rebuild the kernel library from here with `cmake -B build && cmake --build build`, with all build dependencies handled by the shell.
+
+You can also build and run a unikernel from the shell with this oneliner: `nix-build unikernel.nix && boot ./result/hello_includeos.elf.bin)` after building IncludeOS. It might be convenient to use one terminal (or tab) for your editor, a second for building IncludeOS, and a third for building a unikernel.
 
 In summary:
 ```bash
 ~/repos/IncludeOS $ nix-shell ./develop.nix
-[nix-shell:~/repos/IncludeOS]$ cmake -B build && (cd build; make)            # rebuilds IncludeOS
-[nix-shell:~/repos/IncludeOS]$ cd example
-[nix-shell:~/repos/IncludeOS/example]$ cmake -B build && (cd build; make)    # rebuilds a bootable unikernel
-[nix-shell:~/repos/IncludeOS/example]$ boot ./build/hello_includeos.elf.bin  # runs the unikernel image with qemu through vmrunner
+[nix-shell:~/repos/IncludeOS]$ cmake -B build && cmake --build build     # rebuilds IncludeOS
+[nix-shell:~/repos/IncludeOS]$ nix-build ./unikernel.nix                 # rebuilds the example unikernel
+[nix-shell:~/repos/IncludeOS]$ boot ./result/hello_includeos.elf.bin     # runs the unikernel image with qemu through vmrunner
 ```
 
 Alternatively, you may want to use `nix-shell` by itself (or nested inside the development shell), which handles both building the unikernel found under `./example/` and puts you in a convenient shell for testing out a unikernel.
 
 ```bash
-~/repos/IncludeOS $ nix-shell --run 'boot hello_includeos.elf.bin'
+# both these require vmrunner's booth on path
+~/repos/IncludeOS $ nix-shell unikernel.nix --run 'boot hello_includeos.elf.bin'
 # or
-~/repos/IncludeOS $ nix-shell  # updating IncludeOS after entering this shell won't rebuild the os library automatically!
-[nix-shell:~/repos/IncludeOS]$ boot hello_includeos.elf.bin
+~/repos/IncludeOS $ nix-shell unikernel.nix
+[nix-shell:~/repos/IncludeOS/result]$ boot hello_includeos.elf.bin
 ```
 
 If you want to build a different unikernel than the example, this can be specified with the `--argstr unikernel [path]` parameter. This is primarily used for integration tests. For example, to build and run the stacktrace-test:
 
 ```bash
-$ nix-shell --argstr unikernel ./test/kernel/integration/stacktrace
+$ nix-build unikernel.nix --argstr unikernel ./test/integration/kernel/stacktrace  --doCheck true
 [...]
 nix$ ls -l kernel*
 kernel_stacktrace
@@ -122,14 +124,14 @@ We reached the end.
 To build and run the test VM as a single command:
 
 ```bash
-$ nix-shell --argstr unikernel ./test/kernel/integration/stacktrace --run ./test.py
+$ nix-build unikernel.nix --argstr unikernel ./test/integration/kernel/stacktrace --doCheck true
 ```
 
 ### <a name="running_tests"></a> Running tests
 
-You can run all the integration tests using the script `./test.sh`. The tests will run locally in the nix environment. We recommend manually verifying that all the tests pass locally before submitting a new PR to IncludeOS to save review time.
+You can run all the integration tests using the script `./test/test.sh`. The tests will run locally in the nix environment. We recommend manually verifying that all the tests pass locally before submitting a new PR to IncludeOS to save review time.
 
-Individual tests can be run with `nix-shell` directly. See `test.sh` for more details.
+Most individual tests can be run with `nix-build` directly, while some require `nix-shell` due to sandboxing constraints. See `./test/test.sh` for more details.
 
 ## <a name="contribute"></a> Contributing to IncludeOS
 
