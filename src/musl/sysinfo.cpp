@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/sysinfo.h>
 
 static long sys_sysinfo(struct sysinfo */*info*/)

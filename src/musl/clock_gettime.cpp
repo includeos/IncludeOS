@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 static long sys_clock_gettime(clockid_t clk_id, struct timespec* tp)
 {

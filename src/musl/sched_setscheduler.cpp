@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sched.h>
 
 static long sys_sched_setscheduler(pid_t /*pid*/, int /*policy*/, const struct sched_param* /*param*/)

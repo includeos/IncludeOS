@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/resource.h>
 
 static long sys_prlimit64(pid_t /*pid*/, int /*resource*/,

@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 extern "C" void kfree(void* addr, size_t length);
 

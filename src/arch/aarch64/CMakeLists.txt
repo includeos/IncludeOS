@@ -7,6 +7,7 @@ set(ARCH_OBJECTS
 #  profile_intr.asm
 #  apic_asm.asm
   arch_start.asm
+  arch_musl.cpp
   exceptions.asm
 #  interrupts.asm
 #  fiber.asm
@@ -15,7 +16,6 @@ set(ARCH_SOURCES
   paging.cpp
   cpu.cpp
   timer.cpp
-  syscall_entry.cpp
 )
 enable_language(ASM)
 

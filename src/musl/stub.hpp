@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 extern "C"
 void __serial_print1(const char*);

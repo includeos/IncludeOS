@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <string.h>
 #include <os.hpp>
 #include <errno.h>

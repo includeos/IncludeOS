@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 static long sys_mincore([[maybe_unused]]void *addr,
                         [[maybe_unused]]size_t length,

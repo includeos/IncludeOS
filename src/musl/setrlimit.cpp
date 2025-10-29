@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 
 long sys_setrlimit(int /*resource*/, const struct rlimit* /*rlim*/)
 {

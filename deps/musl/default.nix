@@ -27,6 +27,9 @@ stdenv.mkDerivation rec {
     cp ${./patches/includeos_syscalls.h} $sourceRoot/src/internal/includeos_syscalls.h
     cp ${./patches/syscall.h} $sourceRoot/src/internal/syscall.h
 
+    rm $sourceRoot/src/thread/x86_64/__set_thread_area.s
+    cp ${./patches/__set_thread_area.c} $sourceRoot/src/thread/x86_64/__set_thread_area.c
+
     rm $sourceRoot/arch/x86_64/syscall_arch.h
     rm $sourceRoot/arch/i386/syscall_arch.h
   '';

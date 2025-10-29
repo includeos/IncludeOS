@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <unistd.h>
 
 static long sys_fchown(int /*fd*/, uid_t /*owner*/, gid_t /*group*/)

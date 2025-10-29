@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <posix/fd_map.hpp>
 
 static long sys_fcntl(int fd, int cmd, va_list va)

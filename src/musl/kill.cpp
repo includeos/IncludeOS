@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/types.h>
 
 int sys_kill(pid_t /*pid*/, int /*sig*/) {

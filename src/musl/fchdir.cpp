@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <unistd.h>
 
 static long sys_fchdir(int /*fd*/)

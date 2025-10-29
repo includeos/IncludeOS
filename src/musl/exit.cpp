@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <arch.hpp>
 #include <string>
 #include <os>

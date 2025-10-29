@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/mman.h>
 
 static long sys_madvise(void* addr, size_t length, int advice)

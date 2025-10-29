@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <sys/uio.h>
 
 static long sys_writev(int fd, const struct iovec *iov, int iovcnt)

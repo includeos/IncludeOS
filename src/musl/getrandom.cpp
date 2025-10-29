@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <musl/common.hpp>
 #include <kernel/rng.hpp>
 
 // TODO: flags are ignored.
