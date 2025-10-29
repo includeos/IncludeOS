@@ -13,8 +13,14 @@ let
       sha256 = "15bdlccjg14qa7lwkcc7pikvi386ig108ca62hbxfas5wyw1fr62";
   };
   pkgsHttpfix = import nixpkgsHttpfix { crossSystem = { config = stdenv.targetPlatform.config; }; };
+  pkgs = pkgsHttpfix.pkgsStatic;
+
+  self = pkgs.http-parser;
+
+  dev = pkgs.lib.getDev self;
+  lib = pkgs.lib.getLib self;
 in
-  pkgsHttpfix.pkgsStatic.http-parser.overrideAttrs (oldAttrs: {
+  self.overrideAttrs (oldAttrs: {
     inherit stdenv;
     postInstall = (oldAttrs.postInstall or "") + ''
       mkdir "$out/include/http-parser"
