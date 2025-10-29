@@ -23,7 +23,7 @@
 #include <common.cxx>
 
 #include <algorithm>
-#include <util/alloc_lstack.hpp>
+#include <mem/alloc/lstack.hpp>
 #include <util/units.hpp>
 #include <util/bitops.hpp>
 #include <malloc.h>

@@ -21,8 +21,8 @@
 
 #include <util/bitops.hpp>
 #include <util/units.hpp>
-#include <util/alloc_buddy.hpp>
-#include <util/allocator.hpp>
+#include <mem/alloc/buddy.hpp>
+#include <mem/allocator.hpp>
 #include <sstream>
 #include <expects>
 #include <kernel/memmap.hpp>
