@@ -22,6 +22,7 @@
 #include <kernel/elf.hpp>
 #include <os.hpp>
 #include <util/fixed_vector.hpp>
+#include <util/pretty.hpp>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
@@ -203,33 +204,9 @@ void StackSampler::set_mask(bool mask)
   get().discard = mask;
 }
 
-
-inline std::string to_human_size(std::uint64_t bytes) {
-  constexpr std::string_view size_suffixes[] = {
-    "B", "KiB", "MiB", "GiB", "TiB", "PiB"
-  };
-  double value = static_cast<double>(bytes);
-  std::size_t exponent = 0;
-
-  while (value >= 1024.0 && exponent + 1 < std::size(size_suffixes)) {
-    value /= 1024.0;
-    exponent++;
-  }
-
-  if (exponent == 0)
-    return std::format("{} {}", static_cast<std::uint64_t>(value), size_suffixes[exponent]);
-  else
-    return std::format("{:.2f} {}", value, size_suffixes[exponent]);
-}
-
-inline std::string with_thousands_sep(uint64_t value, char sep = '_', char every = 3) {
-    std::string s = std::to_string(value);
-    for (int i = s.size() - every; i > 0; i -= every)
-        s.insert(i, 1, sep);
-    return s;
-}
-
 std::string HeapDiag::to_string() {
+  using namespace util::format;
+
   // TODO: check if heap should be 64 bit instead
   static intptr_t last_size = 0;
 
