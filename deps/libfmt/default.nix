@@ -6,7 +6,7 @@
   cmake ? pkgs.cmake
 }:
 let
-  libfmt = stdenv.mkDerivation rec {
+  self = stdenv.mkDerivation rec {
     pname = "fmt";
     version = "12.0.0";
 
@@ -28,8 +28,11 @@ let
       "-DFMT_INSTALL=ON"
     ];
   };
+
+  dev = pkgs.lib.getDev self;
+  lib = pkgs.lib.getLib self;
 in
-  libfmt // {
-    include = "${libfmt}/include";
-    lib = "${libfmt}/lib";
+  self // {
+    include = "${self}/include";
+    lib = "${self}/lib";
   }

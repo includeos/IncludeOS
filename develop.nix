@@ -72,6 +72,22 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
       -D ARCH=${arch} \
       -D CMAKE_MODULE_PATH=${includeos}/cmake
 
+    # TODO: missing s2n-tls (postponed in overlay.nix)
+    DEP_INCLUDE_PATH="$(
+      for d in \
+        "$IOS_SRC/test/lest_util" \
+        "${includeos.botan2.include}" \
+        "${includeos.http-parser.include}" \
+        "${includeos.lest.include}" \
+        "${includeos.libfdt.include}" \
+        "${includeos.uzlib.include}" \
+        "${includeos.pkgs.rapidjson}/include" \
+        "${includeos.pkgs.openssl}/include"
+      do
+        printf ' -I %s' "$d"
+      done
+    )"
+
     # procuced by CMake
     CCDB="${buildpath}/compile_commands.json"
 
@@ -83,20 +99,20 @@ includeos.pkgs.mkShell.override { inherit (includeos) stdenv; } rec {
     jq \
       --arg libcxx "${includeos.libraries.libcxx.include}" \
       --arg libc "${includeos.libraries.libc}"             \
-      --arg libfmt "${includeos.passthru.libfmt.include}"  \
       --arg localsrc "${toString ./.}"                     \
+      --arg extra "$DEP_INCLUDE_PATH"                      \
       '
       map(.command |= ( .
           + " -isystem \($libcxx)"
           + " -isystem \($libc)/include"
-          + " -I \($libfmt)"
+          + " \($extra)"
           | gsub("(?<a>-I)(?<b>/lib/LiveUpdate/include)"; .a + $localsrc + .b)
       ))
     ' "$CCDB" > "$tmp" && mv "$tmp" "$CCDB"
 
 
       # most clangd configurations and editors will look in ./build/, but this just makes it easier to find for some niche edge cases
-      ln -sfn "${buildpath}/compile_commands.json" "$IOS_SRC/compile_commands.json"
+      # ln -sfn "${buildpath}/compile_commands.json" "$IOS_SRC/compile_commands.json"
   '';
 }
 

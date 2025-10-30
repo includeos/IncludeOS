@@ -87,11 +87,12 @@ final: prev: {
     inherit suppressTargetWarningHook;
 
     # Deps
-    botan2 = self.callPackage ./deps/botan/default.nix { };
+    botan2 = self.callPackage ./deps/botan2/default.nix { };
     libfmt = self.callPackage ./deps/libfmt/default.nix { };
+    s2n-tls = self.callPackage ./deps/s2n-tls/default.nix { };
     http-parser = self.callPackage ./deps/http-parser/default.nix { };
-    s2n-tls = self.callPackage ./deps/s2n/default.nix { };
     uzlib = self.callPackage ./deps/uzlib/default.nix { };
+    libfdt = self.callPackage ./deps/libfdt/default.nix { };
 
     vmbuild = self.callPackage ./vmbuild.nix { };
 
@@ -159,12 +160,13 @@ final: prev: {
         ++ prev.lib.optionals withCcache [self.ccacheWrapper ccacheNoticeHook];
 
       buildInputs = [
-        self.libfmt
-        self.botan2
-        self.http-parser
         prev.pkgsStatic.openssl
         prev.pkgsStatic.rapidjson
-        #self.s2n-tls          👈 This is postponed until we can fix the s2n build.
+        self.botan2
+        self.http-parser
+        self.libfmt
+      # self.s2n-tls          👈 This is postponed until we can fix the s2n build.
+        self.libfdt
         self.uzlib
         self.vmbuild
       ];
@@ -205,12 +207,18 @@ final: prev: {
       passthru.pkgs = prev.pkgs; # this is for convenience for other packages that depend on includeos
 
       passthru = {
-        inherit (self) uzlib;
-        inherit (self) http-parser;
         inherit (self) botan2;
-        inherit (self) libfmt;
-        #inherit (self) s2n-tls;
         inherit (self) cmake;
+        inherit (self) http-parser;
+<<<<<<< HEAD
+        inherit (self) libfmt;
+      # inherit (self) s2n-tls;
+||||||| parent of c0f128940 (enable libfdt dependency)
+=======
+        inherit (self) libfdt;
+        # inherit (self) s2n-tls;
+>>>>>>> c0f128940 (enable libfdt dependency)
+        inherit (self) uzlib;
         inherit (self) vmbuild;
       };
 
