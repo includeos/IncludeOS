@@ -26,6 +26,9 @@
 #include <debug>
 #include <expects>
 #include <info>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 /// xAPIC MMIO offsets ///
 #define xAPIC_ID         0x20

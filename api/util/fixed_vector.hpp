@@ -29,6 +29,7 @@
 #include <cassert>
 #include <type_traits>
 #include <iterator>
+#include <new>
 
 enum class Fixedvector_Init {
   UNINIT
@@ -54,14 +55,14 @@ public:
   T& push_back(const T& e) noexcept {
     assert(count < N);
     (*this)[count] = e;
-    return (*this)[count++];
+    return reinterpret_raw()[count++];
   }
   // construct into
   template <typename... Args>
   T& emplace_back(Args&&... args) noexcept {
     assert(count < N);
-    new (&element[count]) T(args...);
-    return (*this)[count++];
+    new (static_cast<void*>(reinterpret_raw() + count)) T(std::forward<Args>(args)...);
+    return reinterpret_raw()[count++];
   }
 
   /**
@@ -108,36 +109,36 @@ public:
   { return capacity() - size(); }
 
   T& operator[] (uint32_t i) noexcept {
-    return *(T*) (element + i);
+    return reinterpret_raw()[i];
   }
   T* at (uint32_t i) noexcept {
     if (i >= size()) return nullptr;
-    return (T*) (element + i);
+    return reinterpret_raw() + i;
   }
 
   T* data() noexcept {
-    return (T*) &element[0];
+    return reinterpret_raw();
   }
   T* begin() noexcept {
-    return (T*) &element[0];
+    return reinterpret_raw();
   }
   T* end() noexcept {
-    return (T*) &element[count];
+    return reinterpret_raw() + count;
   }
 
   const T* data() const noexcept {
-    return (T*) &element[0];
+    return reinterpret_raw();
   }
   const T* begin() const noexcept {
-    return (T*) &element[0];
+    return reinterpret_raw();
   }
   const T* end() const noexcept {
-    return (T*) &element[count];
+    return reinterpret_raw() + count;
   }
 
   T& back() noexcept {
     assert(not empty());
-    return (T&)element[count-1];
+    return reinterpret_raw()[count-1];
   }
 
   constexpr int capacity() const noexcept {
@@ -151,7 +152,7 @@ public:
   // source of the same type T, with @size elements
   // Note: size and capacity are not related, and they don't have to match
   void copy(T* src, uint32_t size) {
-    memcpy(element, src, size * sizeof(T));
+    memcpy(reinterpret_raw(), src, size * sizeof(T));
     count = size;
   }
 
@@ -163,7 +164,10 @@ public:
 
 private:
   uint32_t count;
-  typename std::aligned_storage<sizeof(T), alignof(T)>::type element[N];
+  alignas(T) std::byte storage[sizeof(T) * N];
+
+  T*       reinterpret_raw()       noexcept { return std::launder(reinterpret_cast<      T*>(storage)); }
+  const T* reinterpret_raw() const noexcept { return std::launder(reinterpret_cast<const T*>(storage)); }
 };
 
 

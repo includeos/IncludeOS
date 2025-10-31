@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.31.6)
 #
 
 project(unittests C CXX)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -37,7 +37,7 @@ FILE(WRITE ${CMAKE_BINARY_DIR}/version.h
 
 #include_directories(${CMAKE_BINARY_DIR})
 
-set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_C_FLAGS "-g -O0 -std=c23 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
 if(INFO)
@@ -49,7 +49,7 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0 -std=c++20 -Wall -Wextra -Wno-frame-address -Wno-unused-function -Wno-int-to-pointer-cast -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN -DPAGE_SIZE=4096")
+set(CMAKE_CXX_FLAGS "-g -O0 -std=c++23 -Wall -Wextra -Wno-frame-address -Wno-unused-function -Wno-int-to-pointer-cast -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN -DPAGE_SIZE=4096")
 
 set(TESTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(TESTS_DEPS ${TESTS_ROOT}/misc)

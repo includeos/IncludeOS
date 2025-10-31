@@ -2,6 +2,7 @@
 #include <smp_utils>
 #include <thread>
 #include <barrier>
+#include <mutex>
 
 CASE("lock/unlock")
 {

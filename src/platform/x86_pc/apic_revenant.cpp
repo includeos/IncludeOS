@@ -8,6 +8,7 @@
 #include <os.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
+#include <mutex>
 
 namespace x86 {
   extern void initialize_cpu_tables_for_cpu(int);

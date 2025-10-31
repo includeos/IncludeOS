@@ -22,6 +22,7 @@
 #include <cassert>
 #include <info>
 #include <map> // hist
+#include <ctime>  // time()
 
 static const size_t BUFLEN = 4096;
 void Service::start()
