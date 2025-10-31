@@ -20,6 +20,9 @@
 let
   includeos = pkgs.pkgsIncludeOS.includeos;
   stdenv = pkgs.pkgsIncludeOS.stdenv;
+
+  suppress = includeos.pkgs.callPackage ./nix/suppress.nix {};
+  ccache = includeos.pkgs.callPackage ./nix/ccache.nix {};
 in
 
 assert (stdenv.targetPlatform.system != "i686-linux") ->
@@ -48,5 +51,5 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [
     pkgs.buildPackages.cmake
     pkgs.buildPackages.nasm
-  ] ++ [ pkgs.pkgsIncludeOS.suppressTargetWarningHook ];
+  ] ++ [ suppress.targetWarningHook ];
 }
