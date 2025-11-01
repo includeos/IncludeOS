@@ -209,13 +209,18 @@ CASE("A Stat is accessible through index operator")
 CASE("stats names can only be MAX_NAME_LEN characters long")
 {
   Statman statman_;
+
   // ok
   std::string statname1 {"a.stat"};
   Stat& stat1 = statman_.create(Stat::UINT32, statname1);
+  EXPECT(stat1.name() == "a.stat");
+
   // also ok
   std::string statname2(Stat::MAX_NAME_LEN, 'x');
   Stat& stat2 = statman_.create(Stat::UINT32, statname2);
   int size_before = statman_.size();
+  EXPECT(stat2.name() == std::string(Stat::MAX_NAME_LEN, 'x'));
+
   // not ok
   std::string statname3(Stat::MAX_NAME_LEN + 1, 'y');
   EXPECT_THROWS(statman_.create(Stat::FLOAT, statname3));

@@ -72,7 +72,7 @@ public:
   void make_counter() noexcept { m_bits &= ~GAUGE_BIT; }
   void make_gauge() noexcept { m_bits |= GAUGE_BIT; }
 
-  const char* name() const noexcept { return name_; }
+  const std::string name() const noexcept { return name_; }
   bool unused() const noexcept { return name_[0] == 0; }
 
   const float&    get_float() const;
@@ -116,7 +116,7 @@ public:
   // retrieve stat based on address from stats counter: &stat.get_xxx()
   Stat& get(const Stat* addr);
   // if you know the name of a statistic already
-  Stat& get_by_name(const char* name);
+  Stat& get_by_name(std::string_view name);
   // retrieve stat or create if it doesnt exists
   Stat& get_or_create(const Stat::Stat_type type, const std::string& name);
   // free/delete stat based on address from stats counter
