@@ -40,6 +40,10 @@ CASE("Initialize FAT fs")
     [&lest_env] (auto err, File_system& fs)
     {
       EXPECT(!err);
+
+      EXPECT(fs.name() == "FAT32");
+      Dirent dirent = fs.stat("/");
+      EXPECT(dirent.is_valid() == true);
     });
 }
 
