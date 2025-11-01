@@ -291,10 +291,9 @@ CASE ("os::mem page table destructors")
   delete[] ars;
 
   EXPECT(sizeof(Pml4) <= 4096 * 2);
-  EXPECT(sizeof(ars)  <= 8 * sizeof(Pml4));
+  EXPECT(sizeof(ars)  <= 8 * sizeof(Pml4));  // NOLINT(bugprone-sizeof-expression)
   std::array<Pml4, 8> stack_tbls{{0}};
 
-  int it = 0;
   for (auto& tbl : tbls)
   {
     tbl = new Pml4(0);
@@ -302,8 +301,6 @@ CASE ("os::mem page table destructors")
   }
 
   for (auto& tbl : tbls) delete tbl;
-
-
 }
 
 
@@ -384,6 +381,7 @@ CASE("os::mem::protect try to break stuff"){
   EXPECT(__pml4 == nullptr);
   __pml4 = new x86::paging::Pml4(0);
   EXPECT(__pml4->is_empty());
+
   auto initial_use = __pml4->bytes_allocated();
   MYINFO("Initial memory use: %zi \n", initial_use);
 
@@ -417,14 +415,14 @@ CASE("os::mem::protect try to break stuff"){
     // Unmap
     mem::unmap(m.lin);
     EXPECT(__pml4->bytes_allocated() <= bytes_after_map);
-    auto bytes_after_unmap = __pml4->bytes_allocated();
+    [[maybe_unused]] auto bytes_after_unmap = __pml4->bytes_allocated();
     MYINFO("Allocated bytes after unmap: %zi == %zi tables\n",
            bytes_after_unmap, bytes_after_unmap / sizeof(decltype(*__pml4)));
 
     // Purge unused
     __pml4->purge_unused();
 
-    auto bytes_after_purge = __pml4->bytes_allocated();
+    [[maybe_unused]] auto bytes_after_purge = __pml4->bytes_allocated();
     MYINFO("Allocated bytes after purge: %zi == %zi tables\n",
            bytes_after_purge, bytes_after_purge / sizeof(decltype(*__pml4)));
 

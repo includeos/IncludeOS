@@ -85,7 +85,6 @@ CASE("Filling the buffer")
   using namespace net::tcp;
   const seq_t SEQ_START = 322;
   seq_t SEQ = SEQ_START;
-  const size_t BUFSZ = MIN_BUFSZ;
 
   Read_buffer buf{SEQ, MIN_BUFSZ, MAX_BUFSZ};
 

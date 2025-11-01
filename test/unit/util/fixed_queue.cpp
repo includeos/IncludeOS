@@ -33,7 +33,7 @@ SETUP("fixed_queue test_basic")
 	SECTION("fold on uninitialized")
 	{
 		size_t count_folds{};
-		fq.fold([&count_folds](const auto& val) -> void { ++count_folds; });
+		fq.fold([&count_folds](const auto& val) -> void { (void) val; ++count_folds; });
 		EXPECT(count_folds == 0);
 	}
 
