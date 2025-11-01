@@ -296,6 +296,18 @@ CASE("The delegate operator() uses correct argument type forwarding")
 	test_arg_fwd(del_t{ &ccw, &count_ctor_wrap::foo });
 }
 
+CASE("The delegate capture semantics understand value vs reference semantics") {
+	using del_t = delegate<int()>;
+	int val = 3;
+
+	auto by_val = del_t{ [val] { return val; } };
+	auto by_ref = del_t{ [&val] { return val; } };
+
+	val = 42;
+	EXPECT(by_val() == 3);
+	EXPECT(by_ref() == 42);
+}
+
 CASE("A delegate can be constructed with a mutable lambda")
 {
 	using del_t = delegate<int()>;
