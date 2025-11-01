@@ -285,7 +285,10 @@ CASE ("os::mem page table destructors")
   delete ptr;
 
   std::array<int*, 1000> ints {};
+  EXPECT(ints.size() == 1000);
+
   std::array<Pml4*, 8> tbls {};
+  EXPECT(sizeof(tbls)== 8*sizeof(Pml4*));
 
   Pml4* ars = new Pml4[8];
   delete[] ars;
@@ -389,6 +392,8 @@ CASE("os::mem::protect try to break stuff"){
     auto lin  = 3 % 2 ? (uintptr_t)r % (1_GiB) : (uintptr_t)r % 2_MiB;
     auto phys = 1_MiB + r % 100_MiB;
     auto size = 4_KiB + (r % 2 ? r % 2_GiB : r % 4_MiB);
+
+    EXPECT(__pml4->flags_r(lin) == x86::paging::to_x86(init_access));
 
     mem::Map req;
     req.lin   = util::bits::roundto<4_KiB>(lin);

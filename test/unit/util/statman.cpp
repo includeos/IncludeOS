@@ -63,7 +63,14 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
 
   // create more stats
   Stat& stat2 = statman_.create(Stat::UINT64, "net.tcp.bytes_transmitted");
+  EXPECT(std::string(stat2.name()) == "net.tcp.bytes_transmitted");
+  EXPECT(stat2.type() == Stat::UINT64);
+  EXPECT(stat2.get_uint64() == 0);
+
   Stat& stat3 = statman_.create(Stat::FLOAT, "net.tcp.average");
+  EXPECT(std::string(stat3.name()) == "net.tcp.average");
+  EXPECT(stat3.type() == Stat::FLOAT);
+  EXPECT(stat3.get_float() == 0);
   ++stat3;
   stat3.get_float()++;
 
