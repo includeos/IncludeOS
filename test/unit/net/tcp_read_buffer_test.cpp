@@ -132,8 +132,10 @@ CASE("Reseting the buffer")
 
   size_t written = 0;
 
-  SEQ += buf.insert(SEQ, (uint8_t*)str1.data(), str1.size(), true);
+  written += buf.insert(SEQ, (uint8_t*)str1.data(), str1.size(), true);
+  SEQ += written;
 
+  EXPECT(buf.size() == written);
   EXPECT(buf.size() == str1.size());
   EXPECT(buf.is_ready());
 

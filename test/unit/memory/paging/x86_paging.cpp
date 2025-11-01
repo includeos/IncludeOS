@@ -531,6 +531,9 @@ CASE ("x86::paging Verify default paging setup")
       // Map 4k-aligned sizes
       auto addr = (rand() & ~(4_KiB -1));
       auto map = __pml4->map_r({addr, addr, Flags::present, increment});
+      EXPECT(map);
+      EXPECT(has_flag(map.flags, x86::paging::Flags::present) == true);
+      EXPECT(map.size >= increment);
 
       auto summary_pre = __pml4->summary();
       auto* pml3_ent2  = __pml4->entry(513_GiB);
@@ -615,6 +618,7 @@ CASE ("x86::paging Verify default paging setup")
       auto diff_4k = summary_post.pages_4k - summary_pre.pages_4k;
 
       EXPECT(kb_pages_found == summary_post.pages_4k);
+      EXPECT(page_dirs_found == summary_post.dirs_512g + summary_post.dirs_2m + summary_post.dirs_1g);
       EXPECT(diff_4k == sum_pml3.pages_4k);
       EXPECT(sum_pml3.pages_1g == 0);
       EXPECT(sum_pml3.pages_2m == 0);

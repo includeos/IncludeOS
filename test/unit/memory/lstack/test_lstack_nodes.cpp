@@ -112,6 +112,7 @@ CASE("lstack::nodes: testing lstack<no_merge> node traversal")
   print_summary(heap);
   EXPECT(heap.find_prior(pop1) == nullptr);
   auto pr2 = heap.find_prior(pop2);
+  EXPECT(pr2 == heap.find_prior(pop2));
   EXPECT(heap.find_prior(pop2) == pop1);
 }
 
@@ -195,6 +196,7 @@ CASE("lstack::nodes: testing lstack<merge> node traversal")
   print_summary(heap);
   EXPECT(heap.find_prior(pop1) == nullptr);
   auto pr2 = heap.find_prior(pop2);
+  EXPECT(pr2 == heap.find_prior(pop2));
   EXPECT(heap.find_prior(pop2) == pop1);
 
   print_summary(heap);

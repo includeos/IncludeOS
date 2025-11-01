@@ -71,6 +71,8 @@ namespace fs
       return "Invalid fat type";
     }
 
+    bool is_valid() const noexcept override { return initialized_; };
+
     uint64_t block_size() const noexcept override
     { return device.block_size(); }
     /// ----------------------------------------------------- ///
@@ -111,6 +113,8 @@ namespace fs
 
     // initialize filesystem by providing base sector
     void init(const void* base_sector);
+    bool initialized_{false};
+
     // return a list of entries from directory entries at @sector
     typedef delegate<void(error_t, Dirvec_ptr)> on_internal_ls_func;
     void int_ls(uint32_t sector, Dirvec_ptr, on_internal_ls_func) const;

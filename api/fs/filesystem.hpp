@@ -71,6 +71,9 @@ namespace fs {
     /** Returns the name of this filesystem */
     virtual std::string name() const = 0;
 
+    /** Tells us is the filesystem is ok */
+    virtual bool is_valid() const noexcept { return false; };
+
     /** Returns the block size of this filesystem */
     virtual uint64_t block_size() const = 0;
 

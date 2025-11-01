@@ -598,11 +598,16 @@ CASE("lstack::" STR(LSTACK_OPT) " random allocs") {
   data = 'A';
   for (auto a : allocs) {
     // Verify data consistency
-    char* c = (char*)a.ptr;
+    char* c = static_cast<char*>(a.ptr);
+    EXPECT(*c == data);
+    EXPECT(reinterpret_cast<uintptr_t>(c) >= heap.pool_begin());
+    EXPECT(reinterpret_cast<uintptr_t>(c) <= heap.pool_end());
+
     std::string A (a.size, data);
     std::string B {(const char*)a.ptr, a.size};
     EXPECT(A == B);
     EXPECT(A.size() > 0);
+
     data++;
 
     // Deallocate and verify size
