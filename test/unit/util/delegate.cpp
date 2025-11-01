@@ -288,8 +288,8 @@ CASE("The delegate operator() uses correct argument type forwarding")
 
 	int val = 3;
 	test_arg_fwd(del_t{ [](count_ctor arg) { return arg; } });
-  test_arg_fwd(del_t{ [val](count_ctor arg) { return arg; } });
-  test_arg_fwd(del_t{ [&val](count_ctor arg) { return arg; } });
+	test_arg_fwd(del_t{ [val](count_ctor arg) { (void) val; return arg; } });
+	test_arg_fwd(del_t{ [&val](count_ctor arg) { (void) val; return arg; } });
 
 	count_ctor_wrap ccw{};
 	test_arg_fwd(del_t{ ccw, &count_ctor_wrap::foo });

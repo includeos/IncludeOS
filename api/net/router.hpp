@@ -214,8 +214,9 @@ namespace net {
         bytes_fwd{Statman::get().get_or_create(Stat::UINT64, "router.bytes_fwd").get_uint64()}
     {
       INFO("Router", "Router created with %lu routes", tbl.size());
-      for(auto& route : routing_table_)
+      for([[maybe_unused]] auto& route : routing_table_) {
         INFO2("%s", route.to_string().c_str());
+      }
     }
 
     void set_routing_table(Routing_table tbl) {

@@ -184,7 +184,6 @@ CASE("net::router: Actual routing verifying TTL")
 
   const Socket src{ip4::Addr{10,0,1,10}, 32222};
   const Socket dst{ip4::Addr{10,0,2,10}, 80};
-  const uint8_t DEFAULT_TTL = PacketIP4::DEFAULT_TTL;
 
   // Here we gonna receive the ICMP TTL Exceeded ONCE
   static int time_exceeded_count = 0;

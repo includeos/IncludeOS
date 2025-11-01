@@ -110,7 +110,7 @@ CASE("VFS can mount entries in a tree")
   EXPECT(fs::VFS::root().child_count() == 3);
 
   // get mounted objects of correct type
-  char our_char;
+  [[maybe_unused]] char our_char;
   EXPECT_THROWS(auto dir = fs::get<fs::Dirent>("/mnt/chars/c"));
   EXPECT_NO_THROW(our_char = fs::get<char>("/mnt/chars/c"));
 }

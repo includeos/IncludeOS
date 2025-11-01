@@ -252,7 +252,7 @@ CASE("Various stat to_string()")
   ++stat1;
   ++stat2;
   ++stat3;
-  
+
   EXPECT(stat1.to_string() == std::to_string(1u));
   EXPECT(stat2.to_string() == std::to_string(1ul));
   EXPECT(stat3.to_string() == std::to_string(1.0f));
