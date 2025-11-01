@@ -111,7 +111,7 @@ Stat& Statman::get(const Stat* st)
   throw std::out_of_range("Not a valid stat in this statman instance");
 }
 
-Stat& Statman::get_by_name(const char* name)
+Stat& Statman::get_by_name(const std::string_view name)
 {
 #ifdef INCLUDEOS_SMP_ENABLE
   std::lock_guard<Spinlock> lock(this->stlock);
@@ -119,7 +119,7 @@ Stat& Statman::get_by_name(const char* name)
   for (auto& stat : this->m_stats)
   {
     if (stat.unused() == false) {
-      if (strncmp(stat.name(), name, Stat::MAX_NAME_LEN) == 0)
+      if (stat.name() == name)
         return stat;
     }
   }
@@ -129,7 +129,7 @@ Stat& Statman::get_by_name(const char* name)
 Stat& Statman::get_or_create(const Stat::Stat_type type, const std::string& name)
 {
   try {
-    auto& stat = get_by_name(name.c_str());
+    auto& stat = get_by_name(name);
     if(type == stat.type())
       return stat;
   }
