@@ -76,22 +76,22 @@ static void* __sys_mmap(/*const*/ uintptr_t addr, const size_t length, const os:
 
   // TODO(mazunki): this is unnecessary when ::Sharing becomes a real type
   if (util::has_flag(flags, Sharing::Private) == util::has_flag(flags, Sharing::Shared)) {
-    Expects(false && "sys_mmap: mapping must be either Private xor Shared");
+    Expectsf(false, "sys_mmap: mapping must be either Private xor Shared");
     return mmap_failed(EINVAL);
   }
 
   if (length == 0) {
-    Expects(false && "Mapping must never allocate 0 bytes");
+    Expectsf(false, "Mapping must never allocate 0 bytes");
       return mmap_failed(EINVAL);
   }
 
   if (util::has_flag(Flags::Anonymous)) {
     if (file_descriptor) {
-      Expects(false && "Anonymous mappings must set fd=-1");  // TODO(mazunki): rename -1 when signature changes
+      Expectsf(false, "Anonymous mappings must set fd=-1, got fd={}", file_descriptor.value());  // TODO(mazunki): rename -1 when signature changes
       return mmap_failed(EINVAL);
     }
     if (offset != 0) {
-      Expects(false && "Anonymous mappings should have offset=0");
+      Expectsf(false, "Anonymous mappings should have offset=0, got offset={}", offset);
       return mmap_failed(EINVAL);
     }
   }
@@ -108,12 +108,12 @@ static void* __sys_mmap(/*const*/ uintptr_t addr, const size_t length, const os:
   // https://pubs.opengroup.org/onlinepubs/009695399/functions/mmap.html
 
   if (file_descriptor) {
-    Expects(false && "Mapping to file descriptor is not yet implemented");
+    Expectsf(false, "Mapping to file descriptor is not yet implemented, got fd={}", file_descriptor.value());
     return mmap_failed(ENOTSUP);
   }
 
   if (util::missing_flag(flags, Sharing::Anonymous)) {
-    Expects(false && "Support for non-MAP_ANONYMOUS mappings is not yet implemented");
+    Expectsf(false, "Support for non-MAP_ANONYMOUS mappings is not yet implemented");
     return mmap_failed(ENOTSUP);
   }
 
@@ -131,16 +131,16 @@ static void* __sys_mmap(/*const*/ uintptr_t addr, const size_t length, const os:
     const bool do_override = util::has_flag(flags, Flags::FixedOverride) ? true : false;
 
     return mmap_failed(ENOTSUP);
-    // res = kalloc_fixed(reinterpret_cast<void*>(addr), len_rounded, /*permit_override=*/true);
+    // res = kalloc_fixed(reinterpret_cast<void*>(addr), len_rounded, do_override);
 
   } else {
     if (util::has_flag(flags, Flags::Private)) {
       if (util::missing_flag(flags, Flags::Anonymous)) {
-        Expects(false && "Support for MAP_PRIVATE other than with MAP_ANONYMOUS is not yet implemented");
+        Expectsf(false, "Support for MAP_PRIVATE other than with MAP_ANONYMOUS is not yet implemented");
         return mmap_failed(ENOTSUP);
       }
       if (addr != 0) {
-        Expects(false && "Support for MAP_PRIVATE other than for new allocations (addr=0) is not yet implemented");
+        Expectsf(false, "Support for MAP_PRIVATE other than for new allocations (addr=0) is not yet implemented. Got addr={}", addr);
         return mmap_failed(ENOTSUP);
       }
     }
