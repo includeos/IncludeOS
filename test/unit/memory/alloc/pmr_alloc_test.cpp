@@ -61,8 +61,9 @@ CASE("pmr::Pmr_pool usage") {
   for (auto i : test::random)
     numbers.push_back(i);
 
-  for (auto i = 0; i < numbers.size(); i++)
+  for (size_t i = 0; i < numbers.size(); i++) {
     EXPECT(numbers.at(i) == test::random.at(i));
+  }
 
   EXPECT(res->allocatable() <= sub_free - 1000);
 
@@ -305,7 +306,7 @@ CASE("pmr::on_non_full event") {
   event_fired = false;
   EXPECT(not event_fired);
 
-  for (int i = 2; i < pool_cap / 2; i++) {
+  for (size_t i = 2; i < pool_cap / 2; i++) {
     numbers.push_back(i);
   }
 
@@ -356,7 +357,7 @@ CASE("pmr::on_avail event") {
   event_fired = false;
   EXPECT(not event_fired);
 
-  for (int i = 2; i < 40_KiB; i++) {
+  for (size_t i = 2; i < 40_KiB; i++) {
     numbers.push_back(i);
   }
 

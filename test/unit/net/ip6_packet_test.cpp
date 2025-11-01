@@ -48,7 +48,7 @@ CASE("IP6 Packet HOPLIMIT - multiple packets")
     {0xfe80, 0, 0, 0, 0x0202, 0xb3ff, 0xff1e, 0x8329},
   };
 
-  for(int i = 0; i < addrs.size()-1; i++)
+  for(size_t i = 0; i < addrs.size()-1; i++)
   {
     auto ip6 = create_ip6_packet_init(addrs[i], addrs[i+1]);
 

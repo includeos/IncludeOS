@@ -420,8 +420,9 @@ CASE("A delegate constructor can be called multiple times with the same type")
 	using del_t = delegate<int(void)>;
 
 	std::vector<del_t> vec;
-	for (int i = start; i <= end; ++i)
+	for (size_t i = start; i <= end; ++i) {
 		vec.emplace_back([i]() { return i; });
+  }
 
 	int first = vec.front()();
 	EXPECT(first == start);

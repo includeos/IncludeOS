@@ -160,7 +160,7 @@ namespace os::detail {
     }
 
     template <typename T>
-    void remove(int i) {
+    void remove(size_t i) {
       auto& vec = get_vector<T>();
       if(UNLIKELY(vec.size() < i))
         throw Machine_access_error{"Requested machine part not found: " + std::to_string(i)};
