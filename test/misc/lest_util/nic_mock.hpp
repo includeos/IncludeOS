@@ -130,7 +130,7 @@ public:
     transmit_to_physical_(std::move(pkt));
   }
 
-  void transmit(net::Packet_ptr pkt)
+  void transmit(net::Packet_ptr pkt)  // FIXME: this function is logging but not doing anything
   {
     NIC_INFO("transimtting packet");
     //tx_queue_.emplace_back(std::move(ptr));
