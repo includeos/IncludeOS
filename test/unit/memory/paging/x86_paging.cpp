@@ -354,8 +354,6 @@ CASE ("x86::paging Verify execute protection")
     EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
     EXPECT(os::mem::flags(0) == Access::none);
 
-    auto flags = os::mem::flags(__exec_begin);
-
     // .text segment has execute + read access up to next 4kb page
     EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
     EXPECT(os::mem::flags(__exec_end - 1)   == (Access::execute | Access::read));
