@@ -5,6 +5,8 @@
 #include <util/units.hpp>
 #include <mem/flags.hpp>
 #include <mem/memmap.hpp>
+#include <mem/alloc/buddy.hpp>
+#include <mem/allocator.hpp>
 #include <expects>
 #include <algorithm>
 #include <cstdio>

@@ -128,6 +128,21 @@ has_flag(E field, E flags){
   return (field & flags) == flags ;
 }
 
+// bool missing_flag(flag)
+template<typename E>
+constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
+missing_flag(E flag){
+  using base_type = typename std::underlying_type<E>::type;
+  return not static_cast<base_type>(flag);
+}
+
+// bool missing_flag(field, flags)
+template<typename E>
+constexpr typename std::enable_if<enable_bitmask_ops<E>::enable, bool>::type
+missing_flag(E field, E flags){
+  return (field & flags) != flags ;
+}
+
 
 // Enable for uint8_t
 template<>

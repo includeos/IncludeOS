@@ -53,6 +53,8 @@ namespace util {
 }
 
 namespace os::mem::buddy {
+  static constexpr size_t PAGE_SZ = 4096;
+
   using namespace util::literals;
   using namespace util::bitops;
 

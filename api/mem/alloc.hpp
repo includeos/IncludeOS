@@ -5,6 +5,7 @@
 #include <mem/allocator.hpp>
 
 namespace os::mem {
+  static constexpr size_t PAGE_SZ = 4096;  // TODO: put elsewhere
 
   using Raw_allocator = buddy::Alloc<false>;
 

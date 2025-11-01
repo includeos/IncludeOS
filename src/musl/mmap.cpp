@@ -1,19 +1,21 @@
 #include "common.hpp"
+#include "util/errno.hpp"
 #include <cstdint>
 #include <sys/mman.h>
 #include <errno.h>
-#include <mem/alloc/buddy.hpp>
 #include <os>
 #include <mem/alloc.hpp>
+#include <mem/allocator.hpp>
+#include "mem/flags.hpp"
 #include <kernel.hpp>
 #include <kprint>
 
 using Alloc = os::mem::Raw_allocator;
-static Alloc* alloc;
+static Alloc* default_allocator;
 
-Alloc& os::mem::raw_allocator() {
-  Expects(alloc);
-  return *alloc;
+os::mem::Raw_allocator& os::mem::raw_allocator() {
+  Expects(default_allocator);
+  return *default_allocator;
 }
 
 uintptr_t __init_mmap(uintptr_t addr_begin, size_t size)
@@ -21,103 +23,149 @@ uintptr_t __init_mmap(uintptr_t addr_begin, size_t size)
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
   int64_t len = size & ~int64_t(Alloc::align - 1);
 
-  alloc = Alloc::create((void*)aligned_begin, len);
+  default_allocator = Alloc::create((void*)aligned_begin, len);
   return aligned_begin + len;
 }
 
 extern "C" __attribute__((weak))
 void* kalloc(size_t size) {
   Expects(kernel::heap_ready());
-  return alloc->allocate(size);
+  return default_allocator->allocate(size);
 }
 
 extern "C" __attribute__((weak))
 void* kalloc_aligned(size_t alignment, size_t size) {
   Expects(kernel::heap_ready());
-  return alloc->do_allocate(size, alignment);
+  return default_allocator->do_allocate(size, alignment);
 }
 
 extern "C" __attribute__((weak))
 void kfree (void* ptr, size_t size) {
-  alloc->deallocate(ptr, size);
+  default_allocator->deallocate(ptr, size);
 }
 
 size_t mmap_bytes_used() {
-  return alloc->bytes_used();
+  return default_allocator->bytes_used();
 }
 
 size_t mmap_bytes_free() {
-  return alloc->bytes_free();
+  return default_allocator->bytes_free();
 }
 
 uintptr_t mmap_allocation_end() {
-  return alloc->highest_used();
+  return default_allocator->highest_used();
 }
 
-static void* sys_mmap(void * addr, size_t length, int /*prot*/, int flags,
-                      int fd, off_t /*offset*/)
+static void *mmap_failed(int _errno) {
+  kprintf("[mmap] FAIL errno=%s free=%zu used=%zu\n", util::format::errno_cstr(_errno),
+          mmap_bytes_free(), mmap_bytes_used());
+
+  errno = _errno;
+  return MAP_FAILED;
+}
+
+using Fd = std::optional<int>;  // FIXME: proper type
+
+static void* __sys_mmap(/*const*/ uintptr_t addr, const size_t length, const os::mem::Access prot,
+                        const os::mem::alloc::Flags flags, const Fd file_descriptor, const off_t offset)
 {
+  using namespace os::mem::alloc;
+  // NOTE: `must` and `should` messages in this function refer to POSIX mmap(3p)
+
+  // kprintf("[mmap] addr=%p len=%zu prot=0x%x flags=0x%x fd=%d off=%lld free=%zu used=%zu\n", _addr, length, prot, _flags, _fd, (long long)offset, mmap_bytes_free(), mmap_bytes_used());  // TODO: debugging
+
+  // TODO(mazunki): this is unnecessary when ::Sharing becomes a real type
+  if (util::has_flag(flags, Sharing::Private) == util::has_flag(flags, Sharing::Shared)) {
+    Expects(false && "sys_mmap: mapping must be either Private xor Shared");
+    return mmap_failed(EINVAL);
+  }
+
+  if (length == 0) {
+    Expects(false && "Mapping must never allocate 0 bytes");
+      return mmap_failed(EINVAL);
+  }
+
+  if (util::has_flag(Flags::Anonymous)) {
+    if (file_descriptor) {
+      Expects(false && "Anonymous mappings must set fd=-1");  // TODO(mazunki): rename -1 when signature changes
+      return mmap_failed(EINVAL);
+    }
+    if (offset != 0) {
+      Expects(false && "Anonymous mappings should have offset=0");
+      return mmap_failed(EINVAL);
+    }
+  }
+
+  // NOTE: specifying an address with non-fixed allocation is, per POSIX, only
+  // a hint. for now, we ignore this hint.
+  //
+  // this is the only reason why `uintptr_t addr` isn't const
+  if ((addr != 0) && util::missing_flag(flags, Flags::FixedOverride))  {
+    addr = 0;
+  }
 
   // TODO: Implement minimal functionality to be POSIX compliant
   // https://pubs.opengroup.org/onlinepubs/009695399/functions/mmap.html
-  if (length <= 0) {
-    Expectsf(false, "Must always allocate at least 1 byte. Got {}", length);
-    errno = EINVAL;
-    return MAP_FAILED;
+
+  if (file_descriptor) {
+    Expects(false && "Mapping to file descriptor is not yet implemented");
+    return mmap_failed(ENOTSUP);
   }
 
-  if (fd > -1) {
-    // None of our file systems support memory mapping at the moment
-    Expects(false && "Mapping to file descriptor not supported");
-    errno = ENODEV;
-    return MAP_FAILED;
+  if (util::missing_flag(flags, Sharing::Anonymous)) {
+    Expects(false && "Support for non-MAP_ANONYMOUS mappings is not yet implemented");
+    return mmap_failed(ENOTSUP);
   }
 
-  if ((flags & MAP_ANONYMOUS) == 0) {
-    Expects(false && "We only support MAP_ANONYMOUS calls to mmap()");
-    errno = ENOTSUP;
-    return MAP_FAILED;
+  void *res = nullptr;
+
+  if (util::has_flag(flags, Flags::FixedOverride) or util::has_flag(flags, Flags::FixedFriendly)) {
+    if (addr == 0) {
+      return mmap_failed(EINVAL); // invalid address
+    }
+    if ((addr % os::mem::PAGE_SZ) != 0) {
+      return mmap_failed(ENOTSUP); // invalid alignment
+    }
+
+    const size_t len_rounded = util::bits::roundto(os::mem::PAGE_SZ, length);
+    const bool do_override = util::has_flag(flags, Flags::FixedOverride) ? true : false;
+
+    return mmap_failed(ENOTSUP);
+    // res = kalloc_fixed(reinterpret_cast<void*>(addr), len_rounded, /*permit_override=*/true);
+
+  } else {
+    if (util::has_flag(flags, Flags::Private)) {
+      if (util::missing_flag(flags, Flags::Anonymous)) {
+        Expects(false && "Support for MAP_PRIVATE other than with MAP_ANONYMOUS is not yet implemented");
+        return mmap_failed(ENOTSUP);
+      }
+      if (addr != 0) {
+        Expects(false && "Support for MAP_PRIVATE other than for new allocations (addr=0) is not yet implemented");
+        return mmap_failed(ENOTSUP);
+      }
+    }
+
+    res = kalloc(length);
   }
-
-  if ((flags & MAP_FIXED) > 0) {
-    Expects(false && "MAP_FIXED not supported.");
-    errno = ENOTSUP;
-    return MAP_FAILED;
-  }
-
-  if (((flags & MAP_PRIVATE) > 0) && ((flags & MAP_ANONYMOUS) == 0)) {
-    Expects(false && "MAP_PRIVATE only supported for MAP_ANONYMOUS");
-    errno = ENOTSUP;
-    return MAP_FAILED;
-  }
-
-  if (((flags & MAP_PRIVATE) > 0) && (addr != 0)) {
-    Expects(false && "MAP_PRIVATE only supported for new allocations (address=0).");
-    errno = ENOTSUP;
-    return MAP_FAILED;
-  }
-
-  if (((flags & MAP_SHARED) == 0) && ((flags & MAP_PRIVATE) == 0)) {
-    Expects(false && "MAP_SHARED or MAP_PRIVATE must be set.");
-    errno = ENOTSUP;
-    return MAP_FAILED;
-  }
-
-  // If we get here, the following should be true:
-  // MAP_ANONYMOUS set + MAP_SHARED or MAP_PRIVATE
-  // fd should be 0, address should be 0 for MAP_PRIVATE
-  // (address is in any case ignored)
-
-  auto* res = kalloc(length);
 
   if (UNLIKELY(res == nullptr)) {
-    errno = ENOMEM;
-    return MAP_FAILED;
+    return mmap_failed(ENOMEM);
   }
 
   memset(res, 0, length);
   return res;
 }
+
+static void* sys_mmap(void *_addr, size_t length, int _prot, int _flags, int _fd, off_t offset)
+{
+  const os::mem::alloc::Flags flags = static_cast<os::mem::alloc::Flags>(_flags);
+  const os::mem::alloc::Protection prot = static_cast<os::mem::alloc::Protection>(_prot);
+  const Fd file_descriptor = (_fd == -1) ? std::nullopt : Fd(_fd);
+  const uintptr_t addr = reinterpret_cast<uintptr_t>(_addr);
+
+  return __sys_mmap(addr, length, prot, flags, file_descriptor, offset);
+}
+
 
 extern "C"
 void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
