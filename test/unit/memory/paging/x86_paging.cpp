@@ -205,7 +205,7 @@ CASE("x86::paging 4-level x86_64 paging") {
     EXPECT(__pml4->size() == 512);
 
     uintptr_t* entries = static_cast<uintptr_t*>(__pml4->data());
-    for (int i = 0; i < __pml4->size(); i++)
+    for (size_t i = 0; i < __pml4->size(); i++)
     {
       EXPECT(entries[i] == 0);
       EXPECT(__pml4->at(i) == entries[i]);
