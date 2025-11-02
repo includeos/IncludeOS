@@ -527,7 +527,7 @@ CASE("lstack::" STR(LSTACK_OPT) " allocate_back") {
   EXPECT(heap.bytes_allocated() == 0);
 
 
-  // Deallocate all but last
+  // Deallocate all but last  // FIXME: this doesn't seem to do what it says
   std::vector<alloc::Allocation> allocs;
   size_t allocated = 0;
   for (int i = 0; i < chunks - 1; i++) {

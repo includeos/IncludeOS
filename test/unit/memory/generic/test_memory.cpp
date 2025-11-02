@@ -440,7 +440,7 @@ CASE("os::mem::protect try to break stuff"){
 
 CASE("os::mem::protect verify consistency"){
   using namespace util::literals;
-  auto init_access = mem::Access::none;
+  auto init_access = mem::Access::none;  // FIXME: should probably be before and after mapping
 
   if (__pml4 != nullptr) {
     printf("NOT NULL\n");
