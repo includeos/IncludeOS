@@ -23,6 +23,9 @@
 #include <cstddef>
 #include <vector>
 #include <smp_utils>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 namespace x86 {
 
