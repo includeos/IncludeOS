@@ -238,7 +238,6 @@ exclusions=(
   "dhcpd"     # Times out, requires certain routes to be set up. Seems easy.
   "dhcpd_dhclient_linux" # We can't run userspace tests with this setup yet.
   "gateway"   # Requires NaCl which is currently not integrated
-  "http"      # Linking fails, undefined ref to http_parser_parse_url, http_parser_execute
   "microLB"   # Missing dependencies: microLB, diskbuilder, os_add_os_library
   "nat"       # Times out after 3 / 6 tests seem to pass. Might be a legit bug here.
   "router"    # Times out, requies sudo and has complex network setup.
@@ -258,6 +257,7 @@ unsandbox_list=(
   "${INTEGRATION_TESTS}/net/tcp"
   "${INTEGRATION_TESTS}/net/udp"
   "${INTEGRATION_TESTS}/net/dns"  # except this one which times out instead
+  "${INTEGRATION_TESTS}/net/http"
 )
 run_testsuite "${INTEGRATION_TESTS}/net" "${exclusions[@]}"
 unsandbox_list=()
