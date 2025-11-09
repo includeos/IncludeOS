@@ -38,6 +38,9 @@ let
       includeos.vmrunner
     else
       includeos.pkgs.callPackage (builtins.toPath /. + vmrunner) {};
+
+  suppress = includeos.pkgs.callPackage ./nix/suppress.nix {};
+  ccache = includeos.pkgs.callPackage ./nix/ccache.nix {};
 in
 includeos.stdenv.mkDerivation rec {
   pname = "includeos_example";
@@ -49,7 +52,7 @@ includeos.stdenv.mkDerivation rec {
   nativeBuildInputs = [
     includeos.pkgs.buildPackages.nasm
     includeos.pkgs.buildPackages.cmake
-  ] ++ [ includeos.pkgs.pkgsIncludeOS.suppressTargetWarningHook ];
+  ] ++ [ suppress.targetWarningHook ];
 
   buildInputs = [
     includeos
