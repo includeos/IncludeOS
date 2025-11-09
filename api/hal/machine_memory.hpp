@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <os.hpp>
-#include <util/alloc_lstack.hpp>
+#include <mem/alloc/lstack.hpp>
 
 #ifndef OS_MACHINE_MEMORY_HPP
 #define OS_MACHINE_MEMORY_HPP
