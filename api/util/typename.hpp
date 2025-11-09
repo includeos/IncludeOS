@@ -17,7 +17,7 @@
 
 #include <hal/machine.hpp>
 #include <util/units.hpp>
-#include <kernel/memory.hpp>
+#include <mem/alloc.hpp>
 #include <string>
 
 // Demangle

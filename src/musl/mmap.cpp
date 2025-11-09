@@ -2,9 +2,9 @@
 #include <cstdint>
 #include <sys/mman.h>
 #include <errno.h>
-#include <util/alloc_buddy.hpp>
+#include <mem/alloc/buddy.hpp>
 #include <os>
-#include <kernel/memory.hpp>
+#include <mem/alloc.hpp>
 #include <kernel.hpp>
 #include <kprint>
 

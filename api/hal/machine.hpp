@@ -21,7 +21,7 @@
 #include <memory>
 
 #include <arch.hpp>
-#include <util/allocator.hpp>
+#include <mem/allocator.hpp>
 
 namespace os {
   namespace detail { class Machine; }

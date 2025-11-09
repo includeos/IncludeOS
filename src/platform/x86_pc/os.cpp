@@ -23,7 +23,7 @@
 #include <os.hpp>
 #include <rtc>
 #include <kernel/events.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <kprint>
 #include <service>
 #include <cstdio>

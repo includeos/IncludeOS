@@ -1,53 +1,17 @@
-// -*- C++ -*-
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-#ifndef KERNEL_MEMORY_HPP
-#define KERNEL_MEMORY_HPP
+#ifndef MEM_VMAP_HPP
+#define MEM_VMAP_HPP
 
 #include <util/bitops.hpp>
 #include <util/units.hpp>
-#include <util/alloc_buddy.hpp>
-#include <util/allocator.hpp>
-#include <sstream>
+#include <mem/flags.hpp>
+#include <mem/memmap.hpp>
 #include <expects>
-#include <kernel/memmap.hpp>
+#include <algorithm>
+#include <cstdio>
+#include <stdexcept>
+#include <string>
 
 namespace os::mem {
-
-  /** POSIX mprotect compliant access bits **/
-  enum class Access : uint8_t {
-    none = 0,
-    read = 1,
-    write = 2,
-    execute = 4
-  };
-
-  using Raw_allocator = buddy::Alloc<false>;
-
-  /** Get default allocator for untyped allocations */
-  Raw_allocator& raw_allocator();
-
-  template <typename T>
-  using Typed_allocator = Allocator<T, Raw_allocator>;
-
-  /** Get default std::allocator for typed allocations */
-  template <typename T>
-  Typed_allocator<T> system_allocator() { return Typed_allocator<T>(raw_allocator()); }
 
   /** Get bitfield with bit set for each supported page size */
   uintptr_t supported_page_sizes();
@@ -69,15 +33,14 @@ namespace os::mem {
    * For interfacing with the virtual memory API, e.g. mem::map / mem::protect.
    **/
   template <typename Fl = Access>
-  struct Mapping
-  {
+  struct Mapping {
     static const size_t any_size;
 
     uintptr_t lin  = 0;
     uintptr_t phys = 0;
-    Fl flags {};
-    size_t size = 0;
-    size_t page_sizes = 0;
+    Fl        flags {};
+    size_t    size = 0;
+    size_t    page_sizes = 0;
 
     // Constructors
     Mapping() = default;
@@ -101,15 +64,13 @@ namespace os::mem {
     inline size_t max_psize() const noexcept;
 
     std::string to_string() const;
-
-  }; // struct Mapping<>
+  };
 
   using Map = Mapping<>;
 
   /** Exception class possibly used by various ::mem functions. **/
   class Memory_exception : public std::runtime_error
-  { using runtime_error::runtime_error; };
-
+  { using std::runtime_error::runtime_error; };
 
   /**
    * Map linear address to physical memory, according to provided Mapping.
@@ -130,7 +91,9 @@ namespace os::mem {
 
   /** Determine active page size of a given linear address **/
   uintptr_t active_page_size(uintptr_t addr);
-  uintptr_t active_page_size(void* addr);
+  inline uintptr_t active_page_size(void* addr) {
+    return active_page_size((uintptr_t) addr);
+  }
 
   /**
    * Set and return access flags for a given linear address range.
@@ -157,92 +120,70 @@ namespace os::mem {
    **/
   Access protect_page(uintptr_t linear, Access flags = Access::read);
 
-
   /** Get the physical address to which linear address is mapped **/
   uintptr_t virt_to_phys(uintptr_t linear);
 
-  void virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label);
+  inline void virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label)
+  {
+    using namespace util::bitops;
+    const auto flags = os::mem::Access::read | os::mem::Access::write;
+    // setup @dst as new virt area for @src
+    os::mem::map({dst, src, flags, size}, label);
+    // unpresent @src
+    os::mem::protect(src, size, os::mem::Access::none);
+  }
 
   /** Virtual memory map **/
   inline Memory_map& vmmap() {
     // TODO Move to machine
     static Memory_map memmap;
     return memmap;
-  };
-
-  bool heap_ready();
-
-} // os::mem
+  }
 
 
-
-
-
-// Enable bitwise ops on access flags
-namespace util {
-inline namespace bitops {
-  template<>
-  struct enable_bitmask_ops<os::mem::Access> {
-    using type = typename std::underlying_type<os::mem::Access>::type;
-    static constexpr bool enable = true;
-  };
-}
-}
-
-
-namespace os::mem {
 
   //
-  // mem::Mapping implementation
+  // Mapping implementation
   //
+  template <typename Fl>
+  inline Mapping<Fl>::Mapping(uintptr_t linear, uintptr_t physical, Fl fl, size_t sz)
+    : lin{linear}, phys{physical}, flags{fl}, size{sz}, page_sizes{any_size} {}
 
   template <typename Fl>
-  Mapping<Fl>::Mapping(uintptr_t linear, uintptr_t physical, Fl fl, size_t sz)
-      : lin{linear}, phys{physical}, flags{fl}, size{sz},
-        page_sizes{any_size} {}
+  inline Mapping<Fl>::Mapping(uintptr_t linear, uintptr_t physical, Fl fl, size_t sz, size_t psz)
+    : lin{linear}, phys{physical}, flags{fl}, size{sz}, page_sizes{psz} {}
 
   template <typename Fl>
-  Mapping<Fl>::Mapping(uintptr_t linear, uintptr_t physical, Fl fl, size_t sz, size_t psz)
-    : lin{linear}, phys{physical}, flags{fl}, size{sz}, page_sizes{psz}
-    {}
+  inline bool Mapping<Fl>::operator==(const Mapping& rhs) const noexcept {
+    return lin == rhs.lin
+        && phys == rhs.phys
+        && flags == rhs.flags
+        && size == rhs.size
+        && page_sizes == rhs.page_sizes;
+  }
 
   template <typename Fl>
-  bool Mapping<Fl>::operator==(const Mapping& rhs) const noexcept
-  { return lin == rhs.lin
-      && phys == rhs.phys
-      && flags == rhs.flags
-      && size == rhs.size
-      && page_sizes == rhs.page_sizes; }
+  inline Mapping<Fl>::operator bool() const noexcept {
+    return size != 0 && page_sizes != 0;
+  }
 
   template <typename Fl>
-  Mapping<Fl>::operator bool() const noexcept
-  { return size != 0 && page_sizes !=0; }
+  inline bool Mapping<Fl>::operator!=(const Mapping& rhs) const noexcept {
+    return !(*this == rhs);
+  }
 
   template <typename Fl>
-  bool Mapping<Fl>::operator!=(const Mapping& rhs) const noexcept
-  { return ! (*this == rhs); }
-
-  template <typename Fl>
-  Mapping<Fl> Mapping<Fl>::operator+(const Mapping& rhs) noexcept
-  {
+  inline Mapping<Fl> Mapping<Fl>::operator+(const Mapping& rhs) noexcept {
     using namespace util::bitops;
     Mapping res;
 
     // Adding with empty map behaves like 0 + x / x + 0.
-    if (! rhs) {
-      return *this;
-    }
-
-    if (! *this)
-      return rhs;
-
-    if (res == rhs)
-      return res;
+    if (not rhs) return *this;
+    if (not *this) return rhs;
+    if (res == rhs) return res;
 
     // The mappings must have connecting ranges
-    if ((rhs.lin + rhs.size != lin)
-        and lin + size != rhs.lin)
-    {
+    if ((rhs.lin + rhs.size != lin) and (lin + size != rhs.lin)) {
       Ensures(!res);
       return res;
     }
@@ -253,37 +194,35 @@ namespace os::mem {
 
     // The mappings can span several page sizes
     res.page_sizes |= rhs.page_sizes;
-    if (page_sizes && page_sizes != rhs.page_sizes)
-    {
+    if (page_sizes && page_sizes != rhs.page_sizes) {
       res.page_sizes |= page_sizes;
     }
 
-    res.size = size + rhs.size;
+    res.size  = size + rhs.size;
     res.flags = flags & rhs.flags;
 
-    if (rhs)
-      Ensures(res);
-
+    if (rhs) Ensures(res);
     return res;
   }
 
   template <typename Fl>
-  Mapping<Fl> Mapping<Fl>::operator+=(const Mapping& rhs) noexcept {
+  inline Mapping<Fl> Mapping<Fl>::operator+=(const Mapping& rhs) noexcept {
     *this = *this + rhs;
     return *this;
   }
 
   template <typename Fl>
-  size_t Mapping<Fl>::min_psize() const noexcept
-  { return util::bits::keepfirst(page_sizes); }
+  inline size_t Mapping<Fl>::min_psize() const noexcept {
+    return util::bits::keepfirst(page_sizes);
+  }
 
   template <typename Fl>
-  size_t Mapping<Fl>::max_psize() const noexcept
-  { return util::bits::keeplast(page_sizes); }
+  inline size_t Mapping<Fl>::max_psize() const noexcept {
+    return util::bits::keeplast(page_sizes);
+  }
 
   template <typename Fl>
-  inline std::string Mapping<Fl>::to_string() const
-  {
+  inline std::string Mapping<Fl>::to_string() const {
     using namespace util::literals;
     char buffer[1024];
     int len = snprintf(buffer, sizeof(buffer),
@@ -299,47 +238,35 @@ namespace os::mem {
                       " (%lu pages á %s)",
                       size / page_sizes,
                       util::Byte_r(page_sizes).to_string().c_str());
-    }
-    else {
+    } else {
       len += snprintf(buffer + len, sizeof(buffer) - len,
               " (page sizes: %s)", page_sizes_str(page_sizes).c_str());
     }
-
     return std::string(buffer, len);
   }
 
-  inline std::string page_sizes_str(size_t bits)
-  {
+  inline std::string page_sizes_str(size_t bits) {
     using namespace util::literals;
     if (bits == 0) return "None";
 
     std::string out;
-    while (bits){
-      auto ps = 1 << (__builtin_ffsl(bits) - 1);
-      bits &= ~ps;
-      out += util::Byte_r(ps).to_string();
-      if (bits)
-        out += ", ";
-    }
+    while (bits) {
+      // index of lowest set bit (well-defined because bits != 0 here)
+      const unsigned tz = std::countr_zero(bits);
 
+      // convert that bit to the corresponding power-of-two size
+      const std::size_t ps = 1 << tz;
+
+      // and remove that bit from the input
+      bits &= ~ps;
+
+      // append formatted size; add a comma if there are more bits left
+      std::format_to(std::back_inserter(out), "{}", util::Byte_r(ps).to_string());
+      if (bits) out += ", ";
+    }
     return out;
   }
 
-  inline uintptr_t active_page_size(void* addr) {
-    return active_page_size((uintptr_t) addr);
-  }
+} // namespace os::mem
 
-  inline void
-  virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label)
-  {
-    using namespace util::bitops;
-    const auto flags = os::mem::Access::read | os::mem::Access::write;
-    // setup @dst as new virt area for @src
-    os::mem::map({dst, src, flags, size}, label);
-    // unpresent @src
-    os::mem::protect(src, size, os::mem::Access::none);
-  }
-}
-
-
-#endif
+#endif // MEM_VMAP_HPP
