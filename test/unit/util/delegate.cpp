@@ -288,12 +288,24 @@ CASE("The delegate operator() uses correct argument type forwarding")
 
 	int val = 3;
 	test_arg_fwd(del_t{ [](count_ctor arg) { return arg; } });
-  test_arg_fwd(del_t{ [val](count_ctor arg) { return arg; } });
-  test_arg_fwd(del_t{ [&val](count_ctor arg) { return arg; } });
+	test_arg_fwd(del_t{ [val](count_ctor arg) { (void) val; return arg; } });
+	test_arg_fwd(del_t{ [&val](count_ctor arg) { (void) val; return arg; } });
 
 	count_ctor_wrap ccw{};
 	test_arg_fwd(del_t{ ccw, &count_ctor_wrap::foo });
 	test_arg_fwd(del_t{ &ccw, &count_ctor_wrap::foo });
+}
+
+CASE("The delegate capture semantics understand value vs reference semantics") {
+	using del_t = delegate<int()>;
+	int val = 3;
+
+	auto by_val = del_t{ [val] { return val; } };
+	auto by_ref = del_t{ [&val] { return val; } };
+
+	val = 42;
+	EXPECT(by_val() == 3);
+	EXPECT(by_ref() == 42);
 }
 
 CASE("A delegate can be constructed with a mutable lambda")
@@ -420,8 +432,9 @@ CASE("A delegate constructor can be called multiple times with the same type")
 	using del_t = delegate<int(void)>;
 
 	std::vector<del_t> vec;
-	for (int i = start; i <= end; ++i)
+	for (size_t i = start; i <= end; ++i) {
 		vec.emplace_back([i]() { return i; });
+  }
 
 	int first = vec.front()();
 	EXPECT(first == start);

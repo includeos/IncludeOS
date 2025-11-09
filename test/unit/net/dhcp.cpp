@@ -57,7 +57,9 @@ CASE("Create DHCP request")
   static bool done = false;
   inet.on_config(
     [] (net::Inet& inet) {
-      //assert(inet.ip_addr() == net::ip4::Addr{10,0,0,1});
+      //assert((inet.ip_addr() == net::ip4::Addr{10,0,0,1}));
+      assert((inet.ip_addr() != net::ip4::Addr{0,0,0,0}));
+      assert((inet.ip_addr() != net::ip4::Addr{255,255,255,255}));
       printf("Configured!\n");
       done = true;
     });

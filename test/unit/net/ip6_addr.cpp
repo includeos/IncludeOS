@@ -43,7 +43,7 @@ CASE("Create IP6 addresses from strings")
 {
   Addr addr1 { 0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd };
   Addr addr2 { 0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x84aa };
-  Addr addr3 { };
+
   //lowercase test
   std::string valid_addr_string1{"fe80:0000:0000:0000:e823:fcff:fef4:85bd"};
   std::string valid_addr_short_string1{"fe80::e823:fcff:fef4:85bd"};
@@ -57,7 +57,7 @@ CASE("Create IP6 addresses from strings")
   EXPECT (valid_addr1 == addr1);
   EXPECT (valid_addr2 == addr2);
 
-  EXPECT (Addr{valid_addr_short_string1}== addr1);
+  EXPECT (Addr{valid_addr_short_string1} == addr1);
   EXPECT (Addr{valid_addr_short_string2} == addr2);
 
   std::string invalid_addr_string1 {"CAFEBABE::e823:fcff:fef4::85bd"};

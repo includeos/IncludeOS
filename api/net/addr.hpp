@@ -122,6 +122,19 @@ public:
   bool operator<=(const Addr& other) const noexcept
   { return (*this < other or *this == other); }
 
+
+  bool operator==(const net::ip4::Addr& other) const noexcept
+  { return ip4_.addr == other; }
+
+  bool operator!=(const net::ip4::Addr& other) const noexcept
+  { return ip4_.addr != other; }
+
+  bool operator==(const net::ip6::Addr& other) const noexcept
+  { return ip6_ == other; }
+
+  bool operator!=(const net::ip6::Addr& other) const noexcept
+  { return ip6_ != other; }
+
 private:
   struct {
     uint64_t  big;
@@ -134,5 +147,11 @@ private:
 };
 
 static_assert(sizeof(Addr) == sizeof(ip6::Addr));
+
+inline bool operator==(const ip4::Addr& lhs, const Addr& rhs) noexcept { return rhs == lhs; }
+inline bool operator!=(const ip4::Addr& lhs, const Addr& rhs) noexcept { return !(lhs == rhs); }
+
+inline bool operator==(const ip6::Addr& lhs, const Addr& rhs) noexcept { return rhs == lhs; }
+inline bool operator!=(const ip6::Addr& lhs, const Addr& rhs) noexcept { return !(lhs == rhs); }
 
 }

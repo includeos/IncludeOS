@@ -535,4 +535,34 @@ namespace net {
   };
 }
 
+namespace net::ip4 {
+  inline bool operator==(const net::ip4::Addr& lhs, const net::Inet& rhs) noexcept {
+    return lhs == rhs.ip_addr();
+  }
+  inline bool operator==(const net::Inet& lhs, const net::ip4::Addr& rhs) noexcept {
+    return lhs.ip_addr() == rhs;
+  }
+  inline bool operator!=(const net::ip4::Addr& lhs, const net::Inet& rhs) noexcept {
+    return !(lhs == rhs);
+  }
+  inline bool operator!=(const net::Inet& lhs, const net::ip4::Addr& rhs) noexcept {
+    return !(lhs == rhs);
+  }
+}  // namespace net::ip4
+
+namespace net::ip6 {
+  inline bool operator==(const net::ip6::Addr& lhs, const net::Inet& rhs) noexcept {
+      return lhs == rhs.ip6_addr();
+  }
+  inline bool operator==(const net::Inet& lhs, const net::ip6::Addr& rhs) noexcept {
+      return lhs.ip6_addr() == rhs;
+  }
+  inline bool operator!=(const net::ip6::Addr& lhs, const net::Inet& rhs) noexcept {
+      return !(lhs == rhs);
+  }
+  inline bool operator!=(const net::Inet& lhs, const net::ip6::Addr& rhs) noexcept {
+      return !(lhs == rhs);
+  }
+} // namespace net::ip6
+
 #endif

@@ -63,7 +63,14 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
 
   // create more stats
   Stat& stat2 = statman_.create(Stat::UINT64, "net.tcp.bytes_transmitted");
+  EXPECT(std::string(stat2.name()) == "net.tcp.bytes_transmitted");
+  EXPECT(stat2.type() == Stat::UINT64);
+  EXPECT(stat2.get_uint64() == 0);
+
   Stat& stat3 = statman_.create(Stat::FLOAT, "net.tcp.average");
+  EXPECT(std::string(stat3.name()) == "net.tcp.average");
+  EXPECT(stat3.type() == Stat::FLOAT);
+  EXPECT(stat3.get_float() == 0);
   ++stat3;
   stat3.get_float()++;
 
@@ -209,13 +216,18 @@ CASE("A Stat is accessible through index operator")
 CASE("stats names can only be MAX_NAME_LEN characters long")
 {
   Statman statman_;
+
   // ok
   std::string statname1 {"a.stat"};
   Stat& stat1 = statman_.create(Stat::UINT32, statname1);
+  EXPECT(stat1.name() == "a.stat");
+
   // also ok
   std::string statname2(Stat::MAX_NAME_LEN, 'x');
   Stat& stat2 = statman_.create(Stat::UINT32, statname2);
   int size_before = statman_.size();
+  EXPECT(stat2.name() == std::string(Stat::MAX_NAME_LEN, 'x'));
+
   // not ok
   std::string statname3(Stat::MAX_NAME_LEN + 1, 'y');
   EXPECT_THROWS(statman_.create(Stat::FLOAT, statname3));
@@ -252,7 +264,7 @@ CASE("Various stat to_string()")
   ++stat1;
   ++stat2;
   ++stat3;
-  
+
   EXPECT(stat1.to_string() == std::to_string(1u));
   EXPECT(stat2.to_string() == std::to_string(1ul));
   EXPECT(stat3.to_string() == std::to_string(1.0f));

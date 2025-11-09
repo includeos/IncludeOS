@@ -205,7 +205,7 @@ CASE("x86::paging 4-level x86_64 paging") {
     EXPECT(__pml4->size() == 512);
 
     uintptr_t* entries = static_cast<uintptr_t*>(__pml4->data());
-    for (int i = 0; i < __pml4->size(); i++)
+    for (size_t i = 0; i < __pml4->size(); i++)
     {
       EXPECT(entries[i] == 0);
       EXPECT(__pml4->at(i) == entries[i]);
@@ -353,8 +353,6 @@ CASE ("x86::paging Verify execute protection")
     EXPECT(__pml4->active_page_size(0LU) == 4_KiB);
     EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
     EXPECT(os::mem::flags(0) == Access::none);
-
-    auto flags = os::mem::flags(__exec_begin);
 
     // .text segment has execute + read access up to next 4kb page
     EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
@@ -533,6 +531,9 @@ CASE ("x86::paging Verify default paging setup")
       // Map 4k-aligned sizes
       auto addr = (rand() & ~(4_KiB -1));
       auto map = __pml4->map_r({addr, addr, Flags::present, increment});
+      EXPECT(map);
+      EXPECT(has_flag(map.flags, x86::paging::Flags::present) == true);
+      EXPECT(map.size >= increment);
 
       auto summary_pre = __pml4->summary();
       auto* pml3_ent2  = __pml4->entry(513_GiB);
@@ -617,6 +618,7 @@ CASE ("x86::paging Verify default paging setup")
       auto diff_4k = summary_post.pages_4k - summary_pre.pages_4k;
 
       EXPECT(kb_pages_found == summary_post.pages_4k);
+      EXPECT(page_dirs_found == summary_post.dirs_512g + summary_post.dirs_2m + summary_post.dirs_1g);
       EXPECT(diff_4k == sum_pml3.pages_4k);
       EXPECT(sum_pml3.pages_1g == 0);
       EXPECT(sum_pml3.pages_2m == 0);
