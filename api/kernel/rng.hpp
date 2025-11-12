@@ -24,6 +24,9 @@
 #include <cstdint>
 #include <delegate>
 #include <smp_utils>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 // Incorporate seed data into the system RNG state
 extern void rng_absorb(const void* input, size_t bytes);

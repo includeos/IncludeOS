@@ -26,6 +26,9 @@
 #include <expects>
 #include <debug>
 #include <info>
+#ifdef INCLUDEOS_SMP_ENABLE
+#include <mutex>
+#endif
 
 /// x2APIC MSR offsets ///
 #define x2APIC_ID         0x02

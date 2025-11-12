@@ -21,6 +21,7 @@
 #include <type_traits>
 #include <functional>
 #include <memory>
+#include <new> // std::launder
 
 // ----- SYNOPSIS -----
 
@@ -66,6 +67,20 @@ public:
     const char* what() const throw() {
       return "Empty delegate called";
     }
+};
+
+template<std::size_t Size, std::size_t Align>
+struct sbo_storage {
+  alignas(Align) std::byte data[Size];
+
+  template<class T>
+  constexpr T& as() noexcept {
+    return *std::launder(reinterpret_cast<T*>(data));
+  }
+  template<class T>
+  constexpr const T& as() const noexcept {
+    return *std::launder(reinterpret_cast<const T*>(data));
+  }
 };
 
 // ----- IMPLEMENTATION -----
@@ -163,7 +178,7 @@ template<
 > class inplace_triv
 {
 public:
-	using storage_t = std::aligned_storage_t<size, align>;
+	using storage_t = sbo_storage<size, align>;
 	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
 
 	explicit inplace_triv() noexcept :
@@ -178,7 +193,10 @@ public:
 	> explicit inplace_triv(T&& closure) :
 		invoke_ptr_{ static_cast<invoke_ptr_t>(
 			[](storage_t& storage, Args&&... args) -> R
-			{ return reinterpret_cast<C&>(storage)(std::forward<Args>(args)...); }
+			{
+        auto& closure = storage.template as<C>();
+        return closure(std::forward<Args>(args)...);
+      }
 		)}
 	{
 		static_assert(sizeof(C) <= size,
@@ -211,12 +229,12 @@ public:
 
 	bool empty() const noexcept
 	{
-		return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
+		return storage_.template as <std::nullptr_t&>() == nullptr;
 	}
 
 	template<typename T> T* target() const noexcept
 	{
-		return reinterpret_cast<T*>(&storage_);
+		return &storage_.template as<T*>();
 	}
 
 private:
@@ -233,7 +251,7 @@ template<
 > class inplace
 {
 public:
-	using storage_t = std::aligned_storage_t<size, align>;
+	using storage_t = sbo_storage<size, align>;
 
 	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
 	using copy_ptr_t = void(*)(storage_t&, storage_t&);
@@ -251,12 +269,18 @@ public:
 	> explicit inplace(T&& closure) noexcept :
 		invoke_ptr_{ static_cast<invoke_ptr_t>(
 			[](storage_t& storage, Args&&... args) -> R
-			{ return reinterpret_cast<C&>(storage)(std::forward<Args>(args)...); }
+			{
+        auto& closure = storage.template as<C>();
+        return closure(std::forward<Args>(args)...);
+      }
 		) },
 		copy_ptr_{ copy_op<C, storage_t>() },
 		destructor_ptr_{ static_cast<destructor_ptr_t>(
 			[](storage_t& storage) noexcept -> void
-			{ reinterpret_cast<C&>(storage).~C(); }
+			{
+        auto& closure = storage.template as<C>();
+        closure.~C();
+      }
 		) }
 	{
 		static_assert(sizeof(C) <= size,
@@ -337,7 +361,7 @@ public:
 
 	template<typename T> T* target() const noexcept
 	{
-		return reinterpret_cast<T*>(&storage_);
+		return &storage_.template as <T>();
 	}
 
 private:
@@ -357,7 +381,7 @@ private:
 	{
 		return [](S& dst, S& src) noexcept -> void
 		{
-			new(&dst)T{ reinterpret_cast<T&>(src) };
+			new(&dst)T{ src.template as<T>() };
 		};
 	}
 
