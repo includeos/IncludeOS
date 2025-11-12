@@ -26,7 +26,7 @@
 template<class... Args>
 static inline void _kfmt(fmt::string_view prefix, fmt::format_string<Args...> fmtstr, Args&&... args) {
   fmt::basic_memory_buffer<char, kernel::kprintf_max_size> buf;
-  fmt::format_to_n(std::back_inserter(buf), buf.capacity(), "%s", prefix);
+  fmt::format_to_n(std::back_inserter(buf), buf.capacity(), "{}", prefix);
   fmt::format_to_n(std::back_inserter(buf), buf.capacity() - buf.size(), fmtstr, std::forward<Args>(args)...);
 
   kprintf("%.*s", (int)buf.size(), buf.data());
