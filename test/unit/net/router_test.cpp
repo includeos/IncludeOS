@@ -184,7 +184,6 @@ CASE("net::router: Actual routing verifying TTL")
 
   const Socket src{ip4::Addr{10,0,1,10}, 32222};
   const Socket dst{ip4::Addr{10,0,2,10}, 80};
-  const uint8_t DEFAULT_TTL = PacketIP4::DEFAULT_TTL;
 
   // Here we gonna receive the ICMP TTL Exceeded ONCE
   static int time_exceeded_count = 0;
@@ -192,6 +191,8 @@ CASE("net::router: Actual routing verifying TTL")
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
     EXPECT(packet->ip_protocol() == Protocol::ICMPv4);
     EXPECT(packet->ip_ttl() == PacketIP4::DEFAULT_TTL);
+    EXPECT(ip == src.address());
+    EXPECT(ip.is_loopback() == false);
 
     auto icmp = icmp4::Packet(std::move(packet));
     ICMP_error err{icmp.type(), icmp.code()};
@@ -209,6 +210,8 @@ CASE("net::router: Actual routing verifying TTL")
     EXPECT(packet->destination() == dst);
     EXPECT(packet->ip_ttl() == (PacketIP4::DEFAULT_TTL-1));
 
+    EXPECT(ip == dst.address());
+    EXPECT(ip.is_loopback() == false);
     tcp_packet_recv++;
   });
 

@@ -185,7 +185,7 @@ CASE("mem::buddy random ordered allocation then deallocation"){
   int highest_i = 0;
   void* highest = nullptr;
 
-  for (int i = 0; i < addresses.size(); i++) {
+  for (size_t i = 0; i < addresses.size(); i++) {
     if (addresses.at(i) > highest) {
       highest = addresses.at(i);
       highest_i = i;
@@ -198,7 +198,7 @@ CASE("mem::buddy random ordered allocation then deallocation"){
   EXPECT(computed_use >= alloc.bytes_used());
 
   // Deallocate
-  for (int i = 0; i < addresses.size(); i++) {
+  for (size_t i = 0; i < addresses.size(); i++) {
     auto addr = addresses.at(i);
     auto sz   = sizes.at(i);
     if (addr) EXPECT(sz) ;

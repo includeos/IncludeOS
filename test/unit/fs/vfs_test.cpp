@@ -27,6 +27,7 @@ class Person {
 public:
   explicit Person(std::string name, int age) : name_ {name}, age_ {age} {};
   bool isBjarne() const { return (name_ == "Bjarne") ? true : false; }
+  bool isAdult() const { return (age_ >= 18) ? true : false; }
 private:
   std::string name_;
   int age_;
@@ -75,7 +76,9 @@ CASE("VFS entries can contain arbitrary objects")
   EXPECT(info == "Person");
   Person bjarne = e.obj<Person>();
   EXPECT(bjarne.isBjarne() == true);
+  EXPECT(bjarne.isAdult() == true);
   EXPECT_THROWS(e.obj<std::string>());
+
   // constness is checked
   const Person q {"Dennis", 70};
   fs::VFS_entry f(q, "inspiration", "duh^2");
@@ -110,7 +113,7 @@ CASE("VFS can mount entries in a tree")
   EXPECT(fs::VFS::root().child_count() == 3);
 
   // get mounted objects of correct type
-  char our_char;
+  [[maybe_unused]] char our_char;
   EXPECT_THROWS(auto dir = fs::get<fs::Dirent>("/mnt/chars/c"));
   EXPECT_NO_THROW(our_char = fs::get<char>("/mnt/chars/c"));
 }
