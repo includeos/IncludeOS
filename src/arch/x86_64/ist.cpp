@@ -2,7 +2,7 @@
 
 #include <cstdio>
 #include <smp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 
 #ifdef DEBUG_IST
 #define IST_PRINT(X, ...) printf(X, __VA_ARGS__)

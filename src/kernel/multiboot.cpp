@@ -20,7 +20,7 @@
 #include <kernel.hpp>
 #include <kprint>
 #include <boot/multiboot.h>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <fmt/format.h>
 
 template<class... Args>

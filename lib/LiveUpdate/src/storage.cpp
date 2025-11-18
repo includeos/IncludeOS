@@ -21,7 +21,7 @@
 #include "storage.hpp"
 #include <os.hpp>
 #include <kernel.hpp>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #include <util/crc32.hpp>
 #include <cassert>
 //#define VERIFY_MEMORY

@@ -17,7 +17,7 @@
 
 #include <sstream>
 #include <iomanip>
-#include <kernel/memmap.hpp>
+#include <mem/memmap.hpp>
 #include <util/units.hpp>
 #include <expects>
 #include <likely>
