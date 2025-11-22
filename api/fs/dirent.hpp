@@ -194,5 +194,11 @@ namespace fs {
 
 } //< namespace fs
 
+namespace fs {
+    inline auto begin(List& l) { return l.entries->begin(); }
+    inline auto end(List& l)   { return l.entries->end(); }
+    inline auto cbegin(const List& l) { return l.entries->cbegin(); }
+    inline auto cend(const List& l)   { return l.entries->cend(); }
+} //< namespace fs
 
 #endif //< FS_DIRENT_HPP

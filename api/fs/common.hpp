@@ -205,10 +205,6 @@ namespace fs {
   {
     error_t    error;
     Dirvec_ptr entries;
-    auto begin() { return entries->begin(); }
-    auto end()   { return entries->end(); }
-    auto cbegin() const { return entries->cbegin(); }
-    auto cend()   const { return entries->cend(); }
   };
 
 } //< fs
