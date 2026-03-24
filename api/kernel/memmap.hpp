@@ -340,6 +340,12 @@ public:
   Fixed_memory_range& assign_range(const Fixed_memory_range::size_type size);
 
   /**
+   * Removes a memory range previously defined
+   * Useful to redefine the purpose of a range
+   */
+  void unassign_range(const Fixed_memory_range& range);
+
+  /**
    * Check if an address is within a range in the map
    *
    * @param addr
