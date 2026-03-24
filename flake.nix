@@ -3,8 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/25.05";
-    vmrunner.url = "github:mazunki/vmrunner/flakify";
-    # vmrunner.url = "github:includeos/vmrunner";
+    vmrunner.url = "github:includeos/vmrunner";
   };
 
   outputs = { self, nixpkgs, vmrunner }:
