@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-import sys
-import os
 import _thread
+import http.server
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 
 from vmrunner import vmrunner
 
 HOST = ''
 PORT = 9011
-
-import http.server
 
 DO_SERVE = True
 class RequestHandler(http.server.BaseHTTPRequestHandler):
@@ -36,7 +34,6 @@ def Client_test():
 _thread.start_new_thread(Client_test, ())
 
 
-import urllib.request, urllib.error, urllib.parse
 def Server_test(triggerline):
     res = urllib.request.urlopen("http://10.0.0.46:8080").read()
     assert(res.decode('utf-8') == "Hello")
