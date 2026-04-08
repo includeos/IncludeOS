@@ -169,7 +169,7 @@ void kernel::multiboot(uint32_t boot_addr)
     uint32_t mem_high_end = mem_high_start + (info->mem_upper * 1024) - 1;
     uint32_t mem_high_kb = info->mem_upper;
 
-    INFO2("* Valid memory (%i KiB):", mem_low_kb + mem_high_kb);
+    INFO2("* Valid memory ({} KiB):", mem_low_kb + mem_high_kb);
     INFO2("  0x{:08x} - 0x{:08x} ({} KiB)", mem_low_start, mem_low_end, mem_low_kb);
     INFO2("  0x{:08x} - 0x{:08x} ({} KiB)", mem_high_start, mem_high_end, mem_high_kb);
     INFO2("");
