@@ -34,16 +34,19 @@
 #include <os.hpp>
 inline void __expect_emit_failure(std::string_view msg, std::string_view panic_text) {
 #ifndef UNITTESTS
+
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
 #endif
+
   std::fprintf(stderr, "%.*s\n", int(msg.size()), msg.data());
   fflush(NULL);
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
 #endif
   os::panic(std::string(panic_text).c_str());
-#else // TEST
+
+#else // UNITTESTS
   (void) panic_text;
   // throw here to allow tests to capture the error
   #include <stdexcept>
