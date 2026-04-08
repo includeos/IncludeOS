@@ -393,8 +393,7 @@ namespace x86 {
     }
   }
 
-  __attribute__((noreturn))
-  void ACPI::shutdown()
+  [[noreturn]] void ACPI::shutdown()
   {
     asm("cli");
 
