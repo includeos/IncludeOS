@@ -124,6 +124,10 @@ extern kernel::ctor_t __plugin_ctors_end;
   if (kernel::panics() > 4) double_fault(why);
 
   const int current_cpu = SMP::cpu_id();
+  if (!kernel::libc_initialized()) {
+    kprint("FATAL: panic before libc\n");
+    panic_epilogue(why);
+  }
 
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
