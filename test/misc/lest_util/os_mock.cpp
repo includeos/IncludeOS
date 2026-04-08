@@ -89,7 +89,6 @@ void kprint(const char* str)
 //void os::default_stdout(const char*, size_t) {}
 void os::event_loop() {}
 void os::halt() noexcept {}
-void os::reboot() noexcept {}
 
 void __x86_init_paging(void*){};
 namespace x86 {

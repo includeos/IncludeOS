@@ -16,12 +16,23 @@
 
 #include <os.hpp>
 #include <kernel.hpp>
+#include <arch.hpp>
 
 bool os::is_booted() noexcept {
   return kernel::is_booted();
 }
 const char* os::arch() noexcept {
   return Arch::name;
+}
+
+void os::reboot() noexcept
+{
+  __arch_reboot();
+}
+
+void os::shutdown() noexcept
+{
+  kernel::state().running = false;
 }
 
 os::Panic_action os::panic_action() noexcept {
