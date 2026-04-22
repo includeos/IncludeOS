@@ -63,7 +63,7 @@
 
         boot = {
           type = "app";
-          program = "${vmrunner.lib.${system}.mkBoot default.chainloader}/bin/boot";
+          program = "${vmrunner.lib.${system}.mkBoot default.chainloader {}}/bin/boot";
         };
 
         boot-unikernel = {
@@ -72,7 +72,20 @@
             set -e
             dir="''${1:-./result}"
             shift || true
-            exec ${vmrunner.lib.${system}.mkBoot default.chainloader}/bin/boot \
+            exec ${vmrunner.lib.${system}.mkBoot default.chainloader {}}/bin/boot \
+              -j $dir/vm.json \
+              $dir/*.elf.bin \
+              "$@"
+          ''}";
+        };
+
+        boot-unikernel-kvm = {
+          type = "app";
+          program = "${default.pkgs.writeShellScript "boot-unikernel-kvm" ''
+            set -e
+            dir="''${1:-./result}"
+            shift || true
+            exec ${vmrunner.lib.${system}.mkBoot default.chainloader { kvm = true; }}/bin/boot \
               -j $dir/vm.json \
               $dir/*.elf.bin \
               "$@"
