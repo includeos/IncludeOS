@@ -1,8 +1,11 @@
 # mkUnikernel.nix
-{ system, default, vmrunner }:
+{ system, default, defaultDebug, vmrunner }:
 args:
 let
-  ios           = if args ? includeos then args.includeos else default;
+  debug         = args.debug or false;
+  ios           = if args ? includeos then args.includeos
+                  else if debug then defaultDebug
+                  else default;
   vmrunnerPkg   = if args ? vmrunner then args.vmrunner
                   else vmrunner.packages.${system}.default;
 
@@ -37,6 +40,10 @@ ios.includeos.stdenv.mkDerivation {
     "-DINCLUDEOS_PACKAGE=${ios.includeos}"
     "-DCMAKE_MODULE_PATH=${ios.includeos}/cmake"
     "-DFOR_PRODUCTION=${if forProduction then "ON" else "OFF"}"
+    "-DCMAKE_BUILD_TYPE=${if debug then "Debug" else "Release"}"
+  ] ++ ios.pkgs.lib.optionals debug [
+    "-DCMAKE_C_FLAGS=-ffile-prefix-map=/build/${builtins.baseNameOf src}=/build/unikernel"
+    "-DCMAKE_CXX_FLAGS=-ffile-prefix-map=/build/${builtins.baseNameOf src}=/build/unikernel"
   ];
 
   installPhase = ''

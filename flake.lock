@@ -43,16 +43,15 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1774383306,
-        "narHash": "sha256-ZX5ONXEGaNx5No6pk9AoO1NoQ25eBzSVCHt/U1jd0eI=",
+        "lastModified": 1778584895,
+        "narHash": "sha256-v9K3z0zqXub7xpoyH/GJjU96zZh9h4OB7Bha1w1m3qY=",
         "owner": "mazunki",
         "repo": "vmrunner",
-        "rev": "bf1db5862c7355f9892c63fa471255dcd46b878a",
+        "rev": "0b7b1a0de8cd75de8ca0d4ee8990b8a164acda48",
         "type": "github"
       },
       "original": {
         "owner": "mazunki",
-        "ref": "flakify",
         "repo": "vmrunner",
         "type": "github"
       }
