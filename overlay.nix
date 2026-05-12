@@ -2,6 +2,7 @@
   withCcache, # Enable ccache. Requires correct permissions, see below.
   disableTargetWarning ? true, # TODO: see https://github.com/NixOS/nixpkgs/issues/395191
   smp,      # Enable multicore support (SMP)
+  debug ? false,
 } :
 final: prev: {
 
@@ -13,7 +14,7 @@ final: prev: {
     musl-unpatched = self.callPackage ./deps/musl-unpatched/default.nix { linuxHeaders = prev.linuxHeaders; };
 
     # Import IncludeOS musl which will be built and linked with IncludeOS services
-    musl-includeos = self.callPackage ./deps/musl/default.nix { };
+    musl-includeos = self.callPackage ./deps/musl/default.nix { inherit debug; };
 
     # Clang with unpatched musl for building libcxx
     clang_musl_unpatched_nolibcxx = self.llvmPkgs.clangNoLibcxx.override (old: {
@@ -191,7 +192,10 @@ final: prev: {
 
       smpFlags = if smp then [ "-DSMP=ON" ] else [];
 
-      cmakeFlags = archFlags ++ smpFlags;
+      debugFlags = if debug then [ "-DCMAKE_BUILD_TYPE=Debug" ] else [];
+      dontStrip  = debug;
+
+      cmakeFlags = archFlags ++ smpFlags ++ debugFlags;
 
       # Add some pasthroughs, for easily building the dependencies (for debugging):
       # $ nix-build -A NAME
