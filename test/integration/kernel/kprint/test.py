@@ -3,7 +3,6 @@
 from __future__ import division
 from __future__ import print_function
 from builtins import str
-from past.utils import old_div
 import sys
 import os
 
@@ -27,7 +26,7 @@ def set_format_string_size(line):
 def check_truncation(line):
   assert(format_string_size)
 
-  print("Received truncated string: ", line, "of size", len(line), "(format size * ", old_div(len(line),format_string_size),")")
+  print("Received truncated string: ", line, "of size", len(line), "(format size * ", len(line)//format_string_size,")")
   assert(len(line) <= format_string_size * 2)
   # truncated outputs are unacceptable :)
   assert(line.strip().split(" ")[-1] == "END")
