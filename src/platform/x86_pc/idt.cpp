@@ -4,7 +4,7 @@
 #include <kprint>
 #include <info>
 #include <os>
-#include <kernel/memory.hpp>
+#include <mem/vmap.hpp>
 #define RING0_CODE_SEG   0x8
 
 extern "C" {

@@ -29,7 +29,6 @@
 #include "storage.hpp"
 #include <kernel.hpp>
 #include <os.hpp>
-#include <kernel/memory.hpp>
 #include <hw/nic.hpp> // for flushing
 
 #define LPRINT(x, ...) printf(x, ##__VA_ARGS__);

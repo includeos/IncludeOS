@@ -1,5 +1,4 @@
 #include "common.hpp"
-#include <kernel/memory.hpp>
 
 static long sys_mlock(const void* /* addr */, size_t /* len */)
 {

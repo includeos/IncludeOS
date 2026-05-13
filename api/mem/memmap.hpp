@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef KERNEL_MEMMAP_HPP
-#define KERNEL_MEMMAP_HPP
+#ifndef MEM_MEMMAP_HPP
+#define MEM_MEMMAP_HPP
 
 #include <cassert>
 #include <delegate>
@@ -466,4 +466,4 @@ private:
 }; //< class Memory_map
 
 } // ns os::mem
-#endif //< KERNEL_MEMMAP_HPP
+#endif //< MEM_MEMMAP_HPP
