@@ -102,7 +102,7 @@ namespace x86 {
     }
 
     static void reboot();
-    static void shutdown();
+    [[noreturn]] static void shutdown();
 
   private:
     void    discover();

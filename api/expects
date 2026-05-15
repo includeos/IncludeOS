@@ -32,18 +32,34 @@
 #endif
 
 #include <os.hpp>
+#include <serial>
+
+inline bool __expect_is_recursive() {
+#ifndef UNITTESTS
+  static volatile bool in_failure = false;
+  if (in_failure) return true;
+  in_failure = true;
+  return false;
+#else
+  return false;
+#endif
+}
+
 inline void __expect_emit_failure(std::string_view msg, std::string_view panic_text) {
 #ifndef UNITTESTS
+
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
 #endif
+
   std::fprintf(stderr, "%.*s\n", int(msg.size()), msg.data());
   fflush(NULL);
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
 #endif
   os::panic(std::string(panic_text).c_str());
-#else // TEST
+
+#else // UNITTESTS
   (void) panic_text;
   // throw here to allow tests to capture the error
   #include <stdexcept>
@@ -52,13 +68,36 @@ inline void __expect_emit_failure(std::string_view msg, std::string_view panic_t
 }
 
 template <class... Args>
-inline void __expect_failf(const char *err_prefix, const char * /*cond*/, const char *file, int line, const char *func, std::format_string<Args...> fmt, Args&&... args){
+inline void __expect_failf(const char *err_prefix, const char * cond, const char *file, int line, const char *func, std::format_string<Args...> fmt, Args&&... args){
+  if (__expect_is_recursive()) {
+    kprint("Fatal Expects/Ensures recursion. (libc not initialized?)\n");
+
+    kprint("Condition was '");
+    kprint(cond); kprint("' @ ");
+    kprint(file); kprint(":");
+    kprint(func); kprint(" with fmt=");
+    kprint(fmt.get().data()); kprint("\n");
+
+    // os::shutdown();
+    __arch_poweroff();
+  }
   auto reason_msg = std::format(fmt, std::forward<Args>(args)...);
   auto error_msg = std::format("{}:{}:{}: {}: {}", file, line, func, err_prefix, reason_msg);
   __expect_emit_failure(error_msg, reason_msg);
 }
 
 inline void __expect_failf(const char *err_prefix, const char *cond, const char *file, int line, const char *func){
+  if (__expect_is_recursive()) {
+    kprint("Fatal Expects/Ensures recursion (libc not initialized?)\n");
+
+    kprint("Condition was '");
+    kprint(cond); kprint("' @ ");
+    kprint(file); kprint(":");
+    kprint(func); kprint("\n");
+
+    // os::shutdown();
+    __arch_poweroff();
+  }
   auto reason_msg = std::format("{}: {}", err_prefix, cond);
   auto error_msg = std::format("{}:{}:{}: {}", file, line, func, err_prefix);
   __expect_emit_failure(error_msg, reason_msg);

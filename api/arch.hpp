@@ -27,8 +27,8 @@
 #include <string>
 
 
-extern void __arch_poweroff();
-extern void __arch_reboot();
+[[noreturn]] extern void __arch_poweroff();
+[[noreturn]] extern void __arch_reboot();
 extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
 extern void __arch_system_deactivate();

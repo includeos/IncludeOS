@@ -147,12 +147,11 @@ void __arch_disable_legacy_irq(uint8_t irq)
   x86::APIC::disable_irq(irq);
 }
 
-void __arch_poweroff()
+[[noreturn]] void __arch_poweroff()
 {
   x86::ACPI::shutdown();
-  __builtin_unreachable();
 }
-void __arch_reboot()
+[[noreturn]] void __arch_reboot()
 {
   x86::ACPI::reboot();
   __builtin_unreachable();

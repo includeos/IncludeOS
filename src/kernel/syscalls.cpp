@@ -118,12 +118,16 @@ extern kernel::ctor_t __plugin_ctors_end;
  * Print EOT character to stderr, to signal outside that PANIC output completed
  * If the handler returns, go to (permanent) sleep
 **/
-void os::panic(const char* why) noexcept
+[[noreturn]] void os::panic(const char* why) noexcept
 {
   cpu_enable_panicking();
   if (kernel::panics() > 4) double_fault(why);
 
   const int current_cpu = SMP::cpu_id();
+  if (!kernel::libc_initialized()) {
+    kprint("FATAL: panic before libc\n");
+    panic_epilogue(why);
+  }
 
 #ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
