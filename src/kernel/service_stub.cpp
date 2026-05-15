@@ -81,6 +81,8 @@ void Service::start(const std::string& cmd)
   int exit_status = main(argc, argv);
   INFO("main","returned with status %d", exit_status);
   #endif
+
+  os::shutdown();
 }
 
 __attribute__((weak))

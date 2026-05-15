@@ -85,16 +85,6 @@ void os::register_plugin(Plugin delg, const char* name){
   plugins.emplace_back(delg, name);
 }
 
-extern void __arch_reboot();
-void os::reboot() noexcept
-{
-  __arch_reboot();
-}
-void os::shutdown() noexcept
-{
-  kernel::state().running = false;
-}
-
 void kernel::post_start()
 {
   // Enable timestamps (if present)

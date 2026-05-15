@@ -49,10 +49,10 @@ IncludeOS can currently not be built on macOS or Windows.
 A minimal IncludeOS "hello world" looks like a regular C++ program:
 
 ```c++
-#include <iostream>
+#include <os>
 
 int main(){
-  std::cout << "Hello world\n";
+  std::println("Hello world");
 }
 ```
 
