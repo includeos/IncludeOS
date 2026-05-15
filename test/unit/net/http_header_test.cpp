@@ -109,6 +109,7 @@ CASE("Headers can be streamed")
 {
   http::Header header;
   bool res = header.set_field("Connection", "close");
+  EXPECT(res == true);
   std::stringstream ss;
   ss << header;
   EXPECT(ss.str().size() > 15);

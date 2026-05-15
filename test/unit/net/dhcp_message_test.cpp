@@ -158,13 +158,41 @@ CASE("Reading Message and parsing options with Message_view")
   EXPECT(param_req_list_opt->code == option::DHCP_PARAMETER_REQUEST_LIST);
   EXPECT(anon_opt == param_req_list_opt);
 
-  int i = 0;
-  auto y = view.parse_options([&i] (const option::base* opt)
+  int options_handled = 0;
+  std::array<bool, 3> seen{false, false, false};
+  auto options_found = view.parse_options([&] (const option::base* opt)
   {
-    ++i;
+    EXPECT(opt->code != net::dhcp::option::PAD);
+    EXPECT(opt->code != net::dhcp::option::END);
+    EXPECT(opt->length != 0);
+
+    switch (opt->code) {
+      case option::DHCP_MESSAGE_TYPE:
+        EXPECT(opt->length == 1);
+        EXPECT(opt->val[0] == uint8_t(message_type::DISCOVER));
+        seen[0] = true;
+        break;
+      case option::DHCP_CLIENT_IDENTIFIER:
+        EXPECT(opt->length == 7);
+        EXPECT(opt->val[0] == uint8_t(htype::ETHER));
+        EXPECT(std::memcmp(&opt->val[1], &link_addr, ETH_ALEN) == 0);
+        seen[1] = true;
+        break;
+      case option::DHCP_PARAMETER_REQUEST_LIST:
+        EXPECT(opt->length == 3);
+        EXPECT(opt->val[0] == option::ROUTERS);
+        EXPECT(opt->val[1] == option::SUBNET_MASK);
+        EXPECT(opt->val[2] == option::DOMAIN_NAME_SERVERS);
+        seen[2] = true;
+        break;
+      default:
+        EXPECT(false);
+        break;
+    }
+    ++options_handled;
   });
-  EXPECT(i == 3);
-  EXPECT(y == i);
+  EXPECT(options_handled == 3);
+  EXPECT(options_found == options_handled);
 }
 
 CASE("Creating Message and adding options with Message_view")

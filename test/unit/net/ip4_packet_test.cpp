@@ -48,7 +48,7 @@ CASE("IP4 Packet TTL - multiple packets")
     {10,10,10,10}, {1,1,1,1}, {0,0,0,0}, {111,222,111,222}, {123,123,0,123}
   };
 
-  for(int i = 0; i < addrs.size()-1; i++)
+  for(size_t i = 0; i < addrs.size()-1; i++)
   {
     auto ip4 = create_ip4_packet_init(addrs[i], addrs[i+1]);
 

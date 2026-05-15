@@ -37,6 +37,7 @@ template<typename L>
 inline void print_summary(L& lstack)
 {
   #ifndef DEBUG_UNIT
+  (void) lstack;
   return;
   #else
 

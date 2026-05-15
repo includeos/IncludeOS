@@ -30,7 +30,7 @@ CASE("Operating with out of order data")
   int no_reads;
   size_t fits, insert;
 
-  Read_request::ReadCallback read_cb = [&](auto buf) mutable {
+  Read_request::ReadCallback read_cb = [&]([[maybe_unused]] auto buf) mutable {
     no_reads++;
   };
 

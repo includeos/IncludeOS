@@ -182,6 +182,7 @@ namespace fs
               this->lba_base, this->lba_size, this->lba_size * 512);
 
         // on_init callback
+        initialized_ = true;
         on_init(no_error, *this);
       })
     );

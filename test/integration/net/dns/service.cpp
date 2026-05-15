@@ -86,7 +86,7 @@ void Service::start()
     [] (net::Inet& inet)
     {
       const ip4::Addr level3{4, 2, 2, 1};
-      const ip4::Addr google{8, 8, 8, 8};
+      //const ip4::Addr google{8, 8, 8, 8};
 
       static std::vector<Name_request> requests {
         // Having these here fails the test in some cases. A timing issue or a bug?
