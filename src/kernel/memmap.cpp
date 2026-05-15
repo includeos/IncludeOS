@@ -174,6 +174,21 @@ Fixed_memory_range& Memory_map::assign_range(Fixed_memory_range&& rng) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void Memory_map::unassign_range(const Fixed_memory_range& range) {
+  auto it = map_.find(range.addr_start());
+
+  if (it != map_.end()) {
+    if (it->second.addr_end() == range.addr_end()) {
+        map_.erase(it);
+    } else {
+        throw Memory_range_exception{"Range mismatch at address " + std::to_string(range.addr_start())};
+    }
+  } else {
+    throw Memory_range_exception{"No range found to erase at " + std::to_string(range.addr_start())};
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 Fixed_memory_range& Memory_map::at(const Key key) {
   return const_cast<Fixed_memory_range&>(static_cast<const Memory_map*>(this)->at(key));
 }

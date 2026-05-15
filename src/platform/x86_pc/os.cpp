@@ -48,6 +48,8 @@ extern uintptr_t _ELF_END_;
 // in kernel/os.cpp
 extern bool os_default_stdout;
 
+extern std::span<multiboot_memory_map_t> _multiboot_memory_maps();
+
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
 };
@@ -125,10 +127,6 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
 
   MYINFO("Total memory detected as %s ", util::Byte_r(kernel::memory_end()).to_string().c_str());
 
-  // Give the rest of physical memory to heap
-  kernel::state().heap_max = kernel::memory_end() - 1;
-  assert(kernel::heap_begin() != 0x0 and kernel::heap_max() != 0x0);
-
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = os::mem::vmmap();
@@ -145,13 +143,30 @@ void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #endif
 
-  // heap (physical) area
-  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t heap_range_max_ = std::min(span_max, kernel::heap_max());
+  multiboot_memory_map_t heap_map = {0,0,0,0};
+  for (auto entry : _multiboot_memory_maps())
+  {
+    if (not entry.is_available()) continue;
 
-  INFO2("* Assigning heap 0x%zx -> 0x%zx", kernel::heap_begin(), heap_range_max_);
-  memmap.assign_range({kernel::heap_begin(), heap_range_max_,
-        "Dynamic memory", kernel::heap_usage });
+    if (entry.len > heap_map.len) {
+      heap_map = entry;
+    }
+  }
+  uintptr_t end = heap_map.addr + heap_map.len - 1;
+
+  // NOTE: this hard-coded address stems from LiveUpdate and SystemLog using part of this space
+  // and should ideally be resolved by refactoring those subsystems to not use hardcoded addresses
+  if (heap_map.addr < 0x1'000'000) {
+    kernel::state().heap_begin = std::max((uintptr_t)0x1'000'000, (uintptr_t)heap_map.addr);
+    kernel::state().heap_max = std::min(kernel::heap_max(), end);
+  } else {
+    kernel::state().heap_begin = heap_map.addr;
+    kernel::state().heap_max = end;
+  }
+
+
+  INFO2("* Assigning heap 0x%lx -> 0x%lx", kernel::heap_begin(), kernel::heap_max());
+  memmap.assign_range({kernel::heap_begin(), kernel::heap_max(), "Heap", kernel::heap_usage });
 
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
@@ -182,7 +197,7 @@ void os::event_loop()
   __arch_poweroff();
 }
 
-
+/* legacy boot is used when MULTIBOOT_BOOTLOADER_MAGIC is unset, see x86_pc/kernel_start.cpp */
 void kernel::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)

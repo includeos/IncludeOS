@@ -247,7 +247,7 @@ inline bool is_aligned(uintptr_t A, uintptr_t ptr) noexcept
   return (ptr & (A - 1)) == 0;
 }
 
-inline size_t upercent(size_t a, size_t b) noexcept
+inline std::size_t upercent(std::size_t a, std::size_t b) noexcept
 {
   return (100 * a + b / 2) / b;
 }

@@ -22,6 +22,7 @@
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
 #include <fmt/format.h>
+#include <ranges>
 
 template<class... Args>
 static inline void _kfmt(fmt::string_view prefix, fmt::format_string<Args...> fmtstr, Args&&... args) {
@@ -122,9 +123,41 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
   return multi_end;
 }
 
+constexpr static inline const char* multiboot_memory_type_str(uint32_t type) noexcept {
+  // TODO: convert multiboot types to enum class
+  switch (type) {
+    case MULTIBOOT_MEMORY_AVAILABLE:
+      return "Available";
+    case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
+      return "ACPI Reclaimable";
+    case MULTIBOOT_MEMORY_NVS:
+      return "ACPI Non-volatile Storage";
+    case MULTIBOOT_MEMORY_BADRAM:
+      return "Bad RAM";
+    case MULTIBOOT_MEMORY_RESERVED:
+      return "Reserved";
+    default:
+        return "UNKNOWN";
+  }
+}
+
+
+std::span<multiboot_memory_map_t> _multiboot_memory_maps() {
+  auto* info = kernel::bootinfo();
+
+  auto* hardware_map = reinterpret_cast<multiboot_memory_map_t*>(info->mmap_addr);
+  const size_t entry_count = static_cast<size_t>(info->mmap_length / sizeof(multiboot_memory_map_t));
+
+  return std::span<multiboot_memory_map_t> { hardware_map, entry_count };
+}
+
 void kernel::multiboot(uint32_t boot_addr)
 {
-  MYINFO("Booted with multiboot");
+#if defined(__x86_64)
+  MYINFO("Booted with multiboot x86_64");
+#else
+  MYINFO("Booted with multiboot x86");
+#endif
   auto* info = ::bootinfo(boot_addr);
   INFO2("* Boot flags: {:#x}", info->flags);
 
@@ -136,7 +169,7 @@ void kernel::multiboot(uint32_t boot_addr)
     uint32_t mem_high_end = mem_high_start + (info->mem_upper * 1024) - 1;
     uint32_t mem_high_kb = info->mem_upper;
 
-    INFO2("* Valid memory (%i KiB):", mem_low_kb + mem_high_kb);
+    INFO2("* Valid memory ({} KiB):", mem_low_kb + mem_high_kb);
     INFO2("  0x{:08x} - 0x{:08x} ({} KiB)", mem_low_start, mem_low_end, mem_low_kb);
     INFO2("  0x{:08x} - 0x{:08x} ({} KiB)", mem_high_start, mem_high_end, mem_high_kb);
     INFO2("");
@@ -152,36 +185,50 @@ void kernel::multiboot(uint32_t boot_addr)
   }
 
   if (info->flags & MULTIBOOT_INFO_MEM_MAP) {
-    INFO2("* Multiboot provided memory map  ({} entries @ {})",
-          info->mmap_length / sizeof(multiboot_memory_map_t),
-          (const void*)(uintptr_t)info->mmap_addr);
-    std::span<multiboot_memory_map_t> mmap {
-        reinterpret_cast<multiboot_memory_map_t*>(info->mmap_addr),
-        static_cast<size_t>(info->mmap_length / sizeof(multiboot_memory_map_t))
-      };
+    auto* hardware_map = reinterpret_cast<multiboot_memory_map_t*>(info->mmap_addr);
+    const size_t entry_count = static_cast<size_t>(info->mmap_length / sizeof(multiboot_memory_map_t));
 
-    for (auto map : mmap)
+    INFO2("* Multiboot provided memory map  ({} entries @ {})\n", entry_count, reinterpret_cast<const void*>(hardware_map));
+
+    for (auto map : std::span<multiboot_memory_map_t>{ hardware_map, entry_count })
     {
-      const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
-      const uintptr_t addr = map.addr;
+      const uintptr_t start = map.addr;
       const uintptr_t size = map.len;
-      INFO2("  {:#x} - {:#x} {} ({} KiB)", addr, addr + size - 1, str_type, size / 1024);
+      const uintptr_t end = start + size - 1;
 
-      if (not (map.type & MULTIBOOT_MEMORY_AVAILABLE)) {
+      INFO2("  {:#16x} - {:#16x} ({} KiB): {}", start, end, size / 1024, multiboot_memory_type_str(map.type));
 
-        if (util::bits::is_aligned<4_KiB>(map.addr)) {
-          os::mem::map({addr, addr, os::mem::Access::read | os::mem::Access::write, size},
-                       "Reserved (Multiboot)");
-          continue;
-        }
-
-        // For non-aligned addresses, assign
-        os::mem::vmmap().assign_range({addr, addr + size - 1, "Reserved (Multiboot)"});
+      // os::mem::map() does not accept non-aligned page addresses
+      if (not util::bits::is_aligned<4_KiB>(map.addr)) {
+        os::mem::vmmap().assign_range({start, start + size - 1, "UNALIGNED"});
+        continue;
       }
-      else
+
+      os::mem::Map rw_map = { /*.linear=*/start, /*.physical=*/start, /*.fl=*/os::mem::Access::read | os::mem::Access::write, /*.sz=*/size };
+      switch (map.type)
       {
-        // Map as free memory
-        //os::mem::map_avail({map.addr, map.addr, {os::mem::Access::read | os::mem::Access::write}, map.len}, "Reserved (Multiboot)");
+        case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
+            os::mem::map(rw_map, "Multiboot (ACPI Reclaimable)");
+            break;
+        case MULTIBOOT_MEMORY_NVS:
+            os::mem::map(rw_map, "Multiboot (ACPI Non-volatile Storage)");
+            break;
+        case MULTIBOOT_MEMORY_BADRAM:
+            os::mem::map(rw_map, "Multiboot (Bad RAM)");
+            break;
+        case MULTIBOOT_MEMORY_RESERVED:
+            os::mem::map(rw_map, "Multiboot (Reserved)");
+            break;
+
+        case MULTIBOOT_MEMORY_AVAILABLE: {
+          // these are mapped in src/platform/${platform}/os.cpp
+          break;
+        }
+        default: {
+          char buf[32];  // libc is not entirely initialized at this point
+          std::snprintf(buf, sizeof(buf), "Unknown memory map type: %d", map.type);
+          os::panic(buf);
+        }
       }
     }
     INFO2("");
