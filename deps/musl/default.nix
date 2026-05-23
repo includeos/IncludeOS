@@ -2,6 +2,7 @@
 stdenv
 , pkgs
 , linuxHeaders ? null
+, debug ? false
 }:
 stdenv.mkDerivation rec {
   pname = "musl-includeos";
@@ -40,7 +41,8 @@ stdenv.mkDerivation rec {
     ./configure --prefix=$out --disable-shared --enable-debug --with-malloc=oldmalloc CROSS_COMPILE=${stdenv.targetPlatform.config}-
   '';
 
-  CFLAGS = "-Wno-error=int-conversion -nostdinc";
+  dontStrip = debug;
+  CFLAGS = "-Wno-error=int-conversion -nostdinc${pkgs.lib.optionalString debug " -g"}";
 
   meta = {
     description = "musl - Linux based libc, built with IncludeOS linux-like syscalls";
