@@ -110,10 +110,13 @@ namespace x86
     argv[1] = 0x0;
     int argc = 1;
 
-    // Env vars
-    argv[2] = std::pmr::string("LC_CTYPE=C").data();
-    argv[3] = std::pmr::string("LC_ALL=C").data();
-    argv[4] = std::pmr::string("USER=root").data();
+    // Env vars (static storage — not .data() of a temporary pmr::string)
+    static char env_lc_ctype[] = "LC_CTYPE=C";
+    static char env_lc_all[]   = "LC_ALL=C";
+    static char env_user[]     = "USER=root";
+    argv[2] = env_lc_ctype;
+    argv[3] = env_lc_all;
+    argv[4] = env_user;
     argv[5] = 0x0;
 
     // auxiliary vector
