@@ -21,34 +21,41 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-
-/* PCI Register Config Space */
-#define PCI_DEV_VEND_REG 0x00	/* for the 32 bit read of dev/vend */
-#define PCI_VENDID_REG   0x00
-#define PCI_DEVID_REG    0x02
-#define PCI_CMD_REG      0x04
-#define PCI_STATUS_REG   0x06
-#define PCI_REVID_REG    0x08
-#define PCI_PROGIF_REG   0x09
-#define PCI_SUBCLASS_REG 0x0a
-#define PCI_CLASS_REG    0x0b
-#define PCI_CLSZ_REG     0x0c
-#define PCI_LATTIM_REG   0x0d
-#define PCI_HEADER_REG   0x0e
-#define PCI_BIST_REG     0x0f
-#define PCI_CAPABILITY_REG 0x34
-
-#define PCI_COMMAND_IO		 0x01
-#define PCI_COMMAND_MEM		 0x02
-#define PCI_COMMAND_MASTER 0x04
-
-#define PCI_CAP_ID_VNDR      0x09
-#define PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
-#define PCI_CAP_ID_MAX       PCI_CAP_ID_AF
-#define PCI_EXT_CAP_ID_PASID 0x1B	/* Process Address Space ID */
-#define PCI_EXT_CAP_ID_MAX   PCI_EXT_CAP_ID_PASID
+#include <util/bitops.hpp>
 
 namespace PCI {
+
+  // Names/values match Linux include/linux/pci_regs.h (PCI Local Bus Spec).
+  enum class config_reg : uint8_t {
+    DEV_VEND   = 0x00,
+    DEVID      = 0x02,
+    CMD        = 0x04,
+    STATUS     = 0x06,
+    REVID      = 0x08,
+    PROGIF     = 0x09,
+    SUBCLASS   = 0x0a,
+    CLASS      = 0x0b,
+    CLSZ       = 0x0c,
+    LATTIM     = 0x0d,
+    HEADER     = 0x0e,
+    BIST       = 0x0f,
+    CAPABILITY = 0x34
+  };
+
+  enum class command : uint16_t {
+    IO           = 0x01,
+    MEM          = 0x02,
+    MASTER       = 0x04,
+    INTX_DISABLE = 0x400,
+  };
+
+  enum class cap_id : uint8_t {
+    MSI  = 0x05,
+    VNDR = 0x09,
+    MSIX = 0x11,
+    AF   = 0x13,
+    MAX  = AF
+  };
 
   static const uint16_t  CONFIG_ADDR           {0xCF8U};
   static const uint16_t  CONFIG_DATA           {0xCFCU};
@@ -169,16 +176,22 @@ struct msix_t;
      */
     explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
 
+    // config_reg overloads own the HW path; uint8_t is for dynamic offsets.
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
+    uint32_t read32(PCI::config_reg reg) noexcept;
     uint32_t read32(const uint8_t reg) noexcept;
 
     //! @brief Read from device with explicit pci_addr
+    static uint32_t read_dword(const uint16_t pci_addr, PCI::config_reg reg) noexcept;
     static uint32_t read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept;
 
     //! @brief Write to device with implicit pci_address (e.g. used by Nic)
+    void write_dword(PCI::config_reg reg, const uint32_t value) noexcept;
     void write_dword(const uint8_t reg, const uint32_t value) noexcept;
 
+    uint16_t read16(PCI::config_reg reg) noexcept;
     uint16_t read16(const uint8_t reg) noexcept;
+    void write16(PCI::config_reg reg, const uint16_t value) noexcept;
     void write16(const uint8_t reg, const uint16_t value) noexcept;
 
     /** A descriptive name  */
@@ -308,7 +321,7 @@ struct msix_t;
     int m_iobase = -1;
     std::array<PCI::Resource, 6> m_resources;
 
-    std::array<pcicap_t, PCI_CAP_ID_MAX+1> caps;
+    std::array<pcicap_t, static_cast<size_t>(PCI::cap_id::MAX)+1> caps;
 
     // has msix support if not null
     msix_t*  msix = nullptr;
@@ -359,6 +372,17 @@ static const char* PCI::vendor_str(uint16_t code){
 
   auto it = classcodes.find(code);
   return it == classcodes.end() ? "Unknown vendor" : it->second;
+}
+
+/** Enable bitmask operators for PCI command register flags */
+namespace util {
+inline namespace bitops {
+template<>
+struct enable_bitmask_ops<PCI::command> {
+  using type = std::underlying_type<PCI::command>::type;
+  static constexpr bool enable = true;
+};
+}
 }
 
 #endif //< HW_PCI_DEVICE_HPP
