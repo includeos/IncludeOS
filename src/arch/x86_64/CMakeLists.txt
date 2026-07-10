@@ -11,6 +11,7 @@ set(ARCH_OBJECTS
   fiber_asm.asm
   __syscall_entry.asm
   syscall_entry.cpp
+  syscall_trap.cpp
   ist.cpp
   paging.cpp
   init_paging.cpp

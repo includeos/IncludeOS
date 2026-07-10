@@ -1,6 +1,7 @@
 #include "init_libc.hpp"
 
 #include <arch/x86/cpu.hpp>
+#include <arch/x86/syscall.hpp>
 #include <kernel.hpp>
 #include <kernel/auxvec.h>
 #include <kernel/cpuid.hpp>
@@ -153,18 +154,8 @@ namespace x86
     aux[i++].set_long(AT_NULL, 0);
 
 #ifdef PLATFORM_x86_pc
-    // SYSCALL instruction
-  #if defined(__x86_64__)
-    KDEBUG("* Initialize syscall MSR (64-bit)\n");
-    uint64_t star_kernel_cs = 8ull << 32;
-    uint64_t star_user_cs   = 8ull << 48;
-    uint64_t star = star_kernel_cs | star_user_cs;
-    x86::CPU::write_msr(IA32_STAR, star);
-    x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
-  #elif defined(__i386__)
-    KDEBUG("Initialize syscall intr (32-bit)\n");
-    #warning Classical syscall interface missing for 32-bit
-  #endif
+    KDEBUG("* Initialize syscall trap\n");
+    x86::init_syscall_trap();
 #endif
 
     // GDB_ENTRY;

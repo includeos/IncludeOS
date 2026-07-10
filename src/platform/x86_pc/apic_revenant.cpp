@@ -3,6 +3,7 @@
 #include "apic_timer.hpp"
 #include "clocks.hpp"
 #include "idt.hpp"
+#include <arch/x86/syscall.hpp>
 #include <kernel/events.hpp>
 //#include <kernel/os.hpp>
 #include <os.hpp>
@@ -90,6 +91,7 @@ void revenant_main(int cpu)
   SMP::global_unlock();
   // initialize exceptions before asserts
   x86::idt_initialize_for_cpu(cpu);
+  x86::init_syscall_trap();
   assert(cpu == SMP::cpu_id());
   assert(stack >= this_stack_end && stack < this_stack);  // relates to [[maybe_unused]]
 
